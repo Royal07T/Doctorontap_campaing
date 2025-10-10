@@ -152,10 +152,8 @@
                                                 <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
                                             </div>
                                             <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"Thank you for your help. The Doctor that was assigned to me was very helpful. She asked me to do some test and told me not to worry. Now my mind is at peace. If you're always of hospital or need second thought on your health contact doctorontap. The prices are very very low. I will be going to the hospital once they have one. Thank you once again."</p>
-                                            <div class="flex items-center justify-center gap-2">
-                                                <div class="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                                    <span class="text-white font-bold text-lg">N</span>
-                                                </div>
+                                            <div class="flex items-center justify-center gap-3">
+                                                <img src="{{ asset('img/testimony/Nancy Audu-War.jpg') }}" alt="Nancy Audu-War" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
                                                 <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Nancy Audu-War</p>
                                             </div>
                                         </div>
@@ -168,10 +166,8 @@
                                                 <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
                                             </div>
                                             <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"I Love them 😍😍 I appreciate their doctor they were willing to talk to me i felt as if i was talking to somebody i know ✅✅✅"</p>
-                                            <div class="flex items-center justify-center gap-2">
-                                                <div class="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                                    <span class="text-white font-bold text-lg">O</span>
-                                                </div>
+                                            <div class="flex items-center justify-center gap-3">
+                                                <img src="{{ asset('img/testimony/Otabor Theodora.jpg') }}" alt="Otabor Theodora" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
                                                 <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Otabor Theodora</p>
                                             </div>
                                         </div>
@@ -184,11 +180,9 @@
                                                 <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
                                             </div>
                                             <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"When DoctorOnTap ads prompted on my instagram, i was curious as to how true it was. I contacted them and i must say, their services is cool and impressive."</p>
-                                            <div class="flex items-center justify-center gap-2">
-                                                <div class="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                                    <span class="text-white font-bold text-lg">O</span>
-                                                </div>
-                                                <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Odunaye Muibat</p>
+                                            <div class="flex items-center justify-center gap-3">
+                                                <img src="{{ asset('img/testimony/odunayo muibat.jpeg') }}" alt="Odunayo Muibat" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
+                                                <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Odunayo Muibat</p>
                                             </div>
                                         </div>
                                     </div>
@@ -236,8 +230,8 @@
                     </svg>
                 </div>
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                    Frequently Asked Questions
-                </h2>
+                Frequently Asked Questions
+            </h2>
                 <p class="text-gray-600 max-w-2xl mx-auto">
                     Get instant answers to common questions about our consultation service
                 </p>
@@ -257,7 +251,7 @@
                             </div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 What does 'Pay After' mean?
-                            </h3>
+                    </h3>
                         </div>
                         <svg :class="openFaq === 1 ? 'rotate-180' : ''" 
                              class="w-5 h-5 text-gray-500 transition-transform duration-300" 
@@ -286,7 +280,7 @@
                             </div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 How do I pay after the consultation?
-                            </h3>
+                    </h3>
                         </div>
                         <svg :class="openFaq === 2 ? 'rotate-180' : ''" 
                              class="w-5 h-5 text-gray-500 transition-transform duration-300" 
@@ -315,7 +309,7 @@
                             </div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 Is this service safe and private?
-                            </h3>
+                    </h3>
                         </div>
                         <svg :class="openFaq === 3 ? 'rotate-180' : ''" 
                              class="w-5 h-5 text-gray-500 transition-transform duration-300" 
@@ -344,7 +338,7 @@
                             </div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 Can I choose my doctor and consultation mode?
-                            </h3>
+                    </h3>
                         </div>
                         <svg :class="openFaq === 4 ? 'rotate-180' : ''" 
                              class="w-5 h-5 text-gray-500 transition-transform duration-300" 
@@ -507,36 +501,36 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- First Name -->
-                        <div>
+                    <div>
                             <label for="first_name" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
-                                First Name *
-                            </label>
-                            <input 
-                                type="text" 
-                                id="first_name" 
-                                x-model="formData.first_name"
-                                required
+                            First Name *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="first_name" 
+                            x-model="formData.first_name"
+                            required
                                 placeholder="Enter your first name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
-                            >
+                        >
                             <p x-show="errors.first_name" class="text-red-500 text-xs mt-1" x-text="errors.first_name"></p>
-                        </div>
+                    </div>
 
                         <!-- Last Name -->
-                        <div>
+                    <div>
                             <label for="last_name" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
-                                Last Name *
-                            </label>
-                            <input 
-                                type="text" 
-                                id="last_name" 
-                                x-model="formData.last_name"
-                                required
+                            Last Name *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="last_name" 
+                            x-model="formData.last_name"
+                            required
                                 placeholder="Enter your last name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
-                            >
+                        >
                             <p x-show="errors.last_name" class="text-red-500 text-xs mt-1" x-text="errors.last_name"></p>
-                        </div>
+                    </div>
 
                         <!-- Gender -->
                         <div>
@@ -589,21 +583,21 @@
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
                             >
                             <p x-show="errors.mobile" class="text-red-500 text-xs mt-1" x-text="errors.mobile"></p>
-                        </div>
+                </div>
 
-                        <!-- Email -->
-                        <div>
+                <!-- Email -->
+                <div>
                             <label for="email" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
-                                Email Address *
-                            </label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                x-model="formData.email"
-                                required
+                        Email Address *
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        x-model="formData.email"
+                        required
                                 placeholder="your.email@example.com"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
-                            >
+                    >
                             <p x-show="errors.email" class="text-red-500 text-xs mt-1" x-text="errors.email"></p>
                         </div>
                     </div>
@@ -789,14 +783,14 @@
                         </div>
 
                         <!-- Consult Mode -->
-                        <div>
+                <div>
                             <label for="consult_mode" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
                                 Consultation Mode *
-                            </label>
+                    </label>
                             <select 
                                 id="consult_mode" 
                                 x-model="formData.consult_mode"
-                                required
+                        required
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white transition-colors"
                             >
                                 <option value="">Select Consult Mode</option>
@@ -840,7 +834,7 @@
                                 I have read and agree to the 
                                 <a href="#" class="text-purple-600 hover:underline font-semibold">Data & Privacy Policy</a> *
                             </span>
-                        </label>
+                    </label>
                     </div>
                 </div>
 
@@ -1049,8 +1043,8 @@
                             </svg>
                         </a>
                     </div>
-                </div>
-
+            </div>
+                
                 <!-- Quick Links -->
                 <div>
                     <h3 class="text-lg font-bold mb-4 text-purple-300">Quick Links</h3>
@@ -1183,7 +1177,7 @@
                     </div>
                 </div>
             </div>
-
+            
             <!-- Map Section -->
             <div class="mb-8">
                 <h3 class="text-xl font-bold mb-4 text-center text-purple-300">Find Us - Abuja Office</h3>
@@ -1200,7 +1194,7 @@
                     </iframe>
                 </div>
             </div>
-
+            
             <!-- Bottom Bar -->
             <div class="pt-6 border-t border-gray-700">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1217,7 +1211,7 @@
                 </div>
             </div>
         </div>
-    </footer>
+        </footer>
 
     <script>
         // Hero Background Image Rotator
