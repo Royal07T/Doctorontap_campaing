@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Admin Login - DoctorOnTap</title>
+    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .purple-gradient {
+            background: linear-gradient(135deg, #7B3DE9 0%, #5a2ba8 100%);
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4">
+    <!-- Login Container -->
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-6">
+            <div class="bg-white rounded-full p-3 inline-block shadow-lg mb-4">
+                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-12 w-auto">
+            </div>
+            <h1 class="text-2xl font-bold text-white">Admin Portal</h1>
+            <p class="text-purple-200 mt-1 text-sm">Sign in to manage consultations</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white rounded-xl shadow-xl p-6">
+            <!-- Success Message -->
+            @if(session('success'))
+            <div class="mb-4 p-3 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded text-sm">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    {{ session('success') }}
+                </div>
+            </div>
+            @endif
+
+            <!-- Error Message -->
+            @if(session('error'))
+            <div class="mb-4 p-3 bg-rose-50 border-l-4 border-rose-500 text-rose-700 rounded text-sm">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    {{ session('error') }}
+                </div>
+            </div>
+            @endif
+
+            <!-- Login Form -->
+            <form method="POST" action="{{ route('admin.login.post') }}">
+                @csrf
+
+                <!-- Email -->
+                <div class="mb-4">
+                    <label for="email" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                        Email Address
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           value="{{ old('email') }}"
+                           required 
+                           autofocus
+                           placeholder="admin@doctorontap.com"
+                           class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 @error('email') border-red-500 @enderror">
+                    @error('email')
+                    <p class="text-red-500 text-xs mt-1.5">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Password -->
+                <div class="mb-4">
+                    <label for="password" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                        Password
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           required
+                           placeholder="Enter your password"
+                           class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 @error('password') border-red-500 @enderror">
+                    @error('password')
+                    <p class="text-red-500 text-xs mt-1.5">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Remember Me -->
+                <div class="mb-5 flex items-center">
+                    <input type="checkbox" 
+                           id="remember" 
+                           name="remember"
+                           class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                    <label for="remember" class="ml-2 text-sm text-gray-600">
+                        Keep me signed in
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full px-6 py-3 purple-gradient text-white font-semibold text-sm rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Sign In to Dashboard
+                </button>
+            </form>
+
+            <!-- Footer Links -->
+            <div class="mt-5 pt-4 border-t border-gray-200 text-center">
+                <a href="{{ url('/') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold inline-flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to Website
+                </a>
+            </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="mt-4 text-center">
+            <div class="inline-flex items-center gap-2 bg-purple-900 bg-opacity-30 px-4 py-2 rounded-lg">
+                <svg class="w-4 h-4 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <p class="text-purple-100 text-xs">
+                    Secure admin area • All activities are logged
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
