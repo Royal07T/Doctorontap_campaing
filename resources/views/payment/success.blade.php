@@ -18,7 +18,7 @@
         <div class="container mx-auto px-5 py-4">
             <div class="flex items-center justify-between">
                 <a href="{{ url('/') }}" class="flex items-center group">
-                    <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-10 w-auto transition-transform group-hover:scale-105">
+                    <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-7 sm:h-8 md:h-10 w-auto transition-transform group-hover:scale-105">
                 </a>
                 <a href="{{ url('/') }}" class="text-white hover:text-purple-200 font-semibold transition-colors">
                     Home

@@ -35,4 +35,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
     Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
+    Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
+    Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
+    Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
+    
+    // Admin Users Management
+    Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
+    Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
+    Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
+    Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
 });

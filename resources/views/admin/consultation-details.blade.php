@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         .purple-gradient {
-            background: linear-gradient(135deg, #7B3DE9 0%, #5a2ba8 100%);
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
         }
         .modal-backdrop {
             background-color: rgba(0, 0, 0, 0.5);
@@ -19,6 +19,7 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen" x-data="{
+    sidebarOpen: false,
     showMessageModal: false,
     messageType: 'success',
     messageTitle: '',
@@ -48,35 +49,30 @@
 }"
 @show-message.window="showMessage($event.detail.type, $event.detail.title, $event.detail.text)"
 @show-confirm.window="showConfirm($event.detail.title, $event.detail.text, $event.detail.action)">
-    <!-- Navbar -->
-    <nav class="purple-gradient shadow-lg">
-        <div class="container mx-auto px-5 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <a href="{{ route('admin.dashboard') }}">
-                        <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-10 w-auto">
-                    </a>
-                    <span class="text-white font-bold text-xl">Consultation Details</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-white text-sm">👤 {{ Auth::guard('admin')->user()->name }}</span>
-                    <a href="{{ route('admin.dashboard') }}" class="text-white hover:text-purple-200 transition-colors">Dashboard</a>
-                    <a href="{{ route('admin.consultations') }}" class="text-white hover:text-purple-200 transition-colors">Consultations</a>
-                    <a href="{{ route('admin.payments') }}" class="text-white hover:text-purple-200 transition-colors">Payments</a>
-                    <a href="{{ route('admin.doctors') }}" class="text-white hover:text-purple-200 transition-colors">Doctors</a>
-                    <form method="POST" action="{{ route('admin.logout') }}" class="inline">
-                        @csrf
-                        <button type="submit" class="text-white hover:text-red-300 transition-colors font-semibold">
-                            Logout
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div class="flex h-screen overflow-hidden">
+        @include('admin.shared.sidebar', ['active' => 'consultations'])
 
-    <!-- Main Content -->
-    <div class="container mx-auto px-5 py-8">
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="purple-gradient shadow-lg z-10">
+                <div class="flex items-center justify-between px-6 py-6">
+                    <div class="flex items-center space-x-4">
+                        <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <div class="flex items-center space-x-3">
+                            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
+                            <h1 class="text-xl font-bold text-white">Consultation Details</h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-white">{{ now()->format('l, F j, Y') }}</span>
+                    </div>
+                </div>
+            </header>
+            <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
         <!-- Back Button -->
         <div class="mb-6">
             <a href="{{ route('admin.consultations') }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 font-semibold">
@@ -603,6 +599,9 @@
             }
         }
     </script>
+            </main>
+        </div>
+    </div>
 </body>
 </html>
 

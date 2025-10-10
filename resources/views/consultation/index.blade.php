@@ -11,6 +11,9 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    <!-- Alpine.js Collapse Plugin -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <style>
@@ -103,7 +106,7 @@
         <div class="container mx-auto px-5 py-4">
             <div class="flex items-center justify-between">
                 <a href="{{ url('/') }}" class="flex items-center group">
-                    <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-10 w-auto transition-transform group-hover:scale-105">
+                    <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-7 sm:h-8 md:h-10 w-auto transition-transform group-hover:scale-105">
                 </a>
                 <a href="{{ url('/') }}" class="text-white hover:text-purple-200 font-semibold transition-colors">
                     Home
@@ -1020,7 +1023,7 @@
                 <!-- Company Info -->
                 <div class="lg:col-span-2">
                     <div class="flex items-center gap-3 mb-4">
-                        <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-12 w-auto">
+                        <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 sm:h-10 md:h-12 w-auto">
                     </div>
                     <h3 class="text-xl font-bold mb-3 text-purple-300">Healthcare at Your Fingertips</h3>
                     <p class="text-gray-300 text-sm leading-relaxed mb-4">
@@ -1063,14 +1066,6 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                                 FAQs
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('admin.login') }}" class="text-gray-300 hover:text-purple-400 transition-colors flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                                Admin Login
                             </a>
                         </li>
                         <li>

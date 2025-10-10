@@ -35,11 +35,25 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         $remember = $request->filled('remember');
 
+        // Check if admin exists and is active
+        $admin = AdminUser::where('email', $credentials['email'])->first();
+        
+        if ($admin && !$admin->is_active) {
+            return back()->withErrors([
+                'email' => 'Your account has been deactivated. Please contact the administrator.',
+            ])->withInput($request->only('email'));
+        }
+
         if (Auth::guard('admin')->attempt($credentials, $remember)) {
             $request->session()->regenerate();
             
+            // Update last login timestamp
+            $admin = Auth::guard('admin')->user();
+            $admin->last_login_at = now();
+            $admin->save();
+            
             return redirect()->intended(route('admin.dashboard'))
-                ->with('success', 'Welcome back, ' . Auth::guard('admin')->user()->name . '!');
+                ->with('success', 'Welcome back, ' . $admin->name . '!');
         }
 
         return back()->withErrors([
