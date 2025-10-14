@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
 use App\Models\AdminUser;
+use App\Models\Canvasser;
+use App\Models\Nurse;
 
 class DashboardController extends Controller
 {
@@ -36,7 +38,7 @@ class DashboardController extends Controller
      */
     public function consultations(Request $request)
     {
-        $query = Consultation::with(['doctor', 'payment']);
+        $query = Consultation::with(['doctor', 'payment', 'canvasser', 'nurse']);
 
         // Filter by status
         if ($request->has('status') && $request->status != '') {
@@ -60,8 +62,43 @@ class DashboardController extends Controller
         }
 
         $consultations = $query->latest()->paginate(20);
+        
+        // Get all nurses for assignment dropdown
+        $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.consultations', compact('consultations'));
+        return view('admin.consultations', compact('consultations', 'nurses'));
+    }
+
+    /**
+     * Display all patient records
+     */
+    public function patients(Request $request)
+    {
+        $query = Consultation::with(['doctor', 'canvasser', 'nurse'])
+            ->select('first_name', 'last_name', 'email', 'mobile', 'age', 'gender', 'id', 'reference', 'created_at', 'status', 'doctor_id', 'canvasser_id', 'nurse_id')
+            ->selectRaw('(SELECT COUNT(*) FROM consultations c2 WHERE c2.email = consultations.email) as total_consultations');
+
+        // Search functionality
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('mobile', 'like', "%{$search}%")
+                  ->orWhere('reference', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by gender
+        if ($request->has('gender') && $request->gender != '') {
+            $query->where('gender', $request->gender);
+        }
+
+        // Get all patients, grouped by email to avoid duplicates in view
+        $patients = $query->latest()->paginate(20);
+
+        return view('admin.patients', compact('patients'));
     }
 
     /**
@@ -93,6 +130,35 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Consultation status updated successfully'
+        ]);
+    }
+
+    /**
+     * Assign nurse to consultation
+     */
+    public function assignNurse(Request $request, $id)
+    {
+        $request->validate([
+            'nurse_id' => 'required|exists:nurses,id'
+        ]);
+
+        $consultation = Consultation::findOrFail($id);
+        $nurse = Nurse::findOrFail($request->nurse_id);
+
+        if (!$nurse->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This nurse is not active'
+            ], 400);
+        }
+
+        $consultation->update([
+            'nurse_id' => $request->nurse_id
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nurse assigned successfully to consultation'
         ]);
     }
 
@@ -471,6 +537,264 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ==================== CANVASSERS MANAGEMENT ====================
+
+    /**
+     * Display canvassers list
+     */
+    public function canvassers()
+    {
+        $canvassers = Canvasser::with('createdBy')->withCount('consultations')->latest()->paginate(10);
+        
+        return view('admin.canvassers', compact('canvassers'));
+    }
+
+    /**
+     * Store a new canvasser
+     */
+    public function storeCanvasser(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:canvassers,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $validated['password'] = bcrypt($validated['password']);
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['created_by'] = auth()->guard('admin')->id();
+
+        try {
+            $canvasser = Canvasser::create($validated);
+            
+            // Send email verification notification
+            $canvasser->sendEmailVerificationNotification();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Canvasser created successfully! A verification email has been sent.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create canvasser: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing canvasser
+     */
+    public function updateCanvasser(Request $request, $id)
+    {
+        $canvasser = Canvasser::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:canvassers,email,' . $id,
+            'phone' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        // Only update password if provided
+        if (!empty($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+
+        try {
+            $canvasser->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Canvasser updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update canvasser: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle canvasser status
+     */
+    public function toggleCanvasserStatus(Request $request, $id)
+    {
+        try {
+            $canvasser = Canvasser::findOrFail($id);
+            $canvasser->is_active = $request->input('is_active', false);
+            $canvasser->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Canvasser status updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a canvasser
+     */
+    public function deleteCanvasser($id)
+    {
+        try {
+            $canvasser = Canvasser::findOrFail($id);
+            $canvasser->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Canvasser deleted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete canvasser: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ==================== NURSES MANAGEMENT ====================
+
+    /**
+     * Display nurses list
+     */
+    public function nurses()
+    {
+        $nurses = Nurse::with('createdBy')->withCount('consultations')->latest()->paginate(10);
+        
+        return view('admin.nurses', compact('nurses'));
+    }
+
+    /**
+     * Store a new nurse
+     */
+    public function storeNurse(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:nurses,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $validated['password'] = bcrypt($validated['password']);
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['created_by'] = auth()->guard('admin')->id();
+
+        try {
+            $nurse = Nurse::create($validated);
+            
+            // Send email verification notification
+            $nurse->sendEmailVerificationNotification();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nurse created successfully! A verification email has been sent.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create nurse: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing nurse
+     */
+    public function updateNurse(Request $request, $id)
+    {
+        $nurse = Nurse::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:nurses,email,' . $id,
+            'phone' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        // Only update password if provided
+        if (!empty($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+
+        try {
+            $nurse->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nurse updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update nurse: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle nurse status
+     */
+    public function toggleNurseStatus(Request $request, $id)
+    {
+        try {
+            $nurse = Nurse::findOrFail($id);
+            $nurse->is_active = $request->input('is_active', false);
+            $nurse->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nurse status updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a nurse
+     */
+    public function deleteNurse($id)
+    {
+        try {
+            $nurse = Nurse::findOrFail($id);
+            $nurse->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nurse deleted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete nurse: ' . $e->getMessage()
             ], 500);
         }
     }

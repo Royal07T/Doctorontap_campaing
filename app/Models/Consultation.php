@@ -21,6 +21,8 @@ class Consultation extends Model
         'emergency_symptoms',
         'consult_mode',
         'doctor_id',
+        'canvasser_id',
+        'nurse_id',
         'status',
         'payment_status',
         'payment_id',
@@ -52,6 +54,22 @@ class Consultation extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * Get the canvasser who registered this consultation
+     */
+    public function canvasser(): BelongsTo
+    {
+        return $this->belongsTo(Canvasser::class);
+    }
+
+    /**
+     * Get the nurse assigned to this consultation
+     */
+    public function nurse(): BelongsTo
+    {
+        return $this->belongsTo(Nurse::class);
     }
 
     /**

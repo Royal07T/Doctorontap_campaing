@@ -18,37 +18,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{
-    sidebarOpen: false,
-    showMessageModal: false,
-    messageType: 'success',
-    messageTitle: '',
-    messageText: '',
-    showConfirmModal: false,
-    confirmTitle: '',
-    confirmText: '',
-    confirmAction: null,
-    showMessage(type, title, text) {
-        this.messageType = type;
-        this.messageTitle = title;
-        this.messageText = text;
-        this.showMessageModal = true;
-    },
-    showConfirm(title, text, action) {
-        this.confirmTitle = title;
-        this.confirmText = text;
-        this.confirmAction = action;
-        this.showConfirmModal = true;
-    },
-    executeConfirm() {
-        this.showConfirmModal = false;
-        if (this.confirmAction) {
-            this.confirmAction();
-        }
-    }
-}"
-@show-message.window="showMessage($event.detail.type, $event.detail.title, $event.detail.text)"
-@show-confirm.window="showConfirm($event.detail.title, $event.detail.text, $event.detail.action)">
+<body class="bg-gray-100 min-h-screen" x-data="consultationPage()">
     <div class="flex h-screen overflow-hidden">
         @include('admin.shared.sidebar', ['active' => 'consultations'])
 
@@ -162,13 +132,17 @@
                                 <label class="block text-sm font-semibold text-gray-600">📎 Medical Documents</label>
                                 @if($consultation->doctor)
                                 <button 
-                                    onclick="forwardDocumentsToDoctor({{ $consultation->id }})"
-                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition shadow-md"
-                                    id="forward-btn-{{ $consultation->id }}">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    @click="forwardDocuments()"
+                                    :disabled="isForwarding"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition shadow-md disabled:opacity-50">
+                                    <svg x-show="!isForwarding" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                     </svg>
-                                    Forward to Doctor
+                                    <svg x-show="isForwarding" class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span x-text="isForwarding ? 'Forwarding...' : 'Forward to Doctor'"></span>
                                 </button>
                                 @endif
                             </div>
@@ -283,40 +257,7 @@
             <!-- Sidebar -->
             <div class="lg:col-span-1 space-y-6">
                 <!-- Status Card -->
-                <div class="bg-white rounded-xl shadow-md p-6" x-data="{ 
-                    isUpdating: false,
-                    async doUpdateStatus(newStatus) {
-                        this.isUpdating = true;
-                        try {
-                            const response = await fetch('/admin/consultation/{{ $consultation->id }}/status', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                                },
-                                body: JSON.stringify({ status: newStatus })
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                                $dispatch('show-message', { type: 'success', title: 'Success!', text: 'Status updated successfully' });
-                                setTimeout(() => window.location.reload(), 1500);
-                            } else {
-                                $dispatch('show-message', { type: 'error', title: 'Error', text: data.message || 'Failed to update status' });
-                            }
-                        } catch (error) {
-                            $dispatch('show-message', { type: 'error', title: 'Error', text: 'Error updating status. Please try again.' });
-                        } finally {
-                            this.isUpdating = false;
-                        }
-                    },
-                    updateStatus(newStatus) {
-                        $dispatch('show-confirm', { 
-                            title: 'Confirm Status Change', 
-                            text: 'Are you sure you want to change the consultation status to ' + newStatus + '?',
-                            action: () => this.doUpdateStatus(newStatus)
-                        });
-                    }
-                }">
+                <div class="bg-white rounded-xl shadow-md p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-4">Consultation Status</h3>
                     
                     <div class="space-y-3">
@@ -360,38 +301,7 @@
                 </div>
 
                 <!-- Payment Actions -->
-                <div class="bg-white rounded-xl shadow-md p-6" x-data="{
-                    isSending: false,
-                    async doSendPayment() {
-                        this.isSending = true;
-                        try {
-                            const response = await fetch('/admin/consultation/{{ $consultation->id }}/send-payment', {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                                }
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                                $dispatch('show-message', { type: 'success', title: 'Success!', text: data.message });
-                                setTimeout(() => window.location.reload(), 1500);
-                            } else {
-                                $dispatch('show-message', { type: 'error', title: 'Error', text: data.message || 'Failed to send payment request' });
-                            }
-                        } catch (error) {
-                            $dispatch('show-message', { type: 'error', title: 'Error', text: 'Error sending payment request. Please try again.' });
-                        } finally {
-                            this.isSending = false;
-                        }
-                    },
-                    sendPayment() {
-                        $dispatch('show-confirm', { 
-                            title: 'Send Payment Request', 
-                            text: 'Send payment request email to {{ $consultation->email }}?',
-                            action: () => this.doSendPayment()
-                        });
-                    }
-                }">
+                <div class="bg-white rounded-xl shadow-md p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-4">Payment Status</h3>
                     
                     <span class="inline-flex w-full justify-center px-4 py-3 rounded-lg text-sm font-semibold mb-4
@@ -556,46 +466,126 @@
     </style>
 
     <script>
-        async function forwardDocumentsToDoctor(consultationId) {
-            const button = document.getElementById(`forward-btn-${consultationId}`);
-            const originalContent = button.innerHTML;
-            
-            // Disable button and show loading
-            button.disabled = true;
-            button.innerHTML = `
-                <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Forwarding...
-            `;
-            
-            try {
-                const response = await fetch(`/admin/consultations/${consultationId}/forward-documents`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        function consultationPage() {
+            return {
+                sidebarOpen: false,
+                showMessageModal: false,
+                messageType: 'success',
+                messageTitle: '',
+                messageText: '',
+                showConfirmModal: false,
+                confirmTitle: '',
+                confirmText: '',
+                confirmCallback: null,
+                isUpdating: false,
+                isSending: false,
+                isForwarding: false,
+                
+                showMessage(type, title, text) {
+                    this.messageType = type;
+                    this.messageTitle = title;
+                    this.messageText = text;
+                    this.showMessageModal = true;
+                },
+                
+                showConfirm(title, text, callback) {
+                    this.confirmTitle = title;
+                    this.confirmText = text;
+                    this.confirmCallback = callback;
+                    this.showConfirmModal = true;
+                },
+                
+                executeConfirm() {
+                    this.showConfirmModal = false;
+                    if (this.confirmCallback && typeof this.confirmCallback === 'function') {
+                        this.confirmCallback();
                     }
-                });
+                    this.confirmCallback = null;
+                },
                 
-                const data = await response.json();
+                async doUpdateStatus(newStatus) {
+                    this.isUpdating = true;
+                    try {
+                        const response = await fetch('/admin/consultation/{{ $consultation->id }}/status', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showMessage('success', 'Success!', 'Status updated successfully');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to update status');
+                        }
+                    } catch (error) {
+                        this.showMessage('error', 'Error', 'Error updating status. Please try again.');
+                    } finally {
+                        this.isUpdating = false;
+                    }
+                },
                 
-                if (data.success) {
-                    // Show success message
-                    alert('✓ Medical documents have been forwarded to the doctor successfully!');
-                    // Reload page to show updated status
-                    window.location.reload();
-                } else {
-                    alert('Error: ' + (data.message || 'Failed to forward documents'));
-                    button.disabled = false;
-                    button.innerHTML = originalContent;
+                updateStatus(newStatus) {
+                    this.showConfirm('Confirm Status Change', 'Are you sure you want to change the consultation status to ' + newStatus + '?', () => this.doUpdateStatus(newStatus));
+                },
+                
+                async doSendPayment() {
+                    this.isSending = true;
+                    try {
+                        const response = await fetch('/admin/consultation/{{ $consultation->id }}/send-payment', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showMessage('success', 'Success!', data.message);
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to send payment request');
+                        }
+                    } catch (error) {
+                        this.showMessage('error', 'Error', 'Error sending payment request. Please try again.');
+                    } finally {
+                        this.isSending = false;
+                    }
+                },
+                
+                sendPayment() {
+                    this.showConfirm('Send Payment Request', 'Send payment request email to {{ $consultation->email }}?', () => this.doSendPayment());
+                },
+                
+                async doForwardDocuments() {
+                    this.isForwarding = true;
+                    try {
+                        const response = await fetch('/admin/consultations/{{ $consultation->id }}/forward-documents', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showMessage('success', 'Success!', 'Medical documents have been forwarded to the doctor successfully!');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to forward documents');
+                        }
+                    } catch (error) {
+                        this.showMessage('error', 'Error', 'An error occurred while forwarding documents. Please try again.');
+                    } finally {
+                        this.isForwarding = false;
+                    }
+                },
+                
+                forwardDocuments() {
+                    this.showConfirm('Forward Documents', 'Forward medical documents to the doctor?', () => this.doForwardDocuments());
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while forwarding documents. Please try again.');
-                button.disabled = false;
-                button.innerHTML = originalContent;
             }
         }
     </script>

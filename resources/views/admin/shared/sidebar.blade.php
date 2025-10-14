@@ -44,6 +44,14 @@
             <span>Consultations</span>
         </a>
 
+        <a href="{{ route('admin.patients') }}"
+           class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all @if($active === 'patients') text-white purple-gradient @else text-gray-700 hover:bg-purple-50 hover:text-purple-600 @endif">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>Patient Records</span>
+        </a>
+
         <a href="{{ route('admin.payments') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all @if($active === 'payments') text-white purple-gradient @else text-gray-700 hover:bg-purple-50 hover:text-purple-600 @endif">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,6 +74,22 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
             <span>Admin Users</span>
+        </a>
+
+        <a href="{{ route('admin.canvassers') }}"
+           class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all @if($active === 'canvassers') text-white purple-gradient @else text-gray-700 hover:bg-purple-50 hover:text-purple-600 @endif">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span>Canvassers</span>
+        </a>
+
+        <a href="{{ route('admin.nurses') }}"
+           class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all @if($active === 'nurses') text-white purple-gradient @else text-gray-700 hover:bg-purple-50 hover:text-purple-600 @endif">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span>Nurses</span>
         </a>
 
         <div class="border-t border-gray-200 my-2"></div>

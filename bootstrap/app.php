@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuthenticate::class,
+            'canvasser.auth' => \App\Http\Middleware\CanvasserAuthenticate::class,
+            'nurse.auth' => \App\Http\Middleware\NurseAuthenticate::class,
+            'doctor.auth' => \App\Http\Middleware\DoctorAuthenticate::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

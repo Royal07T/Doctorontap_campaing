@@ -45,6 +45,21 @@ return [
             'driver' => 'session',
             'provider' => 'admin_users',
         ],
+        
+        'canvasser' => [
+            'driver' => 'session',
+            'provider' => 'canvassers',
+        ],
+        
+        'nurse' => [
+            'driver' => 'session',
+            'provider' => 'nurses',
+        ],
+        
+        'doctor' => [
+            'driver' => 'session',
+            'provider' => 'doctors',
+        ],
     ],
 
     /*
@@ -73,6 +88,21 @@ return [
         'admin_users' => [
             'driver' => 'eloquent',
             'model' => App\Models\AdminUser::class,
+        ],
+        
+        'canvassers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Canvasser::class,
+        ],
+        
+        'nurses' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Nurse::class,
+        ],
+        
+        'doctors' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Doctor::class,
         ],
 
         // 'users' => [
