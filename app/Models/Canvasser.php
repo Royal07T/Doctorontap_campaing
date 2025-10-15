@@ -44,10 +44,26 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get patients registered by this canvasser
+     */
+    public function patients(): HasMany
+    {
+        return $this->hasMany(Patient::class);
+    }
+
+    /**
      * Get the admin who created this canvasser
      */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(AdminUser::class, 'created_by');
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\CanvasserVerifyEmail);
     }
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Nurse\DashboardController as NurseDashboardController;
 use App\Http\Controllers\Doctor\AuthController as DoctorAuthController;
 use App\Http\Controllers\Doctor\DashboardController as DoctorDashboardController;
 use App\Http\Controllers\Doctor\VerificationController as DoctorVerificationController;
+use App\Http\Controllers\Doctor\RegistrationController as DoctorRegistrationController;
 use App\Http\Controllers\Canvasser\VerificationController as CanvasserVerificationController;
 use App\Http\Controllers\Nurse\VerificationController as NurseVerificationController;
 
@@ -44,11 +45,23 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
+    Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
     Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
     Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
     Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
     Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
     Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
+    
+    // Doctor Registrations Approval
+    Route::get('/doctor-registrations', [DashboardController::class, 'doctorRegistrations'])->name('doctor-registrations');
+    Route::get('/doctor-registrations/{id}/view', [DashboardController::class, 'viewDoctorRegistration'])->name('doctor-registrations.view');
+    Route::post('/doctor-registrations/{id}/approve', [DashboardController::class, 'approveDoctorRegistration'])->name('doctor-registrations.approve');
+    Route::post('/doctor-registrations/{id}/reject', [DashboardController::class, 'rejectDoctorRegistration'])->name('doctor-registrations.reject');
+    Route::get('/doctors/{id}/certificate', [DashboardController::class, 'viewCertificate'])->name('doctors.certificate');
+    
+    // Settings
+    Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
+    Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
     
     // Admin Users Management
     Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
@@ -89,9 +102,13 @@ Route::get('/canvasser/email/verify/{id}/{hash}', [CanvasserVerificationControll
     ->name('canvasser.verification.verify');
 
 // Protected Canvasser Routes (Authentication required)
-Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'verified:canvasser'])->group(function () {
+Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'canvasser.verified'])->group(function () {
     Route::post('/logout', [CanvasserAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [CanvasserDashboardController::class, 'index'])->name('dashboard');
+    
+    // Patient Management
+    Route::get('/patients', [CanvasserDashboardController::class, 'patients'])->name('patients');
+    Route::post('/patients', [CanvasserDashboardController::class, 'storePatient'])->name('patients.store');
 });
 
 // ==================== NURSE ROUTES ====================
@@ -112,17 +129,30 @@ Route::get('/nurse/email/verify/{id}/{hash}', [NurseVerificationController::clas
     ->name('nurse.verification.verify');
 
 // Protected Nurse Routes (Authentication required)
-Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'verified:nurse'])->group(function () {
+Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verified'])->group(function () {
     Route::post('/logout', [NurseAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [NurseDashboardController::class, 'index'])->name('dashboard');
+    
+    // Patient Management & Vital Signs
+    Route::get('/patients', [NurseDashboardController::class, 'searchPatients'])->name('patients');
+    Route::get('/patients/{id}', [NurseDashboardController::class, 'viewPatient'])->name('patients.view');
+    Route::post('/vital-signs', [NurseDashboardController::class, 'storeVitalSigns'])->name('vital-signs.store');
+    Route::post('/vital-signs/{id}/send-email', [NurseDashboardController::class, 'sendVitalSignsEmail'])->name('vital-signs.send-email');
+    
+    // Walk-In Vital Signs (for events/fun fairs)
+    Route::get('/walk-in-vitals', [NurseDashboardController::class, 'showWalkInForm'])->name('walk-in-vitals');
+    Route::post('/walk-in-vitals', [NurseDashboardController::class, 'storeWalkInVitals'])->name('walk-in-vitals.store');
 });
 
 // ==================== DOCTOR ROUTES ====================
 
-// Doctor Login Routes (No authentication required)
+// Doctor Login and Registration Routes (No authentication required)
 Route::prefix('doctor')->name('doctor.')->group(function () {
     Route::get('/login', [DoctorAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [DoctorAuthController::class, 'login'])->name('login.post');
+    Route::get('/register', [DoctorRegistrationController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [DoctorRegistrationController::class, 'register'])->name('register.post');
+    Route::get('/registration-success', [DoctorRegistrationController::class, 'success'])->name('registration.success');
 });
 
 // Doctor Email Verification Routes
@@ -135,7 +165,12 @@ Route::get('/doctor/email/verify/{id}/{hash}', [DoctorVerificationController::cl
     ->name('doctor.verification.verify');
 
 // Protected Doctor Routes (Authentication required)
-Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'verified:doctor'])->group(function () {
+Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.verified'])->group(function () {
     Route::post('/logout', [DoctorAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
+    
+    // Consultations
+    Route::get('/consultations', [DoctorDashboardController::class, 'consultations'])->name('consultations');
+    Route::get('/consultations/{id}', [DoctorDashboardController::class, 'viewConsultation'])->name('consultations.view');
+    Route::post('/consultations/{id}/update-status', [DoctorDashboardController::class, 'updateConsultationStatus'])->name('consultations.update-status');
 });

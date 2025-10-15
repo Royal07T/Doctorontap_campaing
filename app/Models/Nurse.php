@@ -44,10 +44,26 @@ class Nurse extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get vital signs recorded by this nurse
+     */
+    public function vitalSigns(): HasMany
+    {
+        return $this->hasMany(VitalSign::class);
+    }
+
+    /**
      * Get the admin who created this nurse
      */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(AdminUser::class, 'created_by');
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\NurseVerifyEmail);
     }
 }

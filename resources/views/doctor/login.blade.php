@@ -137,8 +137,8 @@
             <!-- Create Account -->
             <div class="mt-4 text-center">
                 <p class="text-sm text-gray-600">
-                    Don't have an account? 
-                    <a href="#" class="text-purple-600 hover:text-purple-800 font-semibold">
+                    Don't have an account?
+                    <a href="{{ route('doctor.register') }}" class="text-purple-600 hover:text-purple-800 font-semibold">
                         Create Account
                     </a>
                 </p>

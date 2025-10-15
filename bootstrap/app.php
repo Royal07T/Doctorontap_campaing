@@ -14,8 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuthenticate::class,
             'canvasser.auth' => \App\Http\Middleware\CanvasserAuthenticate::class,
+            'canvasser.verified' => \App\Http\Middleware\EnsureCanvasserEmailIsVerified::class,
             'nurse.auth' => \App\Http\Middleware\NurseAuthenticate::class,
+            'nurse.verified' => \App\Http\Middleware\EnsureNurseEmailIsVerified::class,
             'doctor.auth' => \App\Http\Middleware\DoctorAuthenticate::class,
+            'doctor.verified' => \App\Http\Middleware\EnsureDoctorEmailIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

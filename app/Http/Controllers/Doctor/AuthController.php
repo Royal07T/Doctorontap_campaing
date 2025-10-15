@@ -34,8 +34,14 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         $remember = $request->filled('remember');
 
-        // Check if doctor exists and is active
+        // Check if doctor exists and is approved/active
         $doctor = Doctor::where('email', $credentials['email'])->first();
+        
+        if ($doctor && !$doctor->is_approved) {
+            return back()->withErrors([
+                'email' => 'Your account is pending admin approval. You will receive an email when approved.',
+            ])->withInput($request->only('email'));
+        }
         
         if ($doctor && !$doctor->is_available) {
             return back()->withErrors([

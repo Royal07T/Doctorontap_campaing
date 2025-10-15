@@ -21,8 +21,15 @@ class DoctorAuthenticate
                 ->with('error', 'Please login to access the doctor area.');
         }
 
-        // Check if doctor is available/active
+        // Check if doctor is approved
         $doctor = Auth::guard('doctor')->user();
+        if (!$doctor->is_approved) {
+            Auth::guard('doctor')->logout();
+            return redirect()->route('doctor.login')
+                ->with('error', 'Your account is pending approval. Please wait for admin approval.');
+        }
+
+        // Check if doctor is available/active
         if (!$doctor->is_available) {
             Auth::guard('doctor')->logout();
             return redirect()->route('doctor.login')

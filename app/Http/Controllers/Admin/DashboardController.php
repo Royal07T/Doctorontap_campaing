@@ -13,6 +13,11 @@ use App\Mail\DocumentsForwardedToDoctor;
 use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
+use App\Models\Setting;
+use App\Models\VitalSign;
+use App\Models\Patient;
+use App\Mail\CanvasserAccountCreated;
+use App\Mail\NurseAccountCreated;
 
 class DashboardController extends Controller
 {
@@ -28,9 +33,36 @@ class DashboardController extends Controller
             'unpaid_consultations' => Consultation::where('payment_status', 'unpaid')->where('status', 'completed')->count(),
             'paid_consultations' => Consultation::where('payment_status', 'paid')->count(),
             'total_revenue' => Payment::where('status', 'success')->sum('amount'),
+            
+            // Canvasser and Nurse statistics
+            'total_canvassers' => Canvasser::count(),
+            'active_canvassers' => Canvasser::where('is_active', true)->count(),
+            'total_nurses' => Nurse::count(),
+            'active_nurses' => Nurse::where('is_active', true)->count(),
+            'total_patients' => \App\Models\Patient::count(),
+            'consulted_patients' => \App\Models\Patient::where('has_consulted', true)->count(),
+            'total_vital_records' => \App\Models\VitalSign::count(),
         ];
 
-        return view('admin.dashboard', compact('stats'));
+        // Top performing canvassers
+        $topCanvassers = Canvasser::withCount('patients')
+                                  ->orderBy('patients_count', 'desc')
+                                  ->limit(5)
+                                  ->get();
+
+        // Top performing nurses
+        $topNurses = Nurse::withCount('vitalSigns')
+                         ->orderBy('vital_signs_count', 'desc')
+                         ->limit(5)
+                         ->get();
+
+        // Recent patients
+        $recentPatients = \App\Models\Patient::with('canvasser')
+                                             ->latest()
+                                             ->limit(10)
+                                             ->get();
+
+        return view('admin.dashboard', compact('stats', 'topCanvassers', 'topNurses', 'recentPatients'));
     }
 
     /**
@@ -566,6 +598,9 @@ class DashboardController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        // Store plain password before hashing
+        $plainPassword = $validated['password'];
+        
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
@@ -573,12 +608,15 @@ class DashboardController extends Controller
         try {
             $canvasser = Canvasser::create($validated);
             
-            // Send email verification notification
-            $canvasser->sendEmailVerificationNotification();
+            // Get admin name
+            $adminName = auth()->guard('admin')->user()->name;
+            
+            // Send account creation email with password and verification link
+            Mail::to($canvasser->email)->send(new CanvasserAccountCreated($canvasser, $plainPassword, $adminName));
 
             return response()->json([
                 'success' => true,
-                'message' => 'Canvasser created successfully! A verification email has been sent.'
+                'message' => 'Canvasser created successfully! An email with login credentials and verification link has been sent.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -695,6 +733,9 @@ class DashboardController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        // Store plain password before hashing
+        $plainPassword = $validated['password'];
+        
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
@@ -702,12 +743,15 @@ class DashboardController extends Controller
         try {
             $nurse = Nurse::create($validated);
             
-            // Send email verification notification
-            $nurse->sendEmailVerificationNotification();
+            // Get admin name
+            $adminName = auth()->guard('admin')->user()->name;
+            
+            // Send account creation email with password and verification link
+            Mail::to($nurse->email)->send(new NurseAccountCreated($nurse, $plainPassword, $adminName));
 
             return response()->json([
                 'success' => true,
-                'message' => 'Nurse created successfully! A verification email has been sent.'
+                'message' => 'Nurse created successfully! An email with login credentials and verification link has been sent.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -797,5 +841,304 @@ class DashboardController extends Controller
                 'message' => 'Failed to delete nurse: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Display pending doctor registrations
+     */
+    public function doctorRegistrations(Request $request)
+    {
+        $query = Doctor::query();
+
+        // Filter by approval status
+        if ($request->has('status')) {
+            if ($request->status == 'pending') {
+                $query->where('is_approved', false);
+            } elseif ($request->status == 'approved') {
+                $query->where('is_approved', true);
+            }
+        } else {
+            // Default: show pending only
+            $query->where('is_approved', false);
+        }
+
+        // Search
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('specialization', 'like', "%{$search}%");
+            });
+        }
+
+        $doctors = $query->latest()->paginate(15);
+        $defaultFee = Setting::get('default_consultation_fee', 5000);
+
+        return view('admin.doctor-registrations', compact('doctors', 'defaultFee'));
+    }
+
+    /**
+     * Approve a doctor registration
+     */
+    public function approveDoctorRegistration(Request $request, $id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            
+            if ($doctor->is_approved) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Doctor is already approved.'
+                ], 400);
+            }
+
+            $validated = $request->validate([
+                'use_default_fee' => 'required|boolean',
+                'custom_fee' => 'nullable|numeric|min:0',
+            ]);
+
+            $updateData = [
+                'is_approved' => true,
+                'is_available' => true,
+                'approved_by' => auth()->guard('admin')->id(),
+                'approved_at' => now(),
+                'use_default_fee' => $validated['use_default_fee'],
+            ];
+
+            // If not using default fee and custom fee is provided
+            if (!$validated['use_default_fee'] && isset($validated['custom_fee'])) {
+                $updateData['consultation_fee'] = $validated['custom_fee'];
+            } elseif ($validated['use_default_fee']) {
+                // Use the system default fee
+                $updateData['consultation_fee'] = Setting::get('default_consultation_fee', 5000);
+            }
+
+            $doctor->update($updateData);
+
+            // TODO: Send approval email to doctor
+            // Mail::to($doctor->email)->send(new DoctorApprovalNotification($doctor));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Doctor approved successfully! They can now log in to their account.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve doctor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject a doctor registration
+     */
+    public function rejectDoctorRegistration($id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            
+            // Delete the certificate file if exists
+            if ($doctor->certificate_path && \Storage::disk('public')->exists($doctor->certificate_path)) {
+                \Storage::disk('public')->delete($doctor->certificate_path);
+            }
+
+            // Delete the doctor record
+            $doctor->delete();
+
+            // TODO: Send rejection email to doctor
+            // Mail::to($doctor->email)->send(new DoctorRejectionNotification($doctor));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Doctor registration rejected and removed from the system.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject doctor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * View doctor details (for modal)
+     */
+    public function viewDoctorRegistration($id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'doctor' => [
+                    'id' => $doctor->id,
+                    'full_name' => $doctor->full_name,
+                    'first_name' => $doctor->first_name,
+                    'last_name' => $doctor->last_name,
+                    'email' => $doctor->email,
+                    'phone' => $doctor->phone,
+                    'gender' => ucfirst($doctor->gender),
+                    'specialization' => $doctor->specialization,
+                    'experience' => $doctor->experience,
+                    'location' => $doctor->location,
+                    'place_of_work' => $doctor->place_of_work,
+                    'role' => ucfirst($doctor->role),
+                    'languages' => $doctor->languages,
+                    'days_of_availability' => $doctor->days_of_availability,
+                    'consultation_fee' => $doctor->consultation_fee,
+                    'suggested_fee' => $doctor->consultation_fee,
+                    'mdcn_license_current' => $doctor->mdcn_license_current,
+                    'certificate_path' => $doctor->certificate_path,
+                    'certificate_data' => $doctor->certificate_data ? true : false, // Just check if exists, don't send full data
+                    'certificate_original_name' => $doctor->certificate_original_name,
+                    'is_approved' => $doctor->is_approved,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load doctor details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display settings page
+     */
+    public function settings()
+    {
+        $settings = Setting::where('group', 'pricing')->get();
+        $defaultFee = Setting::get('default_consultation_fee', 5000);
+        $useDefaultForAll = Setting::get('use_default_fee_for_all', false);
+
+        return view('admin.settings', compact('settings', 'defaultFee', 'useDefaultForAll'));
+    }
+
+    /**
+     * Update settings
+     */
+    public function updateSettings(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'default_consultation_fee' => 'required|numeric|min:0',
+                'use_default_fee_for_all' => 'nullable|boolean',
+            ]);
+
+            Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
+            Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
+
+            // If forcing all doctors to use default fee, update all doctors
+            if ($request->has('use_default_fee_for_all')) {
+                Doctor::query()->update([
+                    'use_default_fee' => true,
+                    'consultation_fee' => $validated['default_consultation_fee']
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Settings updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download/view certificate from database
+     */
+    public function viewCertificate($id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            
+            if (!$doctor->certificate_data) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No certificate found for this doctor.'
+                ], 404);
+            }
+            
+            // Decode the base64 data
+            $fileContent = base64_decode($doctor->certificate_data);
+            
+            // Return the file for viewing/download
+            return response($fileContent)
+                ->header('Content-Type', $doctor->certificate_mime_type ?? 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="' . ($doctor->certificate_original_name ?? 'certificate.pdf') . '"');
+                
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load certificate: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display all vital signs records (Admin oversight)
+     */
+    public function vitalSigns(Request $request)
+    {
+        $query = VitalSign::with(['patient', 'nurse']);
+
+        // Search by patient name or email
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('patient', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by walk-in vs regular
+        if ($request->filled('type')) {
+            if ($request->type === 'walk-in') {
+                $query->where('is_walk_in', true);
+            } elseif ($request->type === 'regular') {
+                $query->where('is_walk_in', false);
+            }
+        }
+
+        // Filter by email sent status
+        if ($request->filled('email_status')) {
+            if ($request->email_status === 'sent') {
+                $query->where('email_sent', true);
+            } elseif ($request->email_status === 'not_sent') {
+                $query->where('email_sent', false);
+            }
+        }
+
+        // Filter by nurse
+        if ($request->filled('nurse_id')) {
+            $query->where('nurse_id', $request->nurse_id);
+        }
+
+        // Filter by date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $vitalSigns = $query->latest()->paginate(20);
+        
+        // Get all nurses for filter dropdown
+        $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
+
+        // Statistics
+        $stats = [
+            'total_records' => VitalSign::count(),
+            'walk_in_records' => VitalSign::where('is_walk_in', true)->count(),
+            'regular_records' => VitalSign::where('is_walk_in', false)->count(),
+            'emails_sent' => VitalSign::where('email_sent', true)->count(),
+            'emails_pending' => VitalSign::where('email_sent', false)->count(),
+        ];
+
+        return view('admin.vital-signs', compact('vitalSigns', 'nurses', 'stats'));
     }
 }

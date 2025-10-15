@@ -16,6 +16,7 @@ class Consultation extends Model
         'age',
         'gender',
         'problem',
+        'symptoms',
         'medical_documents',
         'severity',
         'emergency_symptoms',
@@ -29,6 +30,7 @@ class Consultation extends Model
         'payment_request_sent',
         'payment_request_sent_at',
         'consultation_completed_at',
+        'doctor_notes',
     ];
 
     protected $casts = [
