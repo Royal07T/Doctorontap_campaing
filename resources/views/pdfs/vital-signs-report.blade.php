@@ -23,6 +23,12 @@
             padding-bottom: 20px;
             border-bottom: 3px solid #9333EA;
         }
+        .logo-img {
+            max-width: 180px;
+            height: auto;
+            margin: 0 auto 10px;
+            display: block;
+        }
         .logo {
             font-size: 28px;
             font-weight: bold;
@@ -200,7 +206,7 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <div class="logo">DOCTORONTAP</div>
+        <img src="{{ public_path('img/sitelogo.png') }}" alt="DoctorOnTap" class="logo-img">
         <div class="tagline">Caring for You, Just Like Family</div>
     </div>
 

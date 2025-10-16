@@ -465,6 +465,70 @@ class DashboardController extends Controller
     }
 
     /**
+     * Send campaign notification to all active doctors
+     */
+    public function sendCampaignNotification(Request $request)
+    {
+        try {
+            $request->validate([
+                'campaign_name' => 'nullable|string|max:255',
+                'start_date' => 'nullable|string|max:255',
+                'end_date' => 'nullable|string|max:255',
+                'description' => 'nullable|string|max:1000',
+                'email_body' => 'nullable|string|max:5000',
+            ]);
+
+            // Get all active doctors
+            $doctors = Doctor::where('is_available', true)->get();
+
+            if ($doctors->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active doctors found to send notifications to.'
+                ], 404);
+            }
+
+            // Prepare campaign details
+            $campaignDetails = [
+                'name' => $request->input('campaign_name', 'Healthcare Access Campaign'),
+                'start_date' => $request->input('start_date', date('F d, Y')),
+                'end_date' => $request->input('end_date'),
+                'description' => $request->input('description'),
+                'email_body' => $request->input('email_body'),
+            ];
+
+            // Send email to each doctor
+            $emailsSent = 0;
+            $emailsFailed = 0;
+
+            foreach ($doctors as $doctor) {
+                try {
+                    \Mail::to($doctor->email)->send(new \App\Mail\CampaignNotification($doctor, $campaignDetails));
+                    $emailsSent++;
+                } catch (\Exception $e) {
+                    $emailsFailed++;
+                    \Log::error("Failed to send campaign notification to doctor {$doctor->id}: " . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Campaign notification sent successfully to {$emailsSent} doctor(s).",
+                'details' => [
+                    'total_doctors' => $doctors->count(),
+                    'emails_sent' => $emailsSent,
+                    'emails_failed' => $emailsFailed
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send campaign notifications: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Display admin users list
      */
     public function adminUsers()

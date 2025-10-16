@@ -51,6 +51,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
     Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
     Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
+    Route::post('/doctors/send-campaign-notification', [DashboardController::class, 'sendCampaignNotification'])->name('doctors.send-campaign');
     
     // Doctor Registrations Approval
     Route::get('/doctor-registrations', [DashboardController::class, 'doctorRegistrations'])->name('doctor-registrations');

@@ -102,8 +102,14 @@
             </div>
         </div>
 
-        <!-- Add New Doctor Button -->
-        <div class="mb-4 flex justify-end">
+        <!-- Action Buttons -->
+        <div class="mb-4 flex justify-end gap-3">
+            <button onclick="openCampaignModal()" class="px-5 py-2.5 purple-gradient text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Send Campaign Alert
+            </button>
             <button onclick="openAddDoctorModal()" class="px-5 py-2.5 purple-gradient text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -552,6 +558,263 @@
             </main>
         </div>
     </div>
+
+    <!-- Campaign Notification Modal -->
+    <div id="campaignModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" style="display: none;">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-auto max-h-[95vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="purple-gradient text-white px-6 py-4 flex items-center justify-between rounded-t-xl">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send Campaign Alert to All Doctors
+                </h2>
+                <button onclick="closeCampaignModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Info Banner -->
+                <div class="bg-purple-50 border-l-4 border-purple-500 p-4 mb-4 rounded">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <h3 class="text-sm font-semibold text-purple-800 mb-1">About Campaign Alerts</h3>
+                            <p class="text-sm text-purple-700">This will send an automated email notification to all <strong>{{ $stats['available'] }} active doctors</strong> informing them about the upcoming campaign. You can customize the details below.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="campaignForm">
+                    @csrf
+                    <!-- Error/Success Messages -->
+                    <div id="campaignMessage" class="hidden mb-4 p-3 rounded-lg"></div>
+
+                    <div class="space-y-4">
+                        <!-- Campaign Name -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Campaign Name</label>
+                            <input type="text" id="campaign_name" name="campaign_name" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                   placeholder="Healthcare Access Campaign"
+                                   value="Healthcare Access Campaign">
+                            <p class="text-xs text-gray-500 mt-1">The name of the campaign to display in the email</p>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <input type="text" id="start_date" name="start_date" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                   placeholder="e.g., October 20, 2025"
+                                   value="{{ date('F d, Y') }}">
+                            <p class="text-xs text-gray-500 mt-1">When the campaign starts (formatted date)</p>
+                        </div>
+
+                        <!-- End Date (Optional) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
+                            <input type="text" id="end_date" name="end_date" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                   placeholder="e.g., December 31, 2025">
+                            <p class="text-xs text-gray-500 mt-1">When the campaign ends (optional)</p>
+                        </div>
+
+                        <!-- Description (Optional) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Additional Details (Optional)</label>
+                            <textarea id="description" name="description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                      placeholder="Add any additional information about the campaign..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Extra information to include in the email (optional)</p>
+                        </div>
+
+                        <!-- Email Message Body -->
+                        <div class="border-t pt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Email Message Body
+                            </label>
+                            <textarea id="email_body" name="email_body" rows="12"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono text-sm"
+                                      placeholder="Edit the email message that will be sent to doctors...">We hope this message finds you well! We're excited to inform you about an upcoming campaign at DoctorOnTap.
+
+What This Means for You:
+• Increased Patient Volume: Expect a higher number of consultation requests
+• Flexible Scheduling: Please update your availability to accommodate more patients
+• Enhanced Opportunities: More consultations mean better earning potential
+• Community Impact: Help us reach more patients in need of medical care
+
+Action Required:
+• Ensure your profile and availability are up to date
+• Check your notification settings
+• Be prepared for increased consultation requests
+• Maintain quick response times for optimal patient care
+
+If you have any questions or need support, our team is here to help. Feel free to reach out at any time.
+
+Thank you for being a valued member of the DoctorOnTap medical team. Together, we're making healthcare more accessible!</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Customize the main message content that doctors will see in the email. Use line breaks for formatting.</p>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="mt-6 flex gap-3 justify-end border-t pt-4">
+                        <button type="button" onclick="closeCampaignModal()" 
+                                class="px-5 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" id="campaignSubmitBtn"
+                                class="px-5 py-2.5 purple-gradient text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span id="campaignBtnText">Send to All Doctors</span>
+                            <svg class="animate-spin w-5 h-5 hidden" id="campaignBtnLoading" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Campaign Modal Functions
+        function openCampaignModal() {
+            document.getElementById('campaignModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            document.getElementById('campaignMessage').classList.add('hidden');
+            document.getElementById('campaignForm').reset();
+            // Reset to default values
+            document.getElementById('campaign_name').value = 'Healthcare Access Campaign';
+            document.getElementById('start_date').value = '{{ date('F d, Y') }}';
+            document.getElementById('email_body').value = `We hope this message finds you well! We're excited to inform you about an upcoming campaign at DoctorOnTap.
+
+What This Means for You:
+• Increased Patient Volume: Expect a higher number of consultation requests
+• Flexible Scheduling: Please update your availability to accommodate more patients
+• Enhanced Opportunities: More consultations mean better earning potential
+• Community Impact: Help us reach more patients in need of medical care
+
+Action Required:
+• Ensure your profile and availability are up to date
+• Check your notification settings
+• Be prepared for increased consultation requests
+• Maintain quick response times for optimal patient care
+
+If you have any questions or need support, our team is here to help. Feel free to reach out at any time.
+
+Thank you for being a valued member of the DoctorOnTap medical team. Together, we're making healthcare more accessible!`;
+        }
+
+        function closeCampaignModal() {
+            document.getElementById('campaignModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Handle Campaign Form Submission
+        document.getElementById('campaignForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('campaignSubmitBtn');
+            const btnText = document.getElementById('campaignBtnText');
+            const btnLoading = document.getElementById('campaignBtnLoading');
+            const campaignMessage = document.getElementById('campaignMessage');
+            
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            btnText.classList.add('hidden');
+            btnLoading.classList.remove('hidden');
+            campaignMessage.classList.add('hidden');
+            
+            try {
+                const formData = new FormData(this);
+                const response = await fetch('{{ route('admin.doctors.send-campaign') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    campaignMessage.className = 'mb-4 p-3 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200';
+                    campaignMessage.innerHTML = `
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-emerald-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <p class="font-semibold">${data.message}</p>
+                                ${data.details ? `<p class="text-sm mt-1">Sent: ${data.details.emails_sent} | Failed: ${data.details.emails_failed}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    campaignMessage.classList.remove('hidden');
+                    
+                    // Close modal after 3 seconds
+                    setTimeout(() => {
+                        closeCampaignModal();
+                    }, 3000);
+                } else {
+                    campaignMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                    campaignMessage.innerHTML = `
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p>${data.message || 'Failed to send campaign notifications.'}</p>
+                        </div>
+                    `;
+                    campaignMessage.classList.remove('hidden');
+                    
+                    // Re-enable button
+                    submitBtn.disabled = false;
+                    btnText.classList.remove('hidden');
+                    btnLoading.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                campaignMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                campaignMessage.textContent = 'A network error occurred. Please try again.';
+                campaignMessage.classList.remove('hidden');
+                
+                // Re-enable button
+                submitBtn.disabled = false;
+                btnText.classList.remove('hidden');
+                btnLoading.classList.add('hidden');
+            }
+        });
+
+        // Close campaign modal when clicking outside
+        document.getElementById('campaignModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCampaignModal();
+            }
+        });
+
+        // Close campaign modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('campaignModal').style.display === 'flex') {
+                closeCampaignModal();
+            }
+        });
+    </script>
 
     <!-- Overlay for mobile sidebar -->
     <div x-show="sidebarOpen" 
