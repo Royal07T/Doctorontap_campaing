@@ -306,7 +306,7 @@
             
             <p class="footer-text">
                 <strong>DoctorOnTap</strong><br>
-                Quality Healthcare, Anytime, Anywhere
+                Caring for You, Just Like Family
             </p>
 
             <div class="social-links">

@@ -103,14 +103,27 @@
 <body class="min-h-screen font-sans antialiased">
     <!-- Navbar -->
     <nav class="sticky top-0 z-50 purple-gradient shadow-lg">
-        <div class="container mx-auto px-5 py-4">
+        <div class="container mx-auto px-5 py-3 md:py-4">
             <div class="flex items-center justify-between">
                 <a href="{{ url('/') }}" class="flex items-center group">
                     <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-7 sm:h-8 md:h-10 w-auto transition-transform group-hover:scale-105">
                 </a>
-                <a href="{{ url('/') }}" class="text-white hover:text-purple-200 font-semibold transition-colors">
-                    Home
-                </a>
+                <div class="flex items-center gap-4 md:gap-8 text-white">
+                    <!-- Email -->
+                    <a href="mailto:inquiries@doctorontap.com.ng" class="hover:text-purple-200 transition-colors">
+                        <div class="text-right">
+                            <p class="text-xs md:text-sm font-medium opacity-90">Email</p>
+                            <p class="text-xs md:text-base font-semibold">inquiries@doctorontap.com.ng</p>
+                        </div>
+                    </a>
+                    <!-- WhatsApp -->
+                    <a href="https://wa.me/2348177777122" target="_blank" class="hover:text-purple-200 transition-colors">
+                        <div class="text-right">
+                            <p class="text-xs md:text-sm font-medium opacity-90">Whatsapp number</p>
+                            <p class="text-xs md:text-base font-semibold">08177777122</p>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -134,12 +147,14 @@
                 <div class="text-center text-white">
                     <!-- Headline -->
                     <h1 class="text-4xl md:text-6xl font-bold mb-4" style="text-shadow: 3px 3px 10px rgba(0,0,0,0.8);">
-                        Talk to a Doctor Now. No Payment Needed Upfront
+                        Talk to a Doctor Now,<br>
+                        <span style="color: #fbbf24; text-shadow: 3px 3px 10px rgba(0,0,0,0.8);">Pay Later</span>
             </h1>
                     
                     <!-- Subheadline -->
                     <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
-                        Instant access to verified doctors with no upfront fees. Consult now and pay only after your appointment.
+                        Instant access to verified doctors with no upfront fees.<br>
+                        <span style="color: #fbbf24; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">Consult now and pay only after your appointment.</span>
                     </p>
                     
                     <!-- Social Proof - Customer Reviews Carousel -->
@@ -154,6 +169,7 @@
                                             <div class="flex justify-center mb-4">
                                                 <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
                                             </div>
+                                            <h3 class="text-white text-xl font-bold text-center mb-4" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">What people say about us on Google</h3>
                                             <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"Thank you for your help. The Doctor that was assigned to me was very helpful. She asked me to do some test and told me not to worry. Now my mind is at peace. If you're always of hospital or need second thought on your health contact doctorontap. The prices are very very low. I will be going to the hospital once they have one. Thank you once again."</p>
                                             <div class="flex items-center justify-center gap-3">
                                                 <img src="{{ asset('img/testimony/Nancy Audu-War.jpg') }}" alt="Nancy Audu-War" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
@@ -168,6 +184,7 @@
                                             <div class="flex justify-center mb-4">
                                                 <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
                                             </div>
+                                            <h3 class="text-white text-xl font-bold text-center mb-4" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">What people say about us on Google</h3>
                                             <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"I Love them 😍😍 I appreciate their doctor they were willing to talk to me i felt as if i was talking to somebody i know ✅✅✅"</p>
                                             <div class="flex items-center justify-center gap-3">
                                                 <img src="{{ asset('img/testimony/Otabor Theodora.jpg') }}" alt="Otabor Theodora" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
@@ -182,6 +199,7 @@
                                             <div class="flex justify-center mb-4">
                                                 <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
                                             </div>
+                                            <h3 class="text-white text-xl font-bold text-center mb-4" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">What people say about us on Google</h3>
                                             <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"When DoctorOnTap ads prompted on my instagram, i was curious as to how true it was. I contacted them and i must say, their services is cool and impressive."</p>
                                             <div class="flex items-center justify-center gap-3">
                                                 <img src="{{ asset('img/testimony/odunayo muibat.jpeg') }}" alt="Odunayo Muibat" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
@@ -236,7 +254,7 @@
                 Frequently Asked Questions
             </h2>
                 <p class="text-gray-600 max-w-2xl mx-auto">
-                    Get instant answers to common questions about our consultation service
+                    Get instant answers to common questions about Consult now, pay later
                 </p>
             </div>
             
@@ -266,7 +284,7 @@
                          x-collapse
                          class="px-6 pb-5 pt-0">
                         <div class="pl-14 text-gray-600 leading-relaxed">
-                            You speak with a doctor first and only pay after your consultation is complete. No upfront fees required. This gives you peace of mind and ensures you get the care you need without financial barriers.
+                            You speak with a doctor first and only pay after your consultation is complete. No upfront fees required. This ensures you get the care you need without financial barriers.
                         </div>
                     </div>
                 </div>
@@ -1025,7 +1043,7 @@
                     <div class="flex items-center gap-3 mb-4">
                         <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 sm:h-10 md:h-12 w-auto">
                     </div>
-                    <h3 class="text-xl font-bold mb-3 text-purple-300">Healthcare at Your Fingertips</h3>
+                    <h3 class="text-xl font-bold mb-3 text-purple-300">Caring For you, Just Like Family</h3>
                     <p class="text-gray-300 text-sm leading-relaxed mb-4">
                         Speak to a doctor in minutes, hire a caregiver, buy prescribed medication, and get best support for healthcare abroad from anywhere and at anytime.
                     </p>

@@ -201,7 +201,7 @@
     <!-- Header -->
     <div class="header">
         <div class="logo">DOCTORONTAP</div>
-        <div class="tagline">Quality Healthcare, Anytime, Anywhere</div>
+        <div class="tagline">Caring for You, Just Like Family</div>
     </div>
 
     <!-- Report Title -->
@@ -405,7 +405,7 @@
     <!-- Footer -->
     <div class="footer">
         <div class="footer-info">
-            <strong>DoctorOnTap</strong> - Quality Healthcare, Anytime, Anywhere
+            <strong>DoctorOnTap</strong> - Caring for You, Just Like Family
         </div>
         <div class="footer-info">
             For questions or to book a consultation, visit our website or contact our support team.
