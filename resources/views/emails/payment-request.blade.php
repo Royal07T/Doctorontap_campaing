@@ -236,6 +236,7 @@
         
         <div class="footer">
             <p>This is an automated payment request from DoctorOnTap "Pay After Consult" Campaign.</p>
+            <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
             <p>&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
             <p style="margin-top: 10px; font-size: 0.8rem;">
                 Payment Reference: {{ $consultation->reference }}

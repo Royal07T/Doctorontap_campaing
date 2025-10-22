@@ -15,9 +15,34 @@ use App\Http\Controllers\Doctor\VerificationController as DoctorVerificationCont
 use App\Http\Controllers\Doctor\RegistrationController as DoctorRegistrationController;
 use App\Http\Controllers\Canvasser\VerificationController as CanvasserVerificationController;
 use App\Http\Controllers\Nurse\VerificationController as NurseVerificationController;
+use App\Http\Controllers\Patient\AuthController as PatientAuthController;
+use App\Http\Controllers\Patient\VerificationController as PatientVerificationController;
+use App\Http\Controllers\Patient\ForgotPasswordController as PatientForgotPasswordController;
+use App\Http\Controllers\Doctor\ForgotPasswordController as DoctorForgotPasswordController;
+use App\Http\Controllers\Nurse\ForgotPasswordController as NurseForgotPasswordController;
+use App\Http\Controllers\Canvasser\ForgotPasswordController as CanvasserForgotPasswordController;
+use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
 Route::post('/submit', [ConsultationController::class, 'store']);
+
+// Test route for consultation status notification (remove in production)
+Route::get('/test-notification/{consultation_id}', function($consultationId) {
+    $consultation = \App\Models\Consultation::findOrFail($consultationId);
+    $doctor = \App\Models\Doctor::findOrFail($consultation->doctor_id);
+    
+    \Illuminate\Support\Facades\Mail::to(env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng'))
+        ->send(new \App\Mail\ConsultationStatusChange(
+            $consultation,
+            $doctor,
+            'pending',
+            'completed'
+        ));
+    
+    return response()->json(['message' => 'Test notification sent successfully!']);
+})->name('test.notification');
 
 // Payment Routes
 Route::prefix('payment')->group(function () {
@@ -28,10 +53,25 @@ Route::prefix('payment')->group(function () {
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
+// ==================== REVIEW ROUTES ====================
+
+// Public Review Routes (No authentication required)
+Route::prefix('reviews')->name('reviews.')->group(function () {
+    Route::get('/doctor/{doctorId}', [ReviewController::class, 'getDoctorReviews'])->name('doctor');
+    Route::get('/public', [ReviewController::class, 'getPublicReviews'])->name('public');
+    Route::post('/patient', [ReviewController::class, 'storePatientReview'])->name('patient.store');
+});
+
 // Admin Login Routes (No authentication required)
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    
+    // Password Reset Routes
+    Route::get('/forgot-password', [AdminForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AdminForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [AdminForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AdminForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 
 // Protected Admin Routes (Authentication required)
@@ -83,6 +123,12 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::put('/nurses/{id}', [DashboardController::class, 'updateNurse'])->name('nurses.update');
     Route::post('/nurses/{id}/toggle-status', [DashboardController::class, 'toggleNurseStatus'])->name('nurses.toggle-status');
     Route::delete('/nurses/{id}', [DashboardController::class, 'deleteNurse'])->name('nurses.delete');
+    
+    // Reviews Management
+    Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
+    Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
+    Route::post('/reviews/{id}/verify', [AdminReviewController::class, 'verify'])->name('reviews.verify');
+    Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
 });
 
 // ==================== CANVASSER ROUTES ====================
@@ -91,6 +137,12 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
 Route::prefix('canvasser')->name('canvasser.')->group(function () {
     Route::get('/login', [CanvasserAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [CanvasserAuthController::class, 'login'])->name('login.post');
+    
+    // Password Reset Routes
+    Route::get('/forgot-password', [CanvasserForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [CanvasserForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [CanvasserForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [CanvasserForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 
 // Canvasser Email Verification Routes
@@ -118,6 +170,12 @@ Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'c
 Route::prefix('nurse')->name('nurse.')->group(function () {
     Route::get('/login', [NurseAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [NurseAuthController::class, 'login'])->name('login.post');
+    
+    // Password Reset Routes
+    Route::get('/forgot-password', [NurseForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [NurseForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [NurseForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [NurseForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 
 // Nurse Email Verification Routes
@@ -154,6 +212,12 @@ Route::prefix('doctor')->name('doctor.')->group(function () {
     Route::get('/register', [DoctorRegistrationController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [DoctorRegistrationController::class, 'register'])->name('register.post');
     Route::get('/registration-success', [DoctorRegistrationController::class, 'success'])->name('registration.success');
+    
+    // Password Reset Routes
+    Route::get('/forgot-password', [DoctorForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [DoctorForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [DoctorForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [DoctorForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 
 // Doctor Email Verification Routes
@@ -174,4 +238,46 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::get('/consultations', [DoctorDashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [DoctorDashboardController::class, 'viewConsultation'])->name('consultations.view');
     Route::post('/consultations/{id}/update-status', [DoctorDashboardController::class, 'updateConsultationStatus'])->name('consultations.update-status');
+    Route::post('/consultations/{id}/treatment-plan', [DoctorDashboardController::class, 'updateTreatmentPlan'])->name('consultations.treatment-plan');
+    
+    // Reviews
+    Route::post('/reviews', [ReviewController::class, 'storeDoctorReview'])->name('reviews.store');
+});
+
+// ==================== PATIENT ROUTES ====================
+
+// Patient Treatment Plan Access (No authentication required)
+Route::get('/treatment-plan/{reference}', [ConsultationController::class, 'viewTreatmentPlan'])->name('treatment-plan.view');
+Route::post('/treatment-plan/{reference}/access', [ConsultationController::class, 'accessTreatmentPlan'])->name('treatment-plan.access');
+
+// Payment and Treatment Plan Management
+Route::post('/payment/unlock-treatment-plan/{consultationId}', [PaymentController::class, 'unlockTreatmentPlan'])->name('payment.unlock-treatment-plan');
+
+// Patient Login Routes (No authentication required)
+Route::prefix('patient')->name('patient.')->group(function () {
+    Route::get('/login', [PatientAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [PatientAuthController::class, 'login'])->name('login.post');
+});
+
+// Patient Email Verification Routes
+Route::prefix('patient')->name('patient.')->middleware('patient.auth')->group(function () {
+    Route::get('/email/verify', [PatientVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [PatientVerificationController::class, 'resend'])->name('verification.resend');
+});
+
+Route::get('/patient/email/verify/{id}/{hash}', [PatientVerificationController::class, 'verify'])
+    ->name('patient.verification.verify');
+
+// Patient Password Reset Routes
+Route::prefix('patient')->name('patient.')->group(function () {
+    Route::get('/forgot-password', [PatientForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [PatientForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [PatientForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [PatientForgotPasswordController::class, 'resetPassword'])->name('password.update');
+});
+
+// Protected Patient Routes (Authentication required)
+Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient.verified'])->group(function () {
+    Route::post('/logout', [PatientAuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [PatientAuthController::class, 'dashboard'])->name('dashboard');
 });

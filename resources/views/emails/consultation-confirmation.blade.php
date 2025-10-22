@@ -220,6 +220,7 @@
 
         <div class="footer">
             <p>This is an automated confirmation email from DoctorOnTap Healthcare Campaign.</p>
+            <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
             <p>&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
         </div>
     </div>

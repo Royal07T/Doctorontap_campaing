@@ -108,15 +108,20 @@
                     @enderror
                 </div>
 
-                <!-- Remember Me -->
-                <div class="mb-5 flex items-center">
-                    <input type="checkbox" 
-                           id="remember" 
-                           name="remember"
-                           class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
-                    <label for="remember" class="ml-2 text-sm text-gray-600">
-                        Keep me signed in
-                    </label>
+                <!-- Remember Me & Forgot Password -->
+                <div class="mb-5 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="remember" 
+                               name="remember"
+                               class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                        <label for="remember" class="ml-2 text-sm text-gray-600">
+                            Keep me signed in
+                        </label>
+                    </div>
+                    <a href="{{ route('admin.password.request') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">
+                        Forgot Password?
+                    </a>
                 </div>
 
                 <!-- Submit Button -->

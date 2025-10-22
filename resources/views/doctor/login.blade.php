@@ -119,7 +119,7 @@
                             Keep me signed in
                         </label>
                     </div>
-                    <a href="#" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">
+                    <a href="{{ route('doctor.password.request') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">
                         Forgot Password?
                     </a>
                 </div>

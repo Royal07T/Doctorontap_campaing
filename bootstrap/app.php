@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'nurse.verified' => \App\Http\Middleware\EnsureNurseEmailIsVerified::class,
             'doctor.auth' => \App\Http\Middleware\DoctorAuthenticate::class,
             'doctor.verified' => \App\Http\Middleware\EnsureDoctorEmailIsVerified::class,
+            'patient.auth' => \App\Http\Middleware\PatientAuthenticate::class,
+            'patient.verified' => \App\Http\Middleware\EnsurePatientEmailIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

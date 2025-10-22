@@ -253,7 +253,7 @@
         <div class="footer">
             <p>
                 <strong>DoctorOnTap</strong><br>
-                Healthcare Made Accessible
+                caring for you, just like family
             </p>
             <p>
                 This is an automated email. Please do not reply to this message.<br>

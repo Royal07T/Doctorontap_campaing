@@ -239,7 +239,7 @@
 
   <!-- FOOTER -->
   <div class="footer">
-    <p><strong>DoctorOnTap</strong> — Caring for You, Just Like Family</p>
+    <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
     <p>📧 {{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}</p>
     <p>📱 08177777122 | +16178333519</p>
     <p style="color:#aaa;">This is an automated message. Please do not reply.</p>

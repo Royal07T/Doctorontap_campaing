@@ -7,6 +7,7 @@ use App\Models\Consultation;
 use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class DashboardController extends Controller
 {
@@ -43,25 +44,33 @@ class DashboardController extends Controller
     {
         try {
             $validated = $request->validate([
-                'name' => 'required|string|max:255',
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
                 'email' => 'required|email|unique:patients,email',
                 'phone' => 'required|string|max:20',
-                'gender' => 'required|in:male,female',
+                'gender' => 'required|in:male,female,other',
+                'age' => 'required|integer|min:1|max:120',
+                'password' => 'required|string|min:8|confirmed',
             ]);
 
             $canvasser = Auth::guard('canvasser')->user();
 
             $patient = Patient::create([
-                'name' => $validated['name'],
+                'name' => $validated['first_name'] . ' ' . $validated['last_name'],
                 'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
                 'phone' => $validated['phone'],
                 'gender' => $validated['gender'],
+                'age' => $validated['age'],
                 'canvasser_id' => $canvasser->id,
             ]);
 
+            // Send email verification
+            $patient->sendEmailVerificationNotification();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Patient registered successfully!',
+                'message' => 'Patient registered successfully! A verification email has been sent to their email address.',
                 'patient' => $patient
             ]);
 

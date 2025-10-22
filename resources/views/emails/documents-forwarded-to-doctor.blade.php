@@ -252,7 +252,7 @@
         <div class="footer">
             <p>
                 <strong>DoctorOnTap</strong><br>
-                Professional Healthcare Services<br>
+                caring for you, just like family<br>
                 Need assistance? Contact us at <a href="mailto:inquiries@doctorontap.com.ng">inquiries@doctorontap.com.ng</a>
             </p>
             <p style="margin-top: 15px; font-size: 0.85rem;">

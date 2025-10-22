@@ -68,6 +68,38 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get all reviews received by this doctor
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'reviewee_doctor_id');
+    }
+
+    /**
+     * Get all reviews written by this doctor
+     */
+    public function reviewsGiven()
+    {
+        return $this->hasMany(Review::class, 'doctor_id');
+    }
+
+    /**
+     * Get average rating
+     */
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->published()->avg('rating') ?? 0;
+    }
+
+    /**
+     * Get total number of reviews
+     */
+    public function getTotalReviewsAttribute()
+    {
+        return $this->reviews()->published()->count();
+    }
+
+    /**
      * Get the full name of the doctor
      */
     public function getFullNameAttribute()

@@ -41,6 +41,19 @@
             overflow: hidden;
         }
         
+        /* Adjust hero height for better mobile viewing */
+        @media (max-width: 640px) {
+            .hero-section {
+                min-height: 550px;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 768px) {
+            .hero-section {
+                min-height: 580px;
+            }
+        }
+        
         .hero-bg-image {
             position: absolute;
             inset: 0;
@@ -49,6 +62,39 @@
             background-repeat: no-repeat;
             opacity: 0;
             transition: opacity 2s ease-in-out;
+        }
+        
+        /* Mobile-specific positioning to show medical context */
+        @media (max-width: 768px) {
+            .hero-bg-image {
+                background-position: 65% center; /* Show right side where doctors/medical staff usually are */
+                background-size: cover;
+            }
+            .hero-bg-1 {
+                background-position: 60% center;
+            }
+            .hero-bg-2 {
+                background-position: 70% center;
+            }
+            .hero-bg-3 {
+                background-position: 55% center;
+            }
+            .hero-bg-4 {
+                background-position: 65% center;
+            }
+            .hero-bg-5 {
+                background-position: 60% center;
+            }
+            .hero-bg-6 {
+                background-position: 70% center;
+            }
+        }
+        
+        /* Tablet positioning */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .hero-bg-image {
+                background-position: 60% center;
+            }
         }
         
         .hero-bg-image.active {
@@ -86,6 +132,13 @@
             z-index: 1;
         }
         
+        /* Lighter overlay on mobile for better image visibility */
+        @media (max-width: 768px) {
+            .hero-overlay {
+                background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(123, 61, 233, 0.35) 100%);
+            }
+        }
+        
         .hero-content {
             position: relative;
             z-index: 10;
@@ -101,26 +154,40 @@
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased">
-    <!-- Navbar -->
+    <!-- Navbar - Mobile First Design -->
     <nav class="sticky top-0 z-50 purple-gradient shadow-lg">
-        <div class="container mx-auto px-5 py-3 md:py-4">
+        <div class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
-                <a href="{{ url('/') }}" class="flex items-center group">
-                    <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-7 sm:h-8 md:h-10 w-auto transition-transform group-hover:scale-105">
+                <!-- Logo - Prominent on Mobile -->
+                <a href="{{ url('/') }}" class="flex items-center group flex-shrink-0">
+                    <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap Logo" class="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105">
                 </a>
-                <div class="flex items-center gap-4 md:gap-8 text-white">
-                    <!-- Email -->
-                    <a href="mailto:inquiries@doctorontap.com.ng" class="hover:text-purple-200 transition-colors">
-                        <div class="text-right">
-                            <p class="text-xs md:text-sm font-medium opacity-90">Email</p>
-                            <p class="text-xs md:text-base font-semibold">inquiries@doctorontap.com.ng</p>
+                
+                <!-- Contact Actions - Mobile First -->
+                <div class="flex items-center gap-2 sm:gap-3 md:gap-6 text-white">
+                    <!-- Email - Icon on Mobile, Full Info on Desktop -->
+                    <a href="mailto:inquiries@doctorontap.com.ng" class="flex items-center gap-2 hover:text-purple-200 transition-colors group">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div class="hidden lg:block text-right">
+                            <p class="text-xs font-medium opacity-90 leading-tight">Email</p>
+                            <p class="text-sm font-semibold leading-tight">inquiries@doctorontap.com.ng</p>
                         </div>
                     </a>
-                    <!-- WhatsApp -->
-                    <a href="https://wa.me/2348177777122" target="_blank" class="hover:text-purple-200 transition-colors">
-                        <div class="text-right">
-                            <p class="text-xs md:text-sm font-medium opacity-90">Whatsapp number</p>
-                            <p class="text-xs md:text-base font-semibold">08177777122</p>
+                    
+                    <!-- WhatsApp - Icon on Mobile, Full Info on Desktop -->
+                    <a href="https://wa.me/2348177777122" target="_blank" class="flex items-center gap-2 hover:text-purple-200 transition-colors group">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                        </div>
+                        <div class="hidden lg:block text-right">
+                            <p class="text-xs font-medium opacity-90 leading-tight">WhatsApp</p>
+                            <p class="text-sm font-semibold leading-tight">08177777122</p>
                         </div>
                     </a>
                 </div>
@@ -144,17 +211,18 @@
         <!-- Hero Content -->
         <div class="hero-content">
             <div class="container mx-auto max-w-5xl px-5 py-16 md:py-24">
-                <div class="text-center text-white">
-                    <!-- Headline -->
-                    <h1 class="text-4xl md:text-6xl font-bold mb-4" style="text-shadow: 3px 3px 10px rgba(0,0,0,0.8);">
+                <div class="text-center text-white px-2">
+                    <!-- Headline - Mobile First -->
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 md:mb-10 lg:mb-12 leading-tight" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
                         Talk to a Doctor Now,<br>
-                        <span style="color: #fbbf24; text-shadow: 3px 3px 10px rgba(0,0,0,0.8);">Pay Later</span>
+                        <span style="color: #fbbf24; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">Pay Later</span>
             </h1>
                     
-                    <!-- Subheadline -->
-                    <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
-                        Instant access to verified doctors with no upfront fees.<br>
-                        <span style="color: #fbbf24; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">Consult now and pay only after your appointment.</span>
+                    <!-- Subheadline - Mobile First -->
+                    <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-8 sm:mb-10 md:mb-12 max-w-3xl mx-auto leading-relaxed px-2" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.8);">
+                        Instant access to verified doctors with no upfront fees.
+                        <span class="block mt-2 sm:mt-3 md:mt-4"></span>
+                        <span style="color: #fbbf24; text-shadow: 2px 2px 6px rgba(0,0,0,0.8);">Consult now and pay only after your appointment.</span>
                     </p>
                     
                     <!-- Social Proof - Customer Reviews Carousel -->
@@ -231,9 +299,14 @@
                         </div>
                     </div>
                     
-                    <!-- CTA Button -->
-                    <a href="#consultation-form" class="inline-block px-8 py-4 text-xl font-bold text-white rounded-full purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
-                        Talk to a Doctor Now →
+                    <!-- CTA Button - Mobile First -->
+                    <a href="#consultation-form" class="inline-block px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg md:text-xl font-bold text-white rounded-full purple-gradient hover:shadow-2xl hover:scale-105 transition-all shadow-lg">
+                        <span class="flex items-center gap-2 justify-center">
+                            <span>Talk to a Doctor Now</span>
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </span>
                     </a>
                 </div>
             </div>
@@ -241,220 +314,220 @@
     </section>
 
     <!-- FAQ Section -->
-    <section class="bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50 py-16">
-        <div class="container mx-auto max-w-4xl px-5">
-            <!-- Section Header -->
-            <div class="text-center mb-12">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-full mb-4">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <section class="bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50 py-12 sm:py-16">
+        <div class="container mx-auto max-w-4xl px-4 sm:px-5">
+            <!-- Section Header - Mobile First -->
+            <div class="text-center mb-8 sm:mb-10 md:mb-12">
+                <div class="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-purple-600 rounded-full mb-3 sm:mb-4">
+                    <svg class="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2 sm:mb-3 px-2">
                 Frequently Asked Questions
             </h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">
+                <p class="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto px-4">
                     Get instant answers to common questions about Consult now, pay later
                 </p>
             </div>
             
             <!-- FAQ Accordion -->
-            <div class="space-y-3" x-data="{ openFaq: 1 }">
+            <div class="space-y-3 sm:space-y-4" x-data="{ openFaq: 1 }">
                 <!-- FAQ 1 -->
-                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
+                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
                     <button @click="openFaq = openFaq === 1 ? null : 1" 
-                            class="w-full text-left px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            class="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors group">
+                        <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div class="hidden sm:flex flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg items-center justify-center">
                                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-purple-600 transition-colors pr-2">
                                 What does 'Pay After' mean?
                     </h3>
                         </div>
                         <svg :class="openFaq === 1 ? 'rotate-180' : ''" 
-                             class="w-5 h-5 text-gray-500 transition-transform duration-300" 
+                             class="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 transition-transform duration-300 flex-shrink-0" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === 1" 
                          x-collapse
-                         class="px-6 pb-5 pt-0">
-                        <div class="pl-14 text-gray-600 leading-relaxed">
+                         class="px-4 sm:px-6 pb-4 sm:pb-5 pt-0">
+                        <div class="sm:pl-14 text-sm sm:text-base text-gray-600 leading-relaxed">
                             You speak with a doctor first and only pay after your consultation is complete. No upfront fees required. This ensures you get the care you need without financial barriers.
                         </div>
                     </div>
                 </div>
                 
                 <!-- FAQ 2 -->
-                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
+                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
                     <button @click="openFaq = openFaq === 2 ? null : 2" 
-                            class="w-full text-left px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            class="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors group">
+                        <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div class="hidden sm:flex flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg items-center justify-center">
                                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-purple-600 transition-colors pr-2">
                                 How do I pay after the consultation?
                     </h3>
                         </div>
                         <svg :class="openFaq === 2 ? 'rotate-180' : ''" 
-                             class="w-5 h-5 text-gray-500 transition-transform duration-300" 
+                             class="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 transition-transform duration-300 flex-shrink-0" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === 2" 
                          x-collapse
-                         class="px-6 pb-5 pt-0">
-                        <div class="pl-14 text-gray-600 leading-relaxed">
+                         class="px-4 sm:px-6 pb-4 sm:pb-5 pt-0">
+                        <div class="sm:pl-14 text-sm sm:text-base text-gray-600 leading-relaxed">
                             After your consultation, you'll receive a payment link via email or SMS. We accept all major payment methods including mobile money, bank transfers, and debit/credit cards. Payment is simple, secure, and only takes a few minutes.
                         </div>
                     </div>
                 </div>
                 
                 <!-- FAQ 3 -->
-                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
+                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
                     <button @click="openFaq = openFaq === 3 ? null : 3" 
-                            class="w-full text-left px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            class="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors group">
+                        <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div class="hidden sm:flex flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-lg items-center justify-center">
                                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-purple-600 transition-colors pr-2">
                                 Is this service safe and private?
                     </h3>
                         </div>
                         <svg :class="openFaq === 3 ? 'rotate-180' : ''" 
-                             class="w-5 h-5 text-gray-500 transition-transform duration-300" 
+                             class="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 transition-transform duration-300 flex-shrink-0" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === 3" 
                          x-collapse
-                         class="px-6 pb-5 pt-0">
-                        <div class="pl-14 text-gray-600 leading-relaxed">
+                         class="px-4 sm:px-6 pb-4 sm:pb-5 pt-0">
+                        <div class="sm:pl-14 text-sm sm:text-base text-gray-600 leading-relaxed">
                             Absolutely! Your privacy and security are our top priorities. All your medical data is encrypted using industry-standard protocols. Your information is handled under strict medical confidentiality policies and will never be shared without your explicit consent. We comply with all healthcare privacy regulations.
                         </div>
                     </div>
                 </div>
                 
                 <!-- FAQ 4 -->
-                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
+                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
                     <button @click="openFaq = openFaq === 4 ? null : 4" 
-                            class="w-full text-left px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            class="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors group">
+                        <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div class="hidden sm:flex flex-shrink-0 w-10 h-10 bg-amber-100 rounded-lg items-center justify-center">
                                 <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-purple-600 transition-colors pr-2">
                                 Can I choose my doctor and consultation mode?
                     </h3>
                         </div>
                         <svg :class="openFaq === 4 ? 'rotate-180' : ''" 
-                             class="w-5 h-5 text-gray-500 transition-transform duration-300" 
+                             class="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 transition-transform duration-300 flex-shrink-0" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === 4" 
                          x-collapse
-                         class="px-6 pb-5 pt-0">
-                        <div class="pl-14 text-gray-600 leading-relaxed">
+                         class="px-4 sm:px-6 pb-4 sm:pb-5 pt-0">
+                        <div class="sm:pl-14 text-sm sm:text-base text-gray-600 leading-relaxed">
                             Yes! You have full control over your consultation experience. Browse our list of qualified doctors, read their profiles and specializations, then select the one that best fits your needs. You can also choose your preferred consultation mode: voice call, video call, or text chat - whatever makes you most comfortable.
                         </div>
                     </div>
                 </div>
 
                 <!-- FAQ 5 - Additional -->
-                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
+                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
                     <button @click="openFaq = openFaq === 5 ? null : 5" 
-                            class="w-full text-left px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
+                            class="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors group">
+                        <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div class="hidden sm:flex flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg items-center justify-center">
                                 <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-purple-600 transition-colors pr-2">
                                 How quickly can I speak with a doctor?
                             </h3>
                         </div>
                         <svg :class="openFaq === 5 ? 'rotate-180' : ''" 
-                             class="w-5 h-5 text-gray-500 transition-transform duration-300" 
+                             class="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 transition-transform duration-300 flex-shrink-0" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === 5" 
                          x-collapse
-                         class="px-6 pb-5 pt-0">
-                        <div class="pl-14 text-gray-600 leading-relaxed">
+                         class="px-4 sm:px-6 pb-4 sm:pb-5 pt-0">
+                        <div class="sm:pl-14 text-sm sm:text-base text-gray-600 leading-relaxed">
                             Most consultations are scheduled within 24 hours of your request. For urgent matters, our available doctors can often connect with you the same day. Simply submit your consultation form, and we'll match you with an appropriate healthcare professional as quickly as possible.
                         </div>
                     </div>
                 </div>
 
                 <!-- FAQ 6 - Additional -->
-                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
+                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200">
                     <button @click="openFaq = openFaq === 6 ? null : 6" 
-                            class="w-full text-left px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="flex-shrink-0 w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
+                            class="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors group">
+                        <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div class="hidden sm:flex flex-shrink-0 w-10 h-10 bg-violet-100 rounded-lg items-center justify-center">
                                 <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-purple-600 transition-colors pr-2">
                                 Can I upload medical documents or test results?
                             </h3>
                         </div>
                         <svg :class="openFaq === 6 ? 'rotate-180' : ''" 
-                             class="w-5 h-5 text-gray-500 transition-transform duration-300" 
+                             class="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 transition-transform duration-300 flex-shrink-0" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === 6" 
                          x-collapse
-                         class="px-6 pb-5 pt-0">
-                        <div class="pl-14 text-gray-600 leading-relaxed">
+                         class="px-4 sm:px-6 pb-4 sm:pb-5 pt-0">
+                        <div class="sm:pl-14 text-sm sm:text-base text-gray-600 leading-relaxed">
                             Yes! When submitting your consultation request, you can attach relevant medical documents, lab results, x-rays, or prescription history. This helps our doctors provide you with more accurate and informed medical advice. Supported formats include PDF, JPG, PNG, and common document formats.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Still Have Questions CTA -->
-            <div class="mt-12 text-center">
-                <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 shadow-xl">
-                    <h3 class="text-2xl font-bold text-white mb-3">
+            <!-- Still Have Questions CTA - Mobile First -->
+            <div class="mt-8 sm:mt-10 md:mt-12 text-center">
+                <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <h3 class="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">
                         Still Have Questions?
                     </h3>
-                    <p class="text-purple-100 mb-6 max-w-xl mx-auto">
+                    <p class="text-sm sm:text-base text-purple-100 mb-5 sm:mb-6 max-w-xl mx-auto px-2">
                         Our support team is ready to help you with any concerns or inquiries
                     </p>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                         <a href="tel:08177777122" 
-                           class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-purple-700 font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           class="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 bg-white text-purple-700 text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
                             Call Us Now
                         </a>
                         <a href="mailto:inquiries@doctorontap.com.ng" 
-                           class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-700 text-white font-semibold rounded-lg hover:bg-purple-800 hover:shadow-lg hover:scale-105 transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           class="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-purple-800 hover:shadow-lg hover:scale-105 transition-all">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
                             Email Us
@@ -715,57 +788,331 @@
                     </div>
 
                     <!-- Emergency Symptoms -->
-                    <div>
+                    <div x-data="symptomsSelector()">
                         <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
                             Are you experiencing any of these symptoms now?
                         </label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="chest_pain" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Chest pain or pressure</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="cough" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Persistent cough</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="breathing" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Severe difficulty breathing</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="consciousness" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Loss of consciousness / fainting</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="bleeding" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Uncontrolled heavy bleeding</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="weakness" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Sudden weakness, numbness</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="speech" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Slurred speech</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="seizure" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Seizure now or ongoing</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="abdominal" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Severe abdominal pain</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="fever" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Very high fever</span>
-                            </label>
-                            <label class="flex items-start gap-2 p-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" x-model="formData.emergency_symptoms" value="pregnancy_bleeding" class="mt-0.5 rounded text-blue-600 focus:ring-blue-500">
-                                <span class="text-xs">Heavy vaginal bleeding in pregnancy</span>
-                            </label>
+                        
+                        <!-- Desktop View: Checkbox Grid (Hidden on Mobile) -->
+                        <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
+                            <template x-for="symptom in getAllSymptomsFlat()" :key="symptom.value">
+                                <label class="flex items-start gap-2 p-2.5 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        :value="symptom.value"
+                                        :checked="isSelected(symptom.value)"
+                                        @change="toggleSymptom(symptom)"
+                                        class="mt-0.5 rounded text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                                    >
+                                    <span class="text-xs" x-text="symptom.label"></span>
+                                </label>
+                            </template>
                         </div>
+
+                        <!-- Mobile View: Dropdown Selector (Hidden on Desktop) -->
+                        <div class="block md:hidden">
+                            <!-- Selected Symptoms Tags -->
+                            <div x-show="selectedSymptoms.length > 0" class="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <template x-for="symptom in selectedSymptoms" :key="symptom.value">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-full">
+                                        <span x-text="symptom.label"></span>
+                                        <button type="button" @click="removeSymptom(symptom.value)" class="hover:bg-blue-700 rounded-full p-0.5 transition-colors">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                </template>
+                                <button type="button" @click="clearAll()" class="text-xs text-red-600 hover:text-red-800 font-medium underline ml-2">
+                                    Clear all
+                                </button>
+                            </div>
+
+                            <!-- Dropdown Trigger -->
+                            <div class="relative">
+                            <button 
+                                type="button"
+                                @click="isOpen = !isOpen"
+                                class="w-full px-4 py-3 text-sm text-left bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all flex items-center justify-between hover:border-blue-400"
+                            >
+                                <span class="text-gray-700" x-text="selectedSymptoms.length > 0 ? `${selectedSymptoms.length} symptom(s) selected` : 'Click to select symptoms'"></span>
+                                <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{'rotate-180': isOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div 
+                                x-show="isOpen"
+                                @click.away="isOpen = false"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 -translate-y-2"
+                                x-transition:enter-end="opacity-100 translate-y-0"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100 translate-y-0"
+                                x-transition:leave-end="opacity-0 -translate-y-2"
+                                class="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-xl max-h-96 overflow-hidden"
+                                style="display: none;"
+                            >
+                                <!-- Search Box -->
+                                <div class="p-3 border-b border-gray-200 bg-gray-50 sticky top-0">
+                                    <div class="relative">
+                                        <input 
+                                            type="text"
+                                            x-model="searchQuery"
+                                            @input="filterSymptoms()"
+                                            placeholder="Search symptoms..."
+                                            class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        >
+                                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Symptoms List with Categories -->
+                                <div class="overflow-y-auto max-h-80">
+                                    <!-- Critical/Emergency Category -->
+                                    <template x-if="filteredSymptoms.critical.length > 0">
+                                        <div class="border-b border-gray-200">
+                                            <div class="px-3 py-2 bg-red-50 sticky top-0">
+                                                <span class="text-xs font-bold text-red-700 uppercase tracking-wide">🚨 Critical/Emergency</span>
+                                            </div>
+                                            <template x-for="symptom in filteredSymptoms.critical" :key="symptom.value">
+                                                <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-red-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :value="symptom.value"
+                                                        :checked="isSelected(symptom.value)"
+                                                        @change="toggleSymptom(symptom)"
+                                                        class="mt-0.5 rounded text-red-600 focus:ring-red-500 flex-shrink-0"
+                                                    >
+                                                    <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Respiratory Category -->
+                                    <template x-if="filteredSymptoms.respiratory.length > 0">
+                                        <div class="border-b border-gray-200">
+                                            <div class="px-3 py-2 bg-cyan-50 sticky top-0">
+                                                <span class="text-xs font-bold text-cyan-700 uppercase tracking-wide">🫁 Respiratory</span>
+                                            </div>
+                                            <template x-for="symptom in filteredSymptoms.respiratory" :key="symptom.value">
+                                                <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-cyan-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :value="symptom.value"
+                                                        :checked="isSelected(symptom.value)"
+                                                        @change="toggleSymptom(symptom)"
+                                                        class="mt-0.5 rounded text-cyan-600 focus:ring-cyan-500 flex-shrink-0"
+                                                    >
+                                                    <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Neurological Category -->
+                                    <template x-if="filteredSymptoms.neurological.length > 0">
+                                        <div class="border-b border-gray-200">
+                                            <div class="px-3 py-2 bg-purple-50 sticky top-0">
+                                                <span class="text-xs font-bold text-purple-700 uppercase tracking-wide">🧠 Neurological</span>
+                                            </div>
+                                            <template x-for="symptom in filteredSymptoms.neurological" :key="symptom.value">
+                                                <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-purple-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :value="symptom.value"
+                                                        :checked="isSelected(symptom.value)"
+                                                        @change="toggleSymptom(symptom)"
+                                                        class="mt-0.5 rounded text-purple-600 focus:ring-purple-500 flex-shrink-0"
+                                                    >
+                                                    <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Pain Category -->
+                                    <template x-if="filteredSymptoms.pain.length > 0">
+                                        <div class="border-b border-gray-200">
+                                            <div class="px-3 py-2 bg-orange-50 sticky top-0">
+                                                <span class="text-xs font-bold text-orange-700 uppercase tracking-wide">🩹 Pain & Discomfort</span>
+                                            </div>
+                                            <template x-for="symptom in filteredSymptoms.pain" :key="symptom.value">
+                                                <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :value="symptom.value"
+                                                        :checked="isSelected(symptom.value)"
+                                                        @change="toggleSymptom(symptom)"
+                                                        class="mt-0.5 rounded text-orange-600 focus:ring-orange-500 flex-shrink-0"
+                                                    >
+                                                    <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- General Category -->
+                                    <template x-if="filteredSymptoms.general.length > 0">
+                                        <div>
+                                            <div class="px-3 py-2 bg-blue-50 sticky top-0">
+                                                <span class="text-xs font-bold text-blue-700 uppercase tracking-wide">📋 General Symptoms</span>
+                                            </div>
+                                            <template x-for="symptom in filteredSymptoms.general" :key="symptom.value">
+                                                <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :value="symptom.value"
+                                                        :checked="isSelected(symptom.value)"
+                                                        @change="toggleSymptom(symptom)"
+                                                        class="mt-0.5 rounded text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                                                    >
+                                                    <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- No Results -->
+                                    <div x-show="!hasResults()" class="px-4 py-8 text-center text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p class="text-sm">No symptoms found</p>
+                                    </div>
+                                </div>
+
+                                <!-- Footer -->
+                                <div class="p-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                                    <span class="text-xs text-gray-600" x-text="`${selectedSymptoms.length} selected`"></span>
+                                    <button type="button" @click="isOpen = false" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        <!-- End Mobile View -->
+
+                        <!-- Hidden inputs for form submission -->
+                        <template x-for="symptom in selectedSymptoms" :key="symptom.value">
+                            <input type="hidden" name="emergency_symptoms[]" :value="symptom.value">
+                        </template>
                     </div>
+
+                    <script>
+                        function symptomsSelector() {
+                            return {
+                                isOpen: false,
+                                searchQuery: '',
+                                selectedSymptoms: [],
+                                
+                                allSymptoms: {
+                                    critical: [
+                                        { value: 'chest_pain', label: 'Chest pain or pressure', category: 'critical' },
+                                        { value: 'breathing', label: 'Severe difficulty breathing', category: 'critical' },
+                                        { value: 'consciousness', label: 'Loss of consciousness / fainting', category: 'critical' },
+                                        { value: 'bleeding', label: 'Uncontrolled heavy bleeding', category: 'critical' },
+                                        { value: 'seizure', label: 'Seizure now or ongoing', category: 'critical' },
+                                        { value: 'pregnancy_bleeding', label: 'Heavy vaginal bleeding in pregnancy', category: 'critical' }
+                                    ],
+                                    respiratory: [
+                                        { value: 'cough', label: 'Persistent cough', category: 'respiratory' },
+                                        { value: 'shortness_breath', label: 'Shortness of breath', category: 'respiratory' },
+                                        { value: 'wheezing', label: 'Wheezing', category: 'respiratory' }
+                                    ],
+                                    neurological: [
+                                        { value: 'weakness', label: 'Sudden weakness, numbness', category: 'neurological' },
+                                        { value: 'speech', label: 'Slurred speech', category: 'neurological' },
+                                        { value: 'headache', label: 'Severe headache', category: 'neurological' },
+                                        { value: 'dizziness', label: 'Dizziness or vertigo', category: 'neurological' }
+                                    ],
+                                    pain: [
+                                        { value: 'abdominal', label: 'Severe abdominal pain', category: 'pain' },
+                                        { value: 'back_pain', label: 'Severe back pain', category: 'pain' },
+                                        { value: 'joint_pain', label: 'Joint pain', category: 'pain' }
+                                    ],
+                                    general: [
+                                        { value: 'fever', label: 'Very high fever', category: 'general' },
+                                        { value: 'fatigue', label: 'Extreme fatigue', category: 'general' },
+                                        { value: 'nausea', label: 'Nausea or vomiting', category: 'general' },
+                                        { value: 'dehydration', label: 'Signs of dehydration', category: 'general' }
+                                    ]
+                                },
+                                
+                                filteredSymptoms: {
+                                    critical: [],
+                                    respiratory: [],
+                                    neurological: [],
+                                    pain: [],
+                                    general: []
+                                },
+                                
+                                init() {
+                                    this.filterSymptoms();
+                                },
+                                
+                                filterSymptoms() {
+                                    const query = this.searchQuery.toLowerCase();
+                                    
+                                    Object.keys(this.allSymptoms).forEach(category => {
+                                        this.filteredSymptoms[category] = this.allSymptoms[category].filter(symptom => 
+                                            symptom.label.toLowerCase().includes(query)
+                                        );
+                                    });
+                                },
+                                
+                                getAllSymptomsFlat() {
+                                    // Flatten all symptoms into a single array for desktop checkbox view
+                                    const allFlat = [];
+                                    Object.keys(this.allSymptoms).forEach(category => {
+                                        allFlat.push(...this.allSymptoms[category]);
+                                    });
+                                    return allFlat;
+                                },
+                                
+                                toggleSymptom(symptom) {
+                                    const index = this.selectedSymptoms.findIndex(s => s.value === symptom.value);
+                                    if (index > -1) {
+                                        this.selectedSymptoms.splice(index, 1);
+                                    } else {
+                                        this.selectedSymptoms.push(symptom);
+                                    }
+                                    this.syncWithFormData();
+                                },
+                                
+                                removeSymptom(value) {
+                                    this.selectedSymptoms = this.selectedSymptoms.filter(s => s.value !== value);
+                                    this.syncWithFormData();
+                                },
+                                
+                                clearAll() {
+                                    this.selectedSymptoms = [];
+                                    this.syncWithFormData();
+                                },
+                                
+                                isSelected(value) {
+                                    return this.selectedSymptoms.some(s => s.value === value);
+                                },
+                                
+                                hasResults() {
+                                    return Object.values(this.filteredSymptoms).some(cat => cat.length > 0);
+                                },
+                                
+                                syncWithFormData() {
+                                    // Sync with parent Alpine component if needed
+                                    const values = this.selectedSymptoms.map(s => s.value);
+                                    if (window.formData && window.formData.emergency_symptoms !== undefined) {
+                                        window.formData.emergency_symptoms = values;
+                                    }
+                                }
+                            }
+                        }
+                    </script>
                 </div>
 
                 <!-- DOCTOR'S CHOICE BLOCK -->
@@ -1043,7 +1390,7 @@
                     <div class="flex items-center gap-3 mb-4">
                         <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 sm:h-10 md:h-12 w-auto">
                     </div>
-                    <h3 class="text-xl font-bold mb-3 text-purple-300">Caring For you, Just Like Family</h3>
+                    <h3 class="text-xl font-bold mb-3 text-purple-300">caring for you, just like family</h3>
                     <p class="text-gray-300 text-sm leading-relaxed mb-4">
                         Speak to a doctor in minutes, hire a caregiver, buy prescribed medication, and get best support for healthcare abroad from anywhere and at anytime.
                     </p>
@@ -1194,17 +1541,43 @@
             <!-- Map Section -->
             <div class="mb-8">
                 <h3 class="text-xl font-bold mb-4 text-center text-purple-300">Find Us - Abuja Office</h3>
+                <div class="bg-gradient-to-br from-purple-900/50 to-blue-900/50 rounded-xl p-4 mb-3">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-purple-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div>
+                            <p class="text-white font-semibold mb-1">Our Address:</p>
+                            <p class="text-purple-200 text-sm leading-relaxed">
+                                Suite D21, Plot 228, P.O.W. Mafemi Crescent,<br>
+                                Utako, Abuja, Nigeria
+                            </p>
+                        </div>
+                    </div>
+                </div>
                 <div class="rounded-xl overflow-hidden shadow-2xl border-2 border-purple-500">
                     <iframe 
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3939.9876543210!2d7.4567890!3d9.0678910!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMDQnMDQuNCJOIDfCsDI3JzI0LjQiRQ!5e0!3m2!1sen!2sng!4v1234567890"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.2479588193827!2d7.3843076!3d9.0556953!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x104e0a4b7e5e5e5f%3A0x5e5e5e5e5e5e5e5e!2sP.O.W.%20Mafemi%20Crescent%2C%20Utako%2C%20Abuja!5e0!3m2!1sen!2sng!4v1635000000000"
                         width="100%" 
-                        height="300" 
+                        height="350" 
                         style="border:0;" 
                         allowfullscreen="" 
                         loading="lazy" 
                         referrerpolicy="no-referrer-when-downgrade"
-                        title="DoctorOnTap Abuja Office Location">
+                        title="DoctorOnTap Abuja Office - Suite D21, Plot 228, P.O.W. Mafemi Crescent, Utako">
                     </iframe>
+                </div>
+                <div class="mt-3 text-center">
+                    <a href="https://www.google.com/maps/search/?api=1&query=Suite+D21+Plot+228+P.O.W.+Mafemi+Crescent+Utako+Abuja+Nigeria" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open in Google Maps
+                    </a>
                 </div>
             </div>
             

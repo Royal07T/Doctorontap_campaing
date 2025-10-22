@@ -120,15 +120,77 @@ class PaymentController extends Controller
         if ($verificationResult['success']) {
             $payment = Payment::where('reference', $reference)->first();
             
+            // Handle treatment plan unlocking for callback payments
+            if ($payment && $payment->metadata && isset($payment->metadata['consultation_id'])) {
+                $consultation = Consultation::find($payment->metadata['consultation_id']);
+                if ($consultation) {
+                    $consultation->update([
+                        'payment_status' => 'paid',
+                        'payment_id' => $payment->id,
+                    ]);
+                    
+                    // Unlock treatment plan if it exists
+                    if ($consultation->hasTreatmentPlan()) {
+                        $consultation->unlockTreatmentPlan();
+                        
+                        // Send treatment plan notification email
+                        \Illuminate\Support\Facades\Mail::to($consultation->email)
+                            ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                    }
+                }
+            }
+            
             return view('payment.success', [
                 'payment' => $payment,
-                'message' => 'Payment successful! We will contact you shortly.'
+                'message' => 'Payment successful! Your treatment plan has been sent to your email.'
             ]);
         } else {
             return view('payment.failed', [
                 'reference' => $reference,
                 'message' => $verificationResult['message'] ?? 'Payment verification failed'
             ]);
+        }
+    }
+
+    /**
+     * Manually unlock treatment plan for a consultation (fallback method)
+     */
+    public function unlockTreatmentPlan($consultationId)
+    {
+        try {
+            $consultation = Consultation::findOrFail($consultationId);
+            
+            if (!$consultation->isPaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment not confirmed for this consultation'
+                ], 400);
+            }
+            
+            if (!$consultation->hasTreatmentPlan()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No treatment plan exists for this consultation'
+                ], 400);
+            }
+            
+            // Unlock treatment plan
+            $consultation->unlockTreatmentPlan();
+            
+            // Send treatment plan notification email
+            \Illuminate\Support\Facades\Mail::to($consultation->email)
+                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Treatment plan unlocked and email sent successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unlock treatment plan: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -159,6 +221,22 @@ class PaymentController extends Controller
         // Log webhook payload for debugging
         Log::info('Korapay Webhook Received', ['payload' => $request->all()]);
 
+        // Verify webhook signature for security
+        $signature = $request->header('x-korapay-signature');
+        $secretKey = env('KORAPAY_SECRET_KEY');
+        
+        if ($signature && $secretKey) {
+            $expectedSignature = hash_hmac('sha256', json_encode($request->input('data')), $secretKey);
+            
+            if (!hash_equals($expectedSignature, $signature)) {
+                Log::warning('Invalid webhook signature', [
+                    'expected' => $expectedSignature,
+                    'received' => $signature
+                ]);
+                return response()->json(['status' => 'invalid_signature'], 400);
+            }
+        }
+
         $event = $request->input('event');
         $data = $request->input('data');
 
@@ -175,10 +253,31 @@ class PaymentController extends Controller
                     'korapay_response' => json_encode($data),
                 ]);
 
+                // Update consultation payment status and unlock treatment plan
+                if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
+                    $consultation = Consultation::find($payment->metadata['consultation_id']);
+                    if ($consultation) {
+                        $consultation->update([
+                            'payment_status' => 'paid',
+                            'payment_id' => $payment->id,
+                        ]);
+                        
+                        // Unlock treatment plan if it exists
+                        if ($consultation->hasTreatmentPlan()) {
+                            $consultation->unlockTreatmentPlan();
+                            
+                            // Send treatment plan notification email AFTER payment
+                            \Illuminate\Support\Facades\Mail::to($consultation->email)
+                                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                        }
+                    }
+                }
+
                 Log::info('Payment updated successfully', ['reference' => $reference]);
             }
         }
 
+        // Always return 200 to acknowledge receipt
         return response()->json(['status' => 'success']);
     }
 
@@ -206,7 +305,7 @@ class PaymentController extends Controller
         }
 
         // Check if doctor has consultation fee
-        if (!$consultation->doctor || $consultation->doctor->consultation_fee <= 0) {
+        if (!$consultation->doctor || $consultation->doctor->effective_consultation_fee <= 0) {
             return view('payment.failed', [
                 'reference' => $reference,
                 'message' => 'No payment is required for this consultation.'
@@ -225,7 +324,7 @@ class PaymentController extends Controller
             'customer_email' => $consultation->email,
             'customer_name' => $consultation->full_name,
             'customer_phone' => $consultation->mobile,
-            'amount' => $consultation->doctor->consultation_fee,
+            'amount' => $consultation->doctor->effective_consultation_fee,
             'currency' => 'NGN',
             'status' => 'pending',
             'doctor_id' => $consultation->doctor_id,
@@ -241,7 +340,7 @@ class PaymentController extends Controller
         
         // Prepare Korapay API request
         $payload = [
-            'amount' => $consultation->doctor->consultation_fee,
+            'amount' => $consultation->doctor->effective_consultation_fee,
             'redirect_url' => route('payment.callback'),
             'currency' => 'NGN',
             'reference' => $paymentReference,

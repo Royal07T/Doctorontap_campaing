@@ -306,7 +306,7 @@
             
             <p class="footer-text">
                 <strong>DoctorOnTap</strong><br>
-                Caring for You, Just Like Family
+                caring for you, just like family
             </p>
 
             <div class="social-links">

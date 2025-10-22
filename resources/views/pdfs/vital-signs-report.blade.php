@@ -207,7 +207,7 @@
     <!-- Header -->
     <div class="header">
         <img src="{{ public_path('img/sitelogo.png') }}" alt="DoctorOnTap" class="logo-img">
-        <div class="tagline">Caring for You, Just Like Family</div>
+        <div class="tagline">caring for you, just like family</div>
     </div>
 
     <!-- Report Title -->
@@ -411,7 +411,7 @@
     <!-- Footer -->
     <div class="footer">
         <div class="footer-info">
-            <strong>DoctorOnTap</strong> - Caring for You, Just Like Family
+            <strong>DoctorOnTap</strong> - caring for you, just like family
         </div>
         <div class="footer-info">
             For questions or to book a consultation, visit our website or contact our support team.

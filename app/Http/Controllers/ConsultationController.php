@@ -11,6 +11,7 @@ use App\Mail\ConsultationDoctorNotification;
 use App\Mail\PaymentRequest;
 use App\Models\Doctor;
 use App\Models\Consultation;
+use App\Models\Patient;
 
 class ConsultationController extends Controller
 {
@@ -90,6 +91,19 @@ class ConsultationController extends Controller
             }
         }
 
+        // Create or update patient record with all information
+        $patient = Patient::updateOrCreate(
+            [
+                'email' => $validated['email'],
+            ],
+            [
+                'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                'phone' => $validated['mobile'],
+                'gender' => $validated['gender'],
+                'age' => $validated['age'],
+            ]
+        );
+
         // Create consultation record
         $consultation = Consultation::create([
             'reference' => $reference,
@@ -108,6 +122,11 @@ class ConsultationController extends Controller
             'status' => 'pending',
             'payment_status' => 'unpaid',
         ]);
+
+        // Update patient aggregates
+        $patient->increment('consultations_count');
+        $patient->last_consultation_at = now();
+        $patient->save();
 
         // Add reference and documents to validated data for emails
         $validated['consultation_reference'] = $reference;
@@ -175,5 +194,70 @@ class ConsultationController extends Controller
             'success' => true,
             'message' => 'Payment request email sent successfully'
         ]);
+    }
+
+    /**
+     * View treatment plan access page
+     */
+    public function viewTreatmentPlan($reference)
+    {
+        $consultation = Consultation::with('doctor')->where('reference', $reference)->firstOrFail();
+        
+        // Check if treatment plan exists
+        if (!$consultation->hasTreatmentPlan()) {
+            return view('consultation.treatment-plan-access', [
+                'consultation' => $consultation,
+                'error' => 'No treatment plan has been created for this consultation yet.',
+                'showPaymentButton' => false
+            ]);
+        }
+        
+        // STRICT PAYMENT GATING: Check if payment is required and if it's been made
+        if ($consultation->requiresPaymentForTreatmentPlan()) {
+            return view('consultation.treatment-plan-access', [
+                'consultation' => $consultation,
+                'error' => 'Payment is required to access your treatment plan. Please complete payment first.',
+                'showPaymentButton' => true,
+                'paymentRequired' => true
+            ]);
+        }
+        
+        // If payment is not required or has been made, show access button
+        return view('consultation.treatment-plan-access', [
+            'consultation' => $consultation,
+            'showAccessButton' => true
+        ]);
+    }
+
+    /**
+     * Access treatment plan (after payment verification)
+     */
+    public function accessTreatmentPlan(Request $request, $reference)
+    {
+        $consultation = Consultation::with('doctor')->where('reference', $reference)->firstOrFail();
+        
+        // Check if treatment plan exists
+        if (!$consultation->hasTreatmentPlan()) {
+            return view('consultation.treatment-plan-access', [
+                'consultation' => $consultation,
+                'error' => 'No treatment plan has been created for this consultation yet.',
+                'showPaymentButton' => false
+            ]);
+        }
+        
+        // STRICT PAYMENT GATING: Double-check payment status
+        if ($consultation->requiresPaymentForTreatmentPlan()) {
+            return view('consultation.treatment-plan-access', [
+                'consultation' => $consultation,
+                'error' => 'Payment is required to access your treatment plan. Please complete payment first.',
+                'showPaymentButton' => true,
+                'paymentRequired' => true
+            ]);
+        }
+        
+        // Mark as accessed
+        $consultation->markTreatmentPlanAccessed();
+        
+        return view('consultation.treatment-plan', compact('consultation'));
     }
 }

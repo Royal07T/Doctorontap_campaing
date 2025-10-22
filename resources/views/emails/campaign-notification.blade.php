@@ -173,13 +173,13 @@
             <div class="message" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
                 <p><strong>Best regards,</strong><br>
                 The DoctorOnTap Team<br>
-                <strong>Caring for You, Just Like Family</strong></p>
+                <strong>caring for you, just like family</strong></p>
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <p><strong>DoctorOnTap</strong> — Caring for You, Just Like Family</p>
+            <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
             <p>📧 {{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}</p>
             <p>📱 08177777122</p>
             <p style="margin-top: 10px; color: #aaa;">This is an automated campaign notification. Please do not reply to this email.</p>

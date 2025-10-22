@@ -23,3 +23,9 @@ yarn-error.log
 *.swo
 *~
 .DS_Store
+
+# Environment files with secrets
+.envprodd
+.env.prodd.backup
+.env.local
+.env.production

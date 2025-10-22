@@ -205,6 +205,7 @@
                         <table class="w-full">
                             <thead class="bg-gray-50 border-b border-gray-200">
                                 <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Patient</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Problem</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Severity</th>
@@ -215,6 +216,7 @@
                             <tbody class="divide-y divide-gray-200">
                                 @foreach($recentConsultations as $consultation)
                                 <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 text-sm text-gray-900 font-mono">{{ $consultation->reference ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-900">{{ $consultation->first_name }} {{ $consultation->last_name }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ Str::limit($consultation->problem, 40) }}</td>
                                     <td class="px-4 py-3 text-sm">

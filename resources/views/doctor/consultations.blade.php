@@ -170,7 +170,7 @@
                                 @forelse($consultations as $consultation)
                                     <tr class="hover:bg-purple-50 transition-colors">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{{ $consultation->reference_number ?? 'N/A' }}</div>
+                                            <div class="text-sm font-medium text-gray-900 font-mono">{{ $consultation->reference ?? 'N/A' }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900">{{ $consultation->first_name }} {{ $consultation->last_name }}</div>
@@ -199,9 +199,15 @@
                                                 View
                                             </button>
                                             <button onclick="updateStatus({{ $consultation->id }})"
-                                                    class="text-blue-600 hover:text-blue-900 font-medium transition-colors">
+                                                    class="text-blue-600 hover:text-blue-900 font-medium mr-3 transition-colors">
                                                 Update
                                             </button>
+                                            @if($consultation->status !== 'completed')
+                                            <button onclick="createTreatmentPlan({{ $consultation->id }})"
+                                                    class="text-green-600 hover:text-green-900 font-medium transition-colors">
+                                                Treatment Plan
+                                            </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -298,7 +304,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="bg-purple-50 p-4 rounded-lg">
                                     <h4 class="font-semibold text-purple-700 text-sm uppercase mb-2">Reference Number</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.reference_number}</p>
+                                    <p class="text-gray-900 font-medium font-mono">${consultation.reference}</p>
                                 </div>
                                 <div class="bg-purple-50 p-4 rounded-lg">
                                     <h4 class="font-semibold text-purple-700 text-sm uppercase mb-2">Status</h4>
@@ -351,8 +357,8 @@
                     }
                 })
                 .catch(error => {
+                    console.error('View consultation error:', error);
                     showAlertModal('Failed to load consultation details', 'error');
-                    console.error(error);
                 });
         }
 
@@ -379,7 +385,6 @@
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     status: formData.get('status'),
@@ -450,7 +455,268 @@
             document.getElementById('alertModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
         }
+
+        // Treatment Plan Functions
+
+        function createTreatmentPlan(consultationId) {
+            currentConsultationId = consultationId;
+            document.getElementById('treatmentPlanModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function submitTreatmentPlan(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = {};
+            
+            // Convert FormData to object
+            for (let [key, value] of formData.entries()) {
+                if (key.includes('[') && key.includes(']')) {
+                    // Handle array fields like prescribed_medications[0][name]
+                    const parts = key.split('[');
+                    const field = parts[0];
+                    const index = parts[1].split(']')[0];
+                    const subfield = parts[2].split(']')[0];
+                    
+                    if (!data[field]) data[field] = [];
+                    if (!data[field][index]) data[field][index] = {};
+                    data[field][index][subfield] = value;
+                } else {
+                    data[key] = value;
+                }
+            }
+            
+            // Remove empty medication and referral entries
+            if (data.prescribed_medications) {
+                data.prescribed_medications = data.prescribed_medications.filter(med => 
+                    med.name && med.dosage && med.frequency && med.duration
+                );
+            }
+            
+            if (data.referrals) {
+                data.referrals = data.referrals.filter(ref => 
+                    ref.specialist && ref.reason && ref.urgency
+                );
+            }
+            
+            // Submit to server
+            fetch(`/doctor/consultations/${currentConsultationId}/treatment-plan`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlertModal(data.message, 'success');
+                    closeModal('treatmentPlanModal');
+                    // Refresh the page or update the consultation status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showAlertModal(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showAlertModal('Failed to create treatment plan', 'error');
+                console.error(error);
+            });
+        }
+
+        function addMedication() {
+            const container = document.getElementById('medicationsContainer');
+            const count = container.children.length;
+            
+            const medicationDiv = document.createElement('div');
+            medicationDiv.className = 'medication-item grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border border-gray-200 rounded-lg';
+            medicationDiv.innerHTML = `
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Medication Name</label>
+                    <input type="text" name="prescribed_medications[${count}][name]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Paracetamol">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Dosage</label>
+                    <input type="text" name="prescribed_medications[${count}][dosage]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 500mg">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+                    <input type="text" name="prescribed_medications[${count}][frequency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Twice daily">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                    <input type="text" name="prescribed_medications[${count}][duration]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 7 days">
+                </div>
+            `;
+            
+            container.appendChild(medicationDiv);
+        }
+
+        function addReferral() {
+            const container = document.getElementById('referralsContainer');
+            const count = container.children.length;
+            
+            const referralDiv = document.createElement('div');
+            referralDiv.className = 'referral-item grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-gray-200 rounded-lg';
+            referralDiv.innerHTML = `
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Specialist</label>
+                    <input type="text" name="referrals[${count}][specialist]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Cardiologist">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Reason</label>
+                    <input type="text" name="referrals[${count}][reason]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="Reason for referral">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Urgency</label>
+                    <select name="referrals[${count}][urgency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500">
+                        <option value="routine">Routine</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="emergency">Emergency</option>
+                    </select>
+                </div>
+            `;
+            
+            container.appendChild(referralDiv);
+        }
     </script>
+
+    <!-- Treatment Plan Modal -->
+    <div id="treatmentPlanModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-5 mx-auto p-6 border w-full max-w-6xl shadow-2xl rounded-2xl bg-white my-5">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <h3 class="text-2xl font-bold text-gray-900">Create Treatment Plan</h3>
+                <button onclick="closeModal('treatmentPlanModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="treatmentPlanForm" onsubmit="submitTreatmentPlan(event)">
+                <div class="space-y-6">
+                    <!-- Diagnosis -->
+                    <div>
+                        <label for="diagnosis" class="block text-sm font-semibold text-gray-700 mb-2">Diagnosis <span class="text-red-500">*</span></label>
+                        <textarea id="diagnosis" name="diagnosis" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Enter your medical diagnosis..."></textarea>
+                    </div>
+
+                    <!-- Treatment Plan -->
+                    <div>
+                        <label for="treatment_plan" class="block text-sm font-semibold text-gray-700 mb-2">Treatment Plan <span class="text-red-500">*</span></label>
+                        <textarea id="treatment_plan" name="treatment_plan" required rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Describe the treatment plan in detail..."></textarea>
+                    </div>
+
+                    <!-- Medications Section -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Prescribed Medications</label>
+                        <div id="medicationsContainer" class="space-y-3">
+                            <div class="medication-item grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Medication Name</label>
+                                    <input type="text" name="prescribed_medications[0][name]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Paracetamol">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Dosage</label>
+                                    <input type="text" name="prescribed_medications[0][dosage]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 500mg">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+                                    <input type="text" name="prescribed_medications[0][frequency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Twice daily">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                                    <input type="text" name="prescribed_medications[0][duration]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 7 days">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addMedication()" class="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                            + Add Another Medication
+                        </button>
+                    </div>
+
+                    <!-- Follow-up Instructions -->
+                    <div>
+                        <label for="follow_up_instructions" class="block text-sm font-semibold text-gray-700 mb-2">Follow-up Instructions</label>
+                        <textarea id="follow_up_instructions" name="follow_up_instructions" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Instructions for follow-up care..."></textarea>
+                    </div>
+
+                    <!-- Lifestyle Recommendations -->
+                    <div>
+                        <label for="lifestyle_recommendations" class="block text-sm font-semibold text-gray-700 mb-2">Lifestyle Recommendations</label>
+                        <textarea id="lifestyle_recommendations" name="lifestyle_recommendations" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Diet, exercise, and lifestyle recommendations..."></textarea>
+                    </div>
+
+                    <!-- Referrals Section -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Referrals</label>
+                        <div id="referralsContainer" class="space-y-3">
+                            <div class="referral-item grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Specialist</label>
+                                    <input type="text" name="referrals[0][specialist]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Cardiologist">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Reason</label>
+                                    <input type="text" name="referrals[0][reason]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="Reason for referral">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Urgency</label>
+                                    <select name="referrals[0][urgency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500">
+                                        <option value="routine">Routine</option>
+                                        <option value="urgent">Urgent</option>
+                                        <option value="emergency">Emergency</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addReferral()" class="mt-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm">
+                            + Add Another Referral
+                        </button>
+                    </div>
+
+                    <!-- Next Appointment -->
+                    <div>
+                        <label for="next_appointment_date" class="block text-sm font-semibold text-gray-700 mb-2">Next Appointment Date</label>
+                        <input type="date" id="next_appointment_date" name="next_appointment_date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div>
+                        <label for="additional_notes" class="block text-sm font-semibold text-gray-700 mb-2">Additional Notes</label>
+                        <textarea id="additional_notes" name="additional_notes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Any additional notes or recommendations..."></textarea>
+                    </div>
+
+                    <!-- Payment Notice -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <div>
+                                <h4 class="text-sm font-semibold text-yellow-800">Payment Required</h4>
+                                <p class="text-sm text-yellow-700 mt-1">The patient will need to make payment before they can access this treatment plan.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('treatmentPlanModal')" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                            Create Treatment Plan
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Confirmation Modal -->
     <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
