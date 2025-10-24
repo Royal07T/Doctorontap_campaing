@@ -192,6 +192,54 @@
                     </div>
                 </div>
 
+                <!-- Payment Statistics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Paid</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ $stats['paid_consultations'] }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Consultations</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-orange-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Pending</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ $stats['pending_payments'] }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Payments</p>
+                            </div>
+                            <div class="bg-orange-50 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-indigo-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Total</p>
+                                <p class="text-2xl font-bold text-gray-900">₦{{ number_format($stats['total_earnings'], 2) }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Earnings</p>
+                            </div>
+                            <div class="bg-indigo-50 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Recent Consultations -->
                 @if($recentConsultations->count() > 0)
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -210,6 +258,7 @@
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Problem</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Severity</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
                                 </tr>
                             </thead>
@@ -235,6 +284,33 @@
                                             {{ $consultation->status == 'cancelled' ? 'bg-red-100 text-red-800' : '' }}">
                                             {{ ucfirst($consultation->status) }}
                                         </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">
+                                        @if($consultation->payment_status == 'paid')
+                                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Paid
+                                            </span>
+                                            @if($consultation->payment)
+                                                <div class="text-xs text-gray-500 mt-1">₦{{ number_format($consultation->payment->amount, 2) }}</div>
+                                            @endif
+                                        @elseif($consultation->payment_status == 'pending')
+                                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Pending
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Not Required
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $consultation->created_at->format('M d, Y') }}</td>
                                 </tr>

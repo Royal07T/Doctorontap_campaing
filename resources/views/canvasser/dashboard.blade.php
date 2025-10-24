@@ -130,7 +130,7 @@
                 @endif
 
                 <!-- Statistics Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                     <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-purple-500">
                         <div class="flex items-center justify-between">
                             <div class="flex-1">
@@ -190,6 +190,36 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-orange-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Pending</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ $stats['pending_consultations'] }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Awaiting Doctor</p>
+                            </div>
+                            <div class="bg-orange-50 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Completed</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ $stats['completed_consultations'] }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Finished Consultations</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Register New Patient Section -->
@@ -208,10 +238,17 @@
 
                     <form id="registerPatientForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">Full Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="name" name="name" required
+                            <label for="first_name" class="block text-sm font-semibold text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="first_name" name="first_name" required
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                   placeholder="Enter patient's full name">
+                                   placeholder="Enter patient's first name">
+                        </div>
+
+                        <div>
+                            <label for="last_name" class="block text-sm font-semibold text-gray-700 mb-2">Last Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="last_name" name="last_name" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                                   placeholder="Enter patient's last name">
                         </div>
 
                         <div>
@@ -236,6 +273,13 @@
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
                             </select>
+                        </div>
+
+                        <div>
+                            <label for="age" class="block text-sm font-semibold text-gray-700 mb-2">Age <span class="text-red-500">*</span></label>
+                            <input type="number" id="age" name="age" required min="1" max="120"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                                   placeholder="Enter patient's age">
                         </div>
 
                         <div class="md:col-span-2">

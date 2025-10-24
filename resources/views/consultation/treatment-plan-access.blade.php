@@ -104,7 +104,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="text-gray-500">Doctor:</span>
-                            <span class="font-medium text-gray-900">{{ $consultation->doctor ? $consultation->doctor->name : 'Not Assigned' }}</span>
+                            <span class="font-medium text-gray-900">{{ $consultation->doctor ? $consultation->doctor->name . ($consultation->doctor->gender ? ' (' . ucfirst($consultation->doctor->gender) . ')' : '') : 'Not Assigned' }}</span>
                         </div>
                         <div>
                             <span class="text-gray-500">Status:</span>

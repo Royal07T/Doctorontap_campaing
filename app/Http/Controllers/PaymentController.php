@@ -124,18 +124,40 @@ class PaymentController extends Controller
             if ($payment && $payment->metadata && isset($payment->metadata['consultation_id'])) {
                 $consultation = Consultation::find($payment->metadata['consultation_id']);
                 if ($consultation) {
-                    $consultation->update([
-                        'payment_status' => 'paid',
-                        'payment_id' => $payment->id,
-                    ]);
+                    // Only update if not already paid to avoid duplicate processing
+                    if ($consultation->payment_status !== 'paid') {
+                        $consultation->update([
+                            'payment_status' => 'paid',
+                            'payment_id' => $payment->id,
+                        ]);
+                    }
                     
-                    // Unlock treatment plan if it exists
-                    if ($consultation->hasTreatmentPlan()) {
+                    // Always check if treatment plan needs to be unlocked (regardless of payment status)
+                    if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
                         $consultation->unlockTreatmentPlan();
                         
                         // Send treatment plan notification email
-                        \Illuminate\Support\Facades\Mail::to($consultation->email)
-                            ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($consultation->email)
+                                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                            \Illuminate\Support\Facades\Log::info('Treatment plan email sent successfully via callback', [
+                                'consultation_id' => $consultation->id,
+                                'email' => $consultation->email,
+                                'payment_reference' => $reference
+                            ]);
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to send treatment plan email via callback', [
+                                'consultation_id' => $consultation->id,
+                                'email' => $consultation->email,
+                                'payment_reference' => $reference,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    } else {
+                        \Illuminate\Support\Facades\Log::info('Payment already processed for consultation', [
+                            'consultation_id' => $consultation->id,
+                            'payment_reference' => $reference
+                        ]);
                     }
                 }
             }
@@ -257,18 +279,40 @@ class PaymentController extends Controller
                 if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
                     $consultation = Consultation::find($payment->metadata['consultation_id']);
                     if ($consultation) {
-                        $consultation->update([
-                            'payment_status' => 'paid',
-                            'payment_id' => $payment->id,
-                        ]);
+                        // Only update if not already paid to avoid duplicate processing
+                        if ($consultation->payment_status !== 'paid') {
+                            $consultation->update([
+                                'payment_status' => 'paid',
+                                'payment_id' => $payment->id,
+                            ]);
+                        }
                         
-                        // Unlock treatment plan if it exists
-                        if ($consultation->hasTreatmentPlan()) {
+                        // Always check if treatment plan needs to be unlocked (regardless of payment status)
+                        if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
                             $consultation->unlockTreatmentPlan();
                             
                             // Send treatment plan notification email AFTER payment
-                            \Illuminate\Support\Facades\Mail::to($consultation->email)
-                                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                            try {
+                                \Illuminate\Support\Facades\Mail::to($consultation->email)
+                                    ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                                \Illuminate\Support\Facades\Log::info('Treatment plan email sent successfully via webhook', [
+                                    'consultation_id' => $consultation->id,
+                                    'email' => $consultation->email,
+                                    'payment_reference' => $reference
+                                ]);
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('Failed to send treatment plan email via webhook', [
+                                    'consultation_id' => $consultation->id,
+                                    'email' => $consultation->email,
+                                    'payment_reference' => $reference,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
+                        } else {
+                            \Illuminate\Support\Facades\Log::info('Payment already processed for consultation via webhook', [
+                                'consultation_id' => $consultation->id,
+                                'payment_reference' => $reference
+                            ]);
                         }
                     }
                 }
@@ -426,7 +470,41 @@ class PaymentController extends Controller
                     if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
                         $consultation = Consultation::find($payment->metadata['consultation_id']);
                         if ($consultation && $data['status'] === 'success') {
-                            $consultation->update(['payment_status' => 'paid']);
+                            // Only update if not already paid to avoid duplicate processing
+                            if ($consultation->payment_status !== 'paid') {
+                                $consultation->update([
+                                    'payment_status' => 'paid',
+                                    'payment_id' => $payment->id,
+                                ]);
+                            }
+                            
+                            // Always check if treatment plan needs to be unlocked (regardless of payment status)
+                            if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
+                                $consultation->unlockTreatmentPlan();
+                                
+                                // Send treatment plan notification email AFTER payment
+                                try {
+                                    \Illuminate\Support\Facades\Mail::to($consultation->email)
+                                        ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                                    \Illuminate\Support\Facades\Log::info('Treatment plan email sent successfully via verification', [
+                                        'consultation_id' => $consultation->id,
+                                        'email' => $consultation->email,
+                                        'payment_reference' => $reference
+                                    ]);
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error('Failed to send treatment plan email via verification', [
+                                        'consultation_id' => $consultation->id,
+                                        'email' => $consultation->email,
+                                        'payment_reference' => $reference,
+                                        'error' => $e->getMessage()
+                                    ]);
+                                }
+                            } else {
+                                \Illuminate\Support\Facades\Log::info('Payment already processed for consultation via verification', [
+                                    'consultation_id' => $consultation->id,
+                                    'payment_reference' => $reference
+                                ]);
+                            }
                         }
                     }
                 }

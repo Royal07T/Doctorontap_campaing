@@ -1205,4 +1205,106 @@ class DashboardController extends Controller
 
         return view('admin.vital-signs', compact('vitalSigns', 'nurses', 'stats'));
     }
+
+    /**
+     * View canvasser patient registrations
+     */
+    public function canvasserPatients(Request $request)
+    {
+        $canvasserId = $request->query('canvasser_id');
+        
+        $query = Patient::with('canvasser');
+        
+        if ($canvasserId) {
+            $query->where('canvasser_id', $canvasserId);
+        }
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Filter by verification status
+        if ($request->filled('verification_status')) {
+            if ($request->verification_status === 'verified') {
+                $query->where('is_verified', true);
+            } elseif ($request->verification_status === 'unverified') {
+                $query->where('is_verified', false);
+            }
+        }
+        
+        $patients = $query->latest()->paginate(20);
+        
+        // Get canvassers for filter dropdown
+        $canvassers = Canvasser::select('id', 'name')->get();
+        
+        // Statistics
+        $stats = [
+            'total_patients' => Patient::count(),
+            'verified_patients' => Patient::where('is_verified', true)->count(),
+            'unverified_patients' => Patient::where('is_verified', false)->count(),
+            'patients_with_consultations' => Patient::where('consultations_count', '>', 0)->count(),
+            'patients_without_consultations' => Patient::where('consultations_count', 0)->count(),
+        ];
+        
+        return view('admin.canvasser-patients', compact('patients', 'canvassers', 'stats'));
+    }
+
+    /**
+     * View canvasser performance
+     */
+    public function canvasserPerformance()
+    {
+        $canvassers = Canvasser::withCount(['patients', 'consultations'])
+                              ->withSum('patients', 'total_amount_paid')
+                              ->get()
+                              ->map(function ($canvasser) {
+                                  $canvasser->verified_patients_count = Patient::where('canvasser_id', $canvasser->id)
+                                                                              ->where('is_verified', true)
+                                                                              ->count();
+                                  $canvasser->unverified_patients_count = Patient::where('canvasser_id', $canvasser->id)
+                                                                                ->where('is_verified', false)
+                                                                                ->count();
+                                  $canvasser->consulted_patients_count = Patient::where('canvasser_id', $canvasser->id)
+                                                                              ->where('has_consulted', true)
+                                                                              ->count();
+                                  return $canvasser;
+                              });
+        
+        $stats = [
+            'total_canvassers' => Canvasser::count(),
+            'active_canvassers' => Canvasser::where('is_active', true)->count(),
+            'total_patients_registered' => Patient::count(),
+            'verified_patients' => Patient::where('is_verified', true)->count(),
+            'total_revenue_generated' => Patient::sum('total_amount_paid'),
+        ];
+        
+        return view('admin.canvasser-performance', compact('canvassers', 'stats'));
+    }
+
+    /**
+     * View patient verification status
+     */
+    public function patientVerification()
+    {
+        $unverifiedPatients = Patient::where('is_verified', false)
+                                   ->with('canvasser')
+                                   ->latest()
+                                   ->paginate(20);
+        
+        $stats = [
+            'total_patients' => Patient::count(),
+            'verified_patients' => Patient::where('is_verified', true)->count(),
+            'unverified_patients' => Patient::where('is_verified', false)->count(),
+            'verification_rate' => Patient::count() > 0 ? 
+                round((Patient::where('is_verified', true)->count() / Patient::count()) * 100, 2) : 0,
+        ];
+        
+        return view('admin.patient-verification', compact('unverifiedPatients', 'stats'));
+    }
 }

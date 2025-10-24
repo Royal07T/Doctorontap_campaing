@@ -42,7 +42,16 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_activity_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+    
+    /**
+     * Update last activity timestamp
+     */
+    public function updateLastActivity()
+    {
+        $this->update(['last_activity_at' => now()]);
     }
 }

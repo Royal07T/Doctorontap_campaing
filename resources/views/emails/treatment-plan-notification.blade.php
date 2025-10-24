@@ -78,7 +78,7 @@
         <div class="info-box">
             <h3 style="margin-top: 0;">Consultation Details:</h3>
             <p><strong>Reference:</strong> {{ $consultation->reference }}</p>
-            <p><strong>Doctor:</strong> {{ $consultation->doctor->name }}</p>
+            <p><strong>Doctor:</strong> {{ $consultation->doctor->name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</p>
             <p><strong>Date:</strong> {{ $consultation->created_at->format('M d, Y') }}</p>
             <p><strong>Status:</strong> Treatment Plan Ready</p>
         </div>

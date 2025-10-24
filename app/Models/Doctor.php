@@ -54,6 +54,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'mdcn_license_current' => 'boolean',
         'use_default_fee' => 'boolean',
         'last_login_at' => 'datetime',
+        'last_activity_at' => 'datetime',
         'approved_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -172,5 +173,13 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\DoctorVerifyEmail);
+    }
+    
+    /**
+     * Update last activity timestamp
+     */
+    public function updateLastActivity()
+    {
+        $this->update(['last_activity_at' => now()]);
     }
 }

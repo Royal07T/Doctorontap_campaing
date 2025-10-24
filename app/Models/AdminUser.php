@@ -25,8 +25,17 @@ class AdminUser extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_activity_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
     ];
+    
+    /**
+     * Update last activity timestamp
+     */
+    public function updateLastActivity()
+    {
+        $this->update(['last_activity_at' => now()]);
+    }
 }

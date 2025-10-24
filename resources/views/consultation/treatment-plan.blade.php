@@ -59,7 +59,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                         <span class="text-gray-500">Doctor:</span>
-                        <span class="font-medium text-gray-900">{{ $consultation->doctor->name }}</span>
+                        <span class="font-medium text-gray-900">{{ $consultation->doctor->name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</span>
                     </div>
                     <div>
                         <span class="text-gray-500">Date:</span>

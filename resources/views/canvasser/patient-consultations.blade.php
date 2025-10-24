@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>My Patients - Canvasser Dashboard</title>
+    <title>Patient Consultations - DoctorOnTap</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -106,133 +106,156 @@
                         </button>
                         <div class="flex items-center space-x-3">
                             <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
-                            <h1 class="text-xl font-bold text-white">My Patients</h1>
+                            <h1 class="text-xl font-bold text-white">Patient Consultations</h1>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <span class="text-sm text-white hidden md:block">{{ now()->format('l, F j, Y') }}</span>
+                        <a href="{{ route('canvasser.patients') }}" class="text-white hover:text-purple-200 text-sm font-medium">
+                            ← Back to Patients
+                        </a>
                     </div>
                 </div>
             </header>
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-                <!-- Search and Filter -->
+                <!-- Patient Info Card -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <form method="GET" action="{{ route('canvasser.patients') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">{{ $patient->name }}'s Consultations</h2>
+                        <a href="{{ route('canvasser.patients.consultation.create', $patient->id) }}" 
+                           class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                            + New Consultation
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search Patient</label>
-                            <input type="text"
-                                   id="search"
-                                   name="search"
-                                   value="{{ request('search') }}"
-                                   placeholder="Name, email, or phone"
-                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
+                            <p class="text-sm text-gray-600">Email</p>
+                            <p class="font-semibold text-gray-900">{{ $patient->email }}</p>
                         </div>
                         <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Consultation Status</label>
-                            <select id="status"
-                                    name="status"
-                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
-                                <option value="">All Patients</option>
-                                <option value="consulted" {{ request('status') == 'consulted' ? 'selected' : '' }}>Consulted</option>
-                                <option value="not_consulted" {{ request('status') == 'not_consulted' ? 'selected' : '' }}>Not Consulted</option>
-                            </select>
+                            <p class="text-sm text-gray-600">Phone</p>
+                            <p class="font-semibold text-gray-900">{{ $patient->phone }}</p>
                         </div>
-                        <div class="flex items-end space-x-2">
-                            <button type="submit" class="flex-1 px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                                Apply Filters
-                            </button>
-                            <a href="{{ route('canvasser.patients') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
-                                Reset
-                            </a>
+                        <div>
+                            <p class="text-sm text-gray-600">Total Consultations</p>
+                            <p class="font-semibold text-gray-900">{{ $consultations->total() }}</p>
                         </div>
-                    </form>
+                        <div>
+                            <p class="text-sm text-gray-600">Last Consultation</p>
+                            <p class="font-semibold text-gray-900">{{ $patient->last_consultation_at ? $patient->last_consultation_at->format('M d, Y') : 'N/A' }}</p>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Patients Table -->
+                <!-- Consultations Table -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-purple-50">
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">#</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Name</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Contact</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Gender</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Reference</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Problem</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Doctor</th>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Amount Paid</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Last Consult</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Actions</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Registered</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Payment</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Mode</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Patient Notified</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Created</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse($patients as $index => $patient)
+                                @forelse($consultations as $consultation)
                                     <tr class="hover:bg-purple-50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ $patients->firstItem() + $index }}
-                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{{ $patient->name }}</div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $consultation->reference }}</div>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <div class="text-sm text-gray-900">{{ $patient->phone }}</div>
-                                            <div class="text-xs text-gray-500">{{ $patient->email }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {{ ucfirst($patient->gender) }}
+                                            <div class="text-sm text-gray-900 max-w-xs truncate">{{ $consultation->problem }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            @if($patient->has_consulted)
-                                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    ✓ Consulted
-                                                </span>
+                                            @if($consultation->doctor)
+                                                <div class="text-sm font-medium text-gray-900">Dr. {{ $consultation->doctor->name }}</div>
+                                                <div class="text-xs text-gray-500">{{ $consultation->doctor->specialization }}</div>
                                             @else
-                                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                                    Not Consulted
-                                                </span>
+                                                <span class="text-sm text-gray-500">Not assigned</span>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-semibold text-gray-900">₦{{ number_format($patient->total_amount_paid, 0) }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ $patient->last_consultation_at ? $patient->last_consultation_at->format('M d, Y') : 'N/A' }}
+                                            @switch($consultation->status)
+                                                @case('pending')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                        Pending
+                                                    </span>
+                                                    @break
+                                                @case('in_progress')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                        In Progress
+                                                    </span>
+                                                    @break
+                                                @case('completed')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        Completed
+                                                    </span>
+                                                    @break
+                                                @case('cancelled')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                        Cancelled
+                                                    </span>
+                                                    @break
+                                                @default
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                        {{ ucfirst($consultation->status) }}
+                                                    </span>
+                                            @endswitch
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex space-x-2">
-                                                <a href="{{ route('canvasser.patients.consultation.create', $patient->id) }}" 
-                                                   class="inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                    </svg>
-                                                    New Consult
-                                                </a>
-                                                <a href="{{ route('canvasser.patients.consultations', $patient->id) }}" 
-                                                   class="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                    View All
-                                                </a>
-                                            </div>
+                                            @switch($consultation->payment_status)
+                                                @case('paid')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        Paid
+                                                    </span>
+                                                    @break
+                                                @case('unpaid')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                        Unpaid
+                                                    </span>
+                                                    @break
+                                                @case('pending')
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                        Pending
+                                                    </span>
+                                                    @break
+                                                @default
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                        {{ ucfirst($consultation->payment_status) }}
+                                                    </span>
+                                            @endswitch
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {{ ucfirst($consultation->consult_mode) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                ✓ Email Sent
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ $patient->created_at->format('M d, Y') }}
-                                            <div class="text-xs text-gray-400">{{ $patient->created_at->format('h:i A') }}</div>
+                                            {{ $consultation->created_at->format('M d, Y') }}
+                                            <div class="text-xs text-gray-400">{{ $consultation->created_at->format('h:i A') }}</div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                                             <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <p class="text-lg font-medium">No patients found</p>
-                                            <p class="text-sm mt-1">Try adjusting your search or filters</p>
-                                            <a href="{{ route('canvasser.dashboard') }}" class="mt-4 inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                                Register New Patient
+                                            <p class="text-lg font-medium">No consultations found</p>
+                                            <p class="text-sm mt-1">This patient hasn't had any consultations yet</p>
+                                            <a href="{{ route('canvasser.patients.consultation.create', $patient->id) }}" 
+                                               class="mt-4 inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                                Create First Consultation
                                             </a>
                                         </td>
                                     </tr>
@@ -242,9 +265,9 @@
                     </div>
 
                     <!-- Pagination -->
-                    @if($patients->hasPages())
+                    @if($consultations->hasPages())
                         <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                            {{ $patients->links() }}
+                            {{ $consultations->links() }}
                         </div>
                     @endif
                 </div>
@@ -253,4 +276,3 @@
     </div>
 </body>
 </html>
-

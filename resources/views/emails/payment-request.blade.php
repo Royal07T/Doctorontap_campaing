@@ -131,7 +131,7 @@
         <div class="content">
             <h2>Hi {{ $consultation->first_name }}! 👋</h2>
             
-            <p>Thank you for choosing DoctorOnTap for your healthcare needs. Your consultation with <strong>{{ $consultation->doctor->name }}</strong> has been completed successfully.</p>
+            <p>Thank you for choosing DoctorOnTap for your healthcare needs. Your consultation with <strong>{{ $consultation->doctor->name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</strong> has been completed successfully.</p>
             
             <div class="note-box">
                 <strong>✅ Good News!</strong> As part of our "Pay After Consult" campaign, you only pay now that your consultation is complete. No surprises, no upfront fees!
@@ -147,7 +147,7 @@
                 
                 <div class="info-row">
                     <span class="label">Doctor:</span>
-                    <span>{{ $consultation->doctor->name }}</span>
+                    <span>{{ $consultation->doctor->name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</span>
                 </div>
                 
                 @if($consultation->doctor->specialization)

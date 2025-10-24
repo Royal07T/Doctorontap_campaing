@@ -30,6 +30,7 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_activity_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
@@ -65,5 +66,13 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\CanvasserVerifyEmail);
+    }
+    
+    /**
+     * Update last activity timestamp
+     */
+    public function updateLastActivity()
+    {
+        $this->update(['last_activity_at' => now()]);
     }
 }

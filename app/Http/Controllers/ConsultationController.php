@@ -20,7 +20,7 @@ class ConsultationController extends Controller
      */
     public function index()
     {
-        $doctors = Doctor::available()->ordered()->get();
+        $doctors = Doctor::available()->ordered()->with('reviews')->get();
         
         return view('consultation.index', compact('doctors'));
     }

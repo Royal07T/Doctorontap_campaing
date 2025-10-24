@@ -26,10 +26,22 @@ class DashboardController extends Controller
                                                      ->where('status', 'scheduled')->count(),
             'completed_consultations' => Consultation::where('doctor_id', $doctor->id)
                                                      ->where('status', 'completed')->count(),
+            'paid_consultations' => Consultation::where('doctor_id', $doctor->id)
+                                                ->where('payment_status', 'paid')->count(),
+            'pending_payments' => Consultation::where('doctor_id', $doctor->id)
+                                              ->where('payment_status', 'pending')->count(),
+            'total_earnings' => Consultation::where('doctor_id', $doctor->id)
+                                            ->where('payment_status', 'paid')
+                                            ->with('payment')
+                                            ->get()
+                                            ->sum(function($consultation) {
+                                                return $consultation->payment ? $consultation->payment->amount : 0;
+                                            }),
         ];
 
-        // Get recent consultations
+        // Get recent consultations with payment information
         $recentConsultations = Consultation::where('doctor_id', $doctor->id)
+                                           ->with('payment')
                                            ->latest()
                                            ->limit(10)
                                            ->get();
@@ -73,7 +85,22 @@ class DashboardController extends Controller
     public function updateConsultationStatus(Request $request, $id)
     {
         try {
+            \Log::info('Consultation status update request', [
+                'id' => $id,
+                'request_data' => $request->all(),
+                'user_agent' => $request->userAgent(),
+                'ip' => $request->ip()
+            ]);
+            
             $doctor = Auth::guard('doctor')->user();
+            
+            if (!$doctor) {
+                \Log::error('No authenticated doctor found');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required'
+                ], 401);
+            }
             
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
@@ -83,6 +110,8 @@ class DashboardController extends Controller
                 'status' => 'required|in:pending,scheduled,completed,cancelled',
                 'notes' => 'nullable|string|max:1000',
             ]);
+            
+            \Log::info('Validation passed', ['validated_data' => $validated]);
             
             // Store old status for notification
             $oldStatus = $consultation->status;
@@ -113,6 +142,12 @@ class DashboardController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Consultation status update failed', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update status: ' . $e->getMessage()
@@ -218,6 +253,21 @@ class DashboardController extends Controller
                 'status' => 'completed',
                 'consultation_completed_at' => now(),
             ]);
+
+            // Send treatment plan ready email (before payment)
+            try {
+                Mail::to($consultation->email)->send(new \App\Mail\TreatmentPlanReadyNotification($consultation));
+                \Illuminate\Support\Facades\Log::info('Treatment plan ready email sent', [
+                    'consultation_id' => $consultation->id,
+                    'email' => $consultation->email
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send treatment plan ready email', [
+                    'consultation_id' => $consultation->id,
+                    'email' => $consultation->email,
+                    'error' => $e->getMessage()
+                ]);
+            }
             
             return response()->json([
                 'success' => true,

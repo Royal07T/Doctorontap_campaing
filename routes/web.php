@@ -26,7 +26,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
-Route::post('/submit', [ConsultationController::class, 'store']);
+Route::post('/submit', [ConsultationController::class, 'store'])->middleware('rate.limit:consultation,10,1');
 
 // Test route for consultation status notification (remove in production)
 Route::get('/test-notification/{consultation_id}', function($consultationId) {
@@ -65,7 +65,7 @@ Route::prefix('reviews')->name('reviews.')->group(function () {
 // Admin Login Routes (No authentication required)
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
     
     // Password Reset Routes
     Route::get('/forgot-password', [AdminForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
@@ -75,7 +75,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 });
 
 // Protected Admin Routes (Authentication required)
-Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.management'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
@@ -129,6 +129,19 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
     Route::post('/reviews/{id}/verify', [AdminReviewController::class, 'verify'])->name('reviews.verify');
     Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+    
+    // Canvasser Management
+    Route::get('/canvasser-patients', [DashboardController::class, 'canvasserPatients'])->name('canvasser-patients');
+    Route::get('/canvasser-performance', [DashboardController::class, 'canvasserPerformance'])->name('canvasser-performance');
+    Route::get('/patient-verification', [DashboardController::class, 'patientVerification'])->name('patient-verification');
+    
+    // Security Monitoring
+    Route::get('/security', [\App\Http\Controllers\Admin\SecurityController::class, 'index'])->name('security');
+    Route::get('/security/events', [\App\Http\Controllers\Admin\SecurityController::class, 'eventsByType'])->name('security.events');
+    Route::get('/security/ip-analysis', [\App\Http\Controllers\Admin\SecurityController::class, 'ipAnalysis'])->name('security.ip-analysis');
+    Route::post('/security/block-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'blockIp'])->name('security.block-ip');
+    Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
+    Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
 });
 
 // ==================== CANVASSER ROUTES ====================
@@ -136,7 +149,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
 // Canvasser Login Routes (No authentication required)
 Route::prefix('canvasser')->name('canvasser.')->group(function () {
     Route::get('/login', [CanvasserAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [CanvasserAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [CanvasserAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
     
     // Password Reset Routes
     Route::get('/forgot-password', [CanvasserForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
@@ -162,6 +175,11 @@ Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'c
     // Patient Management
     Route::get('/patients', [CanvasserDashboardController::class, 'patients'])->name('patients');
     Route::post('/patients', [CanvasserDashboardController::class, 'storePatient'])->name('patients.store');
+    
+    // Consultation Management
+    Route::get('/patients/{id}/consultation', [CanvasserDashboardController::class, 'createConsultation'])->name('patients.consultation.create');
+    Route::post('/patients/{id}/consultation', [CanvasserDashboardController::class, 'storeConsultation'])->name('patients.consultation.store');
+    Route::get('/patients/{id}/consultations', [CanvasserDashboardController::class, 'patientConsultations'])->name('patients.consultations');
 });
 
 // ==================== NURSE ROUTES ====================
@@ -169,7 +187,7 @@ Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'c
 // Nurse Login Routes (No authentication required)
 Route::prefix('nurse')->name('nurse.')->group(function () {
     Route::get('/login', [NurseAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [NurseAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [NurseAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
     
     // Password Reset Routes
     Route::get('/forgot-password', [NurseForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
@@ -208,7 +226,7 @@ Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verifie
 // Doctor Login and Registration Routes (No authentication required)
 Route::prefix('doctor')->name('doctor.')->group(function () {
     Route::get('/login', [DoctorAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [DoctorAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [DoctorAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
     Route::get('/register', [DoctorRegistrationController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [DoctorRegistrationController::class, 'register'])->name('register.post');
     Route::get('/registration-success', [DoctorRegistrationController::class, 'success'])->name('registration.success');
@@ -250,13 +268,16 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
 Route::get('/treatment-plan/{reference}', [ConsultationController::class, 'viewTreatmentPlan'])->name('treatment-plan.view');
 Route::post('/treatment-plan/{reference}/access', [ConsultationController::class, 'accessTreatmentPlan'])->name('treatment-plan.access');
 
+// Patient Email Verification (No authentication required)
+Route::get('/patient/verify/{token}', [PatientVerificationController::class, 'verify'])->name('patient.verify');
+
 // Payment and Treatment Plan Management
 Route::post('/payment/unlock-treatment-plan/{consultationId}', [PaymentController::class, 'unlockTreatmentPlan'])->name('payment.unlock-treatment-plan');
 
 // Patient Login Routes (No authentication required)
 Route::prefix('patient')->name('patient.')->group(function () {
     Route::get('/login', [PatientAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [PatientAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [PatientAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
 });
 
 // Patient Email Verification Routes

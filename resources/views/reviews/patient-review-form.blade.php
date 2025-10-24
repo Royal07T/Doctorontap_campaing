@@ -39,7 +39,7 @@
                 <h3 class="font-semibold text-gray-900 mb-2">Consultation Details</h3>
                 <div class="text-sm text-gray-600 space-y-1">
                     <p><strong>Reference:</strong> {{ $consultation->reference }}</p>
-                    <p><strong>Doctor:</strong> {{ $consultation->doctor->name ?? 'N/A' }}</p>
+                    <p><strong>Doctor:</strong> {{ $consultation->doctor ? $consultation->doctor->name . ($consultation->doctor->gender ? ' (' . ucfirst($consultation->doctor->gender) . ')' : '') : 'N/A' }}</p>
                     <p><strong>Date:</strong> {{ $consultation->created_at->format('M d, Y') }}</p>
                 </div>
             </div>

@@ -25,6 +25,9 @@ class Patient extends Authenticatable
         'total_amount_paid',
         'last_consultation_at',
         'consultations_count',
+        'email_verification_token',
+        'is_verified',
+        'verification_sent_at',
     ];
 
     protected $hidden = [
@@ -38,6 +41,8 @@ class Patient extends Authenticatable
         'total_amount_paid' => 'decimal:2',
         'last_consultation_at' => 'datetime',
         'consultations_count' => 'integer',
+        'is_verified' => 'boolean',
+        'verification_sent_at' => 'datetime',
     ];
 
     /**
@@ -93,5 +98,55 @@ class Patient extends Authenticatable
     public function reviewsReceived(): HasMany
     {
         return $this->hasMany(Review::class, 'reviewee_patient_id');
+    }
+
+    /**
+     * Generate email verification token
+     */
+    public function generateEmailVerificationToken()
+    {
+        $this->email_verification_token = \Illuminate\Support\Str::random(64);
+        $this->verification_sent_at = now();
+        $this->save();
+        return $this->email_verification_token;
+    }
+
+    /**
+     * Verify email with token
+     */
+    public function verifyEmail($token)
+    {
+        if ($this->email_verification_token === $token) {
+            $this->is_verified = true;
+            $this->email_verified_at = now();
+            $this->email_verification_token = null;
+            $this->save();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if email is verified
+     */
+    public function isEmailVerified()
+    {
+        return $this->is_verified && $this->email_verified_at !== null;
+    }
+
+    /**
+     * Send email verification notification
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $token = $this->generateEmailVerificationToken();
+        
+        \Illuminate\Support\Facades\Mail::send('emails.patient-verification', [
+            'patient' => $this,
+            'verificationUrl' => route('patient.verify', ['token' => $token, 'email' => $this->email]),
+        ], function ($message) {
+            $message->to($this->email)
+                   ->subject('Verify Your Email - DoctorOnTap');
+        });
     }
 }
