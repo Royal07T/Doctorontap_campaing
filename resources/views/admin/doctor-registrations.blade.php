@@ -363,7 +363,19 @@
                 viewDoctor(id) {
                     // Fetch doctor details
                     fetch(`/admin/doctor-registrations/${id}/view`)
-                        .then(response => response.json())
+                        .then(response => {
+                            // Handle authentication errors
+                            if (response.status === 401) {
+                                return response.json().then(data => {
+                                    if (data.redirect) {
+                                        window.location.href = data.redirect;
+                                        return;
+                                    }
+                                    throw new Error(data.message || 'Authentication required');
+                                });
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             const doctor = data.doctor;
                             this.modalContent = `
@@ -437,7 +449,19 @@
                 approveDoctor(id) {
                     // Fetch doctor details first
                     fetch(`/admin/doctor-registrations/${id}/view`)
-                        .then(response => response.json())
+                        .then(response => {
+                            // Handle authentication errors
+                            if (response.status === 401) {
+                                return response.json().then(data => {
+                                    if (data.redirect) {
+                                        window.location.href = data.redirect;
+                                        return;
+                                    }
+                                    throw new Error(data.message || 'Authentication required');
+                                });
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             const doctor = data.doctor;
                             this.currentDoctorId = id;
@@ -467,7 +491,19 @@
                         },
                         body: JSON.stringify(payload)
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        // Handle authentication errors
+                        if (response.status === 401) {
+                            return response.json().then(data => {
+                                if (data.redirect) {
+                                    window.location.href = data.redirect;
+                                    return;
+                                }
+                                throw new Error(data.message || 'Authentication required');
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.success) {
                             showAlertModal(data.message, 'success');
@@ -491,7 +527,19 @@
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                             }
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            // Handle authentication errors
+                            if (response.status === 401) {
+                                return response.json().then(data => {
+                                    if (data.redirect) {
+                                        window.location.href = data.redirect;
+                                        return;
+                                    }
+                                    throw new Error(data.message || 'Authentication required');
+                                });
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             if (data.success) {
                                 showAlertModal(data.message, 'success');

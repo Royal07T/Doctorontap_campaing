@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="cf-2fa-verify" content="true">
+    <meta http-equiv="x-dns-prefetch-control" content="off">
     <title>Doctors - Admin</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" data-cfasync="false" data-no-optimize="1"></script>
     <style>
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
@@ -323,20 +325,20 @@
                 <div id="formMessage" class="hidden mb-4 p-3 rounded-lg"></div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Name -->
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
-                        <input type="text" id="name" name="name" required
+                    <!-- First Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="first_name" name="first_name" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                               placeholder="Dr. John Smith">
+                               placeholder="John">
                     </div>
 
-                    <!-- Email -->
+                    <!-- Last Name -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
-                        <input type="email" id="email" name="email" required
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="last_name" name="last_name" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                               placeholder="doctor@example.com">
+                               placeholder="Smith">
                     </div>
 
                     <!-- Phone -->
@@ -345,6 +347,14 @@
                         <input type="tel" id="phone" name="phone" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                placeholder="+234 800 000 0000">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+                        <input type="email" id="email" name="email" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                               placeholder="doctor@example.com">
                     </div>
 
                     <!-- Gender -->
@@ -366,12 +376,56 @@
                                placeholder="General Practitioner">
                     </div>
 
+                    <!-- Consultation Fee Range -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Min Consultation Fee (NGN)</label>
+                        <input type="number" id="min_consultation_fee" name="min_consultation_fee" step="0.01"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                               placeholder="2500.00">
+                    </div>
+
+                    <!-- Max Consultation Fee -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Max Consultation Fee (NGN)</label>
+                        <input type="number" id="max_consultation_fee" name="max_consultation_fee" step="0.01"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                               placeholder="5000.00">
+                    </div>
+
                     <!-- Location -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
                         <input type="text" id="location" name="location"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                placeholder="Lagos, Nigeria">
+                    </div>
+
+                    <!-- Place of Work -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Place of Work</label>
+                        <input type="text" id="place_of_work" name="place_of_work"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                               placeholder="Lagos University Teaching Hospital">
+                    </div>
+
+                    <!-- Role -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <select id="role" name="role"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
+                            <option value="clinical">Clinical</option>
+                            <option value="non-clinical">Non-Clinical</option>
+                        </select>
+                    </div>
+
+                    <!-- MDCN License Current -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MDCN License Status</label>
+                        <select id="mdcn_license_current" name="mdcn_license_current"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
+                            <option value="0">Not Current</option>
+                            <option value="1">Current</option>
+                        </select>
                     </div>
 
                     <!-- Experience -->
@@ -390,15 +444,15 @@
                                placeholder="English, Yoruba, Igbo">
                     </div>
 
-                    <!-- Consultation Fee -->
+                    <!-- Days of Availability -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Consultation Fee (NGN)</label>
-                        <input type="number" id="consultation_fee" name="consultation_fee" step="0.01"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Days of Availability</label>
+                        <input type="text" id="days_of_availability" name="days_of_availability"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                               placeholder="3000.00">
+                               placeholder="Monday - Friday, 9AM - 5PM">
                     </div>
 
-                    <!-- Order -->
+                    <!-- Display Order -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
                         <input type="number" id="order" name="order"
@@ -443,6 +497,7 @@
             document.getElementById('doctorId').value = '';
             document.getElementById('formMethod').value = 'POST';
             document.getElementById('is_available').checked = true;
+            document.getElementById('order').value = '0';
             document.getElementById('doctorForm').action = '{{ route('admin.doctors.store') }}';
             document.getElementById('submitBtnText').textContent = 'Save Doctor';
             document.getElementById('formMessage').classList.add('hidden');
@@ -460,15 +515,33 @@
             `;
             document.getElementById('doctorId').value = doctor.id;
             document.getElementById('formMethod').value = 'PUT';
-            document.getElementById('name').value = doctor.name || '';
+            
+            // Handle name field - if doctor has first_name and last_name, use them; otherwise split the name field
+            if (doctor.first_name && doctor.last_name) {
+                document.getElementById('first_name').value = doctor.first_name || '';
+                document.getElementById('last_name').value = doctor.last_name || '';
+            } else if (doctor.name) {
+                const nameParts = doctor.name.split(' ');
+                document.getElementById('first_name').value = nameParts[0] || '';
+                document.getElementById('last_name').value = nameParts.slice(1).join(' ') || '';
+            } else {
+                document.getElementById('first_name').value = '';
+                document.getElementById('last_name').value = '';
+            }
+            
             document.getElementById('email').value = doctor.email || '';
             document.getElementById('phone').value = doctor.phone || '';
             document.getElementById('gender').value = doctor.gender || '';
             document.getElementById('specialization').value = doctor.specialization || '';
+            document.getElementById('min_consultation_fee').value = doctor.min_consultation_fee || '';
+            document.getElementById('max_consultation_fee').value = doctor.max_consultation_fee || '';
             document.getElementById('location').value = doctor.location || '';
+            document.getElementById('place_of_work').value = doctor.place_of_work || '';
+            document.getElementById('role').value = doctor.role || 'clinical';
+            document.getElementById('mdcn_license_current').value = doctor.mdcn_license_current ? '1' : '0';
             document.getElementById('experience').value = doctor.experience || '';
             document.getElementById('languages').value = doctor.languages || '';
-            document.getElementById('consultation_fee').value = doctor.consultation_fee || '';
+            document.getElementById('days_of_availability').value = doctor.days_of_availability || '';
             document.getElementById('order').value = doctor.order || 0;
             document.getElementById('is_available').checked = doctor.is_available;
             document.getElementById('doctorForm').action = `/admin/doctors/${doctor.id}`;
@@ -507,6 +580,24 @@
                     body: formData
                 });
                 
+                // Check if response is JSON before parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.error('Expected JSON but received:', contentType);
+                    // If we received HTML, likely redirected to login page
+                    if (contentType && contentType.includes('text/html')) {
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = '/admin/login';
+                        return;
+                    }
+                    formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                    formMessage.textContent = 'An unexpected error occurred. Please refresh the page.';
+                    formMessage.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtnText.textContent = document.getElementById('doctorId').value ? 'Update Doctor' : 'Save Doctor';
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
@@ -520,6 +611,12 @@
                         window.location.reload();
                     }, 1500);
                 } else {
+                    // Handle authentication errors
+                    if (response.status === 401 && data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
+                    
                     // Show error message
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
                     formMessage.textContent = data.message || 'An error occurred. Please try again.';
@@ -750,6 +847,25 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
                     body: formData
                 });
                 
+                // Check if response is JSON before parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.error('Expected JSON but received:', contentType);
+                    // If we received HTML, likely redirected to login page
+                    if (contentType && contentType.includes('text/html')) {
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = '/admin/login';
+                        return;
+                    }
+                    campaignMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                    campaignMessage.textContent = 'An unexpected error occurred. Please refresh the page.';
+                    campaignMessage.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    btnText.classList.remove('hidden');
+                    btnLoading.classList.add('hidden');
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
@@ -772,6 +888,11 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
                         closeCampaignModal();
                     }, 3000);
                 } else {
+                    // Handle authentication errors
+                    if (response.status === 401 && data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
                     campaignMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
                     campaignMessage.innerHTML = `
                         <div class="flex items-start">

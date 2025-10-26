@@ -366,7 +366,19 @@ function loadEvents() {
     const severity = document.getElementById('severityFilter').value;
     
     fetch(`/admin/security/events?type=${eventType}&severity=${severity}`)
-        .then(response => response.json())
+        .then(response => {
+            // Handle authentication errors
+            if (response.status === 401) {
+                return response.json().then(data => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
+                    throw new Error(data.message || 'Authentication required');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             const tbody = document.getElementById('eventsTableBody');
             tbody.innerHTML = '';
@@ -432,7 +444,19 @@ document.getElementById('blockIpForm').addEventListener('submit', function(e) {
             duration: duration
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        // Handle authentication errors
+        if (response.status === 401) {
+            return response.json().then(data => {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                throw new Error(data.message || 'Authentication required');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             alert(data.message);
