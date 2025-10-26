@@ -604,8 +604,12 @@
                             id="first_name" 
                             x-model="formData.first_name"
                             required
+                            minlength="2"
+                            maxlength="255"
+                            pattern="[a-zA-Z\s\'-]+"
                                 placeholder="Enter your first name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
+                                title="First name must be at least 2 characters and contain only letters, spaces, hyphens, or apostrophes"
                         >
                             <p x-show="errors.first_name" class="text-red-500 text-xs mt-1" x-text="errors.first_name"></p>
                     </div>
@@ -620,8 +624,12 @@
                             id="last_name" 
                             x-model="formData.last_name"
                             required
+                            minlength="2"
+                            maxlength="255"
+                            pattern="[a-zA-Z\s\'-]+"
                                 placeholder="Enter your last name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
+                                title="Last name must be at least 2 characters and contain only letters, spaces, hyphens, or apostrophes"
                         >
                             <p x-show="errors.last_name" class="text-red-500 text-xs mt-1" x-text="errors.last_name"></p>
                     </div>
@@ -640,7 +648,6 @@
                                 <option value="">Select Gender</option>
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
-                                <option value="other">Other</option>
                             </select>
                             <p x-show="errors.gender" class="text-red-500 text-xs mt-1" x-text="errors.gender"></p>
                         </div>
@@ -673,11 +680,14 @@
                                 id="mobile" 
                                 x-model="formData.mobile"
                                 required
+                                pattern="^(\+234|0)[0-9]{10}$"
                                 placeholder="+234 XXX XXX XXXX"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
+                                title="Enter a valid Nigerian phone number (e.g., +2348012345678 or 08012345678)"
                             >
+                            <p class="text-gray-500 text-xs mt-1">Format: +2348012345678 or 08012345678</p>
                             <p x-show="errors.mobile" class="text-red-500 text-xs mt-1" x-text="errors.mobile"></p>
-                </div>
+                        </div>
 
                 <!-- Email -->
                 <div>
@@ -721,8 +731,11 @@
                             id="problem" 
                             x-model="formData.problem"
                             required
-                            placeholder="Brief description of your main concern"
+                            minlength="10"
+                            maxlength="500"
+                            placeholder="Brief description of your main concern (at least 10 characters)"
                             class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                            title="Please provide at least 10 characters to describe your medical problem"
                         >
                         <p x-show="errors.problem" class="text-red-500 text-xs mt-1" x-text="errors.problem"></p>
                     </div>
