@@ -38,7 +38,7 @@ class ConsultationController extends Controller
             'gender' => 'required|in:male,female',
             'age' => 'required|integer|min:1|max:120',
             'mobile' => 'required|string|regex:/^(\+234|0)[0-9]{10}$/',
-            'email' => 'required|email:rfc,dns|max:255',
+            'email' => 'required|email:rfc|max:255',
             
             // Triage Block
             'problem' => 'required|string|min:10|max:500',

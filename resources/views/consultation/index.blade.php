@@ -606,7 +606,7 @@
                             required
                             minlength="2"
                             maxlength="255"
-                            pattern="[a-zA-Z\s'-]+"
+                            pattern="[a-zA-Z '-]+"
                                 placeholder="Enter your first name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
                                 title="First name must be at least 2 characters and contain only letters, spaces, hyphens, or apostrophes"
@@ -626,7 +626,7 @@
                             required
                             minlength="2"
                             maxlength="255"
-                            pattern="[a-zA-Z\s'-]+"
+                            pattern="[a-zA-Z '-]+"
                                 placeholder="Enter your last name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
                                 title="Last name must be at least 2 characters and contain only letters, spaces, hyphens, or apostrophes"
