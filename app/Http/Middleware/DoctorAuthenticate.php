@@ -17,6 +17,15 @@ class DoctorAuthenticate
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::guard('doctor')->check()) {
+            // If it's an AJAX request, return JSON response instead of redirect
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required. Please login to access the doctor area.',
+                    'redirect' => route('doctor.login')
+                ], 401);
+            }
+            
             return redirect()->route('doctor.login')
                 ->with('error', 'Please login to access the doctor area.');
         }
@@ -25,6 +34,16 @@ class DoctorAuthenticate
         $doctor = Auth::guard('doctor')->user();
         if (!$doctor->is_approved) {
             Auth::guard('doctor')->logout();
+            
+            // If it's an AJAX request, return JSON response instead of redirect
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account is pending approval. Please wait for admin approval.',
+                    'redirect' => route('doctor.login')
+                ], 403);
+            }
+            
             return redirect()->route('doctor.login')
                 ->with('error', 'Your account is pending approval. Please wait for admin approval.');
         }
@@ -32,6 +51,16 @@ class DoctorAuthenticate
         // Check if doctor is available/active
         if (!$doctor->is_available) {
             Auth::guard('doctor')->logout();
+            
+            // If it's an AJAX request, return JSON response instead of redirect
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been deactivated. Please contact the administrator.',
+                    'redirect' => route('doctor.login')
+                ], 403);
+            }
+            
             return redirect()->route('doctor.login')
                 ->with('error', 'Your account has been deactivated. Please contact the administrator.');
         }

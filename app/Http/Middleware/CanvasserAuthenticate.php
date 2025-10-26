@@ -17,6 +17,15 @@ class CanvasserAuthenticate
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::guard('canvasser')->check()) {
+            // If it's an AJAX request, return JSON response instead of redirect
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required. Please login to access the canvasser area.',
+                    'redirect' => route('canvasser.login')
+                ], 401);
+            }
+            
             return redirect()->route('canvasser.login')
                 ->with('error', 'Please login to access the canvasser area.');
         }
@@ -25,6 +34,16 @@ class CanvasserAuthenticate
         $canvasser = Auth::guard('canvasser')->user();
         if (!$canvasser->is_active) {
             Auth::guard('canvasser')->logout();
+            
+            // If it's an AJAX request, return JSON response instead of redirect
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been deactivated. Please contact the administrator.',
+                    'redirect' => route('canvasser.login')
+                ], 403);
+            }
+            
             return redirect()->route('canvasser.login')
                 ->with('error', 'Your account has been deactivated. Please contact the administrator.');
         }

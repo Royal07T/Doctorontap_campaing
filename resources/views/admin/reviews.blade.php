@@ -230,7 +230,19 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Handle authentication errors
+                    if (response.status === 401) {
+                        return response.json().then(data => {
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                                return;
+                            }
+                            throw new Error(data.message || 'Authentication required');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         window.location.reload();
@@ -254,7 +266,19 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Handle authentication errors
+                    if (response.status === 401) {
+                        return response.json().then(data => {
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                                return;
+                            }
+                            throw new Error(data.message || 'Authentication required');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         window.location.reload();
@@ -278,7 +302,19 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Handle authentication errors
+                    if (response.status === 401) {
+                        return response.json().then(data => {
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                                return;
+                            }
+                            throw new Error(data.message || 'Authentication required');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         window.location.reload();

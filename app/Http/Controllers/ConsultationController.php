@@ -33,15 +33,15 @@ class ConsultationController extends Controller
         // Validate the form data
         $validated = $request->validate([
             // Personal Details
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'gender' => 'required|in:male,female,other',
+            'first_name' => 'required|string|min:2|max:255|regex:/^[a-zA-Z\s\'-]+$/',
+            'last_name' => 'required|string|min:2|max:255|regex:/^[a-zA-Z\s\'-]+$/',
+            'gender' => 'required|in:male,female',
             'age' => 'required|integer|min:1|max:120',
-            'mobile' => 'required|string|max:20',
-            'email' => 'required|email|max:255',
+            'mobile' => 'required|string|regex:/^(\+234|0)[0-9]{10}$/',
+            'email' => 'required|email:rfc|max:255',
             
             // Triage Block
-            'problem' => 'required|string|max:500',
+            'problem' => 'required|string|min:10|max:500',
             'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120', // Max 5MB per file
             'severity' => 'required|in:mild,moderate,severe',
             'emergency_symptoms' => 'nullable|array',
@@ -53,6 +53,32 @@ class ConsultationController extends Controller
             // Consent
             'informed_consent' => 'required|accepted',
             'data_privacy' => 'required|accepted',
+        ], [
+            // Custom error messages
+            'first_name.required' => 'First name is required.',
+            'first_name.min' => 'First name must be at least 2 characters.',
+            'first_name.regex' => 'First name can only contain letters, spaces, hyphens, and apostrophes.',
+            'last_name.required' => 'Last name is required.',
+            'last_name.min' => 'Last name must be at least 2 characters.',
+            'last_name.regex' => 'Last name can only contain letters, spaces, hyphens, and apostrophes.',
+            'gender.required' => 'Please select your gender.',
+            'gender.in' => 'Gender must be either Male or Female.',
+            'age.required' => 'Age is required.',
+            'age.integer' => 'Age must be a valid number.',
+            'age.min' => 'Age must be at least 1.',
+            'age.max' => 'Age cannot exceed 120.',
+            'mobile.required' => 'Mobile number is required.',
+            'mobile.regex' => 'Please enter a valid Nigerian phone number (e.g., +2348012345678 or 08012345678).',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'problem.required' => 'Please describe your medical problem.',
+            'problem.min' => 'Problem description must be at least 10 characters.',
+            'severity.required' => 'Please indicate the severity of your condition.',
+            'consult_mode.required' => 'Please select a consultation mode.',
+            'informed_consent.required' => 'You must accept the informed consent.',
+            'informed_consent.accepted' => 'You must accept the informed consent to proceed.',
+            'data_privacy.required' => 'You must accept the data privacy policy.',
+            'data_privacy.accepted' => 'You must accept the data privacy policy to proceed.',
         ]);
 
         // Generate unique consultation reference

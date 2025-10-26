@@ -7,6 +7,7 @@ export default defineConfig({
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.js'],
             refresh: true,
+            buildDirectory: 'build',
         }),
         tailwindcss(),
     ],
@@ -26,5 +27,8 @@ export default defineConfig({
                 css: 'resources/css/app.css',
             },
         },
+    },
+    ssr: {
+        noExternal: ['laravel-vite-plugin']
     },
 });
