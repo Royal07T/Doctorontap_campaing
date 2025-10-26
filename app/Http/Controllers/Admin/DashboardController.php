@@ -97,8 +97,14 @@ class DashboardController extends Controller
         
         // Get all nurses for assignment dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
+        
+        // Get all available and approved doctors for reassignment
+        $doctors = Doctor::where('is_available', true)
+                        ->where('is_approved', true)
+                        ->orderBy('name')
+                        ->get();
 
-        return view('admin.consultations', compact('consultations', 'nurses'));
+        return view('admin.consultations', compact('consultations', 'nurses', 'doctors'));
     }
 
     /**
@@ -191,6 +197,57 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Nurse assigned successfully to consultation'
+        ]);
+    }
+
+    /**
+     * Reassign doctor to consultation
+     */
+    public function reassignDoctor(Request $request, $id)
+    {
+        $request->validate([
+            'doctor_id' => 'required|exists:doctors,id'
+        ]);
+
+        $consultation = Consultation::findOrFail($id);
+        $newDoctor = Doctor::findOrFail($request->doctor_id);
+
+        // Check if doctor is available and approved
+        if (!$newDoctor->is_available) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This doctor is not currently available'
+            ], 400);
+        }
+
+        if (!$newDoctor->is_approved) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This doctor has not been approved yet'
+            ], 400);
+        }
+
+        // Check if trying to assign same doctor
+        if ($consultation->doctor_id == $request->doctor_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This doctor is already assigned to this consultation'
+            ], 400);
+        }
+
+        $oldDoctor = $consultation->doctor;
+        
+        $consultation->update([
+            'doctor_id' => $request->doctor_id
+        ]);
+
+        $message = $oldDoctor 
+            ? "Doctor reassigned from Dr. {$oldDoctor->name} to Dr. {$newDoctor->name}" 
+            : "Consultation assigned to Dr. {$newDoctor->name}";
+
+        return response()->json([
+            'success' => true,
+            'message' => $message
         ]);
     }
 

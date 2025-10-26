@@ -106,6 +106,7 @@
                         <tr class="hover:bg-gray-50" x-data="{ 
                             isUpdating: false, 
                             isSending: false,
+                            isReassigning: false,
                             async updateStatus(newStatus) {
                                 this.isUpdating = true;
                                 try {
@@ -153,6 +154,9 @@
                                         this.isSending = false;
                                     }
                                 });
+                            },
+                            showReassignModal() {
+                                showReassignDoctorModal({{ $consultation->id }}, '{{ $consultation->full_name }}', {{ $consultation->doctor_id ?? 'null' }});
                             }
                         }">
                             <td class="px-4 py-3 whitespace-nowrap text-xs font-mono text-gray-900">
@@ -201,6 +205,12 @@
                                 <div class="text-gray-500">{{ $consultation->created_at->format('h:i A') }}</div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium space-y-1.5">
+                                @if($consultation->status === 'pending' || $consultation->status === 'scheduled')
+                                <button @click="showReassignModal()" 
+                                        class="w-full px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold">
+                                    Reassign Doctor
+                                </button>
+                                @endif
                                 @if($consultation->status === 'completed' && $consultation->payment_status === 'unpaid' && !$consultation->payment_request_sent)
                                 <button @click="sendPayment()" :disabled="isSending"
                                         class="w-full px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 font-semibold"
@@ -292,6 +302,40 @@
         </div>
     </div>
 
+    <!-- Reassign Doctor Modal -->
+    <div id="reassignDoctorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Reassign Doctor</h3>
+                <button onclick="closeReassignDoctorModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <p id="reassignPatientName" class="text-gray-600 mb-4"></p>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select New Doctor</label>
+                <select id="reassignDoctorSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    <option value="">-- Select a Doctor --</option>
+                    @foreach($doctors as $doctor)
+                    <option value="{{ $doctor->id }}">
+                        Dr. {{ $doctor->name }} - {{ $doctor->specialization ?? 'General Practice' }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeReassignDoctorModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors">
+                    Cancel
+                </button>
+                <button onclick="confirmReassign()" id="reassignSubmitBtn" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors">
+                    Reassign
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Modal System for Confirmations and Alerts
         let confirmCallback = null;
@@ -340,6 +384,77 @@
         function closeAlertModal() {
             document.getElementById('alertModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
+        }
+
+        // Reassign Doctor Modal System
+        let currentConsultationId = null;
+
+        function showReassignDoctorModal(consultationId, patientName, currentDoctorId) {
+            currentConsultationId = consultationId;
+            document.getElementById('reassignPatientName').textContent = `Reassigning doctor for: ${patientName}`;
+            
+            const select = document.getElementById('reassignDoctorSelect');
+            select.value = '';
+            
+            // Disable the currently assigned doctor option if exists
+            if (currentDoctorId) {
+                Array.from(select.options).forEach(option => {
+                    if (option.value == currentDoctorId) {
+                        option.disabled = true;
+                        option.textContent += ' (Currently Assigned)';
+                    } else {
+                        option.disabled = false;
+                    }
+                });
+            }
+            
+            document.getElementById('reassignDoctorModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReassignDoctorModal() {
+            document.getElementById('reassignDoctorModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentConsultationId = null;
+        }
+
+        async function confirmReassign() {
+            const doctorId = document.getElementById('reassignDoctorSelect').value;
+            
+            if (!doctorId) {
+                showAlertModal('Please select a doctor', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('reassignSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Reassigning...';
+
+            try {
+                const response = await fetch(`/admin/consultation/${currentConsultationId}/reassign-doctor`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ doctor_id: doctorId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    closeReassignDoctorModal();
+                    showAlertModal(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showAlertModal(data.message || 'Failed to reassign doctor', 'error');
+                }
+            } catch (error) {
+                showAlertModal('Error reassigning doctor', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Reassign';
+            }
         }
     </script>
 </body>
