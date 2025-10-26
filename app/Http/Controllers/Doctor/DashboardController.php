@@ -221,8 +221,17 @@ class DashboardController extends Controller
                                        ->firstOrFail();
             
             $validated = $request->validate([
+                // Medical Format Fields
+                'presenting_complaint' => 'required|string|max:2000',
+                'history_of_complaint' => 'required|string|max:5000',
+                'past_medical_history' => 'nullable|string|max:2000',
+                'family_history' => 'nullable|string|max:2000',
+                'drug_history' => 'nullable|string|max:2000',
+                'social_history' => 'nullable|string|max:2000',
                 'diagnosis' => 'required|string|max:2000',
+                'investigation' => 'nullable|string|max:5000',
                 'treatment_plan' => 'required|string|max:5000',
+                // Additional fields
                 'prescribed_medications' => 'nullable|array',
                 'prescribed_medications.*.name' => 'required_with:prescribed_medications|string|max:255',
                 'prescribed_medications.*.dosage' => 'required_with:prescribed_medications|string|max:255',
@@ -240,8 +249,17 @@ class DashboardController extends Controller
             
             // Update consultation with treatment plan
             $consultation->update([
+                // Medical Format Fields
+                'presenting_complaint' => $validated['presenting_complaint'],
+                'history_of_complaint' => $validated['history_of_complaint'],
+                'past_medical_history' => $validated['past_medical_history'] ?? null,
+                'family_history' => $validated['family_history'] ?? null,
+                'drug_history' => $validated['drug_history'] ?? null,
+                'social_history' => $validated['social_history'] ?? null,
                 'diagnosis' => $validated['diagnosis'],
+                'investigation' => $validated['investigation'] ?? null,
                 'treatment_plan' => $validated['treatment_plan'],
+                // Additional fields
                 'prescribed_medications' => $validated['prescribed_medications'] ?? null,
                 'follow_up_instructions' => $validated['follow_up_instructions'] ?? null,
                 'lifestyle_recommendations' => $validated['lifestyle_recommendations'] ?? null,

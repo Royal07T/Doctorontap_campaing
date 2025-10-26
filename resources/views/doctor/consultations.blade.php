@@ -461,6 +461,16 @@
 
         function createTreatmentPlan(consultationId) {
             currentConsultationId = consultationId;
+            
+            // Reset form fields
+            const form = document.getElementById('treatmentPlanForm');
+            form.reset();
+            
+            // Clear medications and referrals containers
+            document.getElementById('medicationsContainer').innerHTML = '';
+            document.getElementById('referralsContainer').innerHTML = '';
+            
+            // Show modal
             document.getElementById('treatmentPlanModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
@@ -600,16 +610,82 @@
             </div>
             <form id="treatmentPlanForm" onsubmit="submitTreatmentPlan(event)">
                 <div class="space-y-6">
-                    <!-- Diagnosis -->
-                    <div>
-                        <label for="diagnosis" class="block text-sm font-semibold text-gray-700 mb-2">Diagnosis <span class="text-red-500">*</span></label>
-                        <textarea id="diagnosis" name="diagnosis" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Enter your medical diagnosis..."></textarea>
+                    <!-- Section 1: Presenting Complaint / History -->
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h3 class="text-md font-bold text-blue-900 mb-3">1. Presenting Complaint / History of Presenting Complaint</h3>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label for="presenting_complaint" class="block text-sm font-semibold text-gray-700 mb-2">Presenting Complaint <span class="text-red-500">*</span></label>
+                                <textarea id="presenting_complaint" name="presenting_complaint" required rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Chief complaint in patient's own words..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label for="history_of_complaint" class="block text-sm font-semibold text-gray-700 mb-2">History of Presenting Complaint <span class="text-red-500">*</span></label>
+                                <textarea id="history_of_complaint" name="history_of_complaint" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Detailed history: onset, duration, progression, associated symptoms, relieving/aggravating factors..."></textarea>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Treatment Plan -->
-                    <div>
-                        <label for="treatment_plan" class="block text-sm font-semibold text-gray-700 mb-2">Treatment Plan <span class="text-red-500">*</span></label>
-                        <textarea id="treatment_plan" name="treatment_plan" required rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Describe the treatment plan in detail..."></textarea>
+                    <!-- Section 2: PMH / FMH -->
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <h3 class="text-md font-bold text-green-900 mb-3">2. PMH (Past Medical History) / FMH (Family Medical History)</h3>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label for="past_medical_history" class="block text-sm font-semibold text-gray-700 mb-2">Past Medical History</label>
+                                <textarea id="past_medical_history" name="past_medical_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Previous illnesses, surgeries, hospitalizations..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label for="family_history" class="block text-sm font-semibold text-gray-700 mb-2">Family Medical History</label>
+                                <textarea id="family_history" name="family_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Relevant family medical conditions..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: DH / SH -->
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <h3 class="text-md font-bold text-yellow-900 mb-3">3. DH (Drug History) / SH (Social History)</h3>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label for="drug_history" class="block text-sm font-semibold text-gray-700 mb-2">Drug History</label>
+                                <textarea id="drug_history" name="drug_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Current medications, allergies, adverse reactions..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label for="social_history" class="block text-sm font-semibold text-gray-700 mb-2">Social History</label>
+                                <textarea id="social_history" name="social_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Smoking, alcohol, occupation, living conditions..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Diagnosis -->
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                        <h3 class="text-md font-bold text-red-900 mb-3">4. Diagnosis</h3>
+                        <div>
+                            <label for="diagnosis" class="block text-sm font-semibold text-gray-700 mb-2">Clinical Diagnosis <span class="text-red-500">*</span></label>
+                            <textarea id="diagnosis" name="diagnosis" required rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Primary and differential diagnoses..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Investigation -->
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <h3 class="text-md font-bold text-purple-900 mb-3">5. Investigation</h3>
+                        <div>
+                            <label for="investigation" class="block text-sm font-semibold text-gray-700 mb-2">Investigations / Lab Tests</label>
+                            <textarea id="investigation" name="investigation" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Recommended tests, imaging, laboratory investigations..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Treatment -->
+                    <div class="bg-teal-50 p-4 rounded-lg border border-teal-200">
+                        <h3 class="text-md font-bold text-teal-900 mb-3">6. Treatment</h3>
+                        <div>
+                            <label for="treatment_plan" class="block text-sm font-semibold text-gray-700 mb-2">Treatment Plan <span class="text-red-500">*</span></label>
+                            <textarea id="treatment_plan" name="treatment_plan" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Overall treatment approach, management plan..."></textarea>
+                        </div>
                     </div>
 
                     <!-- Medications Section -->

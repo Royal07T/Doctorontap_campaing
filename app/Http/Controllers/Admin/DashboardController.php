@@ -97,8 +97,13 @@ class DashboardController extends Controller
         
         // Get all nurses for assignment dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
+        
+        // Get all available doctors for reassignment dropdown
+        $doctors = Doctor::where('is_available', true)
+            ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
+            ->get();
 
-        return view('admin.consultations', compact('consultations', 'nurses'));
+        return view('admin.consultations', compact('consultations', 'nurses', 'doctors'));
     }
 
     /**
@@ -195,6 +200,64 @@ class DashboardController extends Controller
     }
 
     /**
+     * Reassign doctor to consultation
+     */
+    public function reassignDoctor(Request $request, $id)
+    {
+        $request->validate([
+            'doctor_id' => 'required|exists:doctors,id'
+        ]);
+
+        $consultation = Consultation::findOrFail($id);
+        $doctor = Doctor::findOrFail($request->doctor_id);
+
+        if (!$doctor->is_available) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This doctor is not available'
+            ], 400);
+        }
+
+        $oldDoctor = $consultation->doctor;
+        
+        $consultation->update([
+            'doctor_id' => $request->doctor_id
+        ]);
+
+        // Send notification to the new doctor
+        try {
+            \Mail::to($doctor->email)->send(new \App\Mail\ConsultationDoctorNotification([
+                'consultation_reference' => $consultation->reference,
+                'first_name' => $consultation->first_name,
+                'last_name' => $consultation->last_name,
+                'email' => $consultation->email,
+                'mobile' => $consultation->mobile,
+                'age' => $consultation->age,
+                'gender' => $consultation->gender,
+                'problem' => $consultation->problem,
+                'severity' => $consultation->severity,
+                'consult_mode' => $consultation->consult_mode,
+                'doctor' => $doctor->full_name,
+                'doctor_fee' => $doctor->effective_consultation_fee,
+                'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
+                'has_documents' => !empty($consultation->medical_documents),
+                'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
+            ]));
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send notification to reassigned doctor: " . $e->getMessage());
+        }
+
+           $message = 'Doctor reassigned successfully from ' . 
+                   ($oldDoctor ? $oldDoctor->full_name : 'No Doctor') . 
+                   ' to ' . $doctor->full_name;
+
+        return response()->json([
+            'success' => true,
+            'message' => $message
+        ]);
+    }
+
+    /**
      * Send payment request to patient
      */
     public function sendPaymentRequest($id)
@@ -274,6 +337,8 @@ class DashboardController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('specialization', 'like', "%{$search}%")
@@ -291,7 +356,7 @@ class DashboardController extends Controller
             $query->where('gender', $request->gender);
         }
 
-        $doctors = $query->orderBy('order')->paginate(20);
+        $doctors = $query->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')->orderBy('order')->paginate(20);
 
         // Statistics
         $stats = [
@@ -344,7 +409,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Medical documents forwarded successfully to Dr. ' . $consultation->doctor->name
+                'message' => 'Medical documents forwarded successfully to Dr. ' . $consultation->doctor->full_name
             ]);
         } catch (\Exception $e) {
             return response()->json([

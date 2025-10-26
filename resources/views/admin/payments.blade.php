@@ -87,7 +87,7 @@
                                 <div class="text-xs text-gray-500">{{ $payment->customer_email }}</div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                {{ $payment->doctor ? $payment->doctor->name : 'N/A' }}
+                                {{ $payment->doctor ? $payment->doctor->full_name : 'N/A' }}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
                                 <span class="text-emerald-700">NGN {{ number_format($payment->amount, 2) }}</span>

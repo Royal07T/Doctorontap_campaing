@@ -183,7 +183,7 @@
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3 text-sm text-gray-700 font-semibold">{{ $doctor->order }}</td>
                             <td class="px-4 py-3">
-                                <div class="text-sm font-semibold text-gray-800">{{ $doctor->name }}</div>
+                                <div class="text-sm font-semibold text-gray-800">{{ $doctor->full_name }}</div>
                             </td>
                             <td class="px-4 py-3">
                                 @if($doctor->gender)
@@ -502,7 +502,8 @@
                 const response = await fetch(this.action, {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     },
                     body: formData
                 });
@@ -520,9 +521,17 @@
                         window.location.reload();
                     }, 1500);
                 } else {
-                    // Show error message
+                    // Handle validation errors (422) or other errors
+                    let errorMessage = data.message || 'An error occurred. Please try again.';
+                    
+                    // If there are validation errors, display them
+                    if (data.errors) {
+                        const errorsList = Object.values(data.errors).flat();
+                        errorMessage = errorsList.join('<br>');
+                    }
+                    
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
-                    formMessage.textContent = data.message || 'An error occurred. Please try again.';
+                    formMessage.innerHTML = errorMessage;
                     formMessage.classList.remove('hidden');
                     
                     // Re-enable button

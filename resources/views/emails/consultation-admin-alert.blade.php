@@ -94,7 +94,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ env('APP_URL') }}/img/whitelogo.png" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ config('app.url') }}/img/whitelogo.png" alt="DoctorOnTap Logo" class="logo">
             <h1>🚨 New Consultation Request</h1>
             <p>DoctorOnTap Admin Alert</p>
         </div>

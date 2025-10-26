@@ -133,18 +133,28 @@ class ConsultationController extends Controller
         $validated['has_documents'] = !empty($uploadedDocuments);
         $validated['documents_count'] = count($uploadedDocuments);
 
-        // Send confirmation email to the user
-        Mail::to($validated['email'])->send(new ConsultationConfirmation($validated));
+        // Queue emails for asynchronous sending (improves performance under load)
+        try {
+            // Send confirmation email to the user
+            Mail::to($validated['email'])->queue(new ConsultationConfirmation($validated));
 
-        // Send alert email to admin
-        Mail::to(env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng'))->send(new ConsultationAdminAlert($validated));
+            // Send alert email to admin
+            Mail::to(config('mail.from.address', 'inquiries@doctorontap.com.ng'))->queue(new ConsultationAdminAlert($validated));
 
-        // Send notification email to the assigned doctor
-        if ($doctorEmail) {
-            Mail::to($doctorEmail)->send(new ConsultationDoctorNotification($validated));
+            // Send notification email to the assigned doctor
+            if ($doctorEmail) {
+                Mail::to($doctorEmail)->queue(new ConsultationDoctorNotification($validated));
+            }
+        } catch (\Exception $e) {
+            // Log email queueing errors but don't fail the booking
+            \Log::error('Failed to queue consultation emails: ' . $e->getMessage(), [
+                'consultation_reference' => $reference,
+                'patient_email' => $validated['email']
+            ]);
         }
 
-        // Return success response (NO PAYMENT REQUIRED UPFRONT)
+        // Return success response immediately (NO PAYMENT REQUIRED UPFRONT)
+        // Emails will be sent in the background via queue
         return response()->json([
             'success' => true,
             'message' => 'Thank you! Your consultation has been booked successfully. We will contact you shortly via WhatsApp to schedule your consultation. Remember: You only pay AFTER your consultation is complete.',
@@ -181,19 +191,30 @@ class ConsultationController extends Controller
             ], 400);
         }
 
-        // Send payment request email
-        Mail::to($consultation->email)->send(new PaymentRequest($consultation));
+        // Queue payment request email for asynchronous sending
+        try {
+            Mail::to($consultation->email)->queue(new PaymentRequest($consultation));
 
-        // Update consultation
-        $consultation->update([
-            'payment_request_sent' => true,
-            'payment_request_sent_at' => now(),
-        ]);
+            // Update consultation
+            $consultation->update([
+                'payment_request_sent' => true,
+                'payment_request_sent_at' => now(),
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Payment request email sent successfully'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment request email queued successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to queue payment request email: ' . $e->getMessage(), [
+                'consultation_id' => $consultation->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send payment request. Please try again.'
+            ], 500);
+        }
     }
 
     /**

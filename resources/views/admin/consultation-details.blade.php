@@ -152,7 +152,7 @@
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    Documents forwarded to {{ $consultation->doctor->name }} on {{ $consultation->documents_forwarded_at->format('M d, Y g:i A') }}
+                                    Documents forwarded to {{ $consultation->doctor->full_name }} on {{ $consultation->documents_forwarded_at->format('M d, Y g:i A') }}
                                 </p>
                             </div>
                             @endif
@@ -192,18 +192,18 @@
                     <div class="flex items-start space-x-4">
                         @if($consultation->doctor->profile_image)
                         <img src="{{ asset('storage/' . $consultation->doctor->profile_image) }}" 
-                             alt="{{ $consultation->doctor->name }}"
+                             alt="{{ $consultation->doctor->full_name }}"
                              class="w-20 h-20 rounded-full object-cover">
                         @else
                         <div class="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center">
                             <span class="text-3xl text-purple-600 font-bold">
-                                {{ substr($consultation->doctor->name, 0, 1) }}
+                                {{ substr($consultation->doctor->full_name, 0, 1) }}
                             </span>
                         </div>
                         @endif
                         
                         <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-900">{{ $consultation->doctor->name }}</h3>
+                            <h3 class="text-xl font-bold text-gray-900">{{ $consultation->doctor->full_name }}</h3>
                             <p class="text-gray-600">{{ $consultation->doctor->specialization }}</p>
                             @if($consultation->doctor->email)
                             <p class="text-sm text-gray-500 mt-1">📧 {{ $consultation->doctor->email }}</p>

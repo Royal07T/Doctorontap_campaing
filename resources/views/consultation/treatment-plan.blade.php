@@ -59,7 +59,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                         <span class="text-gray-500">Doctor:</span>
-                        <span class="font-medium text-gray-900">{{ $consultation->doctor->name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</span>
+                        <span class="font-medium text-gray-900">{{ $consultation->doctor->full_name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</span>
                     </div>
                     <div>
                         <span class="text-gray-500">Date:</span>
@@ -77,26 +77,105 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Diagnosis -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Diagnosis
+                <!-- Section 1: Presenting Complaint / History -->
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-blue-500 p-6">
+                    <h3 class="text-lg font-bold text-blue-900 mb-4 flex items-center">
+                        <span class="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">1</span>
+                        Presenting Complaint / History
                     </h3>
-                    <div class="prose max-w-none">
-                        <p class="text-gray-700 leading-relaxed">{{ $consultation->diagnosis }}</p>
+                    <div class="space-y-4">
+                        @if($consultation->presenting_complaint)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">Presenting Complaint</h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->presenting_complaint }}</p>
+                        </div>
+                        @endif
+                        @if($consultation->history_of_complaint)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">History of Presenting Complaint</h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->history_of_complaint }}</p>
+                        </div>
+                        @endif
                     </div>
                 </div>
 
-                <!-- Treatment Plan -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        Treatment Plan
+                <!-- Section 2: PMH / FMH -->
+                @if($consultation->past_medical_history || $consultation->family_history)
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-green-500 p-6">
+                    <h3 class="text-lg font-bold text-green-900 mb-4 flex items-center">
+                        <span class="bg-green-100 text-green-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">2</span>
+                        Past Medical History / Family History
+                    </h3>
+                    <div class="space-y-4">
+                        @if($consultation->past_medical_history)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">PMH (Past Medical History)</h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->past_medical_history }}</p>
+                        </div>
+                        @endif
+                        @if($consultation->family_history)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">FMH (Family Medical History)</h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->family_history }}</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
+                <!-- Section 3: DH / SH -->
+                @if($consultation->drug_history || $consultation->social_history)
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-yellow-500 p-6">
+                    <h3 class="text-lg font-bold text-yellow-900 mb-4 flex items-center">
+                        <span class="bg-yellow-100 text-yellow-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">3</span>
+                        Drug History / Social History
+                    </h3>
+                    <div class="space-y-4">
+                        @if($consultation->drug_history)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">DH (Drug History)</h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->drug_history }}</p>
+                        </div>
+                        @endif
+                        @if($consultation->social_history)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">SH (Social History)</h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->social_history }}</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
+                <!-- Section 4: Diagnosis -->
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-red-500 p-6">
+                    <h3 class="text-lg font-bold text-red-900 mb-4 flex items-center">
+                        <span class="bg-red-100 text-red-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">4</span>
+                        Diagnosis
+                    </h3>
+                    <div class="prose max-w-none">
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->diagnosis }}</p>
+                    </div>
+                </div>
+
+                <!-- Section 5: Investigation -->
+                @if($consultation->investigation)
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-purple-500 p-6">
+                    <h3 class="text-lg font-bold text-purple-900 mb-4 flex items-center">
+                        <span class="bg-purple-100 text-purple-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">5</span>
+                        Investigation
+                    </h3>
+                    <div class="prose max-w-none">
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->investigation }}</p>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Section 6: Treatment -->
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-teal-500 p-6">
+                    <h3 class="text-lg font-bold text-teal-900 mb-4 flex items-center">
+                        <span class="bg-teal-100 text-teal-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">6</span>
+                        Treatment
                     </h3>
                     <div class="prose max-w-none">
                         <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->treatment_plan }}</p>

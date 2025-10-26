@@ -78,14 +78,18 @@
         <div class="info-box">
             <h3 style="margin-top: 0;">Consultation Details:</h3>
             <p><strong>Reference:</strong> {{ $consultation->reference }}</p>
-            <p><strong>Doctor:</strong> {{ $consultation->doctor->name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</p>
+            <p><strong>Doctor:</strong> {{ $consultation->doctor->full_name }}@if($consultation->doctor->gender) ({{ ucfirst($consultation->doctor->gender) }})@endif</p>
             <p><strong>Date:</strong> {{ $consultation->created_at->format('M d, Y') }}</p>
             <p><strong>Status:</strong> Treatment Plan Ready</p>
         </div>
         
         <p>Your comprehensive treatment plan includes:</p>
         <ul>
+            <li>Presenting complaint and history</li>
+            <li>Past medical and family history</li>
+            <li>Drug and social history</li>
             <li>Medical diagnosis</li>
+            <li>Investigation recommendations</li>
             <li>Detailed treatment plan</li>
             <li>Prescribed medications (if any)</li>
             <li>Follow-up instructions</li>
@@ -97,16 +101,65 @@
         <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin: 20px 0;">
             <h3 style="color: #374151; margin-top: 0;">Treatment Plan Summary</h3>
             
+            @if($consultation->presenting_complaint)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">1. Presenting Complaint:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->presenting_complaint }}</span>
+            </div>
+            @endif
+            
+            @if($consultation->history_of_complaint)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">History of Presenting Complaint:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->history_of_complaint }}</span>
+            </div>
+            @endif
+            
+            @if($consultation->past_medical_history)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">2. Past Medical History:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->past_medical_history }}</span>
+            </div>
+            @endif
+            
+            @if($consultation->family_history)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">Family Medical History:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->family_history }}</span>
+            </div>
+            @endif
+            
+            @if($consultation->drug_history)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">3. Drug History:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->drug_history }}</span>
+            </div>
+            @endif
+            
+            @if($consultation->social_history)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">Social History:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->social_history }}</span>
+            </div>
+            @endif
+            
             @if($consultation->diagnosis)
             <div style="margin-bottom: 15px;">
-                <strong style="color: #1F2937;">Diagnosis:</strong><br>
-                <span style="color: #4B5563;">{{ $consultation->diagnosis }}</span>
+                <strong style="color: #1F2937;">4. Diagnosis:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->diagnosis }}</span>
+            </div>
+            @endif
+            
+            @if($consultation->investigation)
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #1F2937;">5. Investigation:</strong><br>
+                <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->investigation }}</span>
             </div>
             @endif
             
             @if($consultation->treatment_plan)
             <div style="margin-bottom: 15px;">
-                <strong style="color: #1F2937;">Treatment Plan:</strong><br>
+                <strong style="color: #1F2937;">6. Treatment:</strong><br>
                 <span style="color: #4B5563; white-space: pre-line;">{{ $consultation->treatment_plan }}</span>
             </div>
             @endif

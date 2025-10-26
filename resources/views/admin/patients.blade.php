@@ -163,7 +163,7 @@
                                         <div class="text-xs space-y-1">
                                             @if($patient->doctor)
                                                 <p class="text-gray-700">
-                                                    <span class="font-medium text-purple-600">Doctor:</span> {{ $patient->doctor->name }}
+                                                    <span class="font-medium text-purple-600">Doctor:</span> {{ $patient->doctor->full_name }}
                                                 </p>
                                             @endif
                                             @if($patient->canvasser)
