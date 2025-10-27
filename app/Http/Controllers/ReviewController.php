@@ -180,15 +180,23 @@ class ReviewController extends Controller
                             ->latest()
                             ->paginate(10);
 
+            // Optimize rating distribution - 1 query instead of 6
+            $ratingDistribution = Review::forDoctor($doctorId)
+                ->published()
+                ->selectRaw('rating, COUNT(*) as count')
+                ->groupBy('rating')
+                ->pluck('count', 'rating')
+                ->toArray();
+
             $stats = [
                 'average_rating' => $doctor->average_rating,
                 'total_reviews' => $doctor->total_reviews,
                 'rating_distribution' => [
-                    5 => Review::forDoctor($doctorId)->published()->where('rating', 5)->count(),
-                    4 => Review::forDoctor($doctorId)->published()->where('rating', 4)->count(),
-                    3 => Review::forDoctor($doctorId)->published()->where('rating', 3)->count(),
-                    2 => Review::forDoctor($doctorId)->published()->where('rating', 2)->count(),
-                    1 => Review::forDoctor($doctorId)->published()->where('rating', 1)->count(),
+                    5 => $ratingDistribution[5] ?? 0,
+                    4 => $ratingDistribution[4] ?? 0,
+                    3 => $ratingDistribution[3] ?? 0,
+                    2 => $ratingDistribution[2] ?? 0,
+                    1 => $ratingDistribution[1] ?? 0,
                 ],
             ];
 

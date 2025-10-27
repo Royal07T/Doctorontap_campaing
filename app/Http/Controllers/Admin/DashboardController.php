@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
+use App\Mail\TreatmentPlanNotification;
 use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
@@ -272,13 +273,6 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        if ($consultation->payment_request_sent) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment request already sent on ' . $consultation->payment_request_sent_at->format('M d, Y H:i')
-            ], 400);
-        }
-
         if (!$consultation->requiresPayment()) {
             return response()->json([
                 'success' => false,
@@ -286,11 +280,11 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        // Send payment request email
+        // Send payment request email (allow resending)
         try {
             Mail::to($consultation->email)->send(new PaymentRequest($consultation));
 
-            // Update consultation
+            // Update consultation (update timestamp even if already sent)
             $consultation->update([
                 'payment_request_sent' => true,
                 'payment_request_sent_at' => now(),
@@ -298,12 +292,54 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment request email sent successfully to ' . $consultation->email
+                'message' => ($consultation->payment_request_sent ? 'Payment request email resent' : 'Payment request email sent') . ' successfully to ' . $consultation->email
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Manually forward treatment plan to patient email
+     */
+    public function forwardTreatmentPlan($id)
+    {
+        $consultation = Consultation::with('doctor')->findOrFail($id);
+
+        // Validate - treatment plan must exist
+        if (!$consultation->hasTreatmentPlan()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No treatment plan has been created for this consultation yet'
+            ], 400);
+        }
+
+        // Send treatment plan notification email
+        try {
+            Mail::to($consultation->email)->queue(new TreatmentPlanNotification($consultation));
+            
+            \Log::info('Treatment plan manually forwarded by admin', [
+                'consultation_id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'email' => $consultation->email
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Treatment plan sent successfully to ' . $consultation->email
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to manually forward treatment plan', [
+                'consultation_id' => $consultation->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send treatment plan: ' . $e->getMessage()
             ], 500);
         }
     }

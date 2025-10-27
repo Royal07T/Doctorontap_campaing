@@ -70,7 +70,7 @@ class DashboardController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('reference_number', 'like', "%{$search}%");
+                  ->orWhere('reference', 'like', "%{$search}%");
             });
         }
         

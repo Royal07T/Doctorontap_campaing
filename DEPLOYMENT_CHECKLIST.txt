@@ -1,0 +1,43 @@
+========================================
+  DEPLOYMENT CHECKLIST - 500 Error Fix
+========================================
+
+❌ 1. Upload ConsultationController.php to production
+   From: app/Http/Controllers/ConsultationController.php
+   To:   /home/doctoron/domains/new.doctorontap.com.ng/laravel/app/Http/Controllers/ConsultationController.php
+
+❌ 2. Upload SecurityMonitoring.php to production
+   From: app/Http/Middleware/SecurityMonitoring.php
+   To:   /home/doctoron/domains/new.doctorontap.com.ng/laravel/app/Http/Middleware/SecurityMonitoring.php
+
+❌ 3. Upload RateLimitMiddleware.php to production
+   From: app/Http/Middleware/RateLimitMiddleware.php
+   To:   /home/doctoron/domains/new.doctorontap.com.ng/laravel/app/Http/Middleware/RateLimitMiddleware.php
+
+❌ 4. Upload consultation/index.blade.php to production
+   From: resources/views/consultation/index.blade.php
+   To:   /home/doctoron/domains/new.doctorontap.com.ng/laravel/resources/views/consultation/index.blade.php
+
+❌ 5. Upload doctor/register.blade.php to production
+   From: resources/views/doctor/register.blade.php
+   To:   /home/doctoron/domains/new.doctorontap.com.ng/laravel/resources/views/doctor/register.blade.php
+
+❌ 6. SSH into production and run:
+   cd /home/doctoron/domains/new.doctorontap.com.ng/laravel
+   php artisan config:clear
+   php artisan cache:clear
+   php artisan view:clear
+
+❌ 7. Restart PHP-FPM (if using):
+   sudo systemctl restart php8.2-fpm
+
+❌ 8. Test form submission at https://new.doctorontap.com.ng
+
+✅ = DONE, ❌ = PENDING
+
+========================================
+If still getting 500 error after ALL steps:
+1. Check logs: tail -50 storage/logs/laravel.log
+2. Share the complete error message
+========================================
+

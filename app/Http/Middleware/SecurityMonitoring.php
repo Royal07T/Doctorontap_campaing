@@ -17,22 +17,36 @@ class SecurityMonitoring
     {
         $startTime = microtime(true);
         
-        // Monitor suspicious patterns
-        $this->monitorSuspiciousActivity($request);
-        
-        // Monitor file access patterns
-        $this->monitorFileAccess($request);
-        
-        // Monitor SQL injection attempts
-        $this->monitorSQLInjection($request);
-        
-        // Monitor XSS attempts
-        $this->monitorXSSAttempts($request);
+        // Wrap all monitoring in try-catch to prevent middleware from breaking app
+        try {
+            // Monitor suspicious patterns
+            $this->monitorSuspiciousActivity($request);
+            
+            // Monitor file access patterns
+            $this->monitorFileAccess($request);
+            
+            // Monitor SQL injection attempts
+            $this->monitorSQLInjection($request);
+            
+            // Monitor XSS attempts
+            $this->monitorXSSAttempts($request);
+        } catch (\Exception $e) {
+            // Log the error but don't break the request
+            Log::error('Security monitoring failed: ' . $e->getMessage(), [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
         
         $response = $next($request);
         
         // Log response details
-        $this->logResponseDetails($request, $response, $startTime);
+        try {
+            $this->logResponseDetails($request, $response, $startTime);
+        } catch (\Exception $e) {
+            // Silently fail - response logging is non-critical
+            Log::warning('Failed to log response details: ' . $e->getMessage());
+        }
         
         return $response;
     }
@@ -66,20 +80,24 @@ class SecurityMonitoring
         }
         
         // Check for rapid requests from same IP
-        $key = "rapid_requests:{$ip}";
-        $requests = Cache::get($key, 0);
-        
-        if ($requests > 100) { // More than 100 requests in 1 minute
-            $this->logSecurityEvent('rapid_requests', [
-                'ip' => $ip,
-                'user_agent' => $userAgent,
-                'url' => $url,
-                'request_count' => $requests,
-                'severity' => 'high'
-            ]);
+        try {
+            $key = "rapid_requests:{$ip}";
+            $requests = Cache::get($key, 0);
+            
+            if ($requests > 100) { // More than 100 requests in 1 minute
+                $this->logSecurityEvent('rapid_requests', [
+                    'ip' => $ip,
+                    'user_agent' => $userAgent,
+                    'url' => $url,
+                    'request_count' => $requests,
+                    'severity' => 'high'
+                ]);
+            }
+            
+            Cache::put($key, $requests + 1, 60); // 1 minute cache
+        } catch (\Exception $e) {
+            // Cache might not be available - continue without rate tracking
         }
-        
-        Cache::put($key, $requests + 1, 60); // 1 minute cache
     }
     
     /**
@@ -367,16 +385,20 @@ class SecurityMonitoring
      */
     protected function storeSecurityEvent(string $eventType, array $data): void
     {
-        $key = "security_events:" . now()->format('Y-m-d-H');
-        $events = Cache::get($key, []);
-        
-        $events[] = $data;
-        
-        // Keep only last 100 events per hour
-        if (count($events) > 100) {
-            $events = array_slice($events, -100);
+        try {
+            $key = "security_events:" . now()->format('Y-m-d-H');
+            $events = Cache::get($key, []);
+            
+            $events[] = $data;
+            
+            // Keep only last 100 events per hour
+            if (count($events) > 100) {
+                $events = array_slice($events, -100);
+            }
+            
+            Cache::put($key, $events, 3600); // 1 hour
+        } catch (\Exception $e) {
+            // Cache might not be available - event is already logged
         }
-        
-        Cache::put($key, $events, 3600); // 1 hour
     }
 }

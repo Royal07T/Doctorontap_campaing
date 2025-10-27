@@ -241,9 +241,9 @@
                                    required
                                    minlength="2"
                                    maxlength="255"
-                                   pattern="[a-zA-Z\s]+"
+                                   pattern="[a-zA-Z\s'\-]+"
                                    placeholder="e.g., Glory"
-                                   title="First name should only contain letters"
+                                   title="First name should only contain letters, spaces, hyphens, or apostrophes"
                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('first_name') border-red-500 @enderror">
                             @error('first_name')
                                 <p class="mt-2 text-xs text-red-500 flex items-center">
@@ -267,9 +267,9 @@
                                    required
                                    minlength="2"
                                    maxlength="255"
-                                   pattern="[a-zA-Z\s]+"
+                                   pattern="[a-zA-Z\s'\-]+"
                                    placeholder="e.g., Iniabasi"
-                                   title="Last name should only contain letters"
+                                   title="Last name should only contain letters, spaces, hyphens, or apostrophes"
                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('last_name') border-red-500 @enderror">
                             @error('last_name')
                                 <p class="mt-2 text-xs text-red-500 flex items-center">

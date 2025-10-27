@@ -30,14 +30,15 @@ class ConsultationController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate the form data
-        $validated = $request->validate([
+        try {
+            // Validate the form data
+            $validated = $request->validate([
             // Personal Details
-            'first_name' => 'required|string|min:2|max:255|regex:/^[a-zA-Z\s\'-]+$/',
-            'last_name' => 'required|string|min:2|max:255|regex:/^[a-zA-Z\s\'-]+$/',
+            'first_name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[a-zA-Z\s\-\']+$/'],
+            'last_name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[a-zA-Z\s\-\']+$/'],
             'gender' => 'required|in:male,female',
             'age' => 'required|integer|min:1|max:120',
-            'mobile' => 'required|string|regex:/^(\+234|0)[0-9]{10}$/',
+            'mobile' => ['required', 'string', 'regex:/^(\+234|0)[0-9]{10}$/'],
             'email' => 'required|email:rfc|max:255',
             
             // Triage Block
@@ -87,17 +88,26 @@ class ConsultationController extends Controller
         // Handle medical document uploads
         $uploadedDocuments = [];
         if ($request->hasFile('medical_documents')) {
-            foreach ($request->file('medical_documents') as $file) {
-                $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('medical_documents', $fileName, 'public');
-                
-                $uploadedDocuments[] = [
-                    'original_name' => $file->getClientOriginalName(),
-                    'stored_name' => $fileName,
-                    'path' => $filePath,
-                    'size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                ];
+            try {
+                foreach ($request->file('medical_documents') as $file) {
+                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs('medical_documents', $fileName, 'public');
+                    
+                    $uploadedDocuments[] = [
+                        'original_name' => $file->getClientOriginalName(),
+                        'stored_name' => $fileName,
+                        'path' => $filePath,
+                        'size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ];
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to upload medical documents: ' . $e->getMessage(), [
+                    'consultation_reference' => $reference,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Continue without documents rather than failing completely
             }
         }
 
@@ -118,41 +128,72 @@ class ConsultationController extends Controller
         }
 
         // Create or update patient record with all information
-        $patient = Patient::updateOrCreate(
-            [
+        try {
+            $patient = Patient::updateOrCreate(
+                [
+                    'email' => $validated['email'],
+                ],
+                [
+                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'phone' => $validated['mobile'],
+                    'gender' => $validated['gender'],
+                    'age' => $validated['age'],
+                ]
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to create/update patient record: ' . $e->getMessage(), [
                 'email' => $validated['email'],
-            ],
-            [
-                'name' => $validated['first_name'] . ' ' . $validated['last_name'],
-                'phone' => $validated['mobile'],
-                'gender' => $validated['gender'],
-                'age' => $validated['age'],
-            ]
-        );
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to process your request. Please try again later or contact support.'
+            ], 500);
+        }
 
         // Create consultation record
-        $consultation = Consultation::create([
-            'reference' => $reference,
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'email' => $validated['email'],
-            'mobile' => $validated['mobile'],
-            'age' => $validated['age'],
-            'gender' => $validated['gender'],
-            'problem' => $validated['problem'],
-            'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
-            'severity' => $validated['severity'],
-            'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
-            'consult_mode' => $validated['consult_mode'],
-            'doctor_id' => $doctorId,
-            'status' => 'pending',
-            'payment_status' => 'unpaid',
-        ]);
+        try {
+            $consultation = Consultation::create([
+                'reference' => $reference,
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'mobile' => $validated['mobile'],
+                'age' => $validated['age'],
+                'gender' => $validated['gender'],
+                'problem' => $validated['problem'],
+                'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
+                'severity' => $validated['severity'],
+                'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
+                'consult_mode' => $validated['consult_mode'],
+                'doctor_id' => $doctorId,
+                'status' => 'pending',
+                'payment_status' => 'unpaid',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create consultation record: ' . $e->getMessage(), [
+                'reference' => $reference,
+                'email' => $validated['email'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to create consultation. Please try again later or contact support.'
+            ], 500);
+        }
 
         // Update patient aggregates
-        $patient->increment('consultations_count');
-        $patient->last_consultation_at = now();
-        $patient->save();
+        try {
+            $patient->increment('consultations_count');
+            $patient->last_consultation_at = now();
+            $patient->save();
+        } catch (\Exception $e) {
+            \Log::warning('Failed to update patient aggregates: ' . $e->getMessage());
+            // Non-critical, continue anyway
+        }
 
         // Add reference and documents to validated data for emails
         $validated['consultation_reference'] = $reference;
@@ -160,22 +201,36 @@ class ConsultationController extends Controller
         $validated['documents_count'] = count($uploadedDocuments);
 
         // Queue emails for asynchronous sending (improves performance under load)
+        // Emails are non-critical - we continue even if they fail
         try {
             // Send confirmation email to the user
             Mail::to($validated['email'])->queue(new ConsultationConfirmation($validated));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to queue patient confirmation email: ' . $e->getMessage(), [
+                'consultation_reference' => $reference,
+                'patient_email' => $validated['email']
+            ]);
+        }
 
+        try {
             // Send alert email to admin
-            Mail::to(config('mail.from.address', 'inquiries@doctorontap.com.ng'))->queue(new ConsultationAdminAlert($validated));
+            $adminEmail = config('mail.from.address', 'inquiries@doctorontap.com.ng');
+            Mail::to($adminEmail)->queue(new ConsultationAdminAlert($validated));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to queue admin alert email: ' . $e->getMessage(), [
+                'consultation_reference' => $reference
+            ]);
+        }
 
+        try {
             // Send notification email to the assigned doctor
             if ($doctorEmail) {
                 Mail::to($doctorEmail)->queue(new ConsultationDoctorNotification($validated));
             }
         } catch (\Exception $e) {
-            // Log email queueing errors but don't fail the booking
-            \Log::error('Failed to queue consultation emails: ' . $e->getMessage(), [
+            \Log::warning('Failed to queue doctor notification email: ' . $e->getMessage(), [
                 'consultation_reference' => $reference,
-                'patient_email' => $validated['email']
+                'doctor_email' => $doctorEmail ?? 'N/A'
             ]);
         }
 
@@ -186,6 +241,23 @@ class ConsultationController extends Controller
             'message' => 'Thank you! Your consultation has been booked successfully. We will contact you shortly via WhatsApp to schedule your consultation. Remember: You only pay AFTER your consultation is complete.',
             'consultation_reference' => $reference,
         ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions so they're handled by Laravel
+            throw $e;
+        } catch (\Exception $e) {
+            // Catch-all for any unexpected errors
+            \Log::error('Unexpected error in consultation submission: ' . $e->getMessage(), [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['medical_documents', '_token'])
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred. Please try again or contact support if the problem persists.'
+            ], 500);
+        }
     }
 
     /**

@@ -15,35 +15,48 @@ class RateLimitMiddleware
      */
     public function handle(Request $request, Closure $next, string $key = 'default', int $maxAttempts = 60, int $decayMinutes = 1): Response
     {
-        $key = $this->resolveRequestSignature($request, $key);
-        
-        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
-            $seconds = RateLimiter::availableIn($key);
+        try {
+            $key = $this->resolveRequestSignature($request, $key);
             
-            // Log rate limit exceeded
-            Log::warning('Rate limit exceeded', [
+            if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+                $seconds = RateLimiter::availableIn($key);
+                
+                // Log rate limit exceeded
+                Log::warning('Rate limit exceeded', [
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'url' => $request->fullUrl(),
+                    'key' => $key,
+                    'attempts' => RateLimiter::attempts($key),
+                    'retry_after' => $seconds
+                ]);
+                
+                return response()->json([
+                    'message' => 'Too many attempts. Please try again in ' . $seconds . ' seconds.',
+                    'retry_after' => $seconds
+                ], 429);
+            }
+            
+            RateLimiter::hit($key, $decayMinutes * 60);
+        } catch (\Exception $e) {
+            // Rate limiter might not be available (cache issues)
+            // Log but allow request through rather than breaking the app
+            Log::warning('Rate limiter failed, allowing request through: ' . $e->getMessage(), [
                 'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'url' => $request->fullUrl(),
-                'key' => $key,
-                'attempts' => RateLimiter::attempts($key),
-                'retry_after' => $seconds
+                'url' => $request->fullUrl()
             ]);
-            
-            return response()->json([
-                'message' => 'Too many attempts. Please try again in ' . $seconds . ' seconds.',
-                'retry_after' => $seconds
-            ], 429);
         }
-        
-        RateLimiter::hit($key, $decayMinutes * 60);
         
         $response = $next($request);
         
         // Add rate limit headers
-        $response->headers->set('X-RateLimit-Limit', $maxAttempts);
-        $response->headers->set('X-RateLimit-Remaining', RateLimiter::remaining($key, $maxAttempts));
-        $response->headers->set('X-RateLimit-Reset', now()->addSeconds(RateLimiter::availableIn($key))->timestamp);
+        try {
+            $response->headers->set('X-RateLimit-Limit', $maxAttempts);
+            $response->headers->set('X-RateLimit-Remaining', RateLimiter::remaining($key ?? 'default', $maxAttempts));
+            $response->headers->set('X-RateLimit-Reset', now()->addSeconds(RateLimiter::availableIn($key ?? 'default'))->timestamp);
+        } catch (\Exception $e) {
+            // Silently fail on header setting
+        }
         
         return $response;
     }

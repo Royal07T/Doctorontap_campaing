@@ -102,27 +102,27 @@
         }
         
         .hero-bg-1 {
-            background-image: url('{{ asset('img/hero/national-cancer-institute-NFvdKIhxYlU-unsplash.jpg') }}');
+            background-image: url('{{ asset('img/hero/DSC_6226.jpg') }}');
         }
         
         .hero-bg-2 {
-            background-image: url('{{ asset('img/hero/vitaly-gariev-c1ZGaJTOnJs-unsplash.jpg') }}');
+            background-image: url('{{ asset('img/hero/DSC_6395.jpg') }}');
         }
         
         .hero-bg-3 {
-            background-image: url('{{ asset('img/hero/national-cancer-institute-nR2C9AVzfHY-unsplash.jpg') }}');
+            background-image: url('{{ asset('img/hero/DSC_6422.jpg') }}');
         }
         
         .hero-bg-4 {
-            background-image: url('{{ asset('img/hero/vitaly-gariev-2DzoG3upSu4-unsplash.jpg') }}');
+            background-image: url('{{ asset('img/hero/DSC_6459.jpg') }}');
         }
         
         .hero-bg-5 {
-            background-image: url('{{ asset('img/hero/mufid-majnun-AShIzTVQoEo-unsplash.jpg') }}');
+            background-image: url('{{ asset('img/hero/DSC_6478.jpg') }}');
         }
         
         .hero-bg-6 {
-            background-image: url('{{ asset('img/hero/vitaly-gariev-RtFPJ2HlTYI-unsplash.jpg') }}');
+            background-image: url('{{ asset('img/hero/DSC_6226.jpg') }}');
         }
         
         .hero-overlay {
@@ -606,7 +606,7 @@
                             required
                             minlength="2"
                             maxlength="255"
-                            pattern="[a-zA-Z '-]+"
+                            pattern="[a-zA-Z\s'\-]+"
                                 placeholder="Enter your first name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
                                 title="First name must be at least 2 characters and contain only letters, spaces, hyphens, or apostrophes"
@@ -626,7 +626,7 @@
                             required
                             minlength="2"
                             maxlength="255"
-                            pattern="[a-zA-Z '-]+"
+                            pattern="[a-zA-Z\s'\-]+"
                                 placeholder="Enter your last name"
                                 class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-colors"
                                 title="Last name must be at least 2 characters and contain only letters, spaces, hyphens, or apostrophes"

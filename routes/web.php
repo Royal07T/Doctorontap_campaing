@@ -84,6 +84,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
     Route::post('/consultation/{id}/reassign-doctor', [DashboardController::class, 'reassignDoctor'])->name('consultation.reassign-doctor');
     Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
+    Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
     Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');

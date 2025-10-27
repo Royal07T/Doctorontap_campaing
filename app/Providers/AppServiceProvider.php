@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use App\Models\Consultation;
+use App\Observers\ConsultationObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,5 +24,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Use custom Tailwind pagination view
         Paginator::defaultView('vendor.pagination.tailwind');
+        
+        // Register Consultation observer
+        Consultation::observe(ConsultationObserver::class);
     }
 }
