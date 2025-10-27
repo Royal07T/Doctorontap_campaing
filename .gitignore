@@ -27,5 +27,6 @@ yarn-error.log
 # Environment files with secrets
 .envprodd
 .env.prodd.backup
+.envprod
 .env.local
 .env.production
