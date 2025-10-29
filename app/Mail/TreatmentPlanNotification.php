@@ -8,11 +8,15 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TreatmentPlanNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
+
+    public $pdfContent;
 
     /**
      * Create a new message instance.
@@ -20,6 +24,21 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
     public function __construct(public Consultation $consultation)
     {
         //
+    }
+
+    /**
+     * Build the message.
+     */
+    public function build()
+    {
+        // Generate PDF for the treatment plan
+        $pdf = Pdf::loadView('pdfs.treatment-plan', [
+            'consultation' => $this->consultation
+        ]);
+        
+        $this->pdfContent = $pdf->output();
+        
+        return $this;
     }
 
     /**
@@ -49,6 +68,17 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
      */
     public function attachments(): array
     {
-        return [];
+        // Generate PDF if not already generated
+        if (!isset($this->pdfContent)) {
+            $pdf = Pdf::loadView('pdfs.treatment-plan', [
+                'consultation' => $this->consultation
+            ]);
+            $this->pdfContent = $pdf->output();
+        }
+        
+        return [
+            Attachment::fromData(fn () => $this->pdfContent, 'treatment-plan-' . $this->consultation->reference . '.pdf')
+                ->withMime('application/pdf'),
+        ];
     }
 }

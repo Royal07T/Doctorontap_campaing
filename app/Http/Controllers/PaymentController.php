@@ -65,10 +65,20 @@ class PaymentController extends Controller
 
         // Make API call to Korapay
         try {
+            $apiUrl = env('KORAPAY_API_URL');
+            $secretKey = env('KORAPAY_SECRET_KEY');
+            $fullUrl = $apiUrl . '/charges/initialize';
+            
+            Log::info('Korapay API Request', [
+                'api_url' => $apiUrl,
+                'full_url' => $fullUrl,
+                'has_secret' => !empty($secretKey)
+            ]);
+            
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('KORAPAY_SECRET_KEY'),
+                'Authorization' => 'Bearer ' . $secretKey,
                 'Content-Type' => 'application/json',
-            ])->post(env('KORAPAY_API_URL') . '/charges/initialize', $payload);
+            ])->post($fullUrl, $payload);
 
             $responseData = $response->json();
 
@@ -93,7 +103,12 @@ class PaymentController extends Controller
                 ], 400);
             }
         } catch (\Exception $e) {
-            Log::error('Korapay API error', ['error' => $e->getMessage()]);
+            Log::error('Korapay API error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'api_url' => env('KORAPAY_API_URL'),
+                'has_secret' => !empty(env('KORAPAY_SECRET_KEY'))
+            ]);
             
             return response()->json([
                 'success' => false,
@@ -247,6 +262,12 @@ class PaymentController extends Controller
         $signature = $request->header('x-korapay-signature');
         $secretKey = env('KORAPAY_SECRET_KEY');
         
+        Log::info('Korapay Webhook', [
+            'has_signature' => !empty($signature),
+            'has_secret' => !empty($secretKey),
+            'data' => $request->all()
+        ]);
+        
         if ($signature && $secretKey) {
             $expectedSignature = hash_hmac('sha256', json_encode($request->input('data')), $secretKey);
             
@@ -399,10 +420,20 @@ class PaymentController extends Controller
 
         // Make API call to Korapay
         try {
+            $apiUrl = env('KORAPAY_API_URL');
+            $secretKey = env('KORAPAY_SECRET_KEY');
+            $fullUrl = $apiUrl . '/charges/initialize';
+            
+            Log::info('Korapay API Request', [
+                'api_url' => $apiUrl,
+                'full_url' => $fullUrl,
+                'has_secret' => !empty($secretKey)
+            ]);
+            
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('KORAPAY_SECRET_KEY'),
+                'Authorization' => 'Bearer ' . $secretKey,
                 'Content-Type' => 'application/json',
-            ])->post(env('KORAPAY_API_URL') . '/charges/initialize', $payload);
+            ])->post($fullUrl, $payload);
 
             $responseData = $response->json();
 
@@ -430,7 +461,12 @@ class PaymentController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Korapay API error', ['error' => $e->getMessage()]);
+            Log::error('Korapay API error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'api_url' => env('KORAPAY_API_URL'),
+                'has_secret' => !empty(env('KORAPAY_SECRET_KEY'))
+            ]);
             
             return view('payment.failed', [
                 'reference' => $reference,
@@ -445,9 +481,13 @@ class PaymentController extends Controller
     private function verifyTransaction($reference)
     {
         try {
+            $apiUrl = env('KORAPAY_API_URL');
+            $secretKey = env('KORAPAY_SECRET_KEY');
+            $fullUrl = $apiUrl . '/charges/' . $reference;
+            
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('KORAPAY_SECRET_KEY'),
-            ])->get(env('KORAPAY_API_URL') . '/charges/' . $reference);
+                'Authorization' => 'Bearer ' . $secretKey,
+            ])->get($fullUrl);
 
             $responseData = $response->json();
 

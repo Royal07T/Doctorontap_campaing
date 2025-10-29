@@ -407,6 +407,17 @@
                         <p class="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
                     </div>
 
+                    <!-- MDCN License Current -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MDCN License Current</label>
+                        <select id="mdcn_license_current" name="mdcn_license_current"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Is the doctor's MDCN license current?</p>
+                    </div>
+
                     <!-- Availability -->
                     <div class="md:col-span-2">
                         <label class="flex items-center gap-2 cursor-pointer">
@@ -442,6 +453,7 @@
             document.getElementById('doctorForm').reset();
             document.getElementById('doctorId').value = '';
             document.getElementById('formMethod').value = 'POST';
+            document.getElementById('mdcn_license_current').value = 'no';
             document.getElementById('is_available').checked = true;
             document.getElementById('doctorForm').action = '{{ route('admin.doctors.store') }}';
             document.getElementById('submitBtnText').textContent = 'Save Doctor';
@@ -470,6 +482,7 @@
             document.getElementById('languages').value = doctor.languages || '';
             document.getElementById('consultation_fee').value = doctor.consultation_fee || '';
             document.getElementById('order').value = doctor.order || 0;
+            document.getElementById('mdcn_license_current').value = doctor.mdcn_license_current ? 'yes' : 'no';
             document.getElementById('is_available').checked = doctor.is_available;
             document.getElementById('doctorForm').action = `/admin/doctors/${doctor.id}`;
             document.getElementById('submitBtnText').textContent = 'Update Doctor';

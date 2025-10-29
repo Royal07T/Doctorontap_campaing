@@ -478,6 +478,13 @@
         function submitTreatmentPlan(event) {
             event.preventDefault();
             
+            // Show confirmation dialog
+            const confirmed = confirm('⚠️ Confirm Treatment Plan Creation\n\nAre you sure you want to create this treatment plan?\n\nThis will:\n- Mark the consultation as completed\n- Send email notification to patient\n- Make the plan available after payment\n\nClick OK to proceed or Cancel to review.');
+            
+            if (!confirmed) {
+                return false;
+            }
+            
             const formData = new FormData(event.target);
             const data = {};
             
@@ -511,6 +518,12 @@
                 );
             }
             
+            // Show loading state
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating Treatment Plan...';
+            
             // Submit to server
             fetch(`/doctor/consultations/${currentConsultationId}/treatment-plan`, {
                 method: 'POST',
@@ -532,11 +545,15 @@
                     }, 2000);
                 } else {
                     showAlertModal(data.message, 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalText;
                 }
             })
             .catch(error => {
                 showAlertModal('Failed to create treatment plan', 'error');
                 console.error(error);
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
             });
         }
 

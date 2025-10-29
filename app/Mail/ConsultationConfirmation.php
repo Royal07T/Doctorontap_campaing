@@ -30,6 +30,12 @@ class ConsultationConfirmation extends Mailable implements ShouldQueue
     {
         return new Envelope(
             subject: 'Consultation Request Confirmation - DoctorOnTap',
+            replyTo: env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng'),
+            from: env('MAIL_FROM_ADDRESS', 'hello@doctorontap.com.ng'),
+            tags: ['consultation', 'confirmation'],
+            metadata: [
+                'consultation_reference' => $this->data['consultation_reference'] ?? '',
+            ],
         );
     }
 

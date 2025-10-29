@@ -233,7 +233,17 @@
     <p><strong>Next Steps:</strong></p>
     
     <!-- WhatsApp Contact Button -->
-    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $data['mobile']) }}?text=Hello%20{{ urlencode($data['first_name']) }}%2C%20this%20is%20Dr.%20{{ urlencode($data['doctor'] ?? 'your%20doctor') }}%20from%20DoctorOnTap.%20I%20received%20your%20consultation%20request%20(Ref%3A%20{{ urlencode($data['consultation_reference']) }}).%20When%20would%20be%20a%20good%20time%20for%20us%20to%20have%20your%20consultation%3F" 
+    @php
+        // Format phone number for WhatsApp using global helper
+        $phone = format_whatsapp_phone($data['mobile'] ?? '');
+        
+        // Default WhatsApp message
+        $message = "Hello " . ($data['first_name'] ?? 'Patient') . ", this is Dr. " . ($data['doctor'] ?? 'your doctor') . " from DoctorOnTap. I received your consultation request (Ref: " . ($data['consultation_reference'] ?? 'N/A') . "). When would be a good time for us to have your consultation?";
+        
+        $whatsappUrl = "https://wa.me/" . $phone . "?text=" . urlencode($message);
+    @endphp
+    
+    <a href="{{ $whatsappUrl }}" 
        class="cta-button" 
        style="margin-bottom: 15px;">
       <svg class="whatsapp-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

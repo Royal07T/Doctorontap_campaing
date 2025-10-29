@@ -70,7 +70,24 @@ class DashboardController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%");
+                  ->orWhere('reference', 'like', "%{$search}%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                
+                // If search contains a space, also try searching first and last name separately
+                if (strpos($search, ' ') !== false) {
+                    $parts = explode(' ', trim($search), 2);
+                    if (count($parts) == 2) {
+                        $q->orWhere(function($subQ) use ($parts) {
+                            $subQ->where('first_name', 'like', "%{$parts[0]}%")
+                                 ->where('last_name', 'like', "%{$parts[1]}%");
+                        });
+                        // Also try reversed in case user typed "last first"
+                        $q->orWhere(function($subQ) use ($parts) {
+                            $subQ->where('first_name', 'like', "%{$parts[1]}%")
+                                 ->where('last_name', 'like', "%{$parts[0]}%");
+                        });
+                    }
+                }
             });
         }
         

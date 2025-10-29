@@ -90,7 +90,24 @@ class DashboardController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%");
+                  ->orWhere('reference', 'like', "%{$search}%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                
+                // If search contains a space, also try searching first and last name separately
+                if (strpos($search, ' ') !== false) {
+                    $parts = explode(' ', trim($search), 2);
+                    if (count($parts) == 2) {
+                        $q->orWhere(function($subQ) use ($parts) {
+                            $subQ->where('first_name', 'like', "%{$parts[0]}%")
+                                 ->where('last_name', 'like', "%{$parts[1]}%");
+                        });
+                        // Also try reversed in case user typed "last first"
+                        $q->orWhere(function($subQ) use ($parts) {
+                            $subQ->where('first_name', 'like', "%{$parts[1]}%")
+                                 ->where('last_name', 'like', "%{$parts[0]}%");
+                        });
+                    }
+                }
             });
         }
 
@@ -124,7 +141,24 @@ class DashboardController extends Controller
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('mobile', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%");
+                  ->orWhere('reference', 'like', "%{$search}%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                
+                // If search contains a space, also try searching first and last name separately
+                if (strpos($search, ' ') !== false) {
+                    $parts = explode(' ', trim($search), 2);
+                    if (count($parts) == 2) {
+                        $q->orWhere(function($subQ) use ($parts) {
+                            $subQ->where('first_name', 'like', "%{$parts[0]}%")
+                                 ->where('last_name', 'like', "%{$parts[1]}%");
+                        });
+                        // Also try reversed in case user typed "last first"
+                        $q->orWhere(function($subQ) use ($parts) {
+                            $subQ->where('first_name', 'like', "%{$parts[1]}%")
+                                 ->where('last_name', 'like', "%{$parts[0]}%");
+                        });
+                    }
+                }
             });
         }
 
@@ -472,10 +506,18 @@ class DashboardController extends Controller
             'languages' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
             'is_available' => 'nullable|boolean',
+            'mdcn_license_current' => 'nullable|in:yes,no',
         ]);
 
         // Handle checkbox value
         $validated['is_available'] = $request->has('is_available') ? true : false;
+        
+        // Handle MDCN license - convert 'yes'/'no' to boolean
+        if (isset($validated['mdcn_license_current'])) {
+            $validated['mdcn_license_current'] = $validated['mdcn_license_current'] === 'yes';
+        } else {
+            $validated['mdcn_license_current'] = false;
+        }
 
         try {
             $doctor = Doctor::create($validated);
