@@ -28,5 +28,6 @@ yarn-error.log
 .envprodd
 .env.prodd.backup
 .envprod
+.envlocal
 .env.local
 .env.production
