@@ -164,7 +164,7 @@
 <div class="container">
   <!-- HEADER -->
   <div class="header">
-    <img src="{{ config('app.url') }}/img/whitelogo.png" alt="DoctorOnTap Logo" class="logo">
+    <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
     <h1>🩺 New Patient Consultation</h1>
     <p>A new patient has just requested your consultation</p>
   </div>
@@ -253,7 +253,7 @@
     </a>
 
     <!-- Dashboard Button -->
-    <a href="{{ config('app.url') }}/doctor/dashboard" class="cta-button" style="background: #6C3EF3; box-shadow: 0 4px 15px rgba(108, 62, 243, 0.4);">
+    <a href="{{ route('doctor.dashboard') }}" class="cta-button" style="background: #6C3EF3; box-shadow: 0 4px 15px rgba(108, 62, 243, 0.4);">
       <svg class="whatsapp-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="fill: #fff;">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
       </svg>
@@ -268,7 +268,7 @@
   <!-- FOOTER -->
   <div class="footer">
     <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
-    <p>📧 {{ config('mail.from.address', 'inquiries@doctorontap.com.ng') }}</p>
+    <p>📧 {{ config('mail.admin_email') }}</p>
     <p>📱 08177777122 | +16178333519</p>
     <p style="color:#aaa;">This is an automated message. Please do not reply.</p>
   </div>

@@ -165,7 +165,7 @@
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{{ url('/doctor/login') }}" class="cta-button">
+                <a href="{{ app_url('doctor/login') }}" class="cta-button">
                     Access Your Dashboard
                 </a>
             </div>
@@ -180,12 +180,12 @@
         <!-- Footer -->
         <div class="footer">
             <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
-            <p>📧 {{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}</p>
+            <p>📧 {{ config('mail.admin_email') }}</p>
             <p>📱 08177777122</p>
             <p style="margin-top: 10px; color: #aaa;">This is an automated campaign notification. Please do not reply to this email.</p>
             <p style="margin-top: 10px;">
-                <a href="{{ url('/') }}">Visit Website</a> | 
-                <a href="{{ url('/doctor/login') }}">Doctor Login</a>
+                <a href="{{ app_url() }}">Visit Website</a> | 
+                <a href="{{ app_url('doctor/login') }}">Doctor Login</a>
             </p>
         </div>
     </div>

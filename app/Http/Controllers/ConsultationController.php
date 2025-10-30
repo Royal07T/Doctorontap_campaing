@@ -205,8 +205,8 @@ class ConsultationController extends Controller
         
         // Count emails to be sent
         $emailsQueued = 0;
-        // Use ADMIN_EMAIL env variable, fallback to mail.from.address
-        $adminEmail = env('ADMIN_EMAIL', config('mail.from.address', 'inquiries@doctorontap.com.ng'));
+        // Use ADMIN_EMAIL from config (reads from env)
+        $adminEmail = config('mail.admin_email');
         
         try {
             // Send confirmation email to the patient

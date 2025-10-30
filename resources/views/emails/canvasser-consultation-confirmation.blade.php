@@ -143,7 +143,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ env('APP_URL') }}/img/whitelogo.png" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
             <h1>DoctorOnTap</h1>
             <p>Your Trusted Healthcare Partner</p>
         </div>
@@ -207,7 +207,7 @@
                     <p style="margin: 5px 0;">🎯 <strong>Option 2:</strong> Pay After Consultation</p>
                 </div>
 
-                <a href="{{ url('/payment/request/' . $data['consultation_reference']) }}" class="payment-button">
+                <a href="{{ app_url('payment/request/' . $data['consultation_reference']) }}" class="payment-button">
                     🔒 PAY NOW SECURELY
                 </a>
 

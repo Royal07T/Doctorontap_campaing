@@ -296,7 +296,7 @@
             </p>
 
             <center>
-                <a href="{{ url('/') }}" class="cta-button">Book a Consultation</a>
+                <a href="{{ app_url() }}" class="cta-button">Book a Consultation</a>
             </center>
         </div>
 

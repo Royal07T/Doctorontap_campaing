@@ -33,7 +33,7 @@ Route::get('/test-notification/{consultation_id}', function($consultationId) {
     $consultation = \App\Models\Consultation::findOrFail($consultationId);
     $doctor = \App\Models\Doctor::findOrFail($consultation->doctor_id);
     
-    \Illuminate\Support\Facades\Mail::to(env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng'))
+    \Illuminate\Support\Facades\Mail::to(config('mail.admin_email'))
         ->send(new \App\Mail\ConsultationStatusChange(
             $consultation,
             $doctor,

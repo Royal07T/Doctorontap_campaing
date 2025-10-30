@@ -236,7 +236,7 @@ class DashboardController extends Controller
         Mail::to($patient->email)->send(new CanvasserConsultationConfirmation($validated, $canvasser));
 
         // Send alert email to admin
-        Mail::to(env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng'))->send(new ConsultationAdminAlert($validated));
+        Mail::to(config('mail.admin_email'))->send(new ConsultationAdminAlert($validated));
 
         // Send notification email to the assigned doctor
         if ($doctorEmail) {

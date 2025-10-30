@@ -260,7 +260,7 @@
                 If you need help, contact your administrator.
             </p>
             <p>
-                <a href="{{ url('/') }}">Visit Our Website</a>
+                <a href="{{ app_url() }}">Visit Our Website</a>
             </p>
         </div>
     </div>

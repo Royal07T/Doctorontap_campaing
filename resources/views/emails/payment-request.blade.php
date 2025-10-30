@@ -123,7 +123,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ env('APP_URL') }}/img/whitelogo.png" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
             <h1>💰 Payment Request</h1>
             <p>Thank you for consulting with us!</p>
         </div>
@@ -219,7 +219,7 @@
             
             <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
                 <p style="margin: 5px 0;">
-                    📧 Email: {{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}<br>
+                    📧 Email: {{ config('mail.admin_email') }}<br>
                     📱 Phone: 08177777122<br>
                     📱 WhatsApp: {{ $consultation->mobile }}
                 </p>

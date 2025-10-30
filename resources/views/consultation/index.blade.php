@@ -166,7 +166,7 @@
                 <!-- Contact Actions - Mobile First -->
                 <div class="flex items-center gap-2 sm:gap-3 md:gap-6 text-white">
                     <!-- Email - Icon on Mobile, Full Info on Desktop -->
-                    <a href="mailto:inquiries@doctorontap.com.ng" class="flex items-center gap-2 hover:text-purple-200 transition-colors group">
+                    <a href="mailto:{{ config('mail.admin_email') }}" class="flex items-center gap-2 hover:text-purple-200 transition-colors group">
                         <div class="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -174,7 +174,7 @@
                         </div>
                         <div class="hidden lg:block text-right">
                             <p class="text-xs font-medium opacity-90 leading-tight">Email</p>
-                            <p class="text-sm font-semibold leading-tight">inquiries@doctorontap.com.ng</p>
+                            <p class="text-sm font-semibold leading-tight">{{ config('mail.admin_email') }}</p>
                         </div>
                     </a>
                     
@@ -525,7 +525,7 @@
                             </svg>
                             Call Us Now
                         </a>
-                        <a href="mailto:inquiries@doctorontap.com.ng" 
+                        <a href="mailto:{{ config('mail.admin_email') }}" 
                            class="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-purple-800 hover:shadow-lg hover:scale-105 transition-all">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -1382,7 +1382,7 @@
                                 If the problem persists, please contact us:
                             </p>
                             <p class="text-xs text-orange-700">
-                                📧 Email: inquiries@doctorontap.com.ng<br>
+                                📧 Email: {{ config('mail.admin_email') }}<br>
                                 📱 Phone: 08177777122
                             </p>
                         </div>
@@ -1480,7 +1480,7 @@
                 <div>
                     <h3 class="text-lg font-bold mb-4 text-purple-300">Get In Touch</h3>
                     <div class="space-y-3 text-sm">
-                        <a href="mailto:{{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}" class="flex items-start gap-3 text-gray-300 hover:text-purple-400 transition-colors group">
+                        <a href="mailto:{{ config('mail.admin_email') }}" class="flex items-start gap-3 text-gray-300 hover:text-purple-400 transition-colors group">
                             <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-purple-700 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -1488,7 +1488,7 @@
                             </div>
                             <div>
                                 <div class="font-semibold text-white text-xs uppercase tracking-wide">Email</div>
-                                <div class="break-all">{{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}</div>
+                                <div class="break-all">{{ config('mail.admin_email') }}</div>
                             </div>
                         </a>
 

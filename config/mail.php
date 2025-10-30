@@ -111,8 +111,20 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@doctorontap.com.ng'),
+        'name' => env('MAIL_FROM_NAME', 'DoctorOnTap'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Email Address
+    |--------------------------------------------------------------------------
+    |
+    | This email address is used for sending admin notifications and as
+    | the reply-to address for customer-facing emails.
+    |
+    */
+
+    'admin_email' => env('ADMIN_EMAIL', env('MAIL_FROM_ADDRESS', 'inquiries@doctorontap.com.ng')),
 
 ];

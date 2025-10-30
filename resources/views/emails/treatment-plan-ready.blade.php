@@ -132,7 +132,7 @@
         
         <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
             <p style="margin: 5px 0;">
-                📧 Email: {{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}<br>
+                📧 Email: {{ config('mail.admin_email') }}<br>
                 📱 Phone: 08177777122<br>
                 📱 WhatsApp: {{ $consultation->mobile }}
             </p>

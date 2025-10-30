@@ -138,7 +138,7 @@
         <p><strong>Action Required:</strong> Please review this consultation status change and take any necessary administrative actions.</p>
         
         <p style="margin-top: 30px;">
-            <a href="{{ url('/admin/consultation/' . $consultation->id) }}" 
+            <a href="{{ app_url('admin/consultation/' . $consultation->id) }}" 
                style="background: #9333EA; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 View Consultation Details
             </a>

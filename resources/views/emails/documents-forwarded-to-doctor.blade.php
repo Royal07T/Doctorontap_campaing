@@ -152,7 +152,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ env('APP_URL') }}/img/whitelogo.png" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
             <h1>📎 Patient Medical Documents</h1>
             <p>Consultation Reference: {{ $consultation->reference }}</p>
         </div>
@@ -253,7 +253,7 @@
             <p>
                 <strong>DoctorOnTap</strong><br>
                 caring for you, just like family<br>
-                Need assistance? Contact us at <a href="mailto:inquiries@doctorontap.com.ng">inquiries@doctorontap.com.ng</a>
+                Need assistance? Contact us at <a href="mailto:{{ config('mail.admin_email') }}">{{ config('mail.admin_email') }}</a>
             </p>
             <p style="margin-top: 15px; font-size: 0.85rem;">
                 © {{ date('Y') }} DoctorOnTap. All rights reserved.

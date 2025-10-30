@@ -30,8 +30,8 @@ class ConsultationAdminAlert extends Mailable implements ShouldQueue
     {
         return new Envelope(
             subject: 'New Consultation Request - DoctorOnTap',
-            replyTo: env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng'),
-            from: env('MAIL_FROM_ADDRESS', 'hello@doctorontap.com.ng'),
+            replyTo: config('mail.admin_email'),
+            from: config('mail.from.address'),
             tags: ['consultation', 'admin-alert'],
             metadata: [
                 'consultation_reference' => $this->data['consultation_reference'] ?? '',

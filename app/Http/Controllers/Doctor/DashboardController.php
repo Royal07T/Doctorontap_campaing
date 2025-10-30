@@ -142,7 +142,7 @@ class DashboardController extends Controller
             
             // Send notification to admin if status changed
             if ($oldStatus !== $newStatus) {
-                $adminEmail = env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng');
+                $adminEmail = config('mail.admin_email');
                 
                 Mail::to($adminEmail)->send(new ConsultationStatusChange(
                     $consultation,

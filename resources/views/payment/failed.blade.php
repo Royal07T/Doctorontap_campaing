@@ -84,14 +84,14 @@
                     <a href="{{ url('/') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
                         Try Again
                     </a>
-                    <a href="mailto:{{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }}" class="inline-block px-8 py-4 text-lg font-bold text-purple-700 bg-white border-2 border-purple-700 rounded-xl hover:bg-purple-50 hover:scale-105 transition-all">
+                    <a href="mailto:{{ config('mail.admin_email') }}" class="inline-block px-8 py-4 text-lg font-bold text-purple-700 bg-white border-2 border-purple-700 rounded-xl hover:bg-purple-50 hover:scale-105 transition-all">
                         Contact Support
                     </a>
                 </div>
 
                 <!-- Help Text -->
                 <p class="text-sm text-gray-500 mt-6">
-                    Need help? Contact us at {{ env('ADMIN_EMAIL', 'inquiries@doctorontap.com.ng') }} or call 08177777122
+                    Need help? Contact us at {{ config('mail.admin_email') }} or call 08177777122
                 </p>
             </div>
         </div>
