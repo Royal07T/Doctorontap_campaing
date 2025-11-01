@@ -57,6 +57,7 @@ Route::prefix('payment')->group(function () {
 
 // Public Review Routes (No authentication required)
 Route::prefix('reviews')->name('reviews.')->group(function () {
+    Route::get('/consultation/{reference}', [ReviewController::class, 'showReviewForm'])->name('consultation');
     Route::get('/doctor/{doctorId}', [ReviewController::class, 'getDoctorReviews'])->name('doctor');
     Route::get('/public', [ReviewController::class, 'getPublicReviews'])->name('public');
     Route::post('/patient', [ReviewController::class, 'storePatientReview'])->name('patient.store');

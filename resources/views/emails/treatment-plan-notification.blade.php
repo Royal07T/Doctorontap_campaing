@@ -209,6 +209,18 @@
         
         <p>If you have any questions about your treatment plan, please contact our support team.</p>
         
+        <!-- Review Prompt -->
+        <div style="background-color: #F3E8FF; border: 2px solid #9333EA; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
+            <h3 style="color: #7E22CE; margin-top: 0;">How was your experience?</h3>
+            <p style="color: #6B21A8; margin-bottom: 15px;">
+                Your feedback helps us improve our service and helps other patients make informed decisions.
+            </p>
+            <a href="{{ route('reviews.consultation', $consultation->reference) }}" 
+               style="display: inline-block; background-color: #9333EA; color: #ffffff; padding: 12px 30px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+                ⭐ Leave a Review
+            </a>
+        </div>
+        
         <div class="footer">
             <p>This email was sent from DoctorOnTap.</p>
             <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>

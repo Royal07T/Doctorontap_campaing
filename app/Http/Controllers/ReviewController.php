@@ -13,6 +13,42 @@ use Illuminate\Support\Facades\DB;
 class ReviewController extends Controller
 {
     /**
+     * Show the review form for a consultation
+     */
+    public function showReviewForm($reference)
+    {
+        try {
+            $consultation = Consultation::where('reference', $reference)
+                                       ->with('doctor')
+                                       ->firstOrFail();
+
+            // Check if consultation is completed
+            if (!$consultation->isCompleted()) {
+                return view('reviews.error')->with([
+                    'message' => 'You can only review completed consultations.',
+                    'suggestion' => 'Please wait until your consultation is marked as completed.'
+                ]);
+            }
+
+            // Check if patient already reviewed this consultation
+            if ($consultation->hasPatientReview()) {
+                return view('reviews.error')->with([
+                    'message' => 'You have already submitted a review for this consultation.',
+                    'suggestion' => 'Thank you for your feedback!'
+                ]);
+            }
+
+            return view('reviews.patient-review-form', compact('consultation'));
+
+        } catch (\Exception $e) {
+            return view('reviews.error')->with([
+                'message' => 'Consultation not found.',
+                'suggestion' => 'Please check your consultation reference and try again.'
+            ]);
+        }
+    }
+
+    /**
      * Store a review from a patient about a doctor
      */
     public function storePatientReview(Request $request)
