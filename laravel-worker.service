@@ -1,0 +1,18 @@
+[Unit]
+Description=Laravel Queue Worker
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=doctoron
+Group=doctoron
+WorkingDirectory=/home/doctoron/domains/new.doctorontap.com.ng/laravel
+ExecStart=/usr/bin/php /home/doctoron/domains/new.doctorontap.com.ng/laravel/artisan queue:work database --sleep=3 --tries=3 --timeout=90 --max-jobs=1000
+Restart=always
+RestartSec=3
+StandardOutput=append:/home/doctoron/domains/new.doctorontap.com.ng/laravel/storage/logs/worker.log
+StandardError=append:/home/doctoron/domains/new.doctorontap.com.ng/laravel/storage/logs/worker.log
+
+[Install]
+WantedBy=multi-user.target
+

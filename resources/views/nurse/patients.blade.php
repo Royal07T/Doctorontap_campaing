@@ -467,8 +467,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showAlertModal(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1500);
+                    // Show success message and ask if nurse wants to send email
+                    showEmailConfirmationModal(data.vital_sign.id, data.vital_sign.patient_email);
                 } else {
                     showAlertModal(data.message || 'Failed to record vital signs', 'error');
                     submitBtn.disabled = false;
@@ -487,6 +487,83 @@
 
         // Modal System for Confirmations and Alerts
         let confirmCallback = null;
+
+        function showEmailConfirmationModal(vitalSignId, patientEmail) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+            modal.innerHTML = `
+                <div class="relative top-20 mx-auto p-6 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Vital Signs Recorded Successfully!</h3>
+                        <p class="text-sm text-gray-600 mb-6">
+                            Would you like to send a detailed report to <strong>${patientEmail}</strong>?
+                        </p>
+                        <div class="flex space-x-3">
+                            <button onclick="sendVitalSignsEmail(${vitalSignId}, this)" 
+                                    class="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                                <span class="send-email-text">Send Email Report</span>
+                                <span class="send-email-loading hidden">Sending...</span>
+                            </button>
+                            <button onclick="closeEmailModal(this)" 
+                                    class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors font-medium">
+                                Skip for Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function sendVitalSignsEmail(vitalSignId, button) {
+            const textSpan = button.querySelector('.send-email-text');
+            const loadingSpan = button.querySelector('.send-email-loading');
+            
+            textSpan.classList.add('hidden');
+            loadingSpan.classList.remove('hidden');
+            button.disabled = true;
+
+            fetch(`/nurse/vital-signs/${vitalSignId}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlertModal(data.message, 'success');
+                    closeEmailModal(button);
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showAlertModal(data.message || 'Failed to send email', 'error');
+                    textSpan.classList.remove('hidden');
+                    loadingSpan.classList.add('hidden');
+                    button.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlertModal('An error occurred while sending email', 'error');
+                textSpan.classList.remove('hidden');
+                loadingSpan.classList.add('hidden');
+                button.disabled = false;
+            });
+        }
+
+        function closeEmailModal(button) {
+            const modal = button.closest('.fixed');
+            if (modal) {
+                modal.remove();
+            }
+        }
 
         function showConfirmModal(message, onConfirm) {
             document.getElementById('confirmMessage').textContent = message;

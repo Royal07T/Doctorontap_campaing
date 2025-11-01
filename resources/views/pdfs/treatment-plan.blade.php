@@ -345,10 +345,14 @@
     @endif
 
     <!-- Referrals -->
-    @if($consultation->referrals)
+    @if($consultation->referrals && is_array($consultation->referrals) && count($consultation->referrals) > 0)
     <div class="section">
         <div class="section-title">Referrals</div>
-        <div class="content-box">{{ $consultation->referrals }}</div>
+        <div class="content-box">
+            @foreach($consultation->referrals as $referral)
+                <div style="margin-bottom: 8px;">• {{ is_array($referral) ? implode(', ', $referral) : $referral }}</div>
+            @endforeach
+        </div>
     </div>
     @endif
 

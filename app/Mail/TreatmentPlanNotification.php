@@ -16,29 +16,13 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public $pdfContent;
-
     /**
      * Create a new message instance.
      */
     public function __construct(public Consultation $consultation)
     {
-        //
-    }
-
-    /**
-     * Build the message.
-     */
-    public function build()
-    {
-        // Generate PDF for the treatment plan
-        $pdf = Pdf::loadView('pdfs.treatment-plan', [
-            'consultation' => $this->consultation
-        ]);
-        
-        $this->pdfContent = $pdf->output();
-        
-        return $this;
+        // Eager load the doctor relationship to ensure it's available when the job is processed
+        $this->consultation->load('doctor');
     }
 
     /**
@@ -68,17 +52,24 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
      */
     public function attachments(): array
     {
-        // Generate PDF if not already generated
-        if (!isset($this->pdfContent)) {
+        try {
+            // Generate PDF for the treatment plan
             $pdf = Pdf::loadView('pdfs.treatment-plan', [
                 'consultation' => $this->consultation
             ]);
-            $this->pdfContent = $pdf->output();
+            
+            return [
+                Attachment::fromData(fn () => $pdf->output(), 'treatment-plan-' . $this->consultation->reference . '.pdf')
+                    ->withMime('application/pdf'),
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to generate treatment plan PDF', [
+                'consultation_id' => $this->consultation->id,
+                'reference' => $this->consultation->reference,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
-        
-        return [
-            Attachment::fromData(fn () => $this->pdfContent, 'treatment-plan-' . $this->consultation->reference . '.pdf')
-                ->withMime('application/pdf'),
-        ];
     }
 }

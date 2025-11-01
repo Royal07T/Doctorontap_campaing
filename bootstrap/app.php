@@ -33,4 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
+    })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        // Ensure queue worker is running every minute
+        $schedule->command('queue:ensure-worker')->everyMinute()->withoutOverlapping();
     })->create();

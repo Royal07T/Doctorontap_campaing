@@ -183,17 +183,25 @@
             <div class="greeting">Hello {{ $patient->name }},</div>
             
             <p class="message">
-                Your vital signs have been successfully recorded by our nursing team. This report contains important information about your health measurements taken during your visit.
+                Thanks for stopping by our booth at the Velorafair for your free health check-up!<br>
+                Your vital signs have been successfully recorded by our team and your personalized report is ready.
             </p>
 
             <!-- Vital Signs Summary -->
             <div class="info-box">
-                <h3>📋 Vital Signs Summary</h3>
+                <h3>Your Vital Signs Summary</h3>
                 
                 @if($vitalSign->blood_pressure)
                 <div class="info-row">
                     <span class="info-label">Blood Pressure</span>
                     <span class="info-value">{{ $vitalSign->blood_pressure }} mmHg</span>
+                </div>
+                @endif
+
+                @if($vitalSign->blood_sugar)
+                <div class="info-row">
+                    <span class="info-label">Blood Sugar</span>
+                    <span class="info-value">{{ $vitalSign->blood_sugar }} mg/dL</span>
                 </div>
                 @endif
 
@@ -218,20 +226,6 @@
                 </div>
                 @endif
 
-                @if($vitalSign->respiratory_rate)
-                <div class="info-row">
-                    <span class="info-label">Respiratory Rate</span>
-                    <span class="info-value">{{ $vitalSign->respiratory_rate }} breaths/min</span>
-                </div>
-                @endif
-
-                @if($vitalSign->blood_sugar)
-                <div class="info-row">
-                    <span class="info-label">Blood Sugar</span>
-                    <span class="info-value">{{ $vitalSign->blood_sugar }} mg/dL</span>
-                </div>
-                @endif
-
                 @if($vitalSign->height)
                 <div class="info-row">
                     <span class="info-label">Height</span>
@@ -252,79 +246,52 @@
                     <span class="info-value">{{ number_format($vitalSign->bmi, 1) }}</span>
                 </div>
                 @endif
-            </div>
 
-            <!-- Attachment Notice -->
-            <div class="attachment-notice">
-                <div class="attachment-icon">
-                    <svg width="24" height="24" fill="white" viewBox="0 0 20 20">
-                        <path d="M8 2a.5.5 0 01.5.5v11.793l3.146-3.147a.5.5 0 01.708.708l-4 4a.5.5 0 01-.708 0l-4-4a.5.5 0 11.708-.708L7.5 14.293V2.5A.5.5 0 018 2z"/>
-                        <path d="M3 9.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-1a.5.5 0 01-.5-.5zm10 0a.5.5 0 01.5-.5h1a.5.5 0 010 1h-1a.5.5 0 01-.5-.5z"/>
-                    </svg>
-                </div>
-                <div class="attachment-text">
-                    <strong>📎 PDF Report Attached</strong>
-                    A detailed PDF report is attached to this email for your records. You can save it or print it for future reference.
-                </div>
-            </div>
-
-            <!-- Recording Details -->
-            <div class="info-box">
-                <h3>👩‍⚕️ Recording Details</h3>
-                <div class="info-row">
-                    <span class="info-label">Recorded By</span>
-                    <span class="info-value">{{ $nurse->name }}</span>
-                </div>
                 <div class="info-row">
                     <span class="info-label">Date & Time</span>
-                    <span class="info-value">{{ $vitalSign->created_at->format('F d, Y h:i A') }}</span>
+                    <span class="info-value">{{ $vitalSign->created_at->format('F d, Y, h:i A') }}</span>
                 </div>
             </div>
-
-            @if($vitalSign->notes)
-            <div class="info-box">
-                <h3>📝 Nurse's Notes</h3>
-                <p style="margin: 0; color: #4b5563; font-size: 14px;">{{ $vitalSign->notes }}</p>
-            </div>
-            @endif
 
             <div class="divider"></div>
 
-            <p class="message" style="margin-bottom: 10px;">
-                <strong>Need to book a consultation?</strong><br>
-                Our doctors are available 24/7 to discuss your health concerns.
+            <!-- Talk with Doctor Section -->
+            <p class="message" style="margin-bottom: 15px;">
+                <strong>Talk with a Doctor Now, Pay Later</strong><br>
+                Not sure what your results mean? Our doctors are available 24/7 to answer your questions.<br>
+                You can talk to a doctor right now and pay later. If you have health concerns, they can also speak with you privately.
             </p>
 
             <center>
                 <a href="{{ app_url() }}" class="cta-button">Book a Consultation</a>
             </center>
+
+            <div class="divider"></div>
+
+            <p class="message" style="margin-bottom: 15px;">
+                At DoctorOnTap, we care for you like family, making healthcare easier, more personal, and always within reach. A detailed PDF report is attached for your records you can download, save, or print it anytime.
+            </p>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <img src="{{ asset('img/logo.png') }}" alt="DoctorOnTap" style="max-width: 120px; margin-bottom: 15px;">
-            
-            <p class="footer-text">
-                <strong>DoctorOnTap</strong><br>
-                caring for you, just like family
+            <p class="footer-text" style="margin-bottom: 15px;">
+                With care,
             </p>
 
-            <div class="social-links">
-                <a href="#">Privacy Policy</a> • 
-                <a href="#">Terms of Service</a> • 
-                <a href="#">Contact Us</a>
-            </div>
-
-            <p class="footer-text" style="margin-top: 20px;">
-                This is an automated email. Please do not reply to this message.<br>
-                If you have any questions, please contact us through our website.
+            <p class="footer-text" style="margin-bottom: 10px;">
+                <strong>The DoctorOnTap Team</strong><br>
+                Caring for you, just like family
             </p>
 
-            <p class="footer-text" style="font-size: 12px; color: #9ca3af; margin-top: 15px;">
-                © {{ date('Y') }} DoctorOnTap. All rights reserved.
+            <p class="footer-text" style="margin-top: 20px; font-size: 14px;">
+                <a href="https://doctorontap.com.ng" style="color: #9333EA; text-decoration: none;">https://doctorontap.com.ng</a><br>
+                WhatsApp: <a href="https://wa.me/2348177777122" style="color: #9333EA; text-decoration: none;">0817 777 7122</a><br>
+                Email: <a href="mailto:inquiries@doctorontap.com.ng" style="color: #9333EA; text-decoration: none;">inquiries@doctorontap.com.ng</a>
             </p>
         </div>
     </div>
 </body>
 </html>
+
 

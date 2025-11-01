@@ -155,8 +155,11 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vital signs recorded successfully! Click "Send to Email" to send the report.',
-                'vital_sign' => $vitalSign
+                'message' => 'Vital signs recorded successfully!',
+                'vital_sign' => [
+                    'id' => $vitalSign->id,
+                    'patient_email' => $vitalSign->patient->email
+                ]
             ]);
 
         } catch (\Exception $e) {
