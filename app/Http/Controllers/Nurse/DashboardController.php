@@ -46,21 +46,26 @@ class DashboardController extends Controller
     /**
      * Search for patients
      */
-    public function searchPatients(Request $request)
+public function searchPatients(Request $request)
     {
         $nurse = Auth::guard('nurse')->user();
         
+        // Only show results if there's a search query
+        if (!$request->filled('search')) {
+            // Return empty collection if no search term
+            $patients = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
+            return view('nurse.patients', compact('patients'));
+        }
+        
+        $search = $request->search;
         $query = Patient::query();
         
         // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
+        $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhere('phone', 'like', "%{$search}%");
+        });
         
         $patients = $query->with('latestVitalSigns')->latest()->paginate(15);
         
