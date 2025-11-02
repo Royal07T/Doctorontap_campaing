@@ -236,46 +236,6 @@
                         </a>
                     </div>
                 </div>
-
-                <!-- Recent Vital Signs -->
-                @if($recentVitals->count() > 0)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">Recent Vital Signs Recorded</h2>
-                        <a href="{{ route('nurse.patients') }}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
-                            Record More →
-                        </a>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-purple-50 border-b border-gray-200">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">Patient</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">BP</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">SpO2</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">Temp</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">Blood Sugar</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">BMI</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-purple-700 uppercase">Recorded</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                @foreach($recentVitals as $vital)
-                                <tr class="hover:bg-purple-50">
-                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $vital->patient->name }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $vital->blood_pressure ?? 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $vital->oxygen_saturation ? $vital->oxygen_saturation . '%' : 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $vital->temperature ? $vital->temperature . '°C' : 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $vital->blood_sugar ? $vital->blood_sugar . ' mg/dL' : 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $vital->bmi ?? 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $vital->created_at->format('M d, Y h:i A') }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                @endif
             </main>
         </div>
     </div>

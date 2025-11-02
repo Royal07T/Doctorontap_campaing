@@ -33,14 +33,7 @@ class DashboardController extends Controller
             'total_consultations' => Consultation::where('nurse_id', $nurse->id)->count(),
         ];
 
-        // Recent vital signs recorded
-        $recentVitals = VitalSign::where('nurse_id', $nurse->id)
-                                 ->with('patient')
-                                 ->latest()
-                                 ->limit(10)
-                                 ->get();
-
-        return view('nurse.dashboard', compact('stats', 'recentVitals'));
+        return view('nurse.dashboard', compact('stats'));
     }
 
     /**
