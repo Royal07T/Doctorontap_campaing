@@ -195,7 +195,7 @@
                 <!-- Quick Actions -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                     <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Search Patient -->
                         <a href="{{ route('nurse.patients') }}" class="flex items-center p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all group">
                             <div class="bg-purple-100 p-3 rounded-lg group-hover:bg-purple-200 transition-colors">
@@ -206,19 +206,6 @@
                             <div class="ml-4">
                                 <h3 class="font-semibold text-gray-900 group-hover:text-purple-600">Search Patient</h3>
                                 <p class="text-sm text-gray-600">Find and record vital signs</p>
-                            </div>
-                        </a>
-
-                        <!-- Walk-In Vital Check -->
-                        <a href="{{ route('nurse.walk-in-vitals') }}" class="flex items-center p-4 border-2 border-emerald-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all group">
-                            <div class="bg-emerald-100 p-3 rounded-lg group-hover:bg-emerald-200 transition-colors">
-                                <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600">Walk-In Vital Check</h3>
-                                <p class="text-sm text-gray-600">For events & fun fairs</p>
                             </div>
                         </a>
 

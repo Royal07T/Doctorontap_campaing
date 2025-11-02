@@ -218,10 +218,6 @@ Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verifie
     Route::get('/patients/{id}', [NurseDashboardController::class, 'viewPatient'])->name('patients.view');
     Route::post('/vital-signs', [NurseDashboardController::class, 'storeVitalSigns'])->name('vital-signs.store');
     Route::post('/vital-signs/{id}/send-email', [NurseDashboardController::class, 'sendVitalSignsEmail'])->name('vital-signs.send-email');
-    
-    // Walk-In Vital Signs (for events/fun fairs)
-    Route::get('/walk-in-vitals', [NurseDashboardController::class, 'showWalkInForm'])->name('walk-in-vitals');
-    Route::post('/walk-in-vitals', [NurseDashboardController::class, 'storeWalkInVitals'])->name('walk-in-vitals.store');
 });
 
 // ==================== DOCTOR ROUTES ====================
