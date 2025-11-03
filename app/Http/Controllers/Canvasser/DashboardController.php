@@ -75,12 +75,9 @@ class DashboardController extends Controller
                 'canvasser_id' => $canvasser->id,
             ]);
 
-            // Send email verification
-            $patient->sendEmailVerificationNotification();
-
             return response()->json([
                 'success' => true,
-                'message' => 'Patient registered successfully! A verification email has been sent to their email address.',
+                'message' => 'Patient registered successfully! You can now create consultations for this patient.',
                 'patient' => $patient
             ]);
 
