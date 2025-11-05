@@ -46,11 +46,13 @@ echo "📊 Monitoring queue jobs..."
 echo "================================================"
 
 # Run queue worker with retries and timeout
+# Reduced max-jobs to prevent memory issues
 php artisan queue:work database \
     --sleep=3 \
     --tries=3 \
     --timeout=90 \
-    --max-jobs=1000 \
+    --max-jobs=100 \
     --max-time=3600 \
+    --memory=256 \
     --verbose
 

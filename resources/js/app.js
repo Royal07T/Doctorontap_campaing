@@ -1,9 +1,16 @@
 import './bootstrap';
+import Alpine from 'alpinejs';
+
+// Make Alpine available globally
+window.Alpine = Alpine;
+
+// Start Alpine
+Alpine.start();
 
 // Initialize common functionality
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize any global JavaScript functionality here
-    console.log('DoctorOnTap app initialized');
+    console.log('DoctorOnTap app initialized with Alpine.js + Livewire');
     
     // Add any global event listeners or initialization code
     initializeGlobalFeatures();

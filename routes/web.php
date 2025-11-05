@@ -80,6 +80,9 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
+    Route::get('/consultations-livewire', function() {
+        return view('admin.consultations-livewire');
+    })->name('consultations.livewire');
     Route::get('/consultation/{id}', [DashboardController::class, 'showConsultation'])->name('consultation.show');
     Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
     Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
