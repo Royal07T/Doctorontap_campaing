@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>DoctorOnTap - Speak with a Doctor Today</title>
     
     <!-- Favicon -->
@@ -19,11 +22,33 @@
     <style>
         html {
             scroll-behavior: smooth;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
             background: #f9fafb;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Prevent zoom on input focus for iOS */
+        @media screen and (max-width: 768px) {
+            select, textarea, input {
+                font-size: 16px !important;
+            }
+        }
+        
+        /* Better touch targets for mobile */
+        button, a {
+            -webkit-tap-highlight-color: rgba(139, 92, 246, 0.2);
+            touch-action: manipulation;
+        }
+        
+        /* Smooth scrolling for modals on mobile */
+        .modal-content {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         
         .modal-backdrop {
@@ -33,6 +58,13 @@
         
         [x-cloak] {
             display: none !important;
+        }
+        
+        /* Prevent body scroll when modal is open */
+        body.modal-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
         }
         
         .hero-section {
@@ -153,7 +185,11 @@
         }
     </style>
 </head>
-<body class="min-h-screen font-sans antialiased">
+<body class="min-h-screen font-sans antialiased" 
+      x-data="{ showConsultationModal: false }" 
+      @open-consultation-modal.window="showConsultationModal = true"
+      @close-consultation-modal.window="showConsultationModal = false"
+      :class="{ 'modal-open': showConsultationModal }">
     <!-- Navbar - Mobile First Design -->
     <nav class="sticky top-0 z-50 purple-gradient shadow-lg">
         <div class="container mx-auto px-4 py-3">
@@ -213,7 +249,7 @@
             <div class="container mx-auto max-w-5xl px-5 py-16 md:py-24">
                 <div class="text-center text-white px-2">
                     <!-- Headline - Mobile First -->
-                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 md:mb-10 lg:mb-12 leading-tight" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 md:mb-10 lg:mb-12 leading-tight mt-8 sm:mt-0" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
                         Talk to a Doctor Now,<br>
                         <span style="color: #fbbf24; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">Pay Later</span>
             </h1>
@@ -224,90 +260,15 @@
                         <span class="block mt-2 sm:mt-3 md:mt-4"></span>
                         <span style="color: #fbbf24; text-shadow: 2px 2px 6px rgba(0,0,0,0.8);">Consult now and pay only after your appointment.</span>
                     </p>
-                    
-                    <!-- Social Proof - Customer Reviews Carousel -->
-                    <div class="mb-8 max-w-3xl mx-auto" x-data="reviewCarousel()">
-                        <div class="relative">
-                            <!-- Review Cards -->
-                            <div class="overflow-hidden">
-                                <div class="flex transition-transform duration-500 ease-in-out" :style="'transform: translateX(-' + (currentSlide * 100) + '%)'">
-                                    <!-- Review 1 -->
-                                    <div class="w-full flex-shrink-0 px-4">
-                                        <div class="bg-gradient-to-br from-white/20 to-purple-100/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 border-white/30 hover:border-white/50 transition-all duration-300">
-                                            <div class="flex justify-center mb-4">
-                                                <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
-                                            </div>
-                                            <h3 class="text-white text-xl font-bold text-center mb-4" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">What people say about us on Google</h3>
-                                            <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"Thank you for your help. The Doctor that was assigned to me was very helpful. She asked me to do some test and told me not to worry. Now my mind is at peace. If you're always of hospital or need second thought on your health contact doctorontap. The prices are very very low. I will be going to the hospital once they have one. Thank you once again."</p>
-                                            <div class="flex items-center justify-center gap-3">
-                                                <img src="{{ asset('img/testimony/Nancy Audu-War.jpg') }}" alt="Nancy Audu-War" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
-                                                <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Nancy Audu-War</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Review 2 -->
-                                    <div class="w-full flex-shrink-0 px-4">
-                                        <div class="bg-gradient-to-br from-white/20 to-purple-100/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 border-white/30 hover:border-white/50 transition-all duration-300">
-                                            <div class="flex justify-center mb-4">
-                                                <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
-                                            </div>
-                                            <h3 class="text-white text-xl font-bold text-center mb-4" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">What people say about us on Google</h3>
-                                            <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"I Love them 😍😍 I appreciate their doctor they were willing to talk to me i felt as if i was talking to somebody i know ✅✅✅"</p>
-                                            <div class="flex items-center justify-center gap-3">
-                                                <img src="{{ asset('img/testimony/Otabor Theodora.jpg') }}" alt="Otabor Theodora" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
-                                                <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Otabor Theodora</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Review 3 -->
-                                    <div class="w-full flex-shrink-0 px-4">
-                                        <div class="bg-gradient-to-br from-white/20 to-purple-100/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 border-white/30 hover:border-white/50 transition-all duration-300">
-                                            <div class="flex justify-center mb-4">
-                                                <span class="star-rating text-3xl drop-shadow-lg">★★★★★</span>
-                                            </div>
-                                            <h3 class="text-white text-xl font-bold text-center mb-4" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">What people say about us on Google</h3>
-                                            <p class="text-white text-lg mb-5 leading-relaxed text-center font-medium" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">"When DoctorOnTap ads prompted on my instagram, i was curious as to how true it was. I contacted them and i must say, their services is cool and impressive."</p>
-                                            <div class="flex items-center justify-center gap-3">
-                                                <img src="{{ asset('img/testimony/odunayo muibat.jpeg') }}" alt="Odunayo Muibat" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg">
-                                                <p class="text-white text-base font-bold" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Odunayo Muibat</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Navigation Arrows -->
-                            <button @click="prevSlide()" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white rounded-full p-3 shadow-2xl transition-all hover:scale-110 border-2 border-white/40">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                            </button>
-                            <button @click="nextSlide()" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white rounded-full p-3 shadow-2xl transition-all hover:scale-110 border-2 border-white/40">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        
-                        <!-- Dots Navigation -->
-                        <div class="flex justify-center gap-3 mt-8">
-                            <button @click="goToSlide(0)" class="h-2 rounded-full transition-all shadow-lg" :class="currentSlide === 0 ? 'bg-white w-12' : 'bg-white/40 w-8 hover:bg-white/60'"></button>
-                            <button @click="goToSlide(1)" class="h-2 rounded-full transition-all shadow-lg" :class="currentSlide === 1 ? 'bg-white w-12' : 'bg-white/40 w-8 hover:bg-white/60'"></button>
-                            <button @click="goToSlide(2)" class="h-2 rounded-full transition-all shadow-lg" :class="currentSlide === 2 ? 'bg-white w-12' : 'bg-white/40 w-8 hover:bg-white/60'"></button>
-                        </div>
-                    </div>
-                    
                     <!-- CTA Button - Mobile First -->
-                    <a href="#consultation-form" class="inline-block px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg md:text-xl font-bold text-white rounded-full purple-gradient hover:shadow-2xl hover:scale-105 transition-all shadow-lg">
+                    <button @click="showConsultationModal = true" class="inline-block px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg md:text-xl font-bold text-white rounded-full purple-gradient hover:shadow-2xl hover:scale-105 transition-all shadow-lg">
                         <span class="flex items-center gap-2 justify-center">
                             <span>Talk to a Doctor Now</span>
                             <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
                         </span>
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -538,44 +499,67 @@
         </div>
     </section>
 
-    <!-- Consultation Form Section -->
-    <div id="consultation-form" class="container mx-auto max-w-5xl px-5 py-12" x-data="consultationForm()">
-        <!-- Form Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl mb-4 shadow-lg">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-            </div>
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                Book Your Consultation
-            </h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">
-                Complete the form below to connect with a qualified healthcare professional
-            </p>
-        </div>
+    <!-- Consultation Form Modal -->
+    <div x-show="showConsultationModal" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         @keydown.escape.window="showConsultationModal = false">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
+             @click="showConsultationModal = false"></div>
+        
+        <!-- Modal Content -->
+        <div class="flex min-h-screen items-center justify-center p-2 sm:p-4">
+            <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto modal-content"
+                 @click.stop
+                 x-data="consultationForm()">
+                
+                <!-- Close Button -->
+                <button @click="showConsultationModal = false" 
+                        class="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 w-12 h-12 sm:w-10 sm:h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors touch-manipulation"
+                        aria-label="Close modal">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
 
-        <!-- Progress Steps -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between max-w-3xl mx-auto">
-                <div class="flex flex-col items-center flex-1">
-                    <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">1</div>
-                    <span class="text-xs font-medium text-gray-700 mt-2 hidden sm:block">Personal</span>
-                </div>
-                <div class="flex-1 h-1 bg-gradient-to-r from-purple-600 to-blue-500 mx-2"></div>
-                <div class="flex flex-col items-center flex-1">
-                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">2</div>
-                    <span class="text-xs font-medium text-gray-700 mt-2 hidden sm:block">Medical</span>
-                </div>
-                <div class="flex-1 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 mx-2"></div>
-                <div class="flex flex-col items-center flex-1">
-                    <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">3</div>
-                    <span class="text-xs font-medium text-gray-700 mt-2 hidden sm:block">Preferences</span>
-                </div>
-            </div>
-        </div>
+                <div class="p-4 sm:p-6 md:p-8">
+                    <!-- Form Header -->
+                    <div class="text-center mb-8">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl mb-4 shadow-lg">
+                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+                            Book Your Consultation
+                        </h2>
+                        <p class="text-gray-600 max-w-2xl mx-auto">
+                            Complete the form below to connect with a qualified healthcare professional
+                        </p>
+                    </div>
 
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
+                    <!-- Progress Steps -->
+                    <div class="mb-8">
+                        <div class="flex items-center justify-between max-w-3xl mx-auto">
+                            <div class="flex flex-col items-center flex-1">
+                                <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">1</div>
+                                <span class="text-xs font-medium text-gray-700 mt-2 hidden sm:block">Personal</span>
+                            </div>
+                            <div class="flex-1 h-1 bg-gradient-to-r from-purple-600 to-blue-500 mx-2"></div>
+                            <div class="flex flex-col items-center flex-1">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">2</div>
+                                <span class="text-xs font-medium text-gray-700 mt-2 hidden sm:block">Medical</span>
+                            </div>
+                            <div class="flex-1 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 mx-2"></div>
+                            <div class="flex flex-col items-center flex-1">
+                                <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">3</div>
+                                <span class="text-xs font-medium text-gray-700 mt-2 hidden sm:block">Preferences</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-6 md:p-8">
             <!-- Form -->
             <form @submit.prevent="submitForm" class="space-y-6">
                 
@@ -1340,7 +1324,7 @@
                     </div>
 
                     <!-- Button -->
-                    <button @click="showSuccessModal = false"
+                    <button @click="showSuccessModal = false; window.dispatchEvent(new CustomEvent('close-consultation-modal'))"
                             class="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:shadow-lg transition-all transform hover:scale-105">
                         Got it, Thanks! ✨
                     </button>
@@ -1394,7 +1378,7 @@
                                 class="flex-1 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all">
                             Close
                         </button>
-                        <button @click="showErrorModal = false; window.scrollTo({ top: document.getElementById('consultation-form').offsetTop - 100, behavior: 'smooth' })"
+                        <button @click="showErrorModal = false"
                                 class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all transform hover:scale-105">
                             Try Again
                         </button>
@@ -1402,9 +1386,254 @@
                 </div>
             </div>
         </div>
+
+        <!-- Doctor Details Modal (inside consultation form scope) -->
+        <div x-show="showDoctorModal" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-[70] overflow-y-auto"
+             style="display: none;">
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showDoctorModal = false"></div>
+                
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                    
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" x-text="selectedDoctor?.name || 'Doctor Details'"></h3>
+                                <div class="mt-2">
+                                    <div x-show="selectedDoctor?.gender" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Gender:</span> <span x-text="selectedDoctor?.gender ? selectedDoctor.gender.charAt(0).toUpperCase() + selectedDoctor.gender.slice(1) : ''"></span>
+                                    </div>
+                                    <div x-show="selectedDoctor?.specialization" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Specialization:</span> <span x-text="selectedDoctor?.specialization"></span>
+                                    </div>
+                                    <div x-show="selectedDoctor?.experience" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Experience:</span> <span x-text="selectedDoctor?.experience + ' years'"></span>
+                                    </div>
+                                    <div x-show="selectedDoctor?.location" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Location:</span> <span x-text="selectedDoctor?.location"></span>
+                                    </div>
+                                    <div x-show="selectedDoctor?.languages" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Languages:</span> <span x-text="selectedDoctor?.languages"></span>
+                                    </div>
+                                    <div x-show="selectedDoctor?.place_of_work" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Place of Work:</span> <span x-text="selectedDoctor?.place_of_work"></span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Consultation Fee:</span> <span class="text-emerald-600 font-semibold">NGN <span x-text="selectedDoctor?.consultation_fee ? new Intl.NumberFormat().format(selectedDoctor.consultation_fee) : 'N/A'"></span></span>
+                                    </div>
+                                    <div x-show="selectedDoctor?.average_rating > 0" class="text-sm text-gray-500 mb-2">
+                                        <span class="font-medium">Rating:</span> 
+                                        <div class="flex items-center mt-1">
+                                            <div class="flex text-yellow-400">
+                                                <template x-for="i in 5" :key="i">
+                                                    <svg x-show="i <= selectedDoctor?.average_rating" class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                                                    </svg>
+                                                    <svg x-show="i > selectedDoctor?.average_rating" class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                                                    </svg>
+                                                </template>
+                                            </div>
+                                            <span class="ml-2 text-sm text-gray-600" x-text="selectedDoctor?.average_rating ? selectedDoctor.average_rating.toFixed(1) : ''"></span>
+                                            <span class="ml-1 text-sm text-gray-500" x-text="selectedDoctor?.total_reviews ? '(' + selectedDoctor.total_reviews + ' reviews)' : ''"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button" 
+                                @click="showDoctorModal = false"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-    <!-- Footer -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Consultation Form Modal -->
+
+    <!-- Testimonials Section -->
+    <section class="bg-gradient-to-br from-purple-50 via-white to-blue-50 py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-5 max-w-7xl">
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl mb-4 shadow-lg">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+                    What Our Patients Say
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto text-lg">
+                    Real experiences from real patients on Google Reviews
+                </p>
+            </div>
+
+            <!-- Testimonials Section - Centered -->
+            <div class="flex flex-col items-center space-y-8">
+                <!-- Testimonials Carousel - Centered -->
+                <div class="w-full max-w-4xl mx-auto" x-data="reviewCarousel()">
+                    <div class="relative px-4 sm:px-8">
+                        <!-- Review Cards -->
+                        <div class="overflow-hidden rounded-2xl">
+                            <div class="flex transition-transform duration-500 ease-in-out" :style="'transform: translateX(-' + (currentSlide * 100) + '%)'">
+                                <!-- Review 1 -->
+                                <div class="w-full flex-shrink-0 px-2 sm:px-4">
+                                    <div class="bg-white rounded-2xl p-5 sm:p-6 md:p-8 shadow-lg border border-gray-100 hover:shadow-xl hover:border-purple-200 transition-all duration-300 h-full flex flex-col">
+                                        <div class="flex items-center justify-center gap-1 mb-4 sm:mb-5">
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-gray-700 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed flex-grow">"Thank you for your help. The Doctor that was assigned to me was very helpful. She asked me to do some test and told me not to worry. Now my mind is at peace. If you're always of hospital or need second thought on your health contact doctorontap. The prices are very very low. I will be going to the hospital once they have one. Thank you once again."</p>
+                                        <div class="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
+                                            <img src="{{ asset('img/testimony/Nancy Audu-War.jpg') }}" alt="Nancy Audu-War" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md">
+                                            <div class="text-left">
+                                                <p class="text-gray-900 text-xs sm:text-sm font-semibold">Nancy Audu-War</p>
+                                                <p class="text-gray-500 text-xs">Telemedicine Patient</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Review 2 -->
+                                <div class="w-full flex-shrink-0 px-2 sm:px-4">
+                                    <div class="bg-white rounded-2xl p-5 sm:p-6 md:p-8 shadow-lg border border-gray-100 hover:shadow-xl hover:border-purple-200 transition-all duration-300 h-full flex flex-col">
+                                        <div class="flex items-center justify-center gap-1 mb-4 sm:mb-5">
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-gray-700 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed flex-grow">"I Love them 😍😍 I appreciate their doctor they were willing to talk to me i felt as if i was talking to somebody i know ✅✅✅"</p>
+                                        <div class="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
+                                            <img src="{{ asset('img/testimony/Otabor Theodora.jpg') }}" alt="Otabor Theodora" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md">
+                                            <div class="text-left">
+                                                <p class="text-gray-900 text-xs sm:text-sm font-semibold">Otabor Theodora</p>
+                                                <p class="text-gray-500 text-xs">Telemedicine Patient</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Review 3 -->
+                                <div class="w-full flex-shrink-0 px-2 sm:px-4">
+                                    <div class="bg-white rounded-2xl p-5 sm:p-6 md:p-8 shadow-lg border border-gray-100 hover:shadow-xl hover:border-purple-200 transition-all duration-300 h-full flex flex-col">
+                                        <div class="flex items-center justify-center gap-1 mb-4 sm:mb-5">
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-gray-700 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed flex-grow">"When DoctorOnTap ads prompted on my instagram, i was curious as to how true it was. I contacted them and i must say, their services is cool and impressive."</p>
+                                        <div class="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
+                                            <img src="{{ asset('img/testimony/odunayo muibat.jpeg') }}" alt="Odunayo Muibat" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md">
+                                            <div class="text-left">
+                                                <p class="text-gray-900 text-xs sm:text-sm font-semibold">Odunayo Muibat</p>
+                                                <p class="text-gray-500 text-xs">Telemedicine Patient</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Navigation Arrows -->
+                        <button @click="prevSlide()" class="absolute left-0 sm:-left-4 top-1/2 -translate-y-1/2 bg-white hover:bg-purple-50 text-purple-600 rounded-full p-2 sm:p-2.5 shadow-lg transition-all hover:scale-110 border border-purple-100 z-10">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <button @click="nextSlide()" class="absolute right-0 sm:-right-4 top-1/2 -translate-y-1/2 bg-white hover:bg-purple-50 text-purple-600 rounded-full p-2 sm:p-2.5 shadow-lg transition-all hover:scale-110 border border-purple-100 z-10">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Dots Navigation -->
+                    <div class="flex justify-center gap-2.5 mt-6">
+                        <button @click="goToSlide(0)" class="h-2 rounded-full transition-all" :class="currentSlide === 0 ? 'bg-purple-600 w-10' : 'bg-gray-300 w-8 hover:bg-purple-300'"></button>
+                        <button @click="goToSlide(1)" class="h-2 rounded-full transition-all" :class="currentSlide === 1 ? 'bg-purple-600 w-10' : 'bg-gray-300 w-8 hover:bg-purple-300'"></button>
+                        <button @click="goToSlide(2)" class="h-2 rounded-full transition-all" :class="currentSlide === 2 ? 'bg-purple-600 w-10' : 'bg-gray-300 w-8 hover:bg-purple-300'"></button>
+                    </div>
+                </div>
+
+                <!-- CTA Button - Below Testimonials -->
+                <div class="w-full max-w-md mx-auto px-4 mt-8 sm:mt-10 md:mt-12">
+                    <button @click="window.dispatchEvent(new CustomEvent('open-consultation-modal'))" class="w-full px-6 py-3.5 sm:py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold text-sm sm:text-base rounded-lg hover:from-purple-700 hover:to-blue-700 hover:shadow-lg hover:scale-[1.02] transition-all shadow-md">
+                        <span class="flex items-center gap-2 justify-center">
+                            <span>Consult a Doctor Now</span>
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <footer class="bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 text-white py-12 mt-16">
         <div class="container mx-auto px-5">
             <!-- Main Footer Content -->
@@ -1414,7 +1643,7 @@
                     <div class="flex items-center gap-3 mb-4">
                         <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 sm:h-10 md:h-12 w-auto">
                     </div>
-                    <h3 class="text-xl font-bold mb-3 text-purple-300">caring for you, just like family</h3>
+                    <h3 class="text-xl font-bold mb-3 text-purple-300">...caring for you, just like family</h3>
                     <p class="text-gray-300 text-sm leading-relaxed mb-4">
                         Speak to a doctor in minutes, hire a caregiver, buy prescribed medication, and get best support for healthcare abroad from anywhere and at anytime.
                     </p>
@@ -1442,12 +1671,12 @@
                     <h3 class="text-lg font-bold mb-4 text-purple-300">Quick Links</h3>
                     <ul class="space-y-2 text-sm">
                         <li>
-                            <a href="#consultation-form" class="text-gray-300 hover:text-purple-400 transition-colors flex items-center gap-2">
+                            <button @click="window.dispatchEvent(new CustomEvent('open-consultation-modal'))" class="text-gray-300 hover:text-purple-400 transition-colors flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                                 Book Consultation
-                            </a>
+                            </button>
                         </li>
                         <li>
                             <a href="#faq" class="text-gray-300 hover:text-purple-400 transition-colors flex items-center gap-2">
@@ -1571,13 +1800,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <div>
-                            <p class="text-white font-semibold mb-1">Our Address:</p>
-                            <p class="text-purple-200 text-sm leading-relaxed">
-                                Suite D21, Plot 228, P.O.W. Mafemi Crescent,<br>
-                                Utako, Abuja, Nigeria
-                            </p>
-                        </div>
+                        
                     </div>
                 </div>
                 <div class="rounded-xl overflow-hidden shadow-2xl border-2 border-purple-500">
@@ -1644,9 +1867,41 @@
                 currentSlide: 0,
                 totalSlides: 3,
                 autoSlideInterval: null,
+                touchStartX: 0,
+                touchEndX: 0,
                 
                 init() {
                     this.startAutoSlide();
+                    this.setupTouchEvents();
+                },
+                
+                setupTouchEvents() {
+                    const carousel = this.$el;
+                    if (carousel) {
+                        carousel.addEventListener('touchstart', (e) => {
+                            this.touchStartX = e.changedTouches[0].screenX;
+                        }, { passive: true });
+                        
+                        carousel.addEventListener('touchend', (e) => {
+                            this.touchEndX = e.changedTouches[0].screenX;
+                            this.handleSwipe();
+                        }, { passive: true });
+                    }
+                },
+                
+                handleSwipe() {
+                    const swipeThreshold = 50;
+                    const diff = this.touchStartX - this.touchEndX;
+                    
+                    if (Math.abs(diff) > swipeThreshold) {
+                        if (diff > 0) {
+                            // Swipe left - next slide
+                            this.nextSlide();
+                        } else {
+                            // Swipe right - previous slide
+                            this.prevSlide();
+                        }
+                    }
                 },
                 
                 nextSlide() {
@@ -1845,89 +2100,6 @@
         }
     </script>
 
-    <!-- Doctor Details Modal -->
-    <div x-show="showDoctorModal" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50 overflow-y-auto"
-         style="display: none;">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showDoctorModal = false"></div>
-            
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" x-text="selectedDoctor?.name || 'Doctor Details'"></h3>
-                            <div class="mt-2">
-                                <div x-show="selectedDoctor?.gender" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Gender:</span> <span x-text="selectedDoctor?.gender ? selectedDoctor.gender.charAt(0).toUpperCase() + selectedDoctor.gender.slice(1) : ''"></span>
-                                </div>
-                                <div x-show="selectedDoctor?.specialization" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Specialization:</span> <span x-text="selectedDoctor?.specialization"></span>
-                                </div>
-                                <div x-show="selectedDoctor?.experience" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Experience:</span> <span x-text="selectedDoctor?.experience + ' years'"></span>
-                                </div>
-                                <div x-show="selectedDoctor?.location" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Location:</span> <span x-text="selectedDoctor?.location"></span>
-                                </div>
-                                <div x-show="selectedDoctor?.languages" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Languages:</span> <span x-text="selectedDoctor?.languages"></span>
-                                </div>
-                                <div x-show="selectedDoctor?.place_of_work" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Place of Work:</span> <span x-text="selectedDoctor?.place_of_work"></span>
-                                </div>
-                                <div class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Consultation Fee:</span> <span class="text-emerald-600 font-semibold">NGN <span x-text="selectedDoctor?.consultation_fee ? new Intl.NumberFormat().format(selectedDoctor.consultation_fee) : 'N/A'"></span></span>
-                                </div>
-                                <div x-show="selectedDoctor?.average_rating > 0" class="text-sm text-gray-500 mb-2">
-                                    <span class="font-medium">Rating:</span> 
-                                    <div class="flex items-center mt-1">
-                                        <div class="flex text-yellow-400">
-                                            <template x-for="i in 5" :key="i">
-                                                <svg x-show="i <= selectedDoctor?.average_rating" class="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                                                </svg>
-                                                <svg x-show="i > selectedDoctor?.average_rating" class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                                                </svg>
-                                            </template>
-                                        </div>
-                                        <span class="ml-2 text-sm text-gray-600" x-text="selectedDoctor?.average_rating ? selectedDoctor.average_rating.toFixed(1) : ''"></span>
-                                        <span class="ml-1 text-sm text-gray-500" x-text="selectedDoctor?.total_reviews ? '(' + selectedDoctor.total_reviews + ' reviews)' : ''"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" 
-                            @click="showDoctorModal = false"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </body>
 </html>

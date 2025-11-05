@@ -168,6 +168,10 @@
                                                     class="px-3 py-1.5 {{ $admin->is_active ? 'bg-gray-600' : 'bg-emerald-600' }} text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-all">
                                                 {{ $admin->is_active ? 'Deactivate' : 'Activate' }}
                                             </button>
+                                            <button onclick="deleteAdminUser({{ $admin->id }})" 
+                                                    class="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-all">
+                                                Delete
+                                            </button>
                                             @endif
                                         </div>
                                     </td>
@@ -339,6 +343,36 @@
 
                         if (response.ok && data.success) {
                             window.location.reload();
+                        } else {
+                            showAlertModal(data.message || 'An error occurred', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showAlertModal('A network error occurred', 'error');
+                    }
+                }
+            );
+        }
+
+        // Delete Admin User
+        async function deleteAdminUser(adminId) {
+            showConfirmModal(
+                'Are you sure you want to delete this admin user? The record will be archived and can be restored if needed.',
+                async () => {
+                    try {
+                        const response = await fetch(`/admin/admin-users/${adminId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            showAlertModal(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1500);
                         } else {
                             showAlertModal(data.message || 'An error occurred', 'error');
                         }

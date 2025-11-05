@@ -289,15 +289,15 @@ class DashboardController extends Controller
                 'consultation_completed_at' => now(),
             ]);
 
-            // Send treatment plan ready email (before payment)
+            // Queue treatment plan ready email (before payment)
             try {
-                Mail::to($consultation->email)->send(new \App\Mail\TreatmentPlanReadyNotification($consultation));
-                \Illuminate\Support\Facades\Log::info('Treatment plan ready email sent', [
+                Mail::to($consultation->email)->queue(new \App\Mail\TreatmentPlanReadyNotification($consultation));
+                \Illuminate\Support\Facades\Log::info('Treatment plan ready email queued successfully', [
                     'consultation_id' => $consultation->id,
                     'email' => $consultation->email
                 ]);
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to send treatment plan ready email', [
+                \Illuminate\Support\Facades\Log::error('Failed to queue treatment plan ready email', [
                     'consultation_id' => $consultation->id,
                     'email' => $consultation->email,
                     'error' => $e->getMessage()

@@ -191,14 +191,20 @@
 
                                     <!-- Actions -->
                                     <td class="px-6 py-4 text-center">
-                                        <a href="{{ route('admin.consultation.show', $patient->id) }}" 
-                                           class="inline-flex items-center px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                            View Details
-                                        </a>
+                                        <div class="flex flex-col gap-2">
+                                            <a href="{{ route('admin.consultation.show', $patient->id) }}" 
+                                               class="inline-flex items-center justify-center px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                View Details
+                                            </a>
+                                            <button onclick="deletePatient({{ $patient->id }})" 
+                                                    class="inline-flex items-center justify-center px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition">
+                                                Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 @empty
@@ -226,6 +232,124 @@
             </main>
         </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-yellow-100">
+                <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Confirm Action</h3>
+            <p id="confirmMessage" class="text-gray-600 text-center mb-6"></p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors">
+                    Cancel
+                </button>
+                <button onclick="confirmAction()" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alertModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div id="alertIconContainer" class="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-100">
+                <svg id="alertIcon" class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <p id="alertMessage" class="text-gray-800 text-center mb-6"></p>
+            <button onclick="closeAlertModal()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Modal System for Confirmations and Alerts
+        let confirmCallback = null;
+
+        function showConfirmModal(message, onConfirm) {
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            confirmCallback = onConfirm;
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            confirmCallback = null;
+        }
+
+        function confirmAction() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        }
+
+        // Delete Patient
+        async function deletePatient(id) {
+            showConfirmModal(
+                'Are you sure you want to delete this patient record? The record will be archived and can be restored if needed.',
+                async () => {
+                    try {
+                        const response = await fetch(`/admin/patients/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            showAlertModal(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            showAlertModal(data.message || 'An error occurred', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showAlertModal('A network error occurred', 'error');
+                    }
+                }
+            );
+        }
+
+        function showAlertModal(message, type = 'error') {
+            const modal = document.getElementById('alertModal');
+            const icon = document.getElementById('alertIcon');
+            const iconContainer = document.getElementById('alertIconContainer');
+            const text = document.getElementById('alertMessage');
+            
+            text.textContent = message;
+            
+            if (type === 'success') {
+                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
+                iconContainer.className = 'flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-green-100';
+                icon.className = 'w-6 h-6 text-green-600';
+            } else {
+                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>';
+                iconContainer.className = 'flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-100';
+                icon.className = 'w-6 h-6 text-red-600';
+            }
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alertModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+    </script>
 </body>
 </html>
 

@@ -184,6 +184,29 @@ class DashboardController extends Controller
     }
 
     /**
+     * Soft delete a consultation
+     */
+    public function deleteConsultation($id)
+    {
+        try {
+            $consultation = Consultation::findOrFail($id);
+            
+            // Soft delete the consultation
+            $consultation->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Consultation deleted successfully! The record has been archived and can be restored if needed.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete consultation: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update consultation status
      */
     public function updateStatus(Request $request, $id)
@@ -576,28 +599,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Delete a doctor
+     * Soft delete a doctor
      */
     public function deleteDoctor($id)
     {
         try {
             $doctor = Doctor::findOrFail($id);
             
-            // Check if doctor has any consultations
-            $consultationsCount = Consultation::where('doctor_id', $id)->count();
-            
-            if ($consultationsCount > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete doctor with existing consultations. Please reassign or remove consultations first.'
-                ], 400);
-            }
-
+            // Soft delete the doctor (consultations will remain with doctor_id)
             $doctor->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Doctor deleted successfully!'
+                'message' => 'Doctor deleted successfully! The record has been archived and can be restored if needed.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -780,6 +794,37 @@ class DashboardController extends Controller
         }
     }
 
+    /**
+     * Soft delete an admin user
+     */
+    public function deleteAdminUser($id)
+    {
+        try {
+            $admin = AdminUser::findOrFail($id);
+            
+            // Prevent deleting yourself
+            if ($admin->id === auth()->guard('admin')->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account'
+                ], 400);
+            }
+            
+            // Soft delete the admin user
+            $admin->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Admin user deleted successfully! The record has been archived and can be restored if needed.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete admin user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ==================== CANVASSERS MANAGEMENT ====================
 
     /**
@@ -895,17 +940,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Delete a canvasser
+     * Soft delete a canvasser
      */
     public function deleteCanvasser($id)
     {
         try {
             $canvasser = Canvasser::findOrFail($id);
+            
+            // Soft delete the canvasser (patients and consultations will remain with canvasser_id)
             $canvasser->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Canvasser deleted successfully!'
+                'message' => 'Canvasser deleted successfully! The record has been archived and can be restored if needed.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1030,17 +1077,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Delete a nurse
+     * Soft delete a nurse
      */
     public function deleteNurse($id)
     {
         try {
             $nurse = Nurse::findOrFail($id);
+            
+            // Soft delete the nurse (consultations and vital signs will remain with nurse_id)
             $nurse->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Nurse deleted successfully!'
+                'message' => 'Nurse deleted successfully! The record has been archived and can be restored if needed.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1449,5 +1498,51 @@ class DashboardController extends Controller
         ];
         
         return view('admin.patient-verification', compact('unverifiedPatients', 'stats'));
+    }
+
+    /**
+     * Soft delete a patient
+     */
+    public function deletePatient($id)
+    {
+        try {
+            $patient = Patient::findOrFail($id);
+            
+            // Soft delete the patient
+            $patient->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Patient deleted successfully! The record has been archived and can be restored if needed.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete patient: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete a vital sign record
+     */
+    public function deleteVitalSign($id)
+    {
+        try {
+            $vitalSign = VitalSign::findOrFail($id);
+            
+            // Soft delete the vital sign
+            $vitalSign->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vital sign record deleted successfully! The record has been archived and can be restored if needed.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete vital sign: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

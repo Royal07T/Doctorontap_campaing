@@ -311,8 +311,8 @@
                     </h3>
                     <p class="text-sm text-gray-600 mb-4">If you have any questions about your treatment plan, please contact us.</p>
                     <div class="space-y-2 text-sm">
-                        <p><span class="font-medium">Email:</span> support@doctorontap.com.ng</p>
-                        <p><span class="font-medium">Phone:</span> +234 (0) 123 456 7890</p>
+                        <p><span class="font-medium">Email:</span> inquiries@doctorontap.com.ng</p>
+                        <p><span class="font-medium">Phone:</span> 08177777122</p>
                     </div>
                 </div>
             </div>

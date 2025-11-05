@@ -226,6 +226,10 @@
                                    class="block w-full px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center font-semibold">
                                     View Details
                                 </a>
+                                <button onclick="deleteConsultation({{ $consultation->id }})" 
+                                        class="w-full px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold">
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                         @empty
@@ -357,6 +361,36 @@
                 confirmCallback();
             }
             closeConfirmModal();
+        }
+
+        // Delete Consultation
+        async function deleteConsultation(id) {
+            showConfirmModal(
+                'Are you sure you want to delete this consultation? The record will be archived and can be restored if needed.',
+                async () => {
+                    try {
+                        const response = await fetch(`/admin/consultations/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            showAlertModal(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            showAlertModal(data.message || 'An error occurred', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showAlertModal('A network error occurred', 'error');
+                    }
+                }
+            );
         }
 
         function showAlertModal(message, type = 'error') {

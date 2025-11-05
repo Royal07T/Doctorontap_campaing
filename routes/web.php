@@ -87,8 +87,11 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
     Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
+    Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
+    Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
     Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
+    Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
     Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
     Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
     Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
@@ -112,6 +115,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
     Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
     Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
+    Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
     
     // Canvassers Management
     Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');

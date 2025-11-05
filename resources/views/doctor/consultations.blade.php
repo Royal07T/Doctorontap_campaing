@@ -412,7 +412,9 @@
         let confirmCallback = null;
 
         function showConfirmModal(message, onConfirm) {
-            document.getElementById('confirmMessage').textContent = message;
+            const messageElement = document.getElementById('confirmMessage');
+            // Use textContent with whitespace-pre-line CSS class for proper formatting
+            messageElement.textContent = message;
             document.getElementById('confirmModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             confirmCallback = onConfirm;
@@ -478,13 +480,20 @@
         function submitTreatmentPlan(event) {
             event.preventDefault();
             
-            // Show confirmation dialog
-            const confirmed = confirm('⚠️ Confirm Treatment Plan Creation\n\nAre you sure you want to create this treatment plan?\n\nThis will:\n- Mark the consultation as completed\n- Send email notification to patient\n- Make the plan available after payment\n\nClick OK to proceed or Cancel to review.');
+            // Store the form event for use in the callback
+            const formEvent = event;
             
-            if (!confirmed) {
-                return false;
-            }
-            
+            // Show confirmation modal instead of browser alert
+            showConfirmModal(
+                '⚠️ Confirm Treatment Plan Creation\n\nAre you sure you want to create this treatment plan?\n\nThis will:\n• Mark the consultation as completed\n• Send email notification to patient\n• Make the plan available after payment\n\nClick Confirm to proceed or Cancel to review.',
+                function() {
+                    // This callback runs when user confirms
+                    processTreatmentPlanSubmission(formEvent);
+                }
+            );
+        }
+        
+        function processTreatmentPlanSubmission(event) {
             const formData = new FormData(event.target);
             const data = {};
             
@@ -820,8 +829,8 @@
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                 </svg>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Confirm Action</h3>
-            <p id="confirmMessage" class="text-gray-600 text-center mb-6"></p>
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-3">Confirm Action</h3>
+            <p id="confirmMessage" class="text-gray-700 text-left mb-6 whitespace-pre-line leading-relaxed"></p>
             <div class="flex gap-3">
                 <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors">
                     Cancel

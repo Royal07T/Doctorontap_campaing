@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Patient extends Authenticatable
 {
-    use Notifiable, MustVerifyEmail;
+    use Notifiable, MustVerifyEmail, SoftDeletes;
 
     protected $fillable = [
         'name',
