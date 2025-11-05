@@ -7,7 +7,6 @@
     <title>Patient Records - Admin</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);

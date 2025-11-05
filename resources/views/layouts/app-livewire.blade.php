@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name') }}</title>
+    
+    <!-- Resource Hints for Performance -->
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    <link rel="preconnect" href="{{ config('app.url') }}">
+    
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])

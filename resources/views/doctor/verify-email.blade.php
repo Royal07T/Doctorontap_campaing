@@ -7,7 +7,6 @@
     <title>Verify Email - Doctor</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         .teal-gradient {
             background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);

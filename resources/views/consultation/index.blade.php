@@ -14,11 +14,6 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
-    <!-- Alpine.js Collapse Plugin -->
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <!-- Alpine.js Core -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
     <style>
         html {
             scroll-behavior: smooth;
@@ -469,32 +464,18 @@
                 </div>
             </div>
 
-            <!-- Still Have Questions CTA - Mobile First -->
+            <!-- CTA Button -->
             <div class="mt-8 sm:mt-10 md:mt-12 text-center">
-                <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-xl">
-                    <h3 class="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">
-                        Still Have Questions?
-                    </h3>
-                    <p class="text-sm sm:text-base text-purple-100 mb-5 sm:mb-6 max-w-xl mx-auto px-2">
-                        Our support team is ready to help you with any concerns or inquiries
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                        <a href="tel:08177777122" 
-                           class="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 bg-white text-purple-700 text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                            </svg>
-                            Call Us Now
-                        </a>
-                        <a href="mailto:{{ config('mail.admin_email') }}" 
-                           class="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-purple-800 hover:shadow-lg hover:scale-105 transition-all">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            Email Us
-                        </a>
-                    </div>
-                </div>
+                <button @click="window.dispatchEvent(new CustomEvent('open-consultation-modal'))"
+                        class="group inline-flex items-center justify-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-base sm:text-lg font-bold rounded-xl hover:from-purple-700 hover:to-blue-700 hover:shadow-2xl hover:scale-105 transition-all duration-300">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                    </svg>
+                    <span>Book Consultation Now</span>
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </button>
             </div>
         </div>
     </section>
@@ -1525,7 +1506,7 @@
                                         </div>
                                         <p class="text-gray-700 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed flex-grow">"Thank you for your help. The Doctor that was assigned to me was very helpful. She asked me to do some test and told me not to worry. Now my mind is at peace. If you're always of hospital or need second thought on your health contact doctorontap. The prices are very very low. I will be going to the hospital once they have one. Thank you once again."</p>
                                         <div class="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
-                                            <img src="{{ asset('img/testimony/Nancy Audu-War.jpg') }}" alt="Nancy Audu-War" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md">
+                                            <img src="{{ asset('img/testimony/Nancy Audu-War.jpg') }}" alt="Nancy Audu-War" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md" loading="lazy">
                                             <div class="text-left">
                                                 <p class="text-gray-900 text-xs sm:text-sm font-semibold">Nancy Audu-War</p>
                                                 <p class="text-gray-500 text-xs">Telemedicine Patient</p>
@@ -1556,7 +1537,7 @@
                                         </div>
                                         <p class="text-gray-700 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed flex-grow">"I Love them 😍😍 I appreciate their doctor they were willing to talk to me i felt as if i was talking to somebody i know ✅✅✅"</p>
                                         <div class="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
-                                            <img src="{{ asset('img/testimony/Otabor Theodora.jpg') }}" alt="Otabor Theodora" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md">
+                                            <img src="{{ asset('img/testimony/Otabor Theodora.jpg') }}" alt="Otabor Theodora" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md" loading="lazy">
                                             <div class="text-left">
                                                 <p class="text-gray-900 text-xs sm:text-sm font-semibold">Otabor Theodora</p>
                                                 <p class="text-gray-500 text-xs">Telemedicine Patient</p>
@@ -1587,7 +1568,7 @@
                                         </div>
                                         <p class="text-gray-700 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed flex-grow">"When DoctorOnTap ads prompted on my instagram, i was curious as to how true it was. I contacted them and i must say, their services is cool and impressive."</p>
                                         <div class="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
-                                            <img src="{{ asset('img/testimony/odunayo muibat.jpeg') }}" alt="Odunayo Muibat" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md">
+                                            <img src="{{ asset('img/testimony/odunayo muibat.jpeg') }}" alt="Odunayo Muibat" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-purple-100 shadow-md" loading="lazy">
                                             <div class="text-left">
                                                 <p class="text-gray-900 text-xs sm:text-sm font-semibold">Odunayo Muibat</p>
                                                 <p class="text-gray-500 text-xs">Telemedicine Patient</p>
@@ -1845,6 +1826,160 @@
             </div>
         </div>
         </footer>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/2348177777122?text=Hi%2C%20I%20need%20help%20with%20DoctorOnTap%20consultation.%20Can%20you%20assist%20me%3F" 
+       target="_blank"
+       rel="noopener noreferrer"
+       class="whatsapp-float"
+       aria-label="Chat on WhatsApp">
+        <svg class="whatsapp-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 0C7.164 0 0 7.164 0 16c0 2.832.748 5.484 2.052 7.78L.696 30.248l6.708-1.76A15.907 15.907 0 0016 32c8.836 0 16-7.164 16-16S24.836 0 16 0z" fill="#25D366"/>
+            <path d="M25.36 22.78c-.38 1.068-2.236 2.012-2.896 2.128-.66.116-1.284.332-4.34-.932-3.908-1.616-6.412-5.588-6.608-5.844-.196-.256-1.596-2.124-1.596-4.052s1.008-2.876 1.368-3.268c.36-.392.784-.488 1.048-.488s.528.004.756.012c.244.012.572-.092.892.68.324.78 1.104 2.696 1.2 2.892.096.196.16.424.032.68-.128.256-.192.416-.388.64-.196.224-.412.5-.588.672-.196.196-.4.408-.172.8.228.392 1.016 1.676 2.18 2.716 1.5 1.34 2.76 1.756 3.148 1.952.388.196.616.164.844-.1.228-.264.98-1.144 1.24-1.536.26-.392.52-.328.876-.196.356.132 2.26 1.064 2.648 1.26.388.196.648.292.744.456.096.164.096.948-.284 2.016z" fill="#fff"/>
+        </svg>
+        <span class="whatsapp-tooltip">Chat with us on WhatsApp</span>
+    </a>
+
+    <style>
+        /* Floating WhatsApp Button Styles */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 999;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4), 0 8px 24px rgba(37, 211, 102, 0.3);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideInUp 0.6s ease-out 1s both, pulse 2s infinite 2s;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.1) translateY(-3px);
+            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.5), 0 12px 32px rgba(37, 211, 102, 0.4);
+        }
+
+        .whatsapp-float:active {
+            transform: scale(0.95);
+        }
+
+        .whatsapp-icon {
+            width: 36px;
+            height: 36px;
+            transition: transform 0.3s ease;
+        }
+
+        .whatsapp-float:hover .whatsapp-icon {
+            transform: rotate(15deg);
+        }
+
+        /* Tooltip */
+        .whatsapp-tooltip {
+            position: absolute;
+            right: 70px;
+            background: #fff;
+            color: #333;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .whatsapp-tooltip::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid #fff;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+        }
+
+        .whatsapp-float:hover .whatsapp-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        /* Animations */
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4), 0 8px 24px rgba(37, 211, 102, 0.3), 0 0 0 0 rgba(37, 211, 102, 0.7);
+            }
+            50% {
+                box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4), 0 8px 24px rgba(37, 211, 102, 0.3), 0 0 0 20px rgba(37, 211, 102, 0);
+            }
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 640px) {
+            .whatsapp-float {
+                width: 56px;
+                height: 56px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .whatsapp-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .whatsapp-tooltip {
+                display: none; /* Hide tooltip on mobile for cleaner look */
+            }
+        }
+
+        /* Tablet */
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .whatsapp-float {
+                width: 58px;
+                height: 58px;
+            }
+        }
+
+        /* Ensure button doesn't cover important content */
+        @media (max-height: 600px) {
+            .whatsapp-float {
+                bottom: 15px;
+                right: 15px;
+                width: 50px;
+                height: 50px;
+            }
+
+            .whatsapp-icon {
+                width: 28px;
+                height: 28px;
+            }
+        }
+    </style>
 
     <script>
         // Hero Background Image Rotator

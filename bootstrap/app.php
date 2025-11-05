@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add security monitoring to all requests
         $middleware->append(\App\Http\Middleware\SecurityMonitoring::class);
         
+        // Add performance headers for optimization
+        $middleware->append(\App\Http\Middleware\PerformanceHeaders::class);
+        
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuthenticate::class,
             'canvasser.auth' => \App\Http\Middleware\CanvasserAuthenticate::class,

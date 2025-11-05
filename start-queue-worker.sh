@@ -47,12 +47,13 @@ echo "================================================"
 
 # Run queue worker with retries and timeout
 # Reduced max-jobs to prevent memory issues
+# Increased timeout to handle slow SMTP connections
 php artisan queue:work database \
     --sleep=3 \
     --tries=3 \
-    --timeout=90 \
-    --max-jobs=100 \
-    --max-time=3600 \
-    --memory=256 \
+    --timeout=120 \
+    --max-jobs=50 \
+    --max-time=1800 \
+    --memory=512 \
     --verbose
 

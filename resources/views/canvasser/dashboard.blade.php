@@ -7,7 +7,6 @@
     <title>Canvasser Dashboard - DoctorOnTap</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
@@ -239,16 +238,20 @@
                     <form id="registerPatientForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="first_name" class="block text-sm font-semibold text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="first_name" name="first_name" required
+                            <input type="text" id="first_name" name="first_name" required minlength="2" maxlength="255"
+                                   pattern="[a-zA-Z\s\-']+"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                   placeholder="Enter patient's first name">
+                                   placeholder="Enter patient's first name"
+                                   title="First name must be at least 2 characters and contain only letters, spaces, hyphens, and apostrophes">
                         </div>
 
                         <div>
                             <label for="last_name" class="block text-sm font-semibold text-gray-700 mb-2">Last Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="last_name" name="last_name" required
+                            <input type="text" id="last_name" name="last_name" required minlength="2" maxlength="255"
+                                   pattern="[a-zA-Z\s\-']+"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                   placeholder="Enter patient's last name">
+                                   placeholder="Enter patient's last name"
+                                   title="Last name must be at least 2 characters and contain only letters, spaces, hyphens, and apostrophes">
                         </div>
 
                         <div>
@@ -259,10 +262,13 @@
                         </div>
 
                         <div>
-                            <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">Phone Number <span class="text-red-500">*</span></label>
+                            <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">Phone Number (WhatsApp) <span class="text-red-500">*</span></label>
                             <input type="tel" id="phone" name="phone" required
+                                   pattern="^(\+234|0)[0-9]{10}$"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                   placeholder="080XXXXXXXX">
+                                   placeholder="+234 XXX XXX XXXX or 080XXXXXXXX"
+                                   title="Enter a valid Nigerian phone number (e.g., +2348012345678 or 08012345678)">
+                            <p class="text-gray-500 text-xs mt-1">Format: +2348012345678 or 08012345678</p>
                         </div>
 
                         <div>
@@ -378,7 +384,15 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                // Check if the response is successful or has validation errors
+                if (!response.ok && response.status === 422) {
+                    return response.json().then(errData => {
+                        throw { validation: true, errors: errData.errors };
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     showAlertModal(data.message, 'success');
@@ -392,7 +406,18 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                showAlertModal('An error occurred. Please try again.', 'error');
+                
+                // Handle validation errors
+                if (error.validation && error.errors) {
+                    let errorMessage = 'Please correct the following errors:\n\n';
+                    for (const [field, messages] of Object.entries(error.errors)) {
+                        errorMessage += '• ' + messages.join('\n• ') + '\n';
+                    }
+                    showAlertModal(errorMessage, 'error');
+                } else {
+                    showAlertModal('An error occurred. Please try again.', 'error');
+                }
+                
                 submitBtn.disabled = false;
                 btnText.classList.remove('hidden');
                 btnLoading.classList.add('hidden');

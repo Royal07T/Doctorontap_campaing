@@ -54,14 +54,31 @@ class DashboardController extends Controller
     {
         try {
             $validated = $request->validate([
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|email|unique:patients,email',
-                'phone' => 'required|string|max:20',
+                'first_name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[a-zA-Z\s\-\']+$/'],
+                'last_name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[a-zA-Z\s\-\']+$/'],
+                'email' => 'required|email:rfc|max:255|unique:patients,email',
+                'phone' => ['required', 'string', 'regex:/^(\+234|0)[0-9]{10}$/'],
                 'gender' => 'required|in:male,female,other',
                 'age' => 'required|integer|min:1|max:120',
             ], [
+                // Custom error messages
+                'first_name.required' => 'First name is required.',
+                'first_name.min' => 'First name must be at least 2 characters.',
+                'first_name.regex' => 'First name can only contain letters, spaces, hyphens, and apostrophes.',
+                'last_name.required' => 'Last name is required.',
+                'last_name.min' => 'Last name must be at least 2 characters.',
+                'last_name.regex' => 'Last name can only contain letters, spaces, hyphens, and apostrophes.',
+                'email.required' => 'Email address is required.',
+                'email.email' => 'Please enter a valid email address.',
                 'email.unique' => 'This email address is already registered. Please use a different email or contact support if you believe this is an error.',
+                'phone.required' => 'Phone number is required.',
+                'phone.regex' => 'Please enter a valid Nigerian phone number (e.g., +2348012345678 or 08012345678).',
+                'gender.required' => 'Please select gender.',
+                'gender.in' => 'Gender must be either male or female.',
+                'age.required' => 'Age is required.',
+                'age.integer' => 'Age must be a valid number.',
+                'age.min' => 'Age must be at least 1.',
+                'age.max' => 'Age cannot exceed 120.',
             ]);
 
             $canvasser = Auth::guard('canvasser')->user();
