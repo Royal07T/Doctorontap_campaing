@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'session.management' => \App\Http\Middleware\SessionManagement::class,
             'session.timeout' => \App\Http\Middleware\SessionTimeout::class,
             'security.monitoring' => \App\Http\Middleware\SecurityMonitoring::class,
+            'verify.korapay.webhook' => \App\Http\Middleware\VerifyKorapayWebhook::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

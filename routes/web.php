@@ -49,7 +49,12 @@ Route::prefix('payment')->group(function () {
     Route::post('/initialize', [PaymentController::class, 'initialize'])->name('payment.initialize');
     Route::get('/callback', [PaymentController::class, 'callback'])->name('payment.callback');
     Route::get('/verify', [PaymentController::class, 'verify'])->name('payment.verify');
-    Route::post('/webhook', [PaymentController::class, 'webhook'])->name('payment.webhook');
+    
+    // Webhook endpoint with signature verification middleware
+    Route::post('/webhook', [PaymentController::class, 'webhook'])
+        ->middleware('verify.korapay.webhook')
+        ->name('payment.webhook');
+    
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 

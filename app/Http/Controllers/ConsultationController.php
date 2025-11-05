@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Mail\ConsultationConfirmation;
 use App\Mail\ConsultationAdminAlert;
@@ -383,13 +384,28 @@ class ConsultationController extends Controller
 
     /**
      * Access treatment plan (after payment verification)
+     * 
+     * SECURITY: This method enforces strict payment verification before granting access
      */
     public function accessTreatmentPlan(Request $request, $reference)
     {
-        $consultation = Consultation::with('doctor')->where('reference', $reference)->firstOrFail();
+        $consultation = Consultation::with(['doctor', 'payment'])->where('reference', $reference)->firstOrFail();
+        
+        Log::info('Treatment plan access attempt', [
+            'consultation_id' => $consultation->id,
+            'consultation_ref' => $reference,
+            'payment_status' => $consultation->payment_status,
+            'treatment_plan_unlocked' => $consultation->treatment_plan_unlocked,
+            'ip_address' => $request->ip()
+        ]);
         
         // Check if treatment plan exists
         if (!$consultation->hasTreatmentPlan()) {
+            Log::warning('Treatment plan access denied: plan not created', [
+                'consultation_id' => $consultation->id,
+                'consultation_ref' => $reference
+            ]);
+            
             return view('consultation.treatment-plan-access', [
                 'consultation' => $consultation,
                 'error' => 'No treatment plan has been created for this consultation yet.',
@@ -397,8 +413,15 @@ class ConsultationController extends Controller
             ]);
         }
         
-        // STRICT PAYMENT GATING: Double-check payment status
+        // STRICT PAYMENT GATING: Verify payment status from database
         if ($consultation->requiresPaymentForTreatmentPlan()) {
+            Log::warning('Treatment plan access denied: payment required', [
+                'consultation_id' => $consultation->id,
+                'consultation_ref' => $reference,
+                'payment_status' => $consultation->payment_status,
+                'payment_required' => $consultation->payment_required_for_treatment
+            ]);
+            
             return view('consultation.treatment-plan-access', [
                 'consultation' => $consultation,
                 'error' => 'Payment is required to access your treatment plan. Please complete payment first.',
@@ -406,6 +429,49 @@ class ConsultationController extends Controller
                 'paymentRequired' => true
             ]);
         }
+        
+        // CRITICAL SECURITY CHECK: Verify treatment plan is unlocked
+        // This ensures payment was confirmed via webhook
+        if (!$consultation->treatment_plan_unlocked) {
+            Log::warning('SECURITY: Treatment plan access denied - not unlocked via webhook', [
+                'consultation_id' => $consultation->id,
+                'consultation_ref' => $reference,
+                'payment_status' => $consultation->payment_status,
+                'unlocked' => $consultation->treatment_plan_unlocked
+            ]);
+            
+            return view('consultation.treatment-plan-access', [
+                'consultation' => $consultation,
+                'error' => 'Your payment is being processed. Please wait a moment and try again.',
+                'showPaymentButton' => false
+            ]);
+        }
+        
+        // FINAL CHECK: Ensure payment is confirmed (both status and unlock)
+        if (!$consultation->isTreatmentPlanAccessible()) {
+            Log::critical('SECURITY ALERT: Treatment plan access attempt with invalid state', [
+                'consultation_id' => $consultation->id,
+                'consultation_ref' => $reference,
+                'payment_status' => $consultation->payment_status,
+                'treatment_plan_unlocked' => $consultation->treatment_plan_unlocked,
+                'is_paid' => $consultation->isPaid(),
+                'ip_address' => $request->ip()
+            ]);
+            
+            return view('consultation.treatment-plan-access', [
+                'consultation' => $consultation,
+                'error' => 'Unable to access treatment plan. Please contact support if you have completed payment.',
+                'showPaymentButton' => false
+            ]);
+        }
+        
+        // All checks passed - grant access
+        Log::info('✅ Treatment plan accessed successfully', [
+            'consultation_id' => $consultation->id,
+            'consultation_ref' => $reference,
+            'payment_id' => $consultation->payment_id,
+            'accessed_at' => now()->toDateTimeString()
+        ]);
         
         // Mark as accessed
         $consultation->markTreatmentPlanAccessed();

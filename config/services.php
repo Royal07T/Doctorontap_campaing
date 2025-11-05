@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'korapay' => [
+        'secret_key' => env('KORAPAY_SECRET_KEY'),
+        'public_key' => env('KORAPAY_PUBLIC_KEY'),
+        'encryption_key' => env('KORAPAY_ENCRYPTION_KEY'),
+        'api_url' => env('KORAPAY_API_URL', 'https://api.korapay.com/merchant/api/v1'),
+        'enforce_webhook_signature' => env('KORAPAY_ENFORCE_WEBHOOK_SIGNATURE', true),
+    ],
+
 ];

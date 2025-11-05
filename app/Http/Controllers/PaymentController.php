@@ -119,72 +119,74 @@ class PaymentController extends Controller
 
     /**
      * Handle payment callback (redirect URL)
+     * 
+     * SECURITY FIX: Now properly checks payment status before showing success
      */
     public function callback(Request $request)
     {
         $reference = $request->query('reference');
 
         if (!$reference) {
+            Log::warning('Payment callback without reference', [
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip()
+            ]);
+            
             return redirect()->route('consultation.index')
                 ->with('error', 'Payment reference not found');
         }
 
-        // Verify the transaction
+        Log::info('Payment callback received', [
+            'reference' => $reference,
+            'url' => $request->fullUrl()
+        ]);
+
+        // Verify the transaction with Korapay
         $verificationResult = $this->verifyTransaction($reference);
 
-        if ($verificationResult['success']) {
+        Log::info('Payment callback verification result', [
+            'reference' => $reference,
+            'success' => $verificationResult['success'],
+            'status' => $verificationResult['status'] ?? 'unknown'
+        ]);
+
+        // CRITICAL FIX: Only show success if payment actually succeeded
+        if ($verificationResult['success'] && $verificationResult['status'] === 'success') {
             $payment = Payment::where('reference', $reference)->first();
             
-            // Handle treatment plan unlocking for callback payments
-            if ($payment && $payment->metadata && isset($payment->metadata['consultation_id'])) {
-                $consultation = Consultation::find($payment->metadata['consultation_id']);
-                if ($consultation) {
-                    // Only update if not already paid to avoid duplicate processing
-                    if ($consultation->payment_status !== 'paid') {
-                        $consultation->update([
-                            'payment_status' => 'paid',
-                            'payment_id' => $payment->id,
-                        ]);
-                    }
-                    
-                    // Always check if treatment plan needs to be unlocked (regardless of payment status)
-                    if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
-                        $consultation->unlockTreatmentPlan();
-                        
-                        // Send treatment plan notification email
-                        try {
-                            \Illuminate\Support\Facades\Mail::to($consultation->email)
-                                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
-                            \Illuminate\Support\Facades\Log::info('Treatment plan email sent successfully via callback', [
-                                'consultation_id' => $consultation->id,
-                                'email' => $consultation->email,
-                                'payment_reference' => $reference
-                            ]);
-                        } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::error('Failed to send treatment plan email via callback', [
-                                'consultation_id' => $consultation->id,
-                                'email' => $consultation->email,
-                                'payment_reference' => $reference,
-                                'error' => $e->getMessage()
-                            ]);
-                        }
-                    } else {
-                        \Illuminate\Support\Facades\Log::info('Payment already processed for consultation', [
-                            'consultation_id' => $consultation->id,
-                            'payment_reference' => $reference
-                        ]);
-                    }
-                }
-            }
+            Log::info('Payment callback showing success page', [
+                'reference' => $reference,
+                'payment_id' => $payment ? $payment->id : null
+            ]);
             
             return view('payment.success', [
                 'payment' => $payment,
                 'message' => 'Payment successful! Your treatment plan has been sent to your email.'
             ]);
         } else {
+            // Payment failed or pending
+            $status = $verificationResult['status'] ?? 'unknown';
+            $message = $verificationResult['message'] ?? 'Payment was not completed';
+            
+            Log::warning('Payment callback showing failure page', [
+                'reference' => $reference,
+                'status' => $status,
+                'message' => $message
+            ]);
+            
+            // Customize message based on status
+            if ($status === 'pending') {
+                $message = 'Your payment is still pending. Please complete the payment to access your treatment plan.';
+            } elseif ($status === 'failed') {
+                $message = 'Your payment failed. Please try again or contact support.';
+            } elseif ($status === 'cancelled') {
+                $message = 'Payment was cancelled. You can try again when ready.';
+            }
+            
             return view('payment.failed', [
                 'reference' => $reference,
-                'message' => $verificationResult['message'] ?? 'Payment verification failed'
+                'message' => $message,
+                'status' => $status
             ]);
         }
     }
@@ -252,42 +254,75 @@ class PaymentController extends Controller
 
     /**
      * Handle webhook notification from Korapay
+     * 
+     * SECURITY: This endpoint verifies payment and unlocks treatment plans
+     * Only processes after webhook signature verification
      */
     public function webhook(Request $request)
     {
         // Log webhook payload for debugging
-        Log::info('Korapay Webhook Received', ['payload' => $request->all()]);
-
-        // Verify webhook signature for security
-        $signature = $request->header('x-korapay-signature');
-        $secretKey = env('KORAPAY_SECRET_KEY');
-        
-        Log::info('Korapay Webhook', [
-            'has_signature' => !empty($signature),
-            'has_secret' => !empty($secretKey),
-            'data' => $request->all()
+        Log::info('Korapay Webhook Received', [
+            'event' => $request->input('event'),
+            'timestamp' => now()->toDateTimeString(),
+            'ip' => $request->ip(),
+            'full_payload' => $request->all()
         ]);
-        
-        if ($signature && $secretKey) {
-            $expectedSignature = hash_hmac('sha256', json_encode($request->input('data')), $secretKey);
+
+        try {
+            // Verify webhook signature for security
+            $signature = $request->header('x-korapay-signature');
+            $secretKey = env('KORAPAY_SECRET_KEY');
             
-            if (!hash_equals($expectedSignature, $signature)) {
-                Log::warning('Invalid webhook signature', [
-                    'expected' => $expectedSignature,
-                    'received' => $signature
+            if ($signature && $secretKey) {
+                $expectedSignature = hash_hmac('sha256', json_encode($request->input('data')), $secretKey);
+                
+                if (!hash_equals($expectedSignature, $signature)) {
+                    Log::warning('SECURITY ALERT: Invalid webhook signature', [
+                        'expected' => $expectedSignature,
+                        'received' => $signature,
+                        'ip' => $request->ip(),
+                        'timestamp' => now()->toDateTimeString()
+                    ]);
+                    return response()->json(['status' => 'invalid_signature'], 401);
+                }
+                
+                Log::info('Webhook signature verified successfully');
+            } else {
+                Log::warning('Webhook received without signature verification', [
+                    'has_signature' => !empty($signature),
+                    'has_secret' => !empty($secretKey)
                 ]);
-                return response()->json(['status' => 'invalid_signature'], 400);
             }
-        }
 
-        $event = $request->input('event');
-        $data = $request->input('data');
+            $event = $request->input('event');
+            $data = $request->input('data');
 
-        if ($event === 'charge.success' && $data) {
-            $reference = $data['reference'];
-            $payment = Payment::where('reference', $reference)->first();
+            // Validate webhook data structure
+            if (!$data || !is_array($data)) {
+                Log::error('Invalid webhook data structure', ['data' => $data]);
+                return response()->json(['status' => 'invalid_data'], 400);
+            }
 
-            if ($payment) {
+            // Extract reference from webhook data
+            $reference = $data['reference'] ?? $data['merchant_reference'] ?? null;
+            
+            if (!$reference) {
+                Log::error('Webhook missing payment reference', ['data' => $data]);
+                return response()->json(['status' => 'missing_reference'], 400);
+            }
+
+            // Process successful charge event
+            if ($event === 'charge.success') {
+                Log::info('Processing successful charge', ['reference' => $reference]);
+                
+                $payment = Payment::where('reference', $reference)->first();
+
+                if (!$payment) {
+                    Log::warning('Payment record not found for webhook', ['reference' => $reference]);
+                    return response()->json(['status' => 'payment_not_found'], 404);
+                }
+
+                // Update payment record
                 $payment->update([
                     'status' => 'success',
                     'payment_method' => $data['payment_method'] ?? null,
@@ -296,54 +331,114 @@ class PaymentController extends Controller
                     'korapay_response' => json_encode($data),
                 ]);
 
-                // Update consultation payment status and unlock treatment plan
+                Log::info('Payment record updated', [
+                    'payment_id' => $payment->id,
+                    'reference' => $reference,
+                    'amount' => $payment->amount
+                ]);
+
+                // ===== CRITICAL: UNLOCK TREATMENT PLAN AFTER PAYMENT CONFIRMATION =====
                 if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
                     $consultation = Consultation::find($payment->metadata['consultation_id']);
-                    if ($consultation) {
-                        // Only update if not already paid to avoid duplicate processing
-                        if ($consultation->payment_status !== 'paid') {
-                            $consultation->update([
-                                'payment_status' => 'paid',
-                                'payment_id' => $payment->id,
-                            ]);
-                        }
+                    
+                    if (!$consultation) {
+                        Log::error('Consultation not found for payment', [
+                            'consultation_id' => $payment->metadata['consultation_id'],
+                            'payment_reference' => $reference
+                        ]);
+                        return response()->json(['status' => 'consultation_not_found'], 404);
+                    }
+
+                    Log::info('Processing consultation payment', [
+                        'consultation_id' => $consultation->id,
+                        'consultation_ref' => $consultation->reference,
+                        'current_payment_status' => $consultation->payment_status,
+                        'treatment_plan_exists' => $consultation->hasTreatmentPlan(),
+                        'treatment_plan_unlocked' => $consultation->treatment_plan_unlocked
+                    ]);
+                    
+                    // Update consultation payment status
+                    if ($consultation->payment_status !== 'paid') {
+                        $consultation->update([
+                            'payment_status' => 'paid',
+                            'payment_id' => $payment->id,
+                        ]);
                         
-                        // Always check if treatment plan needs to be unlocked (regardless of payment status)
-                        if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
-                            $consultation->unlockTreatmentPlan();
+                        Log::info('Consultation payment status updated to PAID', [
+                            'consultation_id' => $consultation->id,
+                            'payment_id' => $payment->id
+                        ]);
+                    }
+                    
+                    // UNLOCK TREATMENT PLAN - Only after payment confirmed via webhook
+                    if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
+                        $consultation->unlockTreatmentPlan();
+                        
+                        Log::info('✅ TREATMENT PLAN UNLOCKED SUCCESSFULLY', [
+                            'consultation_id' => $consultation->id,
+                            'consultation_ref' => $consultation->reference,
+                            'payment_reference' => $reference,
+                            'unlocked_at' => now()->toDateTimeString()
+                        ]);
+                        
+                        // Send treatment plan notification email AFTER payment confirmation
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($consultation->email)
+                                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
                             
-                            // Send treatment plan notification email AFTER payment
-                            try {
-                                \Illuminate\Support\Facades\Mail::to($consultation->email)
-                                    ->send(new \App\Mail\TreatmentPlanNotification($consultation));
-                                \Illuminate\Support\Facades\Log::info('Treatment plan email sent successfully via webhook', [
-                                    'consultation_id' => $consultation->id,
-                                    'email' => $consultation->email,
-                                    'payment_reference' => $reference
-                                ]);
-                            } catch (\Exception $e) {
-                                \Illuminate\Support\Facades\Log::error('Failed to send treatment plan email via webhook', [
-                                    'consultation_id' => $consultation->id,
-                                    'email' => $consultation->email,
-                                    'payment_reference' => $reference,
-                                    'error' => $e->getMessage()
-                                ]);
-                            }
-                        } else {
-                            \Illuminate\Support\Facades\Log::info('Payment already processed for consultation via webhook', [
+                            Log::info('Treatment plan notification email sent', [
                                 'consultation_id' => $consultation->id,
+                                'email' => $consultation->email,
                                 'payment_reference' => $reference
                             ]);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to send treatment plan email', [
+                                'consultation_id' => $consultation->id,
+                                'email' => $consultation->email,
+                                'payment_reference' => $reference,
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString()
+                            ]);
                         }
+                    } else {
+                        Log::info('Treatment plan already unlocked or not available', [
+                            'consultation_id' => $consultation->id,
+                            'has_treatment_plan' => $consultation->hasTreatmentPlan(),
+                            'already_unlocked' => $consultation->treatment_plan_unlocked,
+                            'payment_reference' => $reference
+                        ]);
                     }
+                } else {
+                    Log::warning('Payment has no consultation metadata', [
+                        'payment_id' => $payment->id,
+                        'reference' => $reference,
+                        'metadata' => $payment->metadata
+                    ]);
                 }
 
-                Log::info('Payment updated successfully', ['reference' => $reference]);
+                Log::info('Webhook processing completed successfully', ['reference' => $reference]);
+            } else {
+                Log::info('Webhook event ignored (not charge.success)', [
+                    'event' => $event,
+                    'reference' => $reference
+                ]);
             }
-        }
 
-        // Always return 200 to acknowledge receipt
-        return response()->json(['status' => 'success']);
+            // Always return 200 to acknowledge receipt
+            return response()->json(['status' => 'success'], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Webhook processing error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'webhook_data' => $request->all()
+            ]);
+            
+            // Still return 200 to prevent webhook retries on our errors
+            return response()->json(['status' => 'error', 'message' => 'Internal error'], 200);
+        }
     }
 
     /**
@@ -494,27 +589,43 @@ class PaymentController extends Controller
             if ($response->successful() && $responseData['status'] === true) {
                 $data = $responseData['data'];
                 
+                // CRITICAL FIX: Check actual payment status from Korapay
+                $paymentStatus = $data['status'] ?? 'pending';
+                $isPaymentSuccessful = ($paymentStatus === 'success');
+                
+                Log::info('Payment verification result', [
+                    'reference' => $reference,
+                    'payment_status' => $paymentStatus,
+                    'is_successful' => $isPaymentSuccessful,
+                    'amount' => $data['amount'] ?? null
+                ]);
+                
                 // Update payment record
                 $payment = Payment::where('reference', $reference)->first();
                 
                 if ($payment) {
                     $payment->update([
-                        'status' => $data['status'],
+                        'status' => $paymentStatus,
                         'payment_method' => $data['payment_method'] ?? null,
                         'payment_reference' => $data['payment_reference'] ?? $reference,
                         'fee' => $data['fee'] ?? null,
                         'korapay_response' => json_encode($data),
                     ]);
 
-                    // Update consultation payment status if metadata has consultation_id
-                    if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
+                    // ONLY process if payment status is 'success'
+                    if ($isPaymentSuccessful && $payment->metadata && isset($payment->metadata['consultation_id'])) {
                         $consultation = Consultation::find($payment->metadata['consultation_id']);
-                        if ($consultation && $data['status'] === 'success') {
+                        if ($consultation) {
                             // Only update if not already paid to avoid duplicate processing
                             if ($consultation->payment_status !== 'paid') {
                                 $consultation->update([
                                     'payment_status' => 'paid',
                                     'payment_id' => $payment->id,
+                                ]);
+                                
+                                Log::info('Consultation marked as paid via verification', [
+                                    'consultation_id' => $consultation->id,
+                                    'payment_reference' => $reference
                                 ]);
                             }
                             
@@ -546,14 +657,22 @@ class PaymentController extends Controller
                                 ]);
                             }
                         }
+                    } else if (!$isPaymentSuccessful) {
+                        Log::warning('Payment verification called but payment not successful', [
+                            'reference' => $reference,
+                            'payment_status' => $paymentStatus,
+                            'consultation_id' => $payment->metadata['consultation_id'] ?? null
+                        ]);
                     }
                 }
 
+                // CRITICAL: Only return success if payment status is 'success'
                 return [
-                    'success' => true,
-                    'status' => $data['status'],
-                    'amount' => $data['amount'],
+                    'success' => $isPaymentSuccessful,
+                    'status' => $paymentStatus,
+                    'amount' => $data['amount'] ?? null,
                     'payment_method' => $data['payment_method'] ?? null,
+                    'message' => $isPaymentSuccessful ? 'Payment verified successfully' : 'Payment not completed. Status: ' . $paymentStatus
                 ];
             } else {
                 return [
