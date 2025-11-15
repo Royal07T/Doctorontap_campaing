@@ -24,9 +24,16 @@ use App\Http\Controllers\Canvasser\ForgotPasswordController as CanvasserForgotPa
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\MedicalDocumentController;
 
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
 Route::post('/submit', [ConsultationController::class, 'store'])->middleware('rate.limit:consultation,10,1');
+
+// HIPAA Secure Medical Document Routes - Requires authentication and authorization
+Route::get('/consultations/{consultation}/documents/{filename}/download', [MedicalDocumentController::class, 'download'])
+    ->name('medical-document.download');
+Route::get('/consultations/{consultation}/documents/{filename}/view', [MedicalDocumentController::class, 'view'])
+    ->name('medical-document.view');
 
 // Test route for consultation status notification (remove in production)
 Route::get('/test-notification/{consultation_id}', function($consultationId) {

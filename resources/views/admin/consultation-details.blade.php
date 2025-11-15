@@ -167,8 +167,7 @@
                                             <p class="text-xs text-gray-500">{{ number_format($document['size'] / 1024, 2) }} KB</p>
                                         </div>
                                     </div>
-                                    <a href="{{ asset('storage/' . $document['path']) }}" 
-                                       target="_blank"
+                                    <a href="{{ route('medical-document.download', ['consultation' => $consultation->id, 'filename' => $document['stored_name']]) }}" 
                                        class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>

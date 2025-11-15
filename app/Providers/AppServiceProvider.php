@@ -27,5 +27,10 @@ class AppServiceProvider extends ServiceProvider
         
         // Register Consultation observer
         Consultation::observe(ConsultationObserver::class);
+        
+        // HIPAA Compliance: Force HTTPS in production
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }

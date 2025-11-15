@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Consultation extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Auditable;
 
     protected $fillable = [
         'reference',
@@ -215,5 +216,85 @@ class Consultation extends Model
                 'treatment_plan_accessed_at' => now(),
             ]);
         }
+    }
+    
+    // ============================================
+    // RBAC Query Scopes for Access Control
+    // ============================================
+    
+    /**
+     * Scope: Filter consultations for a specific doctor
+     */
+    public function scopeForDoctor($query, $doctorId)
+    {
+        return $query->where('doctor_id', $doctorId);
+    }
+    
+    /**
+     * Scope: Filter consultations for a specific nurse
+     */
+    public function scopeForNurse($query, $nurseId)
+    {
+        return $query->where('nurse_id', $nurseId);
+    }
+    
+    /**
+     * Scope: Filter consultations for a specific patient email
+     */
+    public function scopeForPatient($query, $patientEmail)
+    {
+        return $query->where('email', $patientEmail);
+    }
+    
+    /**
+     * Scope: Filter consultations for a specific canvasser
+     */
+    public function scopeForCanvasser($query, $canvasserId)
+    {
+        return $query->where('canvasser_id', $canvasserId);
+    }
+    
+    /**
+     * Scope: Filter consultations based on current authenticated user
+     */
+    public function scopeForCurrentUser($query)
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            // Try multiple guards
+            if (auth()->guard('admin')->check()) {
+                return $query; // Admins see all
+            } elseif (auth()->guard('doctor')->check()) {
+                $user = auth()->guard('doctor')->user();
+                return $query->where('doctor_id', $user->id);
+            } elseif (auth()->guard('nurse')->check()) {
+                $user = auth()->guard('nurse')->user();
+                return $query->where('nurse_id', $user->id);
+            } elseif (auth()->guard('patient')->check()) {
+                $user = auth()->guard('patient')->user();
+                return $query->where('email', $user->email);
+            } elseif (auth()->guard('canvasser')->check()) {
+                $user = auth()->guard('canvasser')->user();
+                return $query->where('canvasser_id', $user->id);
+            }
+            
+            return $query->whereRaw('1 = 0'); // Return no results
+        }
+        
+        // Check user type and filter accordingly
+        if ($user instanceof \App\Models\Admin) {
+            return $query; // Admins see all
+        } elseif ($user instanceof \App\Models\Doctor) {
+            return $query->where('doctor_id', $user->id);
+        } elseif ($user instanceof \App\Models\Nurse) {
+            return $query->where('nurse_id', $user->id);
+        } elseif ($user instanceof \App\Models\Patient) {
+            return $query->where('email', $user->email);
+        } elseif ($user instanceof \App\Models\Canvasser) {
+            return $query->where('canvasser_id', $user->id);
+        }
+        
+        return $query->whereRaw('1 = 0'); // Return no results if user type unknown
     }
 }

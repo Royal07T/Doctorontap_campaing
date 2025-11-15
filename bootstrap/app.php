@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // HIPAA Compliance: Enforce HTTPS in production
+        $middleware->append(\App\Http\Middleware\EnforceHttps::class);
+        
         // Add security monitoring to all requests
         $middleware->append(\App\Http\Middleware\SecurityMonitoring::class);
         
@@ -32,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'session.management' => \App\Http\Middleware\SessionManagement::class,
             'session.timeout' => \App\Http\Middleware\SessionTimeout::class,
             'security.monitoring' => \App\Http\Middleware\SecurityMonitoring::class,
+            'enforce.https' => \App\Http\Middleware\EnforceHttps::class,
             'verify.korapay.webhook' => \App\Http\Middleware\VerifyKorapayWebhook::class,
         ]);
     })

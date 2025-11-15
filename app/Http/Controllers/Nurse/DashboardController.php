@@ -71,9 +71,27 @@ public function searchPatients(Request $request)
     public function viewPatient($id)
     {
         try {
-            $patient = Patient::with(['vitalSigns' => function($query) {
-                $query->latest();
+            $nurse = Auth::guard('nurse')->user();
+            
+            // RBAC: Nurse can only view patients they've attended (recorded vital signs for)
+            $patient = Patient::with(['vitalSigns' => function($query) use ($nurse) {
+                $query->where('nurse_id', $nurse->id)->latest();
             }, 'vitalSigns.nurse'])->findOrFail($id);
+            
+            // Verify nurse has actually attended this patient
+            if (!$patient->vitalSigns->count()) {
+                \Log::warning('Nurse attempted to access patient they have not attended', [
+                    'nurse_id' => $nurse->id,
+                    'nurse_email' => $nurse->email,
+                    'patient_id' => $id,
+                    'ip_address' => request()->ip(),
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: You have not attended this patient'
+                ], 403);
+            }
 
             return response()->json([
                 'success' => true,
@@ -176,7 +194,12 @@ public function searchPatients(Request $request)
     {
         try {
             $nurse = Auth::guard('nurse')->user();
-            $vitalSign = VitalSign::with('patient')->findOrFail($vitalSignId);
+            
+            // RBAC: Nurse can only send emails for vital signs they recorded
+            $vitalSign = VitalSign::with('patient')
+                ->where('id', $vitalSignId)
+                ->where('nurse_id', $nurse->id)
+                ->firstOrFail();
 
             // Check if already sent
             if ($vitalSign->email_sent) {

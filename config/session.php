@@ -30,11 +30,13 @@ return [
     | to expire immediately when the browser is closed then you may
     | indicate that via the expire_on_close configuration option.
     |
+    | HIPAA Compliance: Set to 15 minutes for healthcare data protection
+    |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => (int) env('SESSION_LIFETIME', 15),
 
-    'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
+    'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -193,13 +195,15 @@ return [
     | take place, and can be used to mitigate CSRF attacks. By default, we
     | will set this value to "lax" to permit secure cross-site requests.
     |
+    | HIPAA Compliance: Set to "strict" for better security
+    |
     | See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#samesitesamesite-value
     |
     | Supported: "lax", "strict", "none", null
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    'same_site' => env('SESSION_SAME_SITE', 'strict'),
 
     /*
     |--------------------------------------------------------------------------

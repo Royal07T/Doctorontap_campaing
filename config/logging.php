@@ -127,6 +127,26 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | HIPAA Audit Log Channel
+        |--------------------------------------------------------------------------
+        |
+        | This channel records all access and modifications to Protected Health
+        | Information (PHI). Required for HIPAA compliance.
+        |
+        | Retention: 7 years (2555 days) as per HIPAA requirements
+        |
+        */
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'days' => env('AUDIT_LOG_RETENTION_DAYS', 2555), // 7 years (HIPAA requirement)
+            'permission' => 0640, // Restrict file permissions
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

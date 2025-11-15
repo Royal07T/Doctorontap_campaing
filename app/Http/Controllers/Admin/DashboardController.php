@@ -178,7 +178,11 @@ class DashboardController extends Controller
      */
     public function showConsultation($id)
     {
+        // Admins can view all consultations (no filtering needed)
         $consultation = Consultation::with(['doctor', 'payment'])->findOrFail($id);
+        
+        // Log viewing for HIPAA compliance
+        $consultation->logViewed();
         
         return view('admin.consultation-details', compact('consultation'));
     }

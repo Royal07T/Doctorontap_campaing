@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Doctor extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, SoftDeletes;
+    use Notifiable, SoftDeletes, Auditable;
 
     protected $fillable = [
         'name',

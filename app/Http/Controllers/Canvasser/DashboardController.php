@@ -14,6 +14,7 @@ use App\Mail\ConsultationConfirmation;
 use App\Mail\ConsultationAdminAlert;
 use App\Mail\ConsultationDoctorNotification;
 use App\Mail\CanvasserConsultationConfirmation;
+use App\Notifications\ConsultationSmsNotification;
 
 class DashboardController extends Controller
 {
@@ -177,12 +178,13 @@ class DashboardController extends Controller
         // Generate unique consultation reference
         $reference = 'CONSULT-' . time() . '-' . Str::random(6);
 
-        // Handle medical document uploads
+        // Handle medical document uploads - HIPAA: Store in private storage
         $uploadedDocuments = [];
         if ($request->hasFile('medical_documents')) {
             foreach ($request->file('medical_documents') as $file) {
                 $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('medical_documents', $fileName, 'public');
+                // Store in private storage (storage/app/private/medical_documents)
+                $filePath = $file->storeAs('medical_documents', $fileName);
                 
                 $uploadedDocuments[] = [
                     'original_name' => $file->getClientOriginalName(),
@@ -249,6 +251,25 @@ class DashboardController extends Controller
         // Send specialized confirmation email to the patient (booked by canvasser)
         Mail::to($patient->email)->send(new CanvasserConsultationConfirmation($validated, $canvasser));
 
+        // Send SMS confirmation to the patient
+        try {
+            $smsNotification = new ConsultationSmsNotification();
+            $smsResult = $smsNotification->sendConsultationConfirmation($validated);
+            
+            if ($smsResult['success']) {
+                \Log::info('Patient confirmation SMS sent (via canvasser)', [
+                    'consultation_reference' => $reference,
+                    'patient_mobile' => $validated['mobile'],
+                    'canvasser_id' => $canvasser->id
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to send patient confirmation SMS (via canvasser): ' . $e->getMessage(), [
+                'consultation_reference' => $reference,
+                'patient_mobile' => $validated['mobile'] ?? 'N/A'
+            ]);
+        }
+
         // Send alert email to admin
         Mail::to(config('mail.admin_email'))->send(new ConsultationAdminAlert($validated));
 
@@ -257,8 +278,34 @@ class DashboardController extends Controller
             Mail::to($doctorEmail)->send(new ConsultationDoctorNotification($validated));
         }
 
+        // Send SMS notification to the assigned doctor
+        if ($doctorId) {
+            try {
+                $smsNotification = new ConsultationSmsNotification();
+                $assignedDoctor = Doctor::find($doctorId);
+                
+                if ($assignedDoctor) {
+                    $smsResult = $smsNotification->sendDoctorNewConsultation($assignedDoctor, $validated);
+                    
+                    if ($smsResult['success']) {
+                        \Log::info('Doctor notification SMS sent (via canvasser)', [
+                            'consultation_reference' => $reference,
+                            'doctor_id' => $doctorId,
+                            'doctor_phone' => $assignedDoctor->phone,
+                            'canvasser_id' => $canvasser->id
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send doctor notification SMS (via canvasser): ' . $e->getMessage(), [
+                    'consultation_reference' => $reference,
+                    'doctor_id' => $doctorId
+                ]);
+            }
+        }
+
         return redirect()->route('canvasser.patients')
-            ->with('success', 'Consultation created successfully for ' . $patient->name . '! Reference: ' . $reference . '. Patient has been notified via email.');
+            ->with('success', 'Consultation created successfully for ' . $patient->name . '! Reference: ' . $reference . '. Patient and doctor have been notified via email and SMS.');
     }
 
     /**

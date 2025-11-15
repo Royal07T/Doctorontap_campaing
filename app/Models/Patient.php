@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Patient extends Authenticatable
 {
-    use Notifiable, MustVerifyEmail, SoftDeletes;
+    use Notifiable, MustVerifyEmail, SoftDeletes, Auditable;
 
     protected $fillable = [
         'name',

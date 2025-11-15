@@ -4,60 +4,47 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Auth;
 
 class SessionTimeout
 {
     /**
      * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, int $timeout = 120): Response
+    public function handle(Request $request, Closure $next): Response
     {
-        $lastActivity = Session::get('last_activity');
-        $currentTime = time();
-        
-        // If this is the first request, set last activity
-        if (!$lastActivity) {
-            Session::put('last_activity', $currentTime);
-            return $next($request);
-        }
-        
-        // Check if session has timed out
-        if (($currentTime - $lastActivity) > ($timeout * 60)) {
-            Log::info('Session timeout detected', [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'url' => $request->fullUrl(),
-                'timeout_duration' => $timeout,
-                'last_activity' => $lastActivity,
-                'current_time' => $currentTime,
-                'timestamp' => now()
-            ]);
+        // HIPAA compliance: 15-minute session timeout
+        $timeout = config('session.lifetime', 15) * 60; // Convert minutes to seconds
+
+        if (Auth::check()) {
+            $lastActivity = session('last_activity_time', time());
             
-            Session::flush();
-            
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => 'Session timeout. Please login again.',
-                    'session_timeout' => true
-                ], 401);
+            // Check if session has expired
+            if (time() - $lastActivity > $timeout) {
+                // Log the timeout
+                \Log::info('Session timeout', [
+                    'user_type' => auth()->guard()->name ?? 'unknown',
+                    'user_id' => auth()->id(),
+                    'last_activity' => date('Y-m-d H:i:s', $lastActivity),
+                    'timeout_duration' => $timeout,
+                ]);
+
+                // Logout the user
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                
+                return redirect()->route('login')
+                    ->with('message', 'Your session has expired due to inactivity. Please log in again.');
             }
             
-            return redirect()->back()
-                ->with('error', 'Your session has timed out. Please login again.');
+            // Update last activity time
+            session(['last_activity_time' => time()]);
         }
-        
-        // Update last activity
-        Session::put('last_activity', $currentTime);
-        
-        $response = $next($request);
-        
-        // Add session timeout headers
-        $response->headers->set('X-Session-Timeout', $timeout);
-        $response->headers->set('X-Session-Remaining', $timeout - (($currentTime - $lastActivity) / 60));
-        
-        return $response;
+
+        return $next($request);
     }
 }

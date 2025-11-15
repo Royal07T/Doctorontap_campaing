@@ -32,3 +32,6 @@ yarn-error.log
 .envlocal
 .env.local
 .env.production
+
+# Termii SMS Credentials (contains API keys)
+TERMII_CREDENTIALS.txt

@@ -43,4 +43,13 @@ return [
         'enforce_webhook_signature' => env('KORAPAY_ENFORCE_WEBHOOK_SIGNATURE', true),
     ],
 
+    'termii' => [
+        'api_key' => env('TERMII_API_KEY'),
+        'secret_key' => env('TERMII_SECRET_KEY'),
+        'sender_id' => env('TERMII_SENDER_ID', 'DoctorOnTap'),
+        'base_url' => env('TERMII_BASE_URL', 'https://v3.api.termii.com'),
+        'channel' => env('TERMII_CHANNEL', 'generic'),
+        'enabled' => env('TERMII_ENABLED', true),
+    ],
+
 ];

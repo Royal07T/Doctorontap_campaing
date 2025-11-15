@@ -13,6 +13,7 @@ use App\Mail\PaymentRequest;
 use App\Models\Doctor;
 use App\Models\Consultation;
 use App\Models\Patient;
+use App\Notifications\ConsultationSmsNotification;
 
 class ConsultationController extends Controller
 {
@@ -86,13 +87,14 @@ class ConsultationController extends Controller
         // Generate unique consultation reference
         $reference = 'CONSULT-' . time() . '-' . Str::random(6);
 
-        // Handle medical document uploads
+        // Handle medical document uploads - HIPAA: Store in private storage
         $uploadedDocuments = [];
         if ($request->hasFile('medical_documents')) {
             try {
                 foreach ($request->file('medical_documents') as $file) {
                     $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs('medical_documents', $fileName, 'public');
+                    // Store in private storage (storage/app/private/medical_documents)
+                    $filePath = $file->storeAs('medical_documents', $fileName);
                     
                     $uploadedDocuments[] = [
                         'original_name' => $file->getClientOriginalName(),
@@ -224,6 +226,24 @@ class ConsultationController extends Controller
             ]);
         }
 
+        // Send SMS confirmation to the patient
+        try {
+            $smsNotification = new ConsultationSmsNotification();
+            $smsResult = $smsNotification->sendConsultationConfirmation($validated);
+            
+            if ($smsResult['success']) {
+                \Log::info('Patient confirmation SMS sent successfully', [
+                    'consultation_reference' => $reference,
+                    'patient_mobile' => $validated['mobile']
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to send patient confirmation SMS: ' . $e->getMessage(), [
+                'consultation_reference' => $reference,
+                'patient_mobile' => $validated['mobile'] ?? 'N/A'
+            ]);
+        }
+
         try {
             // Send alert email to admin
             Mail::to($adminEmail)->queue(new ConsultationAdminAlert($validated));
@@ -258,6 +278,31 @@ class ConsultationController extends Controller
                 'consultation_reference' => $reference,
                 'doctor_email' => $doctorEmail ?? 'N/A'
             ]);
+        }
+
+        // Send SMS notification to the assigned doctor
+        if ($doctorId) {
+            try {
+                $smsNotification = new ConsultationSmsNotification();
+                $assignedDoctor = Doctor::find($doctorId);
+                
+                if ($assignedDoctor) {
+                    $smsResult = $smsNotification->sendDoctorNewConsultation($assignedDoctor, $validated);
+                    
+                    if ($smsResult['success']) {
+                        \Log::info('Doctor notification SMS sent successfully', [
+                            'consultation_reference' => $reference,
+                            'doctor_id' => $doctorId,
+                            'doctor_phone' => $assignedDoctor->phone
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send doctor notification SMS: ' . $e->getMessage(), [
+                    'consultation_reference' => $reference,
+                    'doctor_id' => $doctorId
+                ]);
+            }
         }
         
         \Log::info('Consultation booking completed - emails queued', [
