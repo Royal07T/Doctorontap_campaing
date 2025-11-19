@@ -228,11 +228,11 @@
                     {{-- Critical Alerts --}}
                     <div class="alert-box alert-critical">
                         <div class="alert-header">
-                            <div class="alert-icon">💙</div>
-                            <h2 class="alert-title">Let's Take Care of You Today</h2>
+                            <div class="alert-icon">🚨</div>
+                            <h2 class="alert-title">URGENT: Immediate Medical Attention Needed</h2>
                         </div>
                         <p style="color: #991b1b; font-weight: 600; margin-bottom: 15px;">
-                            We noticed some readings that need a doctor's attention today. Don't worry - we're here to help you get the care you need quickly and easily.
+                            Some of your vital signs readings require immediate medical attention. Please contact a doctor or visit the nearest emergency room as soon as possible.
                         </p>
                         @foreach($alertData['alerts'] as $alert)
                             @if($alert['type'] === 'critical')
@@ -244,7 +244,7 @@
                             @endif
                         @endforeach
                         <p style="color: #991b1b; font-weight: 700; margin-top: 15px; font-size: 15px;">
-                            📞 We're here for you: Call 0817 777 7122 or book a consultation below.
+                            📞 Call us now: 0817 777 7122 or book an urgent consultation below.
                         </p>
                     </div>
                 @endif
@@ -253,11 +253,11 @@
                     {{-- Warning Alerts --}}
                     <div class="alert-box alert-warning">
                         <div class="alert-header">
-                            <div class="alert-icon">💙</div>
-                            <h2 class="alert-title">A Quick Check-Up Would Be Good</h2>
+                            <div class="alert-icon">⚠️</div>
+                            <h2 class="alert-title">Attention: Some Readings Need Medical Review</h2>
                         </div>
                         <p style="color: #92400e; font-weight: 600; margin-bottom: 15px;">
-                            Some of your readings are a bit outside the healthy range. A simple consultation with our doctors can help you understand what's happening and how to improve.
+                            Some of your vital signs are outside the normal range. We recommend consulting with a doctor to review these readings.
                         </p>
                         @foreach($alertData['alerts'] as $alert)
                             @if($alert['type'] === 'warning')
@@ -278,8 +278,8 @@
                 @if($infoAlerts->count() > 0)
                     <div class="alert-box alert-info">
                         <div class="alert-header">
-                            <div class="alert-icon">💡</div>
-                            <h2 class="alert-title">Ways to Improve Your Health</h2>
+                            <div class="alert-icon">ℹ️</div>
+                            <h2 class="alert-title">Health Recommendations</h2>
                         </div>
                         @foreach($infoAlerts as $alert)
                             <div class="alert-item">
@@ -294,11 +294,11 @@
                 {{-- All Normal --}}
                 <div class="alert-box alert-success">
                     <div class="alert-header">
-                        <div class="alert-icon">🎉</div>
-                        <h2 class="alert-title">Fantastic! You're Doing Great!</h2>
+                        <div class="alert-icon">✅</div>
+                        <h2 class="alert-title">Great News! All Readings Normal</h2>
                     </div>
                     <p style="color: #065f46; font-weight: 600;">
-                        All your vital signs are in the healthy range. You're taking great care of yourself - keep it up!
+                        All your vital signs are within healthy ranges. Keep up the good work maintaining your health!
                     </p>
                 </div>
             @endif
@@ -393,7 +393,7 @@
 
             <center>
                 <a href="{{ app_url() }}" class="cta-button">
-                    {{ $alertData['hasCritical'] ? '💙 Talk to a Doctor Today' : 'Book a Consultation' }}
+                    {{ $alertData['hasCritical'] ? '🚨 Book Urgent Consultation' : 'Book a Consultation' }}
                 </a>
             </center>
 
@@ -422,8 +422,8 @@
             </p>
 
             @if($alertData['needsAttention'])
-            <p class="footer-text" style="margin-top: 20px; font-weight: 600; color: #9333EA;">
-                💙 We're here to support your health journey. Our doctors are ready to help.
+            <p class="footer-text" style="margin-top: 20px; font-weight: 600; color: #dc2626;">
+                ⚠️ This report contains health alerts. Please consult a doctor.
             </p>
             @endif
         </div>

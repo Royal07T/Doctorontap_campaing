@@ -65,6 +65,14 @@ Route::prefix('payment')->group(function () {
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
+// WhatsApp Webhook Routes (Termii)
+Route::prefix('webhooks')->group(function () {
+    // WhatsApp webhook endpoint - receives incoming messages, delivery status, read receipts
+    Route::post('/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
+        ->middleware('verify.termii.webhook')
+        ->name('webhook.whatsapp');
+});
+
 // ==================== REVIEW ROUTES ====================
 
 // Public Review Routes (No authentication required)

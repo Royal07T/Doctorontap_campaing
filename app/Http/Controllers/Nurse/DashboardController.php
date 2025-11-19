@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VitalSignsReport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Http\Requests\VitalSignsRequest;
+use App\Helpers\SecurityHelper;
 
 class DashboardController extends Controller
 {
@@ -39,7 +41,7 @@ class DashboardController extends Controller
     /**
      * Search for patients
      */
-public function searchPatients(Request $request)
+    public function searchPatients(Request $request)
     {
         $nurse = Auth::guard('nurse')->user();
         
@@ -50,10 +52,22 @@ public function searchPatients(Request $request)
             return view('nurse.patients', compact('patients'));
         }
         
-        $search = $request->search;
+        // Sanitize search input
+        $search = SecurityHelper::sanitizeString($request->search);
+        
+        // Additional security check for potential SQL injection
+        if (SecurityHelper::containsSqlInjection($search)) {
+            SecurityHelper::logSecurityIncident('sql_injection_attempt_in_search', [
+                'search_term' => $request->search,
+                'nurse_id' => $nurse->id,
+            ]);
+            return view('nurse.patients', compact('patients'))
+                ->with('error', 'Invalid search query');
+        }
+        
         $query = Patient::query();
         
-        // Search functionality
+        // Search functionality (Eloquent protects against SQL injection)
         $query->where(function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")
               ->orWhere('email', 'like', "%{$search}%")
@@ -71,12 +85,21 @@ public function searchPatients(Request $request)
     public function viewPatient($id)
     {
         try {
+            // Validate ID parameter
+            $patientId = SecurityHelper::sanitizeInteger($id);
+            if (!$patientId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid patient ID'
+                ], 400);
+            }
+            
             $nurse = Auth::guard('nurse')->user();
             
             // RBAC: Nurse can only view patients they've attended (recorded vital signs for)
             $patient = Patient::with(['vitalSigns' => function($query) use ($nurse) {
                 $query->where('nurse_id', $nurse->id)->latest();
-            }, 'vitalSigns.nurse'])->findOrFail($id);
+            }, 'vitalSigns.nurse'])->findOrFail($patientId);
             
             // Verify nurse has actually attended this patient
             if (!$patient->vitalSigns->count()) {
@@ -134,21 +157,11 @@ public function searchPatients(Request $request)
     /**
      * Store vital signs for a patient (NO automatic email)
      */
-    public function storeVitalSigns(Request $request)
+    public function storeVitalSigns(VitalSignsRequest $request)
     {
         try {
-            $validated = $request->validate([
-                'patient_id' => 'required|exists:patients,id',
-                'blood_pressure' => 'nullable|string|max:20',
-                'oxygen_saturation' => 'nullable|numeric|min:0|max:100',
-                'temperature' => 'nullable|numeric|min:30|max:45',
-                'blood_sugar' => 'nullable|numeric|min:0|max:1000',
-                'height' => 'nullable|numeric|min:0|max:300',
-                'weight' => 'nullable|numeric|min:0|max:500',
-                'heart_rate' => 'nullable|integer|min:0|max:300',
-                'respiratory_rate' => 'nullable|integer|min:0|max:100',
-                'notes' => 'nullable|string|max:1000',
-            ]);
+            // Use Form Request for validation and sanitization
+            $validated = $request->validated();
 
             $nurse = Auth::guard('nurse')->user();
 
@@ -193,11 +206,20 @@ public function searchPatients(Request $request)
     public function sendVitalSignsEmail($vitalSignId)
     {
         try {
+            // Validate ID parameter
+            $vitalId = SecurityHelper::sanitizeInteger($vitalSignId);
+            if (!$vitalId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid vital sign ID'
+                ], 400);
+            }
+            
             $nurse = Auth::guard('nurse')->user();
             
             // RBAC: Nurse can only send emails for vital signs they recorded
             $vitalSign = VitalSign::with('patient')
-                ->where('id', $vitalSignId)
+                ->where('id', $vitalId)
                 ->where('nurse_id', $nurse->id)
                 ->firstOrFail();
 

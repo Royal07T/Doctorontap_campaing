@@ -11,6 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // SECURITY: Input sanitization for all requests
+        $middleware->append(\App\Http\Middleware\SanitizeInput::class);
+        
+        // SECURITY: Validate route parameters for injection attacks
+        $middleware->append(\App\Http\Middleware\ValidateRouteParameters::class);
+        
         // HIPAA Compliance: Enforce HTTPS in production
         $middleware->append(\App\Http\Middleware\EnforceHttps::class);
         
@@ -37,6 +43,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'security.monitoring' => \App\Http\Middleware\SecurityMonitoring::class,
             'enforce.https' => \App\Http\Middleware\EnforceHttps::class,
             'verify.korapay.webhook' => \App\Http\Middleware\VerifyKorapayWebhook::class,
+            'verify.termii.webhook' => \App\Http\Middleware\VerifyTermiiWebhook::class,
+            'sanitize.input' => \App\Http\Middleware\SanitizeInput::class,
+            'validate.route.params' => \App\Http\Middleware\ValidateRouteParameters::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

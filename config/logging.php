@@ -54,7 +54,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => explode(',', env('LOG_STACK', 'single')),
             'ignore_exceptions' => false,
         ],
 
@@ -76,8 +76,8 @@ return [
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
-            'username' => env('LOG_SLACK_USERNAME', 'Laravel Log'),
-            'emoji' => env('LOG_SLACK_EMOJI', ':boom:'),
+            'username' => 'Laravel Log',
+            'emoji' => ':boom:',
             'level' => env('LOG_LEVEL', 'critical'),
             'replace_placeholders' => true,
         ],
@@ -98,10 +98,10 @@ return [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
             'handler' => StreamHandler::class,
-            'handler_with' => [
+            'formatter' => env('LOG_STDERR_FORMATTER'),
+            'with' => [
                 'stream' => 'php://stderr',
             ],
-            'formatter' => env('LOG_STDERR_FORMATTER'),
             'processors' => [PsrLogMessageProcessor::class],
         ],
 
@@ -127,23 +127,21 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
-        /*
-        |--------------------------------------------------------------------------
-        | HIPAA Audit Log Channel
-        |--------------------------------------------------------------------------
-        |
-        | This channel records all access and modifications to Protected Health
-        | Information (PHI). Required for HIPAA compliance.
-        |
-        | Retention: 7 years (2555 days) as per HIPAA requirements
-        |
-        */
+        // Security incident logging channel
+        'security' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/security.log'),
+            'level' => env('LOG_LEVEL', 'warning'),
+            'days' => 90, // Keep security logs for 90 days
+            'replace_placeholders' => true,
+        ],
+
+        // Audit logging channel for HIPAA compliance
         'audit' => [
             'driver' => 'daily',
             'path' => storage_path('logs/audit.log'),
             'level' => 'info',
-            'days' => env('AUDIT_LOG_RETENTION_DAYS', 2555), // 7 years (HIPAA requirement)
-            'permission' => 0640, // Restrict file permissions
+            'days' => 2555, // 7 years for HIPAA compliance
             'replace_placeholders' => true,
         ],
 

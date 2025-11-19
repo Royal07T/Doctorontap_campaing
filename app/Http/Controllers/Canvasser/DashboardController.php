@@ -304,6 +304,81 @@ class DashboardController extends Controller
             }
         }
 
+        // ============================================
+        // SEND WHATSAPP NOTIFICATIONS (More Reliable!)
+        // ============================================
+        
+        // Send WhatsApp notification to PATIENT (if enabled)
+        if (config('services.termii.whatsapp_enabled')) {
+            try {
+                $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
+                
+                $patientResult = $whatsapp->sendConsultationConfirmationTemplate(
+                    $validated,
+                    'patient_booking_confirmation' // Template ID from Termii dashboard
+                );
+                
+                if ($patientResult['success']) {
+                    \Log::info('Patient WhatsApp notification sent (via canvasser)', [
+                        'consultation_reference' => $reference,
+                        'patient_phone' => $validated['mobile'],
+                        'canvasser_id' => $canvasser->id
+                    ]);
+                } else {
+                    \Log::warning('Patient WhatsApp notification failed (via canvasser)', [
+                        'consultation_reference' => $reference,
+                        'error' => $patientResult['message'] ?? 'Unknown error',
+                        'canvasser_id' => $canvasser->id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Patient WhatsApp notification error (via canvasser): ' . $e->getMessage(), [
+                    'consultation_reference' => $reference,
+                    'phone' => $validated['mobile'] ?? 'N/A',
+                    'canvasser_id' => $canvasser->id
+                ]);
+            }
+        }
+        
+        // Send WhatsApp notification to DOCTOR (if doctor assigned and WhatsApp enabled)
+        if (config('services.termii.whatsapp_enabled') && $doctorId) {
+            try {
+                $assignedDoctor = Doctor::find($doctorId);
+                
+                if ($assignedDoctor && $assignedDoctor->phone) {
+                    $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
+                    
+                    $doctorResult = $whatsapp->sendDoctorNewConsultationTemplate(
+                        $assignedDoctor,
+                        $validated,
+                        'doctor_new_consultation' // Template ID from Termii dashboard
+                    );
+                    
+                    if ($doctorResult['success']) {
+                        \Log::info('Doctor WhatsApp notification sent (via canvasser)', [
+                            'consultation_reference' => $reference,
+                            'doctor_id' => $doctorId,
+                            'doctor_phone' => $assignedDoctor->phone,
+                            'canvasser_id' => $canvasser->id
+                        ]);
+                    } else {
+                        \Log::warning('Doctor WhatsApp notification failed (via canvasser)', [
+                            'consultation_reference' => $reference,
+                            'doctor_id' => $doctorId,
+                            'error' => $doctorResult['message'] ?? 'Unknown error',
+                            'canvasser_id' => $canvasser->id
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Doctor WhatsApp notification error (via canvasser): ' . $e->getMessage(), [
+                    'consultation_reference' => $reference,
+                    'doctor_id' => $doctorId,
+                    'canvasser_id' => $canvasser->id
+                ]);
+            }
+        }
+
         return redirect()->route('canvasser.patients')
             ->with('success', 'Consultation created successfully for ' . $patient->name . '! Reference: ' . $reference . '. Patient and doctor have been notified via email and SMS.');
     }

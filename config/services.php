@@ -44,12 +44,17 @@ return [
     ],
 
     'termii' => [
+        // SMS Configuration
         'api_key' => env('TERMII_API_KEY'),
         'secret_key' => env('TERMII_SECRET_KEY'),
         'sender_id' => env('TERMII_SENDER_ID', 'DoctorOnTap'),
         'base_url' => env('TERMII_BASE_URL', 'https://v3.api.termii.com'),
         'channel' => env('TERMII_CHANNEL', 'generic'),
         'enabled' => env('TERMII_ENABLED', true),
+        
+        // WhatsApp Configuration
+        'whatsapp_device_id' => env('TERMII_WHATSAPP_DEVICE_ID'),
+        'whatsapp_enabled' => env('TERMII_WHATSAPP_ENABLED', false),
     ],
 
 ];

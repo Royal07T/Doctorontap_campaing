@@ -2150,6 +2150,21 @@
                             body: formData
                         });
 
+                        // Handle CSRF token expiration (419 error)
+                        if (response.status === 419) {
+                            this.displayErrorModal('Session Expired', 'Your session has expired. Please refresh the page and try again.');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                            return;
+                        }
+
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error('Server returned an invalid response. Please try again.');
+                        }
+
                         const data = await response.json();
 
                         if (response.ok) {
@@ -2169,7 +2184,7 @@
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        this.displayErrorModal('Connection Error', 'An error occurred while submitting your booking. Please check your internet connection and try again.');
+                        this.displayErrorModal('Connection Error', error.message || 'An error occurred while submitting your booking. Please check your internet connection and try again.');
                     } finally {
                         this.isSubmitting = false;
                     }
