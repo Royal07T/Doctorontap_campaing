@@ -131,18 +131,39 @@ class ConsultationController extends Controller
         }
 
         // Create or update patient record with all information
+        // Handle soft-deleted patients to avoid unique constraint violations
         try {
-            $patient = Patient::updateOrCreate(
-                [
-                    'email' => $validated['email'],
-                ],
-                [
+            // First, check if a soft-deleted patient exists with this email
+            $patient = Patient::withTrashed()->where('email', $validated['email'])->first();
+            
+            if ($patient) {
+                // Patient exists (soft-deleted or not)
+                if ($patient->trashed()) {
+                    // Restore the soft-deleted patient
+                    $patient->restore();
+                    \Log::info('Restored soft-deleted patient', [
+                        'patient_id' => $patient->id,
+                        'email' => $validated['email']
+                    ]);
+                }
+                
+                // Update the patient record
+                $patient->update([
                     'name' => $validated['first_name'] . ' ' . $validated['last_name'],
                     'phone' => $validated['mobile'],
                     'gender' => $validated['gender'],
                     'age' => $validated['age'],
-                ]
-            );
+                ]);
+            } else {
+                // Create new patient
+                $patient = Patient::create([
+                    'email' => $validated['email'],
+                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'phone' => $validated['mobile'],
+                    'gender' => $validated['gender'],
+                    'age' => $validated['age'],
+                ]);
+            }
         } catch (\Exception $e) {
             \Log::error('Failed to create/update patient record: ' . $e->getMessage(), [
                 'email' => $validated['email'],

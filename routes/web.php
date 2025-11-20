@@ -29,6 +29,13 @@ use App\Http\Controllers\MedicalDocumentController;
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
 Route::post('/submit', [ConsultationController::class, 'store'])->middleware('rate.limit:consultation,10,1');
 
+// Redirect /register to home page (for general users) or doctor registration
+Route::get('/register', function () {
+    // You can change this to redirect to doctor registration if preferred
+    // return redirect()->route('doctor.register');
+    return redirect()->route('consultation.index');
+})->name('register');
+
 // HIPAA Secure Medical Document Routes - Requires authentication and authorization
 Route::get('/consultations/{consultation}/documents/{filename}/download', [MedicalDocumentController::class, 'download'])
     ->name('medical-document.download');

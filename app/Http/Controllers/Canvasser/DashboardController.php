@@ -84,18 +84,47 @@ class DashboardController extends Controller
 
             $canvasser = Auth::guard('canvasser')->user();
 
-            $patient = Patient::create([
-                'name' => $validated['first_name'] . ' ' . $validated['last_name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'],
-                'gender' => $validated['gender'],
-                'age' => $validated['age'],
-                'canvasser_id' => $canvasser->id,
-            ]);
+            // Check if a patient with this email already exists (including soft-deleted)
+            $patient = Patient::withTrashed()->where('email', $validated['email'])->first();
+            
+            if ($patient) {
+                // Patient exists - restore if soft-deleted and update
+                if ($patient->trashed()) {
+                    $patient->restore();
+                    \Log::info('Canvasser restored soft-deleted patient', [
+                        'patient_id' => $patient->id,
+                        'email' => $validated['email'],
+                        'canvasser_id' => $canvasser->id
+                    ]);
+                }
+                
+                // Update the patient record
+                $patient->update([
+                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'phone' => $validated['phone'],
+                    'gender' => $validated['gender'],
+                    'age' => $validated['age'],
+                    'canvasser_id' => $canvasser->id,
+                ]);
+                
+                $message = 'Patient record updated successfully! You can now create consultations for this patient.';
+            } else {
+                // Create new patient
+                $patient = Patient::create([
+                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'email' => $validated['email'],
+                    'phone' => $validated['phone'],
+                    'gender' => $validated['gender'],
+                    'age' => $validated['age'],
+                    'canvasser_id' => $canvasser->id,
+                ]);
+                
+                $message = 'Patient registered successfully! You can now create consultations for this patient.';
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Patient registered successfully! You can now create consultations for this patient.',
+                'message' => $message,
                 'patient' => $patient
             ]);
 

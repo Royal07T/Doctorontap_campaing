@@ -80,9 +80,19 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            // Get or create patient record
-            $patient = Patient::where('email', $consultation->email)->first();
-            if (!$patient) {
+            // Get or create patient record (including soft-deleted)
+            $patient = Patient::withTrashed()->where('email', $consultation->email)->first();
+            if ($patient) {
+                // If patient is soft-deleted, restore it
+                if ($patient->trashed()) {
+                    $patient->restore();
+                    \Log::info('Restored soft-deleted patient for review', [
+                        'patient_id' => $patient->id,
+                        'email' => $consultation->email
+                    ]);
+                }
+            } else {
+                // Create new patient
                 $patient = Patient::create([
                     'name' => $consultation->full_name,
                     'email' => $consultation->email,
