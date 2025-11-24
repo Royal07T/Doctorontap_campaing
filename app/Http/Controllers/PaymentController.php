@@ -65,8 +65,8 @@ class PaymentController extends Controller
 
         // Make API call to Korapay
         try {
-            $apiUrl = env('KORAPAY_API_URL');
-            $secretKey = env('KORAPAY_SECRET_KEY');
+            $apiUrl = config('services.korapay.api_url');
+            $secretKey = config('services.korapay.secret_key');
             $fullUrl = $apiUrl . '/charges/initialize';
             
             Log::info('Korapay API Request', [
@@ -106,8 +106,8 @@ class PaymentController extends Controller
             Log::error('Korapay API error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'api_url' => env('KORAPAY_API_URL'),
-                'has_secret' => !empty(env('KORAPAY_SECRET_KEY'))
+                'api_url' => config('services.korapay.api_url'),
+                'has_secret' => !empty(config('services.korapay.secret_key'))
             ]);
             
             return response()->json([
@@ -271,7 +271,7 @@ class PaymentController extends Controller
         try {
             // Verify webhook signature for security
             $signature = $request->header('x-korapay-signature');
-            $secretKey = env('KORAPAY_SECRET_KEY');
+            $secretKey = config('services.korapay.secret_key');
             
             if ($signature && $secretKey) {
                 $expectedSignature = hash_hmac('sha256', json_encode($request->input('data')), $secretKey);
@@ -515,8 +515,8 @@ class PaymentController extends Controller
 
         // Make API call to Korapay
         try {
-            $apiUrl = env('KORAPAY_API_URL');
-            $secretKey = env('KORAPAY_SECRET_KEY');
+            $apiUrl = config('services.korapay.api_url');
+            $secretKey = config('services.korapay.secret_key');
             $fullUrl = $apiUrl . '/charges/initialize';
             
             Log::info('Korapay API Request', [
@@ -559,8 +559,8 @@ class PaymentController extends Controller
             Log::error('Korapay API error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'api_url' => env('KORAPAY_API_URL'),
-                'has_secret' => !empty(env('KORAPAY_SECRET_KEY'))
+                'api_url' => config('services.korapay.api_url'),
+                'has_secret' => !empty(config('services.korapay.secret_key'))
             ]);
             
             return view('payment.failed', [
@@ -576,8 +576,8 @@ class PaymentController extends Controller
     private function verifyTransaction($reference)
     {
         try {
-            $apiUrl = env('KORAPAY_API_URL');
-            $secretKey = env('KORAPAY_SECRET_KEY');
+            $apiUrl = config('services.korapay.api_url');
+            $secretKey = config('services.korapay.secret_key');
             $fullUrl = $apiUrl . '/charges/' . $reference;
             
             $response = Http::withHeaders([
