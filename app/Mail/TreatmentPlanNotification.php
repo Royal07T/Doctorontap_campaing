@@ -88,8 +88,9 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
     public function attachments(): array
     {
         try {
-            // Generate PDF for the treatment plan
-            $pdf = Pdf::loadView('pdfs.treatment-plan', [
+            // Generate patient-friendly PDF (without clinical documentation)
+            // Only includes: Treatment Plan, Medications, Follow-up, Lifestyle, Appointments
+            $pdf = Pdf::loadView('pdfs.treatment-plan-patient', [
                 'consultation' => $this->consultation
             ]);
             
