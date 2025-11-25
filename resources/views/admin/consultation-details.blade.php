@@ -319,17 +319,38 @@
                     @endif
 
                     @if($consultation->status === 'completed' && $consultation->payment_status !== 'paid')
-                    <button @click="sendPayment()" :disabled="isSending"
-                            class="w-full px-4 py-3 purple-gradient text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 font-semibold flex items-center justify-center">
-                        <svg x-show="!isSending" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
-                        <svg x-show="isSending" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span x-text="isSending ? 'Sending...' : '{{ $consultation->payment_request_sent ? 'Resend Payment Request' : 'Send Payment Request' }}'"></span>
-                    </button>
+                    <div class="space-y-3">
+                        <!-- Send Payment Request Button -->
+                        <button @click="sendPayment()" :disabled="isSending"
+                                class="w-full px-4 py-3 purple-gradient text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 font-semibold flex items-center justify-center">
+                            <svg x-show="!isSending" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            <svg x-show="isSending" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="isSending ? 'Sending...' : '{{ $consultation->payment_request_sent ? 'Resend Payment Request' : 'Send Payment Request' }}'"></span>
+                        </button>
+
+                        <!-- Manual Payment Button -->
+                        <div class="relative">
+                            <div class="flex items-center justify-center my-2">
+                                <div class="border-t border-gray-300 flex-grow"></div>
+                                <span class="px-3 text-sm text-gray-500 font-medium">OR</span>
+                                <div class="border-t border-gray-300 flex-grow"></div>
+                            </div>
+                            
+                            <button @click="showManualPaymentModal = true" type="button"
+                                    class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Mark as Paid (Manual Payment)</span>
+                            </button>
+                            <p class="text-xs text-gray-500 mt-2 text-center">For bank transfer, cash, POS, or other offline payments</p>
+                        </div>
+                    </div>
                     @elseif($consultation->status === 'completed' && $consultation->payment_status === 'paid')
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <p class="text-sm text-blue-800 text-center">
@@ -498,6 +519,114 @@
         </div>
     </div>
 
+    <!-- Manual Payment Modal -->
+    <div x-show="showManualPaymentModal" 
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="showManualPaymentModal = false">
+        <!-- Backdrop -->
+        <div class="modal-backdrop fixed inset-0" @click="showManualPaymentModal = false"></div>
+
+        <!-- Modal Content -->
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full relative z-10 max-h-[90vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-t-2xl">
+                <h3 class="text-xl font-bold text-white">Mark Payment as Paid</h3>
+                <p class="text-sm text-green-100 mt-1">Record offline/manual payment</p>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <!-- Patient Info -->
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p class="text-sm text-gray-600">Patient</p>
+                    <p class="font-semibold text-gray-900">{{ $consultation->full_name }}</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ $consultation->email }}</p>
+                    @if($consultation->doctor)
+                    <p class="text-sm text-gray-600 mt-2">Fee: <span class="font-bold text-green-600">₦{{ number_format($consultation->doctor->effective_consultation_fee, 2) }}</span></p>
+                    @endif
+                </div>
+
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method *</label>
+                    <select x-model="paymentMethod" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                        <option value="POS">POS</option>
+                        <option value="USSD">USSD</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <!-- Payment Reference -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Reference (Optional)</label>
+                    <input type="text" 
+                           x-model="paymentReference"
+                           placeholder="e.g., TXN123456, Receipt #789"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <p class="text-xs text-gray-500 mt-1">Transaction ID, receipt number, or any reference</p>
+                </div>
+
+                <!-- Admin Notes -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Notes (Optional)</label>
+                    <textarea x-model="adminNotes"
+                              rows="3"
+                              placeholder="e.g., Patient paid via bank transfer on 2024-11-24. Confirmed by phone..."
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Internal note about this payment</p>
+                </div>
+
+                <!-- Warning -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex">
+                        <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div class="text-sm text-yellow-800">
+                            <p class="font-semibold">Important:</p>
+                            <p class="mt-1">This will:</p>
+                            <ul class="list-disc ml-5 mt-2 space-y-1">
+                                <li>Mark consultation as PAID</li>
+                                <li>Unlock treatment plan (if exists)</li>
+                                <li>Send treatment plan email to patient</li>
+                                <li>Record payment in system</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="px-6 pb-6">
+                <div class="flex space-x-3">
+                    <button @click="showManualPaymentModal = false; paymentMethod = 'Bank Transfer'; paymentReference = ''; adminNotes = ''"
+                            :disabled="isMarkingPaid"
+                            class="flex-1 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-all disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button @click="markPaymentAsPaid()"
+                            :disabled="isMarkingPaid"
+                            class="flex-1 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all disabled:opacity-50 flex items-center justify-center">
+                        <svg x-show="!isMarkingPaid" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <svg x-show="isMarkingPaid" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="isMarkingPaid ? 'Processing...' : 'Confirm & Mark as Paid'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -518,6 +647,11 @@
                 isSending: false,
                 isForwarding: false,
                 isForwardingTP: false,
+                showManualPaymentModal: false,
+                paymentMethod: 'Bank Transfer',
+                paymentReference: '',
+                adminNotes: '',
+                isMarkingPaid: false,
                 
                 showMessage(type, title, text) {
                     this.messageType = type;
@@ -595,6 +729,42 @@
                 
                 sendPayment() {
                     this.showConfirm('Send Payment Request', 'Send payment request email to {{ $consultation->email }}?', () => this.doSendPayment());
+                },
+                
+                async markPaymentAsPaid() {
+                    // Validate
+                    if (!this.paymentMethod) {
+                        this.showMessage('error', 'Error', 'Please select a payment method');
+                        return;
+                    }
+                    
+                    this.isMarkingPaid = true;
+                    try {
+                        const response = await fetch('/admin/consultation/{{ $consultation->id }}/mark-payment-paid', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                payment_method: this.paymentMethod,
+                                payment_reference: this.paymentReference,
+                                admin_notes: this.adminNotes
+                            })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showManualPaymentModal = false;
+                            this.showMessage('success', 'Success!', data.message);
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to mark payment as paid');
+                        }
+                    } catch (error) {
+                        this.showMessage('error', 'Error', 'Error marking payment as paid. Please try again.');
+                    } finally {
+                        this.isMarkingPaid = false;
+                    }
                 },
                 
                 async doForwardDocuments() {

@@ -406,6 +406,111 @@ class DashboardController extends Controller
     }
 
     /**
+     * Manually mark consultation payment as paid (for offline payments)
+     * This is used when patients pay through bank transfer, cash, POS, etc.
+     */
+    public function markPaymentAsPaid(Request $request, $id)
+    {
+        $request->validate([
+            'payment_method' => 'required|string|max:50',
+            'payment_reference' => 'nullable|string|max:100',
+            'admin_notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $consultation = Consultation::with('doctor')->findOrFail($id);
+
+            // Check if already paid
+            if ($consultation->isPaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This consultation has already been marked as paid'
+                ], 400);
+            }
+
+            // Create or update payment record
+            $payment = Payment::updateOrCreate(
+                ['reference' => 'MANUAL-' . $consultation->reference],
+                [
+                    'customer_email' => $consultation->email,
+                    'customer_name' => $consultation->full_name,
+                    'customer_phone' => $consultation->mobile,
+                    'amount' => $consultation->doctor->effective_consultation_fee ?? 0,
+                    'currency' => 'NGN',
+                    'status' => 'success',
+                    'payment_method' => $request->payment_method,
+                    'payment_reference' => $request->payment_reference ?? 'MANUAL-' . time(),
+                    'doctor_id' => $consultation->doctor_id,
+                    'metadata' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $consultation->reference,
+                        'manual_payment' => true,
+                        'marked_by_admin' => auth()->guard('admin')->user()->name ?? 'Admin',
+                        'admin_notes' => $request->admin_notes,
+                        'marked_at' => now()->toDateTimeString(),
+                    ],
+                ]
+            );
+
+            // Update consultation payment status
+            $consultation->update([
+                'payment_status' => 'paid',
+                'payment_id' => $payment->id,
+            ]);
+
+            // Unlock treatment plan if it exists
+            if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
+                $consultation->update([
+                    'treatment_plan_unlocked' => true,
+                    'treatment_plan_unlocked_at' => now(),
+                    'treatment_plan_accessible' => true,
+                ]);
+
+                // Send treatment plan notification email
+                try {
+                    Mail::to($consultation->email)->queue(new TreatmentPlanNotification($consultation));
+                    
+                    \Log::info('Treatment plan unlocked and sent after manual payment', [
+                        'consultation_id' => $consultation->id,
+                        'reference' => $consultation->reference,
+                        'payment_method' => $request->payment_method
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send treatment plan after manual payment', [
+                        'consultation_id' => $consultation->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            \Log::info('Payment manually marked as paid by admin', [
+                'consultation_id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'payment_method' => $request->payment_method,
+                'payment_reference' => $request->payment_reference,
+                'admin' => auth()->guard('admin')->user()->name ?? 'Unknown'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as paid successfully! ' . ($consultation->hasTreatmentPlan() ? 'Treatment plan has been unlocked and sent to patient.' : '')
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to mark payment as paid', [
+                'consultation_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark payment as paid: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Display payments list
      */
     public function payments(Request $request)
