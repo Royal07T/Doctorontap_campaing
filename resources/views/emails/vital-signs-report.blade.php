@@ -218,7 +218,7 @@
             <div class="greeting">Hello {{ $patient->name }},</div>
             
             <p class="message">
-                Thanks for stopping by our booth at the Velorafair for your free health check-up!<br>
+                Thanks for stopping by our booth at the MADE IN NIGERIA SHOE EXPO for your free health check-up!<br>
                 Your vital signs have been successfully recorded by our team and your personalized report is ready.
             </p>
 

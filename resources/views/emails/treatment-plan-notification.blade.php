@@ -300,70 +300,16 @@
 
             <div class="divider"></div>
 
-            <!-- Treatment Plan Content -->
+            <!-- Treatment Plan Content - PATIENT-FRIENDLY VERSION -->
+            <!-- Clinical documentation (diagnosis, history, investigations) hidden from patients -->
+            <!-- These are available in the doctor's/admin's full PDF version -->
             @if($consultation->hasTreatmentPlan())
             <div class="treatment-section">
                 <h2>📋 Your Treatment Plan</h2>
 
-                @if($consultation->presenting_complaint)
-                <div class="treatment-item">
-                    <span class="treatment-label">1️⃣ Presenting Complaint</span>
-                    <div class="treatment-content">{{ $consultation->presenting_complaint }}</div>
-                </div>
-                @endif
-
-                @if($consultation->history_of_complaint)
-                <div class="treatment-item">
-                    <span class="treatment-label">📝 History of Complaint</span>
-                    <div class="treatment-content">{{ $consultation->history_of_complaint }}</div>
-                </div>
-                @endif
-
-                @if($consultation->past_medical_history)
-                <div class="treatment-item">
-                    <span class="treatment-label">2️⃣ Past Medical History</span>
-                    <div class="treatment-content">{{ $consultation->past_medical_history }}</div>
-                </div>
-                @endif
-
-                @if($consultation->family_history)
-                <div class="treatment-item">
-                    <span class="treatment-label">👨‍👩‍👧‍👦 Family Medical History</span>
-                    <div class="treatment-content">{{ $consultation->family_history }}</div>
-                </div>
-                @endif
-
-                @if($consultation->drug_history)
-                <div class="treatment-item">
-                    <span class="treatment-label">3️⃣ Drug History</span>
-                    <div class="treatment-content">{{ $consultation->drug_history }}</div>
-                </div>
-                @endif
-
-                @if($consultation->social_history)
-                <div class="treatment-item">
-                    <span class="treatment-label">🏠 Social History</span>
-                    <div class="treatment-content">{{ $consultation->social_history }}</div>
-                </div>
-                @endif
-
-                @if($consultation->diagnosis)
-                <div class="treatment-item">
-                    <span class="treatment-label">4️⃣ Medical Diagnosis</span>
-                    <div class="treatment-content">{{ $consultation->diagnosis }}</div>
-                </div>
-                @endif
-
-                @if($consultation->investigation)
-                <div class="treatment-item">
-                    <span class="treatment-label">5️⃣ Recommended Investigations</span>
-                    <div class="treatment-content">{{ $consultation->investigation }}</div>
-                </div>
-                @endif
-
                 @if($consultation->treatment_plan)
                 <div class="treatment-item">
-                    <span class="treatment-label">6️⃣ Treatment Plan</span>
+                    <span class="treatment-label">🩺 Treatment Plan</span>
                     <div class="treatment-content">{{ $consultation->treatment_plan }}</div>
                 </div>
                 @endif

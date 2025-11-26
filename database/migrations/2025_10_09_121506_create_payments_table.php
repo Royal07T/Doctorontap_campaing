@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('customer_phone')->nullable();
             $table->decimal('amount', 10, 2);
             $table->string('currency', 3)->default('NGN');
-            $table->string('status')->default('pending'); // pending, success, failed
+            $table->string('status')->default('pending'); // pending, success, failed, cancelled, processing
             $table->string('payment_method')->nullable(); // bank_transfer, card, pay_with_bank, mobile_money
             $table->string('payment_reference')->nullable(); // Korapay payment reference
             $table->decimal('fee', 10, 2)->nullable();

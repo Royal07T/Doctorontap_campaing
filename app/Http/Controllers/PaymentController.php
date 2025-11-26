@@ -311,18 +311,26 @@ class PaymentController extends Controller
                 return response()->json(['status' => 'missing_reference'], 400);
             }
 
-            // Process successful charge event
+            // Find payment record first
+            $payment = Payment::where('reference', $reference)->first();
+
+            if (!$payment) {
+                Log::warning('Payment record not found for webhook', ['reference' => $reference]);
+                return response()->json(['status' => 'payment_not_found'], 404);
+            }
+
+            // ============================================================
+            // HANDLE ALL PAYMENT EVENTS
+            // ============================================================
+
+            // 1. SUCCESSFUL PAYMENT
             if ($event === 'charge.success') {
-                Log::info('Processing successful charge', ['reference' => $reference]);
+                Log::info('✅ Processing SUCCESSFUL charge', [
+                    'reference' => $reference,
+                    'amount' => $data['amount'] ?? null
+                ]);
                 
-                $payment = Payment::where('reference', $reference)->first();
-
-                if (!$payment) {
-                    Log::warning('Payment record not found for webhook', ['reference' => $reference]);
-                    return response()->json(['status' => 'payment_not_found'], 404);
-                }
-
-                // Update payment record
+                // Update payment record to success
                 $payment->update([
                     'status' => 'success',
                     'payment_method' => $data['payment_method'] ?? null,
@@ -331,7 +339,7 @@ class PaymentController extends Controller
                     'korapay_response' => json_encode($data),
                 ]);
 
-                Log::info('Payment record updated', [
+                Log::info('Payment record updated to SUCCESS', [
                     'payment_id' => $payment->id,
                     'reference' => $reference,
                     'amount' => $payment->amount
@@ -357,7 +365,7 @@ class PaymentController extends Controller
                         'treatment_plan_unlocked' => $consultation->treatment_plan_unlocked
                     ]);
                     
-                    // Update consultation payment status
+                    // Update consultation payment status to PAID
                     if ($consultation->payment_status !== 'paid') {
                         $consultation->update([
                             'payment_status' => 'paid',
@@ -416,11 +424,156 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                Log::info('Webhook processing completed successfully', ['reference' => $reference]);
-            } else {
-                Log::info('Webhook event ignored (not charge.success)', [
-                    'event' => $event,
+                Log::info('✅ Webhook processing completed successfully', ['reference' => $reference]);
+            }
+            
+            // 2. FAILED PAYMENT
+            elseif ($event === 'charge.failed') {
+                Log::warning('❌ Processing FAILED charge', [
+                    'reference' => $reference,
+                    'amount' => $data['amount'] ?? null,
+                    'failure_reason' => $data['failure_message'] ?? 'Unknown'
+                ]);
+                
+                // Update payment record to failed
+                $payment->update([
+                    'status' => 'failed',
+                    'payment_method' => $data['payment_method'] ?? null,
+                    'payment_reference' => $data['payment_reference'] ?? $reference,
+                    'korapay_response' => json_encode($data),
+                ]);
+
+                Log::info('Payment record updated to FAILED', [
+                    'payment_id' => $payment->id,
+                    'reference' => $reference,
+                    'failure_reason' => $data['failure_message'] ?? 'Unknown'
+                ]);
+
+                // Update consultation payment status to failed
+                if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
+                    $consultation = Consultation::find($payment->metadata['consultation_id']);
+                    
+                    if ($consultation) {
+                        $consultation->update([
+                            'payment_status' => 'failed',
+                        ]);
+                        
+                        Log::info('Consultation payment status updated to FAILED', [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $reference
+                        ]);
+
+                        // Optionally send failure notification email
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($consultation->email)->send(
+                                new \App\Mail\PaymentFailedNotification($consultation, $payment, $data['failure_message'] ?? 'Payment could not be processed')
+                            );
+                            
+                            Log::info('Payment failure notification sent', [
+                                'consultation_id' => $consultation->id,
+                                'email' => $consultation->email
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to send payment failure email', [
+                                'consultation_id' => $consultation->id,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
+                }
+
+                Log::info('❌ Failed payment webhook processed', ['reference' => $reference]);
+            }
+            
+            // 3. PENDING/PROCESSING PAYMENT
+            elseif ($event === 'charge.pending' || $event === 'charge.processing') {
+                Log::info('⏳ Processing PENDING/PROCESSING charge', [
+                    'reference' => $reference,
+                    'event' => $event
+                ]);
+                
+                // Update payment record to pending
+                $payment->update([
+                    'status' => 'pending',
+                    'payment_method' => $data['payment_method'] ?? null,
+                    'payment_reference' => $data['payment_reference'] ?? $reference,
+                    'korapay_response' => json_encode($data),
+                ]);
+
+                Log::info('Payment record updated to PENDING', [
+                    'payment_id' => $payment->id,
                     'reference' => $reference
+                ]);
+
+                // Update consultation payment status to pending
+                if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
+                    $consultation = Consultation::find($payment->metadata['consultation_id']);
+                    
+                    if ($consultation && $consultation->payment_status !== 'paid') {
+                        $consultation->update([
+                            'payment_status' => 'pending',
+                        ]);
+                        
+                        Log::info('Consultation payment status updated to PENDING', [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $reference
+                        ]);
+                    }
+                }
+
+                Log::info('⏳ Pending payment webhook processed', ['reference' => $reference]);
+            }
+            
+            // 4. CANCELLED/ABANDONED PAYMENT
+            elseif ($event === 'charge.cancelled' || $event === 'charge.abandoned') {
+                Log::info('🚫 Processing CANCELLED/ABANDONED charge', [
+                    'reference' => $reference,
+                    'event' => $event
+                ]);
+                
+                // Update payment record to cancelled
+                $payment->update([
+                    'status' => 'cancelled',
+                    'payment_method' => $data['payment_method'] ?? null,
+                    'payment_reference' => $data['payment_reference'] ?? $reference,
+                    'korapay_response' => json_encode($data),
+                ]);
+
+                Log::info('Payment record updated to CANCELLED', [
+                    'payment_id' => $payment->id,
+                    'reference' => $reference
+                ]);
+
+                // Update consultation payment status to cancelled
+                if ($payment->metadata && isset($payment->metadata['consultation_id'])) {
+                    $consultation = Consultation::find($payment->metadata['consultation_id']);
+                    
+                    if ($consultation && $consultation->payment_status !== 'paid') {
+                        $consultation->update([
+                            'payment_status' => 'cancelled',
+                        ]);
+                        
+                        Log::info('Consultation payment status updated to CANCELLED', [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $reference
+                        ]);
+                    }
+                }
+
+                Log::info('🚫 Cancelled payment webhook processed', ['reference' => $reference]);
+            }
+            
+            // 5. ANY OTHER EVENT
+            else {
+                Log::info('ℹ️ Webhook event received (not handled)', [
+                    'event' => $event,
+                    'reference' => $reference,
+                    'data' => $data
+                ]);
+                
+                // Still update the korapay_response to keep track
+                $payment->update([
+                    'korapay_response' => json_encode($data),
                 ]);
             }
 
