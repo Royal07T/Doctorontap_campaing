@@ -3,6 +3,8 @@
 namespace App\Mail;
 
 use App\Models\Consultation;
+use App\Models\NotificationLog;
+use App\Services\NotificationTrackingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -12,6 +14,7 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\ThrottlesExceptions;
+use Illuminate\Mail\SentMessage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class TreatmentPlanNotification extends Mailable implements ShouldQueue
@@ -38,6 +41,13 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
      * @var int
      */
     public $timeout = 60; // Longer timeout for PDF generation
+    
+    /**
+     * The notification log for tracking
+     *
+     * @var NotificationLog
+     */
+    protected $notificationLog;
 
     /**
      * Create a new message instance.
@@ -46,6 +56,16 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
     {
         // Eager load the doctor relationship to ensure it's available when the job is processed
         $this->consultation->load('doctor');
+        
+        // Create notification log for tracking
+        $trackingService = app(NotificationTrackingService::class);
+        $this->notificationLog = $trackingService->logEmail(
+            $this->consultation,
+            'treatment_plan',
+            $this->consultation->email,
+            'Your Treatment Plan is Ready - ' . $this->consultation->reference,
+            $this->consultation->first_name . ' ' . $this->consultation->last_name
+        );
     }
     
     /**
@@ -110,6 +130,26 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
     }
     
     /**
+     * Handle the message being sent.
+     *
+     * @param  \Illuminate\Mail\SentMessage  $sent
+     * @return void
+     */
+    public function sent(SentMessage $sent)
+    {
+        // Update notification log as sent
+        if ($this->notificationLog) {
+            $trackingService = app(NotificationTrackingService::class);
+            $trackingService->updateSendStatus(
+                $this->notificationLog,
+                true,
+                $sent->getMessageId(),
+                'Email sent successfully via ' . config('mail.default')
+            );
+        }
+    }
+    
+    /**
      * Handle a job failure.
      *
      * @param  \Throwable  $exception
@@ -124,5 +164,17 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
         ]);
+        
+        // Update notification log as failed
+        if ($this->notificationLog) {
+            $trackingService = app(NotificationTrackingService::class);
+            $trackingService->updateSendStatus(
+                $this->notificationLog,
+                false,
+                null,
+                null,
+                $exception->getMessage()
+            );
+        }
     }
 }

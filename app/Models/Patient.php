@@ -103,6 +103,32 @@ class Patient extends Authenticatable
     }
 
     /**
+     * Get all consultations for this patient
+     */
+    public function consultations(): HasMany
+    {
+        return $this->hasMany(Consultation::class);
+    }
+
+    /**
+     * Get all medical histories for this patient
+     */
+    public function medicalHistories(): HasMany
+    {
+        return $this->hasMany(PatientMedicalHistory::class);
+    }
+
+    /**
+     * Get the latest medical history
+     */
+    public function latestMedicalHistory()
+    {
+        return $this->hasOne(PatientMedicalHistory::class)
+            ->where('is_latest', true)
+            ->latestOfMany('consultation_date');
+    }
+
+    /**
      * Generate email verification token
      */
     public function generateEmailVerificationToken()

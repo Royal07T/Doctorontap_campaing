@@ -14,6 +14,7 @@ class Consultation extends Model
 
     protected $fillable = [
         'reference',
+        'patient_id',
         'first_name',
         'last_name',
         'email',
@@ -110,6 +111,40 @@ class Consultation extends Model
     public function nurse(): BelongsTo
     {
         return $this->belongsTo(Nurse::class);
+    }
+
+    /**
+     * Get the patient this consultation belongs to
+     */
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
+    }
+
+    /**
+     * Get all notification logs for this consultation
+     */
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(NotificationLog::class);
+    }
+
+    /**
+     * Get the medical history record for this consultation
+     */
+    public function medicalHistory(): HasMany
+    {
+        return $this->hasMany(PatientMedicalHistory::class);
+    }
+
+    /**
+     * Get treatment plan notification logs
+     */
+    public function treatmentPlanNotifications(): HasMany
+    {
+        return $this->hasMany(NotificationLog::class)
+            ->where('category', 'treatment_plan')
+            ->orderBy('created_at', 'desc');
     }
 
     /**

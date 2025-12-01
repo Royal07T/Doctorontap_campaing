@@ -406,6 +406,90 @@ class DashboardController extends Controller
     }
 
     /**
+     * Resend treatment plan to patient (Email + SMS)
+     * Includes delivery tracking for admin visibility
+     */
+    public function resendTreatmentPlan($id)
+    {
+        $consultation = Consultation::with('doctor')->findOrFail($id);
+
+        // Validate - treatment plan must exist
+        if (!$consultation->hasTreatmentPlan()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No treatment plan has been created for this consultation yet'
+            ], 400);
+        }
+
+        $results = [
+            'email' => ['sent' => false, 'message' => ''],
+            'sms' => ['sent' => false, 'message' => ''],
+        ];
+
+        // Send Email
+        try {
+            Mail::to($consultation->email)->send(new TreatmentPlanNotification($consultation));
+            $results['email'] = ['sent' => true, 'message' => 'Email sent successfully'];
+            
+            \Log::info('Treatment plan email resent by admin', [
+                'consultation_id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'email' => $consultation->email,
+                'admin_user' => auth()->user()->name ?? 'Unknown'
+            ]);
+        } catch (\Exception $e) {
+            $results['email'] = ['sent' => false, 'message' => $e->getMessage()];
+            \Log::error('Failed to resend treatment plan email', [
+                'consultation_id' => $consultation->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Send SMS
+        try {
+            $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+            $smsResult = $smsNotification->sendTreatmentPlanReady($consultation);
+            
+            if ($smsResult['success']) {
+                $results['sms'] = ['sent' => true, 'message' => 'SMS sent successfully'];
+                \Log::info('Treatment plan SMS resent by admin', [
+                    'consultation_id' => $consultation->id,
+                    'reference' => $consultation->reference,
+                    'mobile' => $consultation->mobile
+                ]);
+            } else {
+                $results['sms'] = ['sent' => false, 'message' => $smsResult['message'] ?? 'SMS failed'];
+            }
+        } catch (\Exception $e) {
+            $results['sms'] = ['sent' => false, 'message' => $e->getMessage()];
+            \Log::error('Failed to resend treatment plan SMS', [
+                'consultation_id' => $consultation->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Determine overall success
+        $anySuccess = $results['email']['sent'] || $results['sms']['sent'];
+        $allSuccess = $results['email']['sent'] && $results['sms']['sent'];
+
+        if ($allSuccess) {
+            $message = 'Treatment plan resent successfully via Email and SMS';
+        } elseif ($anySuccess) {
+            $sent = $results['email']['sent'] ? 'Email' : 'SMS';
+            $failed = !$results['email']['sent'] ? 'Email' : 'SMS';
+            $message = "Treatment plan sent via {$sent}. {$failed} failed: " . $results[strtolower($failed)]['message'];
+        } else {
+            $message = 'Failed to resend treatment plan. Email: ' . $results['email']['message'] . '. SMS: ' . $results['sms']['message'];
+        }
+
+        return response()->json([
+            'success' => $anySuccess,
+            'message' => $message,
+            'details' => $results
+        ], $anySuccess ? 200 : 500);
+    }
+
+    /**
      * Manually mark consultation payment as paid (for offline payments)
      * This is used when patients pay through bank transfer, cash, POS, etc.
      */

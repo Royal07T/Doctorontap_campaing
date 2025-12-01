@@ -401,6 +401,9 @@
                 </div>
                 @endif
 
+                {{-- DELIVERY TRACKING: Shows if emails/SMS were delivered --}}
+                @include('components.notification-delivery-status', ['consultation' => $consultation])
+
                 <!-- Timestamps -->
                 <div class="bg-white rounded-xl shadow-md p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-4">Timestamps</h3>

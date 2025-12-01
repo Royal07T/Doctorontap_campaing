@@ -201,10 +201,15 @@
                                                     class="text-blue-600 hover:text-blue-900 font-medium mr-3 transition-colors">
                                                 Update
                                             </button>
-                                            @if($consultation->status !== 'completed')
-                                            <button onclick="createTreatmentPlan({{ $consultation->id }})"
+                                            @if($consultation->treatment_plan_created)
+                                            <button onclick="createTreatmentPlan({{ $consultation->id }}, true)"
+                                                    class="text-orange-600 hover:text-orange-900 font-medium transition-colors">
+                                                📝 Edit Plan
+                                            </button>
+                                            @elseif($consultation->status !== 'completed')
+                                            <button onclick="createTreatmentPlan({{ $consultation->id }}, false)"
                                                     class="text-green-600 hover:text-green-900 font-medium transition-colors">
-                                                Treatment Plan
+                                                ➕ Create Plan
                                             </button>
                                             @endif
                                         </td>
@@ -372,6 +377,26 @@
                 document.getElementById('statusForm').reset();
                 currentConsultationId = null;
             }
+            if (modalId === 'treatmentPlanModal') {
+                closeTreatmentPlanModal();
+            }
+        }
+
+        function closeTreatmentPlanModal() {
+            // Stop auto-save
+            stopAutoSave();
+            
+            // Hide modal
+            document.getElementById('treatmentPlanModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            
+            // Reset form
+            document.getElementById('treatmentPlanForm').reset();
+            document.getElementById('medicationsContainer').innerHTML = '';
+            document.getElementById('referralsContainer').innerHTML = '';
+            
+            // Reset consultation ID
+            currentConsultationId = null;
         }
 
         function submitStatusUpdate(event) {
@@ -459,8 +484,10 @@
         }
 
         // Treatment Plan Functions
+        let autoSaveInterval = null;
+        let lastAutoSave = null;
 
-        function createTreatmentPlan(consultationId) {
+        function createTreatmentPlan(consultationId, isEdit = false) {
             currentConsultationId = consultationId;
             
             // Reset form fields
@@ -471,9 +498,202 @@
             document.getElementById('medicationsContainer').innerHTML = '';
             document.getElementById('referralsContainer').innerHTML = '';
             
+            // Update modal title and button based on edit mode
+            const modalTitle = document.getElementById('treatmentPlanModalTitle');
+            const submitButton = document.getElementById('treatmentPlanSubmitButton');
+            
+            if (isEdit) {
+                modalTitle.textContent = 'Update Treatment Plan';
+                submitButton.textContent = 'Update Treatment Plan';
+                // Load existing treatment plan data
+                loadExistingTreatmentPlan(consultationId);
+            } else {
+                modalTitle.textContent = 'Create Treatment Plan';
+                submitButton.textContent = 'Create Treatment Plan';
+                // Load patient's previous medical history
+                loadPatientHistory(consultationId);
+            }
+            
             // Show modal
             document.getElementById('treatmentPlanModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            
+            // Start auto-save
+            startAutoSave();
+        }
+
+        function loadExistingTreatmentPlan(consultationId) {
+            // Find consultation data from the table
+            fetch(`/doctor/consultations/${consultationId}`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.consultation) {
+                    const c = data.consultation;
+                    
+                    // Populate form fields
+                    document.getElementById('presenting_complaint').value = c.presenting_complaint || '';
+                    document.getElementById('history_of_complaint').value = c.history_of_complaint || '';
+                    document.getElementById('past_medical_history').value = c.past_medical_history || '';
+                    document.getElementById('family_history').value = c.family_history || '';
+                    document.getElementById('drug_history').value = c.drug_history || '';
+                    document.getElementById('social_history').value = c.social_history || '';
+                    document.getElementById('diagnosis').value = c.diagnosis || '';
+                    document.getElementById('investigation').value = c.investigation || '';
+                    document.getElementById('treatment_plan').value = c.treatment_plan || '';
+                    document.getElementById('follow_up_instructions').value = c.follow_up_instructions || '';
+                    document.getElementById('lifestyle_recommendations').value = c.lifestyle_recommendations || '';
+                    document.getElementById('next_appointment_date').value = c.next_appointment_date || '';
+                    document.getElementById('additional_notes').value = c.additional_notes || '';
+                    
+                    // Load medications
+                    if (c.prescribed_medications && Array.isArray(c.prescribed_medications)) {
+                        c.prescribed_medications.forEach(med => {
+                            addMedication();
+                            const container = document.getElementById('medicationsContainer');
+                            const lastMed = container.lastElementChild;
+                            lastMed.querySelector('[name*="[name]"]').value = med.name || '';
+                            lastMed.querySelector('[name*="[dosage]"]').value = med.dosage || '';
+                            lastMed.querySelector('[name*="[frequency]"]').value = med.frequency || '';
+                            lastMed.querySelector('[name*="[duration]"]').value = med.duration || '';
+                        });
+                    }
+                    
+                    // Load referrals
+                    if (c.referrals && Array.isArray(c.referrals)) {
+                        c.referrals.forEach(ref => {
+                            addReferral();
+                            const container = document.getElementById('referralsContainer');
+                            const lastRef = container.lastElementChild;
+                            lastRef.querySelector('[name*="[specialist]"]').value = ref.specialist || '';
+                            lastRef.querySelector('[name*="[reason]"]').value = ref.reason || '';
+                            lastRef.querySelector('[name*="[urgency]"]').value = ref.urgency || 'routine';
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading treatment plan:', error);
+            });
+        }
+
+        function loadPatientHistory(consultationId) {
+            // Show loading indicator
+            const historyBtn = document.getElementById('loadHistoryBtn');
+            if (historyBtn) {
+                const originalText = historyBtn.innerHTML;
+                historyBtn.innerHTML = '🔄 Loading...';
+                historyBtn.disabled = true;
+                
+                fetch(`/doctor/consultations/${consultationId}/patient-history`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.has_history && data.history) {
+                        // Pre-fill history fields
+                        document.getElementById('past_medical_history').value = data.history.past_medical_history || '';
+                        document.getElementById('family_history').value = data.history.family_history || '';
+                        document.getElementById('drug_history').value = data.history.drug_history || '';
+                        document.getElementById('social_history').value = data.history.social_history || '';
+                        
+                        showAlertModal(`✅ Patient history loaded from ${data.history.last_consultation_date}`, 'success');
+                    } else {
+                        showAlertModal('ℹ️ No previous medical history found for this patient', 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading patient history:', error);
+                    showAlertModal('❌ Failed to load patient history', 'error');
+                })
+                .finally(() => {
+                    historyBtn.innerHTML = originalText;
+                    historyBtn.disabled = false;
+                });
+            }
+        }
+
+        function startAutoSave() {
+            // Clear any existing interval
+            stopAutoSave();
+            
+            // Auto-save every 30 seconds
+            autoSaveInterval = setInterval(() => {
+                autoSaveTreatmentPlan();
+            }, 30000);
+        }
+
+        function stopAutoSave() {
+            if (autoSaveInterval) {
+                clearInterval(autoSaveInterval);
+                autoSaveInterval = null;
+            }
+        }
+
+        function autoSaveTreatmentPlan() {
+            if (!currentConsultationId) return;
+            
+            const form = document.getElementById('treatmentPlanForm');
+            const formData = new FormData(form);
+            const data = {};
+            
+            // Convert FormData to object
+            for (let [key, value] of formData.entries()) {
+                if (key.includes('[') && key.includes(']')) {
+                    const parts = key.split('[');
+                    const field = parts[0];
+                    const index = parts[1].split(']')[0];
+                    const subfield = parts[2].split(']')[0];
+                    
+                    if (!data[field]) data[field] = [];
+                    if (!data[field][index]) data[field][index] = {};
+                    data[field][index][subfield] = value;
+                } else {
+                    data[key] = value;
+                }
+            }
+            
+            // Submit auto-save
+            fetch(`/doctor/consultations/${currentConsultationId}/auto-save-treatment-plan`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    lastAutoSave = data.timestamp;
+                    showAutoSaveNotification();
+                }
+            })
+            .catch(error => {
+                console.error('Auto-save failed:', error);
+            });
+        }
+
+        function showAutoSaveNotification() {
+            const notification = document.getElementById('autoSaveNotification');
+            if (notification) {
+                notification.classList.remove('hidden');
+                notification.textContent = `✓ Draft saved at ${lastAutoSave}`;
+                
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 2000);
+            }
         }
 
         function submitTreatmentPlan(event) {
@@ -625,14 +845,25 @@
     <!-- Treatment Plan Modal -->
     <div id="treatmentPlanModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-5 mx-auto p-6 border w-full max-w-6xl shadow-2xl rounded-2xl bg-white my-5">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <h3 class="text-2xl font-bold text-gray-900">Create Treatment Plan</h3>
-                <button onclick="closeModal('treatmentPlanModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                <div>
+                    <h3 id="treatmentPlanModalTitle" class="text-2xl font-bold text-gray-900">Create Treatment Plan</h3>
+                    <p id="autoSaveNotification" class="hidden text-sm text-green-600 mt-1"></p>
+                </div>
+                <button onclick="closeTreatmentPlanModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
+            
+            <!-- Load Previous History Button -->
+            <div class="mb-4">
+                <button type="button" id="loadHistoryBtn" onclick="loadPatientHistory(currentConsultationId)" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                    📋 Load Patient's Previous Medical History
+                </button>
+            </div>
+            
             <form id="treatmentPlanForm" onsubmit="submitTreatmentPlan(event)">
                 <div class="space-y-6">
                     <!-- Section 1: Presenting Complaint / History -->
@@ -808,10 +1039,10 @@
 
                     <!-- Submit Button -->
                     <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                        <button type="button" onclick="closeModal('treatmentPlanModal')" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        <button type="button" onclick="closeTreatmentPlanModal()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                        <button type="submit" id="treatmentPlanSubmitButton" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
                             Create Treatment Plan
                         </button>
                     </div>

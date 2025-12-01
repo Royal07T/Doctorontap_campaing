@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test - DoctorOnTap</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#9333EA">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        h1 {
+            color: #1f2937;
+            margin-bottom: 24px;
+            font-size: 2rem;
+        }
+        
+        .test-section {
+            margin-bottom: 32px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #9333EA;
+        }
+        
+        .test-section h2 {
+            color: #374151;
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+        
+        .status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .status.success {
+            background: #10b981;
+        }
+        
+        .status.error {
+            background: #ef4444;
+        }
+        
+        .status.pending {
+            background: #f59e0b;
+        }
+        
+        button {
+            background: #9333EA;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #7E22CE;
+            transform: translateY(-2px);
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .icon-item {
+            text-align: center;
+        }
+        
+        .icon-item img {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .icon-item span {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 PWA Test Dashboard</h1>
+        
+        <!-- Basic Tests -->
+        <div class="test-section">
+            <h2>Basic Requirements</h2>
+            <div id="basic-tests"></div>
+        </div>
+        
+        <!-- Service Worker -->
+        <div class="test-section">
+            <h2>Service Worker</h2>
+            <div id="sw-tests"></div>
+            <button onclick="testOffline()">Test Offline Mode</button>
+        </div>
+        
+        <!-- Manifest -->
+        <div class="test-section">
+            <h2>Web App Manifest</h2>
+            <div id="manifest-tests"></div>
+        </div>
+        
+        <!-- Icons -->
+        <div class="test-section">
+            <h2>PWA Icons</h2>
+            <div class="icon-grid" id="icons-grid"></div>
+        </div>
+        
+        <!-- Installation -->
+        <div class="test-section">
+            <h2>Installation</h2>
+            <div id="install-tests"></div>
+            <button id="install-btn" style="display: none;">Install PWA</button>
+        </div>
+        
+        <!-- Console Log -->
+        <div class="test-section">
+            <h2>Test Log</h2>
+            <div class="log" id="test-log"></div>
+        </div>
+    </div>
+    
+    <script>
+        const log = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            log.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            document.getElementById('test-log').textContent = log.join('\n');
+        }
+        
+        function createTestItem(text, status) {
+            const div = document.createElement('div');
+            div.className = 'test-item';
+            div.innerHTML = `
+                <div class="status ${status}"></div>
+                <div>${text}</div>
+            `;
+            return div;
+        }
+        
+        async function runTests() {
+            // Basic Tests
+            const basicContainer = document.getElementById('basic-tests');
+            
+            // HTTPS Check
+            const isHTTPS = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+            basicContainer.appendChild(createTestItem(
+                `HTTPS: ${isHTTPS ? 'Enabled' : 'Disabled (Required for PWA)'}`,
+                isHTTPS ? 'success' : 'error'
+            ));
+            addLog(`HTTPS check: ${isHTTPS ? 'PASS' : 'FAIL'}`);
+            
+            // Service Worker Support
+            const hasSW = 'serviceWorker' in navigator;
+            basicContainer.appendChild(createTestItem(
+                `Service Worker API: ${hasSW ? 'Supported' : 'Not Supported'}`,
+                hasSW ? 'success' : 'error'
+            ));
+            addLog(`Service Worker support: ${hasSW ? 'PASS' : 'FAIL'}`);
+            
+            // Manifest Support
+            const hasManifest = document.querySelector('link[rel="manifest"]') !== null;
+            basicContainer.appendChild(createTestItem(
+                `Manifest Link: ${hasManifest ? 'Present' : 'Missing'}`,
+                hasManifest ? 'success' : 'error'
+            ));
+            addLog(`Manifest link: ${hasManifest ? 'PASS' : 'FAIL'}`);
+            
+            // Service Worker Tests
+            const swContainer = document.getElementById('sw-tests');
+            
+            if (hasSW) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        swContainer.appendChild(createTestItem(
+                            'Service Worker: Registered',
+                            'success'
+                        ));
+                        addLog('Service Worker registered successfully');
+                        
+                        swContainer.appendChild(createTestItem(
+                            `Scope: ${registration.scope}`,
+                            'success'
+                        ));
+                        
+                        if (registration.active) {
+                            swContainer.appendChild(createTestItem(
+                                'State: Active',
+                                'success'
+                            ));
+                            addLog('Service Worker is active');
+                        }
+                    } else {
+                        swContainer.appendChild(createTestItem(
+                            'Service Worker: Not Registered',
+                            'error'
+                        ));
+                        addLog('Service Worker not registered', 'error');
+                    }
+                } catch (error) {
+                    swContainer.appendChild(createTestItem(
+                        `Error: ${error.message}`,
+                        'error'
+                    ));
+                    addLog(`Service Worker error: ${error.message}`, 'error');
+                }
+            }
+            
+            // Manifest Tests
+            const manifestContainer = document.getElementById('manifest-tests');
+            
+            try {
+                const response = await fetch('/manifest.json');
+                if (response.ok) {
+                    const manifest = await response.json();
+                    manifestContainer.appendChild(createTestItem(
+                        `Name: ${manifest.name || manifest.short_name}`,
+                        'success'
+                    ));
+                    manifestContainer.appendChild(createTestItem(
+                        `Icons: ${manifest.icons ? manifest.icons.length : 0} defined`,
+                        manifest.icons && manifest.icons.length > 0 ? 'success' : 'error'
+                    ));
+                    manifestContainer.appendChild(createTestItem(
+                        `Display: ${manifest.display}`,
+                        manifest.display === 'standalone' ? 'success' : 'pending'
+                    ));
+                    addLog('Manifest loaded successfully');
+                    
+                    // Load icons
+                    const iconsGrid = document.getElementById('icons-grid');
+                    if (manifest.icons) {
+                        manifest.icons.forEach(icon => {
+                            const iconDiv = document.createElement('div');
+                            iconDiv.className = 'icon-item';
+                            iconDiv.innerHTML = `
+                                <img src="${icon.src}" alt="${icon.sizes}" onerror="this.style.border='2px solid red'">
+                                <span>${icon.sizes}</span>
+                            `;
+                            iconsGrid.appendChild(iconDiv);
+                        });
+                    }
+                } else {
+                    manifestContainer.appendChild(createTestItem(
+                        'Manifest: Failed to load',
+                        'error'
+                    ));
+                    addLog('Failed to load manifest.json', 'error');
+                }
+            } catch (error) {
+                manifestContainer.appendChild(createTestItem(
+                    `Error: ${error.message}`,
+                    'error'
+                ));
+                addLog(`Manifest error: ${error.message}`, 'error');
+            }
+            
+            // Installation Tests
+            const installContainer = document.getElementById('install-tests');
+            
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                         window.navigator.standalone === true;
+            installContainer.appendChild(createTestItem(
+                `Running as PWA: ${isPWA ? 'Yes' : 'No'}`,
+                isPWA ? 'success' : 'pending'
+            ));
+            addLog(`PWA mode: ${isPWA}`);
+            
+            // Install prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                
+                installContainer.appendChild(createTestItem(
+                    'Install Prompt: Available',
+                    'success'
+                ));
+                addLog('Install prompt available');
+                
+                const btn = document.getElementById('install-btn');
+                btn.style.display = 'block';
+                btn.onclick = async () => {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    addLog(`Install prompt outcome: ${outcome}`);
+                    deferredPrompt = null;
+                    btn.style.display = 'none';
+                };
+            });
+        }
+        
+        function testOffline() {
+            addLog('Opening offline test in new tab');
+            window.open('/offline.html', '_blank');
+        }
+        
+        // Run tests on load
+        window.addEventListener('load', () => {
+            addLog('Starting PWA tests...');
+            runTests();
+        });
+        
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => addLog('Service Worker registered for test page'))
+                .catch(err => addLog(`Service Worker registration failed: ${err}`, 'error'));
+        }
+    </script>
+</body>
+</html>
+

@@ -5,6 +5,25 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
+        
+        <!-- PWA Meta Tags -->
+        <meta name="application-name" content="DoctorOnTap">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="DoctorOnTap">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#9333EA">
+        <meta name="msapplication-TileColor" content="#9333EA">
+        
+        <!-- Apple Touch Icons -->
+        <link rel="apple-touch-icon" sizes="152x152" href="{{ asset('img/pwa/icon-152x152.png') }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/pwa/icon-192x192.png') }}">
+        
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
+        
+        <!-- Web App Manifest -->
+        <link rel="manifest" href="{{ asset('manifest.json') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -273,5 +292,27 @@
         @if (Route::has('login'))
             <div class="h-14.5 hidden lg:block"></div>
         @endif
+        
+        <!-- PWA Service Worker Registration -->
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => {
+                            console.log('ServiceWorker registered:', registration.scope);
+                        })
+                        .catch(error => {
+                            console.log('ServiceWorker registration failed:', error);
+                        });
+                });
+            }
+            
+            // PWA Install Prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+            });
+        </script>
     </body>
 </html>

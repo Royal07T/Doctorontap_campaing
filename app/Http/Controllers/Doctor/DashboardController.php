@@ -237,6 +237,9 @@ class DashboardController extends Controller
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
             
+            // Check if it's an update or create
+            $isUpdate = $consultation->treatment_plan_created;
+            
             $validated = $request->validate([
                 // Medical Format Fields
                 'presenting_complaint' => 'required|string|max:2000',
@@ -265,7 +268,7 @@ class DashboardController extends Controller
             ]);
             
             // Update consultation with treatment plan
-            $consultation->update([
+            $updateData = [
                 // Medical Format Fields
                 'presenting_complaint' => $validated['presenting_complaint'],
                 'history_of_complaint' => $validated['history_of_complaint'],
@@ -284,36 +287,150 @@ class DashboardController extends Controller
                 'next_appointment_date' => $validated['next_appointment_date'] ?? null,
                 'additional_notes' => $validated['additional_notes'] ?? null,
                 'treatment_plan_created' => true,
-                'treatment_plan_created_at' => now(),
-                'status' => 'completed',
-                'consultation_completed_at' => now(),
+            ];
+            
+            // Only set these on first create, not on update
+            if (!$isUpdate) {
+                $updateData['treatment_plan_created_at'] = now();
+                $updateData['status'] = 'completed';
+                $updateData['consultation_completed_at'] = now();
+            }
+            
+            $consultation->update($updateData);
+
+            // Sync to patient medical history
+            $historyService = app(\App\Services\PatientMedicalHistoryService::class);
+            $historyService->syncConsultationToHistory($consultation);
+            
+            \Illuminate\Support\Facades\Log::info($isUpdate ? 'Treatment plan updated' : 'Treatment plan created', [
+                'consultation_id' => $consultation->id,
+                'doctor_id' => $doctor->id,
+                'is_update' => $isUpdate
             ]);
 
-            // Queue treatment plan ready email (before payment)
-            try {
-                Mail::to($consultation->email)->queue(new \App\Mail\TreatmentPlanReadyNotification($consultation));
-                \Illuminate\Support\Facades\Log::info('Treatment plan ready email queued successfully', [
-                    'consultation_id' => $consultation->id,
-                    'email' => $consultation->email
-                ]);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to queue treatment plan ready email', [
-                    'consultation_id' => $consultation->id,
-                    'email' => $consultation->email,
-                    'error' => $e->getMessage()
-                ]);
+            // Only send notification email on first create, not on update
+            if (!$isUpdate) {
+                try {
+                    Mail::to($consultation->email)->queue(new \App\Mail\TreatmentPlanReadyNotification($consultation));
+                    \Illuminate\Support\Facades\Log::info('Treatment plan ready email queued successfully', [
+                        'consultation_id' => $consultation->id,
+                        'email' => $consultation->email
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to queue treatment plan ready email', [
+                        'consultation_id' => $consultation->id,
+                        'email' => $consultation->email,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             
             return response()->json([
                 'success' => true,
-                'message' => 'Treatment plan created successfully! Patient will need to pay to access it.',
-                'treatment_plan_created' => true
+                'message' => $isUpdate 
+                    ? 'Treatment plan updated successfully! Changes saved to patient medical history.' 
+                    : 'Treatment plan created successfully! Patient will need to pay to access it.',
+                'treatment_plan_created' => true,
+                'is_update' => $isUpdate
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to save treatment plan', [
+                'consultation_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save treatment plan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Auto-save treatment plan (draft mode)
+     */
+    public function autoSaveTreatmentPlan(Request $request, $id)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+            
+            $consultation = Consultation::where('id', $id)
+                                       ->where('doctor_id', $doctor->id)
+                                       ->firstOrFail();
+            
+            // Save whatever data is provided (no validation for drafts)
+            $data = $request->only([
+                'presenting_complaint',
+                'history_of_complaint',
+                'past_medical_history',
+                'family_history',
+                'drug_history',
+                'social_history',
+                'diagnosis',
+                'investigation',
+                'treatment_plan',
+                'prescribed_medications',
+                'follow_up_instructions',
+                'lifestyle_recommendations',
+                'referrals',
+                'next_appointment_date',
+                'additional_notes',
+            ]);
+            
+            $consultation->update($data);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Draft saved',
+                'timestamp' => now()->format('H:i:s')
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to auto-save treatment plan', [
+                'consultation_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Auto-save failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get patient's previous medical history for pre-filling
+     */
+    public function getPatientHistory($id)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+            
+            $consultation = Consultation::where('id', $id)
+                                       ->where('doctor_id', $doctor->id)
+                                       ->firstOrFail();
+            
+            $historyService = app(\App\Services\PatientMedicalHistoryService::class);
+            $previousHistory = $historyService->getPreviousHistoryForConsultation($consultation);
+            
+            return response()->json([
+                'success' => true,
+                'has_history' => $previousHistory !== null,
+                'history' => $previousHistory ? [
+                    'past_medical_history' => $previousHistory->past_medical_history,
+                    'family_history' => $previousHistory->family_history,
+                    'drug_history' => $previousHistory->drug_history,
+                    'social_history' => $previousHistory->social_history,
+                    'last_consultation_date' => $previousHistory->consultation_date->format('Y-m-d'),
+                ] : null
             ]);
             
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create treatment plan: ' . $e->getMessage()
+                'message' => 'Failed to load patient history'
             ], 500);
         }
     }
