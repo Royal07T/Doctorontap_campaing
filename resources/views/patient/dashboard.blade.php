@@ -15,7 +15,7 @@
         /* Carousel Animation */
         @keyframes scroll {
             0% { transform: translateX(0); }
-            100% { transform: translateX(calc(-250px * 7)); }
+            100% { transform: translateX(calc(-250px * var(--specialization-count, 18))); }
         }
         
         @keyframes scroll-symptoms {
@@ -24,7 +24,7 @@
         }
         
         .animate-scroll {
-            animation: scroll 30s linear infinite;
+            animation: scroll calc(var(--specialization-count, 18) * 2s) linear infinite;
         }
         
         .animate-scroll-symptoms {
@@ -246,7 +246,7 @@
                     
                     <div class="bg-white rounded-lg shadow-sm p-6 overflow-hidden">
                         <div class="relative">
-                            <div class="flex space-x-4 animate-scroll">
+                            <div class="flex space-x-4 animate-scroll" style="--specialization-count: {{ $specializations->count() }};">
                                 @foreach($specializations as $specialization)
                                     <a href="{{ route('patient.doctors-by-specialization', urlencode($specialization)) }}" 
                                        class="flex-shrink-0 w-[240px] bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">

@@ -53,23 +53,19 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
-        // Get doctor specializations for carousel
-        // First try to get from specialties table, then fallback to doctor specializations
+        // Get all active specialties from database for carousel
         $specializations = Specialty::active()
-            ->whereHas('doctors', function($query) {
-                $query->where('is_approved', true);
-            })
-            ->pluck('name')
-            ->take(10);
+            ->orderBy('name')
+            ->pluck('name');
         
-        // If no specialties found, fallback to doctor specializations
+        // If no specialties found in database, fallback to doctor specializations
         if ($specializations->isEmpty()) {
             $specializations = \App\Models\Doctor::whereNotNull('specialization')
                 ->where('specialization', '!=', '')
                 ->where('is_approved', true)
                 ->distinct()
-                ->pluck('specialization')
-                ->take(10);
+                ->orderBy('specialization')
+                ->pluck('specialization');
         }
 
         // Symptoms with their related specializations (mapped to database specialties)
