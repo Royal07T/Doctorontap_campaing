@@ -296,17 +296,23 @@ class DashboardController extends Controller
     /**
      * Show new consultation form
      */
-    public function newConsultation()
+    public function newConsultation(Request $request)
     {
         $patient = Auth::guard('patient')->user();
         $doctors = Doctor::available()->ordered()->get();
         $specialties = Specialty::active()->orderBy('name')->get();
         
-        // Get consultation fees from settings
-        $payLaterFee = Setting::where('key', 'pay_later_consultation_fee')->value('value') ?? 0;
-        $payNowFee = Setting::where('key', 'pay_now_consultation_fee')->value('value') ?? 0;
+        // Get consultation fees from settings (check both possible key names)
+        $payLaterFee = Setting::get('consultation_fee_pay_later', Setting::get('pay_later_consultation_fee', 5000));
+        $payNowFee = Setting::get('consultation_fee_pay_now', Setting::get('pay_now_consultation_fee', 4500));
         
-        return view('patient.new-consultation', compact('patient', 'doctors', 'specialties', 'payLaterFee', 'payNowFee'));
+        // Get pre-selected consultation type from query parameter
+        $selectedType = $request->get('type', 'pay_later');
+        if (!in_array($selectedType, ['pay_now', 'pay_later'])) {
+            $selectedType = 'pay_later';
+        }
+        
+        return view('patient.new-consultation', compact('patient', 'doctors', 'specialties', 'payLaterFee', 'payNowFee', 'selectedType'));
     }
 
     /**

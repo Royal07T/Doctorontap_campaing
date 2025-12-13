@@ -28,7 +28,7 @@
             <h3 class="text-lg font-bold text-gray-800 mb-4">Consultation Type</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label class="relative cursor-pointer">
-                    <input type="radio" name="consultation_type" value="pay_later" class="peer hidden" checked>
+                    <input type="radio" name="consultation_type" value="pay_later" class="peer hidden" {{ ($selectedType ?? 'pay_later') === 'pay_later' ? 'checked' : '' }}>
                     <div class="border-2 border-gray-300 rounded-lg p-5 hover:border-purple-500 transition-all peer-checked:border-purple-600 peer-checked:bg-purple-50">
                         <div class="flex items-center justify-between mb-2">
                             <h4 class="font-semibold text-gray-800">Consult Now, Pay Later</h4>
@@ -41,7 +41,7 @@
                     </div>
                 </label>
                 <label class="relative cursor-pointer">
-                    <input type="radio" name="consultation_type" value="pay_now" class="peer hidden">
+                    <input type="radio" name="consultation_type" value="pay_now" class="peer hidden" {{ ($selectedType ?? 'pay_later') === 'pay_now' ? 'checked' : '' }}>
                     <div class="border-2 border-gray-300 rounded-lg p-5 hover:border-purple-500 transition-all peer-checked:border-purple-600 peer-checked:bg-purple-50">
                         <div class="flex items-center justify-between mb-2">
                             <h4 class="font-semibold text-gray-800">Pay Before Consultation</h4>
