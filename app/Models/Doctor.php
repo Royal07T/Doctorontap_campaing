@@ -119,6 +119,28 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the specialty model for this doctor
+     */
+    public function specialtyModel()
+    {
+        if (!$this->specialization) {
+            return null;
+        }
+        
+        return Specialty::where('name', $this->specialization)
+            ->orWhere('slug', $this->specialization)
+            ->first();
+    }
+
+    /**
+     * Get specialty relationship (using name matching since we use string field)
+     */
+    public function specialty()
+    {
+        return $this->belongsTo(Specialty::class, 'specialization', 'name');
+    }
+
+    /**
      * Get average rating
      */
     public function getAverageRatingAttribute()
