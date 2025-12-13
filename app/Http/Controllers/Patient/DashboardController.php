@@ -95,7 +95,7 @@ class DashboardController extends Controller
      */
     public function doctorsBySymptom($symptom)
     {
-        // Map symptoms to specializations
+        // Map symptoms to specializations (slug format: lowercase with hyphens)
         $symptomMap = [
             'menstruation-flow' => 'Gynecology',
             'rashes' => 'Dermatology',
@@ -110,6 +110,9 @@ class DashboardController extends Controller
             'skin-issues' => 'Dermatology',
             'chest-pain' => 'Cardiology',
         ];
+        
+        // Normalize the symptom slug
+        $symptom = strtolower(str_replace(' ', '-', $symptom));
 
         $specialization = $symptomMap[$symptom] ?? null;
         
