@@ -163,6 +163,23 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the photo URL
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if (!$this->photo) {
+            return null;
+        }
+
+        // Check if file exists in public storage
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->photo)) {
+            return \Illuminate\Support\Facades\Storage::url($this->photo);
+        }
+
+        return null;
+    }
+
+    /**
      * Get the full name of the doctor
      */
     public function getFullNameAttribute()

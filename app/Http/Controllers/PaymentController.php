@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
@@ -160,6 +161,7 @@ class PaymentController extends Controller
                 'reference' => $reference,
                 'payment_id' => $payment ? $payment->id : null
             ]);
+
             
             return view('payment.success', [
                 'payment' => $payment,
@@ -372,6 +374,7 @@ class PaymentController extends Controller
                         $consultation->update([
                             'payment_status' => 'paid',
                             'payment_id' => $payment->id,
+                            'payment_completed_at' => now(),
                         ]);
                         
                         Log::info('Consultation payment status updated to PAID', [
@@ -393,8 +396,8 @@ class PaymentController extends Controller
                         
                         // Send treatment plan notification email AFTER payment confirmation
                         try {
-                            \Illuminate\Support\Facades\Mail::to($consultation->email)
-                                ->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                            Mail::to($consultation->email)
+                                ->queue(new \App\Mail\TreatmentPlanNotification($consultation));
                             
                             Log::info('Treatment plan notification email sent', [
                                 'consultation_id' => $consultation->id,
@@ -1074,4 +1077,5 @@ class PaymentController extends Controller
             ];
         }
     }
+
 }

@@ -37,13 +37,8 @@
                     <p class="text-sm text-gray-600 mb-2">Doctor</p>
                     @if($consultation->doctor)
                         <div class="flex items-center space-x-3">
-                            @php
-                                $photoUrl = $consultation->doctor->photo && \Storage::disk('public')->exists($consultation->doctor->photo) 
-                                    ? \Storage::url($consultation->doctor->photo) 
-                                    : null;
-                            @endphp
-                            @if($photoUrl)
-                                <img src="{{ $photoUrl }}" alt="Dr. {{ $consultation->doctor->name }}" class="w-12 h-12 rounded-full object-cover border-2 border-purple-200 shadow-md">
+                            @if($consultation->doctor->photo_url)
+                                <img src="{{ $consultation->doctor->photo_url }}" alt="Dr. {{ $consultation->doctor->name }}" class="w-12 h-12 rounded-full object-cover border-2 border-purple-200 shadow-md">
                             @else
                                 <div class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-purple-200 shadow-md">
                                     {{ substr($consultation->doctor->name, 0, 1) }}

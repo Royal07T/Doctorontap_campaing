@@ -395,6 +395,7 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     
     // Payments
     Route::get('/payments', [\App\Http\Controllers\Patient\DashboardController::class, 'payments'])->name('payments');
+    Route::post('/consultations/{id}/pay', [\App\Http\Controllers\Patient\DashboardController::class, 'initiatePayment'])->name('consultation.pay');
     
     // Doctors
     Route::get('/doctors', [\App\Http\Controllers\Patient\DashboardController::class, 'doctors'])->name('doctors');

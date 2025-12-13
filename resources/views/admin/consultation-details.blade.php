@@ -217,34 +217,49 @@
                 </div>
 
                 <!-- Payment Information -->
-                @if($consultation->payment)
+                @if($consultation->payment || $consultation->payment_status)
                 <div class="bg-white rounded-xl shadow-md p-6">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Payment Information</h2>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Amount</label>
-                            <p class="text-xl font-bold text-gray-900">NGN {{ number_format($consultation->payment->amount, 2) }}</p>
+                            @if($consultation->payment)
+                                <p class="text-xl font-bold text-gray-900">NGN {{ number_format($consultation->payment->amount, 2) }}</p>
+                            @else
+                                <p class="text-xl font-bold text-gray-500">Not Paid</p>
+                            @endif
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Status</label>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">Payment Status</label>
                             <span class="inline-flex px-4 py-2 rounded-full text-sm font-semibold
-                                {{ $consultation->payment->status === 'paid' ? 'bg-green-100 text-green-800' : '' }}
-                                {{ $consultation->payment->status === 'unpaid' ? 'bg-red-100 text-red-800' : '' }}
-                                {{ $consultation->payment->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}">
-                                {{ ucfirst($consultation->payment->status) }}
+                                {{ $consultation->payment_status === 'paid' ? 'bg-green-100 text-green-800' : '' }}
+                                {{ $consultation->payment_status === 'unpaid' ? 'bg-red-100 text-red-800' : '' }}
+                                {{ $consultation->payment_status === 'pending' || $consultation->payment_status === 'pending_payment' ? 'bg-yellow-100 text-yellow-800' : '' }}">
+                                {{ ucfirst($consultation->payment_status ?? 'unpaid') }}
                             </span>
                         </div>
-                        @if($consultation->payment->transaction_id)
+                        @if($consultation->payment && $consultation->payment->transaction_id)
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Transaction ID</label>
                             <p class="text-base text-gray-900 font-mono">{{ $consultation->payment->transaction_id }}</p>
                         </div>
                         @endif
-                        @if($consultation->payment->paid_at)
+                        @if($consultation->payment_completed_at)
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">Payment Completed At</label>
+                            <p class="text-base text-gray-900">{{ $consultation->payment_completed_at->format('M d, Y h:i A') }}</p>
+                        </div>
+                        @elseif($consultation->payment && $consultation->payment->paid_at)
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Paid At</label>
                             <p class="text-base text-gray-900">{{ $consultation->payment->paid_at->format('M d, Y h:i A') }}</p>
+                        </div>
+                        @endif
+                        @if($consultation->payment && $consultation->payment->reference)
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">Payment Reference</label>
+                            <p class="text-base text-gray-900 font-mono">{{ $consultation->payment->reference }}</p>
                         </div>
                         @endif
                     </div>

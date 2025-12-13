@@ -33,10 +33,10 @@
             <!-- User Info -->
             <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
                 <div class="flex items-center space-x-3">
-                    @if($doctor->photo)
-                        <img src="{{ Storage::url($doctor->photo) }}" alt="Profile" class="w-10 h-10 rounded-full object-cover">
+                    @if($doctor->photo_url)
+                        <img src="{{ $doctor->photo_url }}" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
                     @else
-                        <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+                        <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
                             {{ substr($doctor->name, 0, 1) }}
                         </div>
                     @endif
@@ -177,8 +177,8 @@
             <h2 class="text-lg font-bold text-gray-800 mb-4">Profile Photo</h2>
             <div class="flex items-center space-x-6">
                 <div class="flex-shrink-0">
-                    @if($doctor->photo)
-                        <img src="{{ Storage::url($doctor->photo) }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border-4 border-purple-200">
+                    @if($doctor->photo_url)
+                        <img src="{{ $doctor->photo_url }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border-4 border-purple-200">
                     @else
                         <div class="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center border-4 border-purple-200">
                             <span class="text-3xl font-bold text-purple-600">{{ substr($doctor->name, 0, 1) }}</span>

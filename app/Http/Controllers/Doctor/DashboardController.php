@@ -216,7 +216,7 @@ class DashboardController extends Controller
                     'gender' => ucfirst($consultation->gender),
                     'symptoms' => $consultation->problem,
                     'status' => ucfirst($consultation->status),
-                    'payment_status' => $consultation->payment ? ucfirst($consultation->payment->status) : 'Pending',
+                    'payment_status' => ucfirst($consultation->payment_status ?? 'unpaid'),
                     'created_at' => $consultation->created_at->format('M d, Y h:i A'),
                     'medical_documents' => $consultation->medical_documents,
                     'doctor_notes' => $consultation->doctor_notes,
@@ -636,16 +636,48 @@ class DashboardController extends Controller
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
-            if ($doctor->photo && Storage::disk('public')->exists($doctor->photo)) {
-                Storage::disk('public')->delete($doctor->photo);
-            }
+            try {
+                // Delete old photo if exists
+                if ($doctor->photo && Storage::disk('public')->exists($doctor->photo)) {
+                    Storage::disk('public')->delete($doctor->photo);
+                }
 
-            // Store new photo
-            $photo = $request->file('photo');
-            $photoName = 'doctors/' . Str::slug($doctor->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
-            $photo->storeAs('public', $photoName);
-            $validated['photo'] = $photoName;
+                // Store new photo
+                $photo = $request->file('photo');
+                $fileName = Str::slug($doctor->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+                
+                // Use putFileAs which properly handles the file stream
+                // This stores the file at storage/app/public/doctors/filename.jpg
+                // and returns the path 'doctors/filename.jpg'
+                $path = Storage::disk('public')->putFileAs('doctors', $photo, $fileName);
+                
+                // Verify the file was stored
+                if ($path && Storage::disk('public')->exists($path)) {
+                    $validated['photo'] = $path;
+                    
+                    \Log::info('Photo uploaded successfully', [
+                        'doctor_id' => $doctor->id,
+                        'photo_path' => $path,
+                        'url' => Storage::url($path)
+                    ]);
+                } else {
+                    \Log::error('Photo upload failed - file not found after storage', [
+                        'doctor_id' => $doctor->id,
+                        'photo_name' => $photoName,
+                        'path' => $path
+                    ]);
+                    
+                    return redirect()->back()->with('error', 'Failed to upload photo. Please try again.');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Photo upload exception', [
+                    'doctor_id' => $doctor->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+            }
         }
 
         // Update doctor

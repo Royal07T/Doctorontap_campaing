@@ -33,13 +33,8 @@
             <!-- User Info -->
             <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
                 <div class="flex items-center space-x-3">
-                    @php
-                        $photoUrl = $doctor->photo && \Storage::disk('public')->exists($doctor->photo) 
-                            ? \Storage::url($doctor->photo) 
-                            : null;
-                    @endphp
-                    @if($photoUrl)
-                        <img src="{{ $photoUrl }}" alt="Dr. {{ $doctor->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+                    @if($doctor->photo_url)
+                        <img src="{{ $doctor->photo_url }}" alt="Dr. {{ $doctor->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
                     @else
                         <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
                             {{ substr($doctor->name, 0, 1) }}

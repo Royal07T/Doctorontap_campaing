@@ -55,13 +55,8 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
                 <!-- Doctor Photo/Avatar -->
                 <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-6 text-center">
-                    @php
-                        $photoUrl = $doctor->photo && \Storage::disk('public')->exists($doctor->photo) 
-                            ? \Storage::url($doctor->photo) 
-                            : null;
-                    @endphp
-                    @if($photoUrl)
-                        <img src="{{ $photoUrl }}" alt="Dr. {{ $doctor->name }}" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg">
+                    @if($doctor->photo_url)
+                        <img src="{{ $doctor->photo_url }}" alt="Dr. {{ $doctor->name }}" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg">
                     @else
                         <div class="w-24 h-24 rounded-full bg-purple-600 flex items-center justify-center mx-auto border-4 border-white shadow-lg">
                             <span class="text-3xl font-bold text-white">{{ substr($doctor->name, 0, 1) }}</span>

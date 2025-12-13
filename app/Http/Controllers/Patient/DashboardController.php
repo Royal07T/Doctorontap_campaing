@@ -422,9 +422,9 @@ class DashboardController extends Controller
     {
         $patient = Auth::guard('patient')->user();
         
+        // Get all consultations (both paid and unpaid)
         $consultations = $patient->consultations()
             ->with(['doctor', 'payment'])
-            ->whereNotNull('payment_id')
             ->latest()
             ->paginate(15);
 
@@ -436,16 +436,70 @@ class DashboardController extends Controller
             ->where('consultations.payment_status', 'paid')
             ->sum('payments.amount');
 
+        // Get pending payments (unpaid consultations)
+        $pendingConsultations = $patient->consultations()
+            ->with('doctor')
+            ->where(function($query) {
+                $query->where('payment_status', '!=', 'paid')
+                      ->orWhereNull('payment_status');
+            })
+            ->where(function($query) {
+                $query->where('status', 'completed')
+                      ->orWhere('status', 'pending_payment');
+            })
+            ->latest()
+            ->get();
+
         $stats = [
             'total_paid' => $totalPaid,
             'paid_consultations' => $patient->consultations()->where('payment_status', 'paid')->count(),
-            'pending_payments' => $patient->consultations()
-                ->where('status', 'completed')
-                ->where('payment_status', '!=', 'paid')
-                ->count(),
+            'pending_payments' => $pendingConsultations->count(),
         ];
 
-        return view('patient.payments', compact('consultations', 'stats'));
+        return view('patient.payments', compact('consultations', 'pendingConsultations', 'stats'));
+    }
+
+    /**
+     * Initiate payment for a consultation
+     */
+    public function initiatePayment($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $consultation = $patient->consultations()
+            ->with('doctor')
+            ->findOrFail($id);
+
+        // Check if already paid
+        if ($consultation->isPaid()) {
+            return redirect()->route('patient.payments')
+                ->with('error', 'This consultation has already been paid for.');
+        }
+
+        // Check if doctor is assigned
+        if (!$consultation->doctor) {
+            return redirect()->route('patient.payments')
+                ->with('error', 'No doctor assigned to this consultation yet.');
+        }
+
+        // Determine fee based on consultation type
+        $fee = 0;
+        if ($consultation->consultation_type === 'pay_now') {
+            $fee = \App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500));
+        } elseif ($consultation->consultation_type === 'pay_later') {
+            $fee = \App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000));
+        } else {
+            // Fallback to doctor's effective fee
+            $fee = $consultation->doctor->effective_consultation_fee ?? 0;
+        }
+
+        if ($fee <= 0) {
+            return redirect()->route('patient.payments')
+                ->with('error', 'No payment is required for this consultation.');
+        }
+
+        // Redirect to payment request page
+        return redirect()->route('payment.request', ['reference' => $consultation->reference]);
     }
 
     /**

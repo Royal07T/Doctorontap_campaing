@@ -36,8 +36,8 @@
                     @php
                         $doctor = Auth::guard('doctor')->user();
                     @endphp
-                    @if($doctor->photo && \Storage::disk('public')->exists($doctor->photo))
-                        <img src="{{ \Storage::url($doctor->photo) }}" alt="Dr. {{ $doctor->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+                    @if($doctor->photo_url)
+                        <img src="{{ $doctor->photo_url }}" alt="Dr. {{ $doctor->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
                     @else
                         <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
                             {{ substr($doctor->name, 0, 1) }}

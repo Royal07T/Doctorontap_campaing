@@ -49,6 +49,79 @@
     </div>
 </div>
 
+<!-- Pending Payments Section -->
+@if(isset($pendingConsultations) && $pendingConsultations->count() > 0)
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div class="p-6 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800">Pending Payments</h2>
+            <p class="text-sm text-gray-600 mt-1">Complete payment for these consultations</p>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @foreach($pendingConsultations as $consultation)
+                <div class="p-6 hover:bg-gray-50 transition">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800">{{ $consultation->reference }}</h3>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        @if($consultation->doctor)
+                                            @php
+                                                $doctorName = trim($consultation->doctor->name);
+                                                $doctorNameLower = strtolower($doctorName);
+                                                $hasDrPrefix = preg_match('/^dr\.?\s*/i', $doctorNameLower);
+                                            @endphp
+                                            {{ $hasDrPrefix ? $doctorName : 'Dr. ' . $doctorName }} - {{ $consultation->doctor->specialization ?? 'General Practitioner' }}
+                                        @else
+                                            No doctor assigned yet
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $consultation->created_at->format('M d, Y H:i A') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                @php
+                                    $fee = 0;
+                                    if ($consultation->consultation_type === 'pay_now') {
+                                        $fee = \App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500));
+                                    } elseif ($consultation->consultation_type === 'pay_later') {
+                                        $fee = \App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000));
+                                    } else {
+                                        $fee = $consultation->doctor->effective_consultation_fee ?? 0;
+                                    }
+                                @endphp
+                                @if($fee > 0)
+                                    <p class="text-2xl font-bold text-gray-900">₦{{ number_format($fee, 2) }}</p>
+                                    <p class="text-xs text-gray-500">Consultation Fee</p>
+                                @else
+                                    <p class="text-sm text-gray-500">No fee set</p>
+                                @endif
+                            </div>
+                            <div>
+                                @if($fee > 0)
+                                    <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors flex items-center space-x-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span>Pay Now</span>
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-lg">Payment Not Required</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
+
 <!-- Payment History Table -->
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         @if($consultations->count() > 0)
@@ -71,7 +144,16 @@
                                     <span class="font-medium text-gray-900">{{ $consultation->reference }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-gray-700">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</span>
+                                    @if($consultation->doctor)
+                                        @php
+                                            $doctorName = trim($consultation->doctor->name);
+                                            $doctorNameLower = strtolower($doctorName);
+                                            $hasDrPrefix = preg_match('/^dr\.?\s*/i', $doctorNameLower);
+                                        @endphp
+                                        <span class="text-gray-700">{{ $hasDrPrefix ? $doctorName : 'Dr. ' . $doctorName }}</span>
+                                    @else
+                                        <span class="text-gray-700">N/A</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($consultation->payment)
@@ -95,12 +177,31 @@
                                     {{ $consultation->payment ? $consultation->payment->created_at->format('M d, Y') : $consultation->created_at->format('M d, Y') }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    @if($consultation->payment)
+                                    @if($consultation->payment_status === 'paid' && $consultation->payment)
                                         <a href="#" class="text-purple-600 hover:text-purple-800 font-medium">
                                             View Receipt
                                         </a>
                                     @else
-                                        <span class="text-gray-400">N/A</span>
+                                        @php
+                                            $fee = 0;
+                                            if ($consultation->consultation_type === 'pay_now') {
+                                                $fee = \App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500));
+                                            } elseif ($consultation->consultation_type === 'pay_later') {
+                                                $fee = \App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000));
+                                            } else {
+                                                $fee = $consultation->doctor->effective_consultation_fee ?? 0;
+                                            }
+                                        @endphp
+                                        @if($fee > 0)
+                                            <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="px-4 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors">
+                                                    Pay Now
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="text-gray-400">N/A</span>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>
