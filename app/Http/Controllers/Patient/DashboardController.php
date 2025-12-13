@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\PatientMedicalHistory;
 use App\Models\Specialty;
+use App\Models\Doctor;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -288,5 +291,132 @@ class DashboardController extends Controller
         ];
 
         return view('patient.payments', compact('consultations', 'stats'));
+    }
+
+    /**
+     * Show new consultation form
+     */
+    public function newConsultation()
+    {
+        $patient = Auth::guard('patient')->user();
+        $doctors = Doctor::available()->ordered()->get();
+        $specialties = Specialty::active()->orderBy('name')->get();
+        
+        // Get consultation fees from settings
+        $payLaterFee = Setting::where('key', 'pay_later_consultation_fee')->value('value') ?? 0;
+        $payNowFee = Setting::where('key', 'pay_now_consultation_fee')->value('value') ?? 0;
+        
+        return view('patient.new-consultation', compact('patient', 'doctors', 'specialties', 'payLaterFee', 'payNowFee'));
+    }
+
+    /**
+     * Store new consultation
+     */
+    public function storeConsultation(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        try {
+            $validated = $request->validate([
+                'consultation_type' => 'required|in:pay_now,pay_later',
+                'problem' => 'required|string|min:10|max:500',
+                'symptoms' => 'nullable|string|max:1000',
+                'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+                'severity' => 'required|in:mild,moderate,severe',
+                'emergency_symptoms' => 'nullable|array',
+                'doctor_id' => 'nullable|exists:doctors,id',
+                'consult_mode' => 'required|in:voice,video,chat',
+                'informed_consent' => 'required|accepted',
+                'data_privacy' => 'required|accepted',
+            ], [
+                'consultation_type.required' => 'Please select a consultation type.',
+                'problem.required' => 'Please describe your medical problem.',
+                'problem.min' => 'Problem description must be at least 10 characters.',
+                'severity.required' => 'Please indicate the severity of your condition.',
+                'consult_mode.required' => 'Please select a consultation mode.',
+                'informed_consent.required' => 'You must accept the informed consent.',
+                'data_privacy.required' => 'You must accept the data privacy policy.',
+            ]);
+
+            // Generate unique consultation reference
+            $reference = 'CONSULT-' . time() . '-' . Str::random(6);
+
+            // Handle medical document uploads
+            $uploadedDocuments = [];
+            if ($request->hasFile('medical_documents')) {
+                foreach ($request->file('medical_documents') as $file) {
+                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs('medical_documents', $fileName);
+                    
+                    $uploadedDocuments[] = [
+                        'original_name' => $file->getClientOriginalName(),
+                        'stored_name' => $fileName,
+                        'path' => $filePath,
+                        'size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ];
+                }
+            }
+
+            // Determine if payment is required first
+            $requiresPaymentFirst = $validated['consultation_type'] === 'pay_now';
+
+            // Split patient name into first and last name
+            $nameParts = explode(' ', $patient->name, 2);
+            $firstName = $nameParts[0] ?? $patient->name;
+            $lastName = $nameParts[1] ?? '';
+
+            // Create consultation
+            $consultation = Consultation::create([
+                'reference' => $reference,
+                'patient_id' => $patient->id,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $patient->email,
+                'mobile' => $patient->phone,
+                'age' => $patient->age,
+                'gender' => $patient->gender,
+                'problem' => $validated['problem'],
+                'symptoms' => $validated['symptoms'] ?? null,
+                'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
+                'severity' => $validated['severity'],
+                'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
+                'consult_mode' => $validated['consult_mode'],
+                'doctor_id' => $validated['doctor_id'] ?? null,
+                'consultation_type' => $validated['consultation_type'],
+                'requires_payment_first' => $requiresPaymentFirst,
+                'status' => $requiresPaymentFirst ? 'pending_payment' : 'pending',
+                'payment_status' => 'unpaid',
+            ]);
+
+            // Update patient aggregates
+            $patient->increment('consultations_count');
+            $patient->last_consultation_at = now();
+            $patient->save();
+
+            // If pay now, redirect to payment page (to be implemented)
+            if ($requiresPaymentFirst) {
+                return redirect()->route('patient.consultations')
+                    ->with('success', 'Consultation created successfully. Please complete payment to proceed.');
+            }
+
+            return redirect()->route('patient.consultations')
+                ->with('success', 'Consultation created successfully. You will be notified once a doctor is assigned.');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Failed to create patient consultation: ' . $e->getMessage(), [
+                'patient_id' => $patient->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'Unable to create consultation. Please try again later or contact support.')
+                ->withInput();
+        }
     }
 }

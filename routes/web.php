@@ -372,6 +372,8 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     // Consultations
     Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
+    Route::get('/consultations/new/create', [\App\Http\Controllers\Patient\DashboardController::class, 'newConsultation'])->name('consultation.new');
+    Route::post('/consultations/new/create', [\App\Http\Controllers\Patient\DashboardController::class, 'storeConsultation'])->name('consultation.store');
     
     // Medical Records
     Route::get('/medical-records', [\App\Http\Controllers\Patient\DashboardController::class, 'medicalRecords'])->name('medical-records');

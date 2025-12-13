@@ -38,6 +38,9 @@ class Consultation extends Model
         'payment_request_sent',
         'payment_request_sent_at',
         'consultation_completed_at',
+        'consultation_type',
+        'requires_payment_first',
+        'payment_completed_at',
         'doctor_notes',
         // Medical Format Fields
         'presenting_complaint',
