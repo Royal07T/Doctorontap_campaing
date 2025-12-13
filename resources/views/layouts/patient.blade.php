@@ -11,6 +11,7 @@
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
         }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
