@@ -85,8 +85,68 @@
                         <form method="POST" action="{{ route('admin.settings.update') }}" class="p-6 space-y-6">
                             @csrf
 
-                            <!-- Default Consultation Fee -->
+                            <!-- Consultation Fee - Pay Later -->
                             <div>
+                                <label for="consultation_fee_pay_later" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    💳 Consult Now, Pay Later Fee (₦)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-3 text-gray-500">₦</span>
+                                    <input type="number"
+                                           id="consultation_fee_pay_later"
+                                           name="consultation_fee_pay_later"
+                                           value="{{ $consultationFeePayLater ?? $defaultFee }}"
+                                           required
+                                           min="0"
+                                           step="0.01"
+                                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('consultation_fee_pay_later') border-red-500 @enderror">
+                                </div>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    Fee for patients who choose to pay after consultation is completed. This is the standard pricing.
+                                </p>
+                                @error('consultation_fee_pay_later')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Consultation Fee - Pay Now -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <label for="consultation_fee_pay_now" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    🔒 Pay Before Consultation Fee (₦)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-3 text-gray-500">₦</span>
+                                    <input type="number"
+                                           id="consultation_fee_pay_now"
+                                           name="consultation_fee_pay_now"
+                                           value="{{ $consultationFeePayNow ?? $defaultFee }}"
+                                           required
+                                           min="0"
+                                           step="0.01"
+                                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('consultation_fee_pay_now') border-red-500 @enderror">
+                                </div>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    Fee for patients who pay before consultation. 
+                                    <span class="font-semibold text-purple-600">Tip:</span> Set this lower than Pay Later to incentivize upfront payment.
+                                </p>
+                                <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-blue-800">
+                                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span>
+                                            <span class="font-semibold">Discount Preview:</span>
+                                            <span id="discount-amount" class="ml-1"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                @error('consultation_fee_pay_now')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Default Consultation Fee (Legacy) -->
+                            <div class="border-t border-gray-200 pt-6" style="display: none;">
                                 <label for="default_consultation_fee" class="block text-sm font-semibold text-gray-700 mb-2">
                                     Default Consultation Fee (₦)
                                 </label>
@@ -227,6 +287,44 @@
             document.getElementById('doctor-share-preview').textContent = doctorShare.toFixed(2) + '%';
             document.getElementById('platform-fee-preview').textContent = platformFee.toFixed(2) + '%';
         });
+
+        // Calculate discount preview
+        function updateDiscountPreview() {
+            const payLaterFee = parseFloat(document.getElementById('consultation_fee_pay_later').value) || 0;
+            const payNowFee = parseFloat(document.getElementById('consultation_fee_pay_now').value) || 0;
+            
+            const discount = payLaterFee - payNowFee;
+            const discountPercent = payLaterFee > 0 ? ((discount / payLaterFee) * 100) : 0;
+            
+            const discountDisplay = document.getElementById('discount-amount');
+            
+            if (discount > 0) {
+                discountDisplay.innerHTML = `Customers save <strong>₦${discount.toFixed(2)}</strong> (${discountPercent.toFixed(1)}%) when paying upfront`;
+                discountDisplay.parentElement.parentElement.classList.remove('bg-blue-50', 'border-blue-200');
+                discountDisplay.parentElement.parentElement.classList.add('bg-green-50', 'border-green-200');
+                discountDisplay.parentElement.classList.remove('text-blue-800');
+                discountDisplay.parentElement.classList.add('text-green-800');
+            } else if (discount < 0) {
+                discountDisplay.innerHTML = `<span class="text-red-600">Pay Now fee is higher than Pay Later! Consider reversing this.</span>`;
+                discountDisplay.parentElement.parentElement.classList.remove('bg-green-50', 'border-green-200');
+                discountDisplay.parentElement.parentElement.classList.add('bg-red-50', 'border-red-200');
+                discountDisplay.parentElement.classList.remove('text-green-800');
+                discountDisplay.parentElement.classList.add('text-red-800');
+            } else {
+                discountDisplay.innerHTML = 'Both prices are the same';
+                discountDisplay.parentElement.parentElement.classList.remove('bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200');
+                discountDisplay.parentElement.parentElement.classList.add('bg-blue-50', 'border-blue-200');
+                discountDisplay.parentElement.classList.remove('text-red-800', 'text-green-800');
+                discountDisplay.parentElement.classList.add('text-blue-800');
+            }
+        }
+
+        // Add event listeners
+        document.getElementById('consultation_fee_pay_later').addEventListener('input', updateDiscountPreview);
+        document.getElementById('consultation_fee_pay_now').addEventListener('input', updateDiscountPreview);
+
+        // Initial calculation
+        updateDiscountPreview();
     </script>
 </body>
 </html>
