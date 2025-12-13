@@ -1463,8 +1463,9 @@ class DashboardController extends Controller
         $settings = Setting::where('group', 'pricing')->get();
         $defaultFee = Setting::get('default_consultation_fee', 5000);
         $useDefaultForAll = Setting::get('use_default_fee_for_all', false);
+        $doctorPaymentPercentage = Setting::get('doctor_payment_percentage', 70);
 
-        return view('admin.settings', compact('settings', 'defaultFee', 'useDefaultForAll'));
+        return view('admin.settings', compact('settings', 'defaultFee', 'useDefaultForAll', 'doctorPaymentPercentage'));
     }
 
     /**
@@ -1476,10 +1477,12 @@ class DashboardController extends Controller
             $validated = $request->validate([
                 'default_consultation_fee' => 'required|numeric|min:0',
                 'use_default_fee_for_all' => 'nullable|boolean',
+                'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
             ]);
 
             Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
             Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
+            Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
 
             // If forcing all doctors to use default fee, update all doctors
             if ($request->has('use_default_fee_for_all')) {
@@ -1735,6 +1738,280 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete vital sign: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * View doctor profile with bank details and consultations
+     */
+    public function viewDoctorProfile($id)
+    {
+        $doctor = Doctor::with(['bankAccounts', 'consultations', 'payments'])->findOrFail($id);
+        
+        // Calculate statistics
+        $stats = [
+            'total_consultations' => $doctor->consultations()->count(),
+            'completed_consultations' => $doctor->consultations()->where('status', 'completed')->count(),
+            'paid_consultations' => $doctor->consultations()->where('payment_status', 'paid')->count(),
+            'unpaid_consultations' => $doctor->consultations()->where('status', 'completed')
+                                            ->where('payment_status', '!=', 'paid')->count(),
+            'total_paid_to_doctor' => $doctor->payments()->where('status', 'completed')->sum('doctor_amount'),
+            'pending_payment' => 0, // Will calculate below
+        ];
+
+        // Get unpaid consultations
+        $unpaidConsultations = $doctor->consultations()
+            ->where('status', 'completed')
+            ->where('payment_status', '!=', 'paid')
+            ->with('payment')
+            ->get();
+
+        // Calculate pending payment
+        $pendingAmount = $unpaidConsultations->sum(function($consultation) use ($doctor) {
+            return $doctor->effective_consultation_fee;
+        });
+        $stats['pending_payment'] = $pendingAmount;
+
+        // Recent consultations
+        $recentConsultations = $doctor->consultations()
+            ->with('payment')
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        // Payment history
+        $paymentHistory = $doctor->payments()
+            ->with(['bankAccount', 'paidBy'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('admin.doctor-profile', compact('doctor', 'stats', 'recentConsultations', 'paymentHistory', 'unpaidConsultations'));
+    }
+
+    /**
+     * Verify doctor bank account
+     */
+    public function verifyBankAccount(Request $request, $id)
+    {
+        try {
+            $bankAccount = \App\Models\DoctorBankAccount::findOrFail($id);
+            $admin = auth()->guard('admin')->user();
+
+            $bankAccount->update([
+                'is_verified' => true,
+                'verified_at' => now(),
+                'verified_by' => $admin->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bank account verified successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify bank account: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * View doctor payments management page
+     */
+    public function doctorPayments(Request $request)
+    {
+        $query = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by doctor
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+
+        // Date range filter
+        if ($request->filled('date_from')) {
+            $query->where('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('created_at', '<=', $request->date_to);
+        }
+
+        $payments = $query->latest()->paginate(20);
+
+        // Get all doctors for filter dropdown
+        $doctors = Doctor::approved()->orderBy('name')->get();
+
+        // Statistics
+        $stats = [
+            'total_payments' => \App\Models\DoctorPayment::count(),
+            'pending_payments' => \App\Models\DoctorPayment::where('status', 'pending')->count(),
+            'completed_payments' => \App\Models\DoctorPayment::where('status', 'completed')->count(),
+            'total_paid_amount' => \App\Models\DoctorPayment::where('status', 'completed')->sum('doctor_amount'),
+            'total_platform_fee' => \App\Models\DoctorPayment::where('status', 'completed')->sum('platform_fee'),
+        ];
+
+        return view('admin.doctor-payments', compact('payments', 'doctors', 'stats'));
+    }
+
+    /**
+     * Create payment for doctor
+     */
+    public function createDoctorPayment(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'doctor_id' => 'required|exists:doctors,id',
+                'consultation_ids' => 'required|array',
+                'consultation_ids.*' => 'exists:consultations,id',
+                'doctor_percentage' => 'nullable|numeric|min:0|max:100',
+                'period_from' => 'nullable|date',
+                'period_to' => 'nullable|date|after_or_equal:period_from',
+            ]);
+
+            $doctor = Doctor::with('defaultBankAccount')->findOrFail($validated['doctor_id']);
+
+            // Check if doctor has a verified bank account
+            if (!$doctor->defaultBankAccount || !$doctor->defaultBankAccount->is_verified) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Doctor does not have a verified bank account.'
+                ], 400);
+            }
+
+            // Get consultations
+            $consultations = Consultation::whereIn('id', $validated['consultation_ids'])
+                ->where('doctor_id', $doctor->id)
+                ->where('status', 'completed')
+                ->get();
+
+            if ($consultations->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid consultations found.'
+                ], 400);
+            }
+
+            // Use custom percentage or default from settings
+            $doctorPercentage = $validated['doctor_percentage'] ?? Setting::get('doctor_payment_percentage', 70);
+            
+            // Calculate payment details
+            $paymentData = \App\Models\DoctorPayment::calculatePayment(
+                $consultations,
+                $doctorPercentage
+            );
+
+            // Create payment record
+            $payment = \App\Models\DoctorPayment::create([
+                'doctor_id' => $doctor->id,
+                'bank_account_id' => $doctor->defaultBankAccount->id,
+                'consultation_ids' => $validated['consultation_ids'],
+                'period_from' => $validated['period_from'] ?? null,
+                'period_to' => $validated['period_to'] ?? null,
+                ...$paymentData,
+                'status' => 'pending',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment created successfully!',
+                'payment' => $payment
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to create doctor payment', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark payment as completed
+     */
+    public function completeDoctorPayment(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'payment_method' => 'required|string|max:255',
+                'transaction_reference' => 'nullable|string|max:255',
+                'payment_notes' => 'nullable|string|max:1000',
+            ]);
+
+            $payment = \App\Models\DoctorPayment::findOrFail($id);
+            $admin = auth()->guard('admin')->user();
+
+            $payment->markAsCompleted(
+                $admin->id,
+                $validated['payment_method'],
+                $validated['transaction_reference'] ?? null,
+                $validated['payment_notes'] ?? null
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as completed successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get doctor's unpaid consultations for payment creation
+     */
+    public function getDoctorUnpaidConsultations($doctorId)
+    {
+        try {
+            $consultations = Consultation::where('doctor_id', $doctorId)
+                ->where('status', 'completed')
+                ->where('payment_status', '!=', 'paid')
+                ->whereNotIn('id', function($query) use ($doctorId) {
+                    $query->select(\DB::raw('JSON_EXTRACT(consultation_ids, "$[*]")'))
+                          ->from('doctor_payments')
+                          ->where('doctor_id', $doctorId)
+                          ->whereIn('status', ['pending', 'processing', 'completed']);
+                })
+                ->with('payment')
+                ->latest()
+                ->get();
+
+            $doctor = Doctor::findOrFail($doctorId);
+
+            return response()->json([
+                'success' => true,
+                'consultations' => $consultations->map(function($c) use ($doctor) {
+                    return [
+                        'id' => $c->id,
+                        'reference' => $c->reference,
+                        'patient_name' => $c->full_name,
+                        'date' => $c->created_at->format('Y-m-d'),
+                        'amount' => $doctor->effective_consultation_fee,
+                        'payment_status' => $c->payment_status,
+                    ];
+                }),
+                'total_amount' => $consultations->count() * $doctor->effective_consultation_fee,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load consultations: ' . $e->getMessage()
             ], 500);
         }
     }

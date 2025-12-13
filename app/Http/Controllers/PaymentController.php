@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Models\Doctor;
 use App\Models\Consultation;
+use App\Models\Booking;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -416,8 +418,71 @@ class PaymentController extends Controller
                             'payment_reference' => $reference
                         ]);
                     }
-                } else {
-                    Log::warning('Payment has no consultation metadata', [
+                }
+                // Handle booking payment (multi-patient)
+                elseif ($payment->metadata && isset($payment->metadata['booking_id'])) {
+                    $booking = Booking::with(['invoice', 'consultations'])->find($payment->metadata['booking_id']);
+                    
+                    if (!$booking) {
+                        Log::error('Booking not found for payment', [
+                            'booking_id' => $payment->metadata['booking_id'],
+                            'payment_reference' => $reference
+                        ]);
+                        return response()->json(['status' => 'booking_not_found'], 404);
+                    }
+
+                    Log::info('Processing booking payment', [
+                        'booking_id' => $booking->id,
+                        'booking_ref' => $booking->reference,
+                        'current_payment_status' => $booking->payment_status
+                    ]);
+                    
+                    // Update booking payment status to PAID
+                    if ($booking->payment_status !== 'paid') {
+                        $booking->update([
+                            'payment_status' => 'paid',
+                        ]);
+                        
+                        Log::info('Booking payment status updated to PAID', [
+                            'booking_id' => $booking->id
+                        ]);
+                    }
+
+                    // Update invoice
+                    if ($booking->invoice) {
+                        $booking->invoice->markAsPaid($payment->amount);
+                        
+                        Log::info('Invoice marked as paid', [
+                            'invoice_id' => $booking->invoice->id,
+                            'amount' => $payment->amount
+                        ]);
+                    }
+
+                    // Update all consultations under this booking
+                    $booking->consultations()->update([
+                        'payment_status' => 'paid',
+                        'payment_id' => $payment->id,
+                    ]);
+
+                    // Unlock treatment plans for completed consultations
+                    foreach ($booking->consultations as $consultation) {
+                        if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
+                            $consultation->unlockTreatmentPlan();
+                            
+                            Log::info('✅ TREATMENT PLAN UNLOCKED for consultation', [
+                                'consultation_id' => $consultation->id,
+                                'booking_ref' => $booking->reference
+                            ]);
+                        }
+                    }
+                    
+                    Log::info('✅ Booking payment processed successfully', [
+                        'booking_id' => $booking->id,
+                        'num_patients' => $booking->patients()->count()
+                    ]);
+                }
+                else {
+                    Log::warning('Payment has no consultation or booking metadata', [
                         'payment_id' => $payment->id,
                         'reference' => $reference,
                         'metadata' => $payment->metadata
@@ -479,6 +544,20 @@ class PaymentController extends Controller
                                 'error' => $e->getMessage()
                             ]);
                         }
+                    }
+                }
+                // Update booking payment status to failed
+                elseif ($payment->metadata && isset($payment->metadata['booking_id'])) {
+                    $booking = Booking::find($payment->metadata['booking_id']);
+                    
+                    if ($booking) {
+                        $booking->update(['payment_status' => 'failed']);
+                        if ($booking->invoice) {
+                            $booking->invoice->update(['status' => 'cancelled']);
+                        }
+                        Log::info('Booking payment status updated to FAILED', [
+                            'booking_id' => $booking->id
+                        ]);
                     }
                 }
 
@@ -599,6 +678,11 @@ class PaymentController extends Controller
      */
     public function handlePaymentRequest($reference)
     {
+        // Check if it's a booking or consultation reference
+        if (Str::startsWith($reference, 'BOOK-')) {
+            return $this->handleBookingPayment($reference);
+        }
+
         // Find consultation by reference
         $consultation = Consultation::with('doctor')->where('reference', $reference)->first();
 
@@ -716,6 +800,154 @@ class PaymentController extends Controller
                 'has_secret' => !empty(config('services.korapay.secret_key'))
             ]);
             
+            return view('payment.failed', [
+                'reference' => $reference,
+                'message' => 'Payment system error. Please try again later or contact support.'
+            ]);
+        }
+    }
+
+    /**
+     * Handle payment for multi-patient booking
+     */
+    protected function handleBookingPayment($reference)
+    {
+        // Find booking by reference
+        $booking = Booking::with(['doctor', 'invoice.items'])->where('reference', $reference)->first();
+
+        if (!$booking) {
+            return view('payment.failed', [
+                'reference' => $reference,
+                'message' => 'Booking not found. Please contact support.'
+            ]);
+        }
+
+        // Get the invoice
+        $invoice = $booking->invoice;
+
+        if (!$invoice) {
+            return view('payment.failed', [
+                'reference' => $reference,
+                'message' => 'Invoice not found for this booking.'
+            ]);
+        }
+
+        // Check if payment already made
+        if ($invoice->isPaid()) {
+            return view('payment.success', [
+                'message' => 'This booking has already been paid for.'
+            ]);
+        }
+
+        // Check if doctor has consultation fee
+        if (!$booking->doctor || $booking->total_adjusted_amount <= 0) {
+            return view('payment.failed', [
+                'reference' => $reference,
+                'message' => 'No payment is required for this booking.'
+            ]);
+        }
+
+        // Generate unique payment reference
+        $paymentReference = 'PAY-' . time() . '-' . Str::random(8);
+
+        // Create payment record
+        $payment = Payment::create([
+            'reference' => $paymentReference,
+            'customer_email' => $booking->payer_email,
+            'customer_name' => $booking->payer_name,
+            'customer_phone' => $booking->payer_mobile,
+            'amount' => $booking->total_adjusted_amount,
+            'currency' => 'NGN',
+            'status' => 'pending',
+            'doctor_id' => $booking->doctor_id,
+            'metadata' => [
+                'booking_reference' => $booking->reference,
+                'booking_id' => $booking->id,
+                'invoice_id' => $invoice->id,
+                'payment_type' => 'multi_patient_booking',
+                'number_of_patients' => $booking->patients()->count(),
+            ],
+        ]);
+
+        // Prepare line items for Korapay
+        $lineItems = [];
+        foreach ($invoice->items as $item) {
+            $lineItems[] = [
+                'patient_id' => $item->patient_id,
+                'patient_name' => $item->patient->name ?? 'Patient',
+                'description' => $item->description,
+                'amount' => $item->total_price,
+            ];
+        }
+
+        // Prepare Korapay API request
+        $payload = [
+            'amount' => $booking->total_adjusted_amount,
+            'redirect_url' => route('payment.callback'),
+            'currency' => 'NGN',
+            'reference' => $paymentReference,
+            'notification_url' => route('payment.webhook'),
+            'narration' => 'Multi-patient consultation payment - ' . $booking->doctor->name . ' - Ref: ' . $booking->reference,
+            'customer' => [
+                'email' => $booking->payer_email,
+                'name' => $booking->payer_name,
+            ],
+            'merchant_bears_cost' => false,
+            'metadata' => [
+                'booking_reference' => $booking->reference,
+                'line_items' => $lineItems,
+            ],
+        ];
+
+        // Make API call to Korapay
+        try {
+            $apiUrl = config('services.korapay.api_url');
+            $secretKey = config('services.korapay.secret_key');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $secretKey,
+                'Content-Type' => 'application/json',
+            ])->post($apiUrl . '/charges/initialize', $payload);
+
+            $responseData = $response->json();
+
+            if ($response->successful() && $responseData['status'] === true) {
+                // Update payment record with Korapay response
+                $payment->update([
+                    'checkout_url' => $responseData['data']['checkout_url'] ?? null,
+                    'payment_reference' => $responseData['data']['reference'] ?? $paymentReference,
+                    'korapay_response' => json_encode($responseData),
+                ]);
+
+                // Update invoice
+                $invoice->update([
+                    'payment_reference' => $paymentReference,
+                    'payment_provider' => 'korapay',
+                    'status' => 'pending',
+                ]);
+
+                // Link payment to booking consultations
+                $booking->consultations()->update([
+                    'payment_id' => $payment->id,
+                    'payment_status' => 'pending',
+                ]);
+
+                // Redirect to Korapay checkout
+                return redirect($responseData['data']['checkout_url']);
+            } else {
+                Log::error('Korapay initialization failed for booking', ['response' => $responseData]);
+
+                return view('payment.failed', [
+                    'reference' => $reference,
+                    'message' => $responseData['message'] ?? 'Payment initialization failed. Please try again or contact support.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Korapay API error for booking', [
+                'error' => $e->getMessage(),
+                'booking_reference' => $reference
+            ]);
+
             return view('payment.failed', [
                 'reference' => $reference,
                 'message' => 'Payment system error. Please try again later or contact support.'

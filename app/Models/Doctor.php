@@ -87,6 +87,38 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get all bank accounts for this doctor
+     */
+    public function bankAccounts()
+    {
+        return $this->hasMany(DoctorBankAccount::class);
+    }
+
+    /**
+     * Get the default bank account
+     */
+    public function defaultBankAccount()
+    {
+        return $this->hasOne(DoctorBankAccount::class)->where('is_default', true);
+    }
+
+    /**
+     * Get all payments for this doctor
+     */
+    public function payments()
+    {
+        return $this->hasMany(DoctorPayment::class);
+    }
+
+    /**
+     * Get consultations for this doctor
+     */
+    public function consultations()
+    {
+        return $this->hasMany(Consultation::class);
+    }
+
+    /**
      * Get average rating
      */
     public function getAverageRatingAttribute()
@@ -183,5 +215,78 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     public function updateLastActivity()
     {
         $this->update(['last_activity_at' => now()]);
+    }
+
+    /**
+     * Get total earnings from paid consultations
+     */
+    public function getTotalEarningsAttribute()
+    {
+        return $this->consultations()
+            ->where('payment_status', 'paid')
+            ->sum('consultations.id');
+    }
+
+    /**
+     * Get pending earnings from unpaid consultations
+     */
+    public function getPendingEarningsAttribute()
+    {
+        $unpaidConsultations = $this->consultations()
+            ->where('status', 'completed')
+            ->where('payment_status', '!=', 'paid')
+            ->get();
+
+        return $unpaidConsultations->sum(function ($consultation) {
+            return $this->effective_consultation_fee;
+        });
+    }
+
+    /**
+     * Get paid consultations count
+     */
+    public function getPaidConsultationsCountAttribute()
+    {
+        return $this->consultations()
+            ->where('payment_status', 'paid')
+            ->count();
+    }
+
+    /**
+     * Get unpaid consultations count
+     */
+    public function getUnpaidConsultationsCountAttribute()
+    {
+        return $this->consultations()
+            ->where('status', 'completed')
+            ->where('payment_status', '!=', 'paid')
+            ->count();
+    }
+
+    /**
+     * Get total amount paid to doctor
+     */
+    public function getTotalPaidAmountAttribute()
+    {
+        return $this->payments()
+            ->where('status', 'completed')
+            ->sum('doctor_amount');
+    }
+
+    /**
+     * Calculate doctor's share from consultations
+     */
+    public function calculateDoctorShare($consultations, $percentage = 70)
+    {
+        $totalAmount = $consultations->sum(function ($consultation) {
+            return $this->effective_consultation_fee;
+        });
+
+        return [
+            'total_amount' => $totalAmount,
+            'doctor_percentage' => $percentage,
+            'doctor_share' => ($totalAmount * $percentage) / 100,
+            'platform_fee' => ($totalAmount * (100 - $percentage)) / 100,
+        ];
     }
 }

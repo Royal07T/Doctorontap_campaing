@@ -34,15 +34,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <!-- Page-specific styles -->
+    <!-- Page-specific styles -->
     @stack('styles')
-    
-    <style>
-        .purple-gradient {
-            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
-        }
-    </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-50 min-h-screen font-sans text-gray-900" x-data="{ sidebarOpen: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @isset($sidebar)
@@ -52,29 +47,50 @@
         @endisset
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden relative">
             <!-- Top Header -->
-            <header class="purple-gradient shadow-lg z-10">
-                <div class="flex items-center justify-between px-6 py-6">
+            <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 z-10 sticky top-0">
+                <div class="flex items-center justify-between px-6 py-4">
                     <div class="flex items-center space-x-4">
-                        <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
+                        <button @click="sidebarOpen = true" class="lg:hidden text-gray-600 hover:text-primary focus:outline-none transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-                        <div class="flex items-center space-x-3">
-                            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
-                            <h1 class="text-xl font-bold text-white">{{ $header ?? 'Dashboard' }}</h1>
+                        <div class="flex items-center space-x-3 lg:hidden">
+                            <img src="{{ asset('img/logo.png') }}" alt="DoctorOnTap" class="h-8 w-auto" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Doctor+On+Tap&background=7B3DE9&color=fff&size=128';">
+                            <span class="text-xl font-bold text-gray-900">DoctorOnTap</span>
                         </div>
+                        <h1 class="text-2xl font-bold text-gray-800 hidden lg:block">{{ $header ?? 'Dashboard' }}</h1>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-white">{{ now()->format('l, F j, Y') }}</span>
+                    <div class="flex items-center space-x-6">
+                        <span class="text-sm font-medium text-gray-500">{{ now()->format('l, F j, Y') }}</span>
+                        
+                        <!-- User Dropdown (Placeholder if not present) -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
+                                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                    {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
+                                </div>
+                                <span class="text-sm font-medium text-gray-700 hidden md:block">{{ auth()->user()->name ?? 'User' }}</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <!-- Dropdown Menu -->
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100 z-50" style="display: none;">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Log Out</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
 
             <!-- Main Content -->
-            <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
+            <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
                 {{ $slot }}
             </main>
         </div>

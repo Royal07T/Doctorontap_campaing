@@ -22,6 +22,9 @@ class Patient extends Authenticatable
         'phone',
         'gender',
         'age',
+        'guardian_id',
+        'date_of_birth',
+        'is_minor',
         'canvasser_id',
         'has_consulted',
         'total_amount_paid',
@@ -39,6 +42,8 @@ class Patient extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'date_of_birth' => 'date',
+        'is_minor' => 'boolean',
         'has_consulted' => 'boolean',
         'total_amount_paid' => 'decimal:2',
         'last_consultation_at' => 'datetime',
@@ -176,5 +181,92 @@ class Patient extends Authenticatable
             $message->to($this->email)
                    ->subject('Verify Your Email - DoctorOnTap');
         });
+    }
+
+    // ============================================
+    // Multi-Patient Booking Relationships
+    // ============================================
+
+    /**
+     * Get the guardian of this patient (for minors)
+     */
+    public function guardian(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class, 'guardian_id');
+    }
+
+    /**
+     * Get all dependents (children/minors) of this patient
+     */
+    public function dependents(): HasMany
+    {
+        return $this->hasMany(Patient::class, 'guardian_id');
+    }
+
+    /**
+     * Get all bookings this patient is part of
+     */
+    public function bookings()
+    {
+        return $this->belongsToMany(Booking::class, 'booking_patients')
+            ->withPivot([
+                'consultation_id',
+                'relationship_to_payer',
+                'base_fee',
+                'adjusted_fee',
+                'fee_adjustment_reason',
+                'consultation_status',
+            ])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all invoice items for this patient
+     */
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    /**
+     * Check if patient is a minor
+     */
+    public function isMinor(): bool
+    {
+        return $this->is_minor || $this->age < 18;
+    }
+
+    /**
+     * Check if patient requires a guardian
+     */
+    public function requiresGuardian(): bool
+    {
+        return $this->isMinor() && !$this->guardian_id;
+    }
+
+    /**
+     * Get patient's full name
+     */
+    public function getFullNameAttribute(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Get first name (split from name)
+     */
+    public function getFirstNameAttribute(): string
+    {
+        $parts = explode(' ', $this->name);
+        return $parts[0] ?? '';
+    }
+
+    /**
+     * Get last name (split from name)
+     */
+    public function getLastNameAttribute(): string
+    {
+        $parts = explode(' ', $this->name);
+        return count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '';
     }
 }

@@ -109,6 +109,42 @@
                                 @enderror
                             </div>
 
+                            <!-- Doctor Payment Percentage -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <label for="doctor_payment_percentage" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Doctor Payment Percentage (%)
+                                </label>
+                                <div class="relative">
+                                    <input type="number"
+                                           id="doctor_payment_percentage"
+                                           name="doctor_payment_percentage"
+                                           value="{{ $doctorPaymentPercentage }}"
+                                           required
+                                           min="0"
+                                           max="100"
+                                           step="0.01"
+                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('doctor_payment_percentage') border-red-500 @enderror">
+                                    <span class="absolute right-4 top-3 text-gray-500">%</span>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    Default percentage of consultation fees that doctors receive. The remaining percentage is the platform fee.
+                                    <span class="font-semibold">Example:</span> If set to 70%, doctors get 70% and platform gets 30%.
+                                </p>
+                                <div class="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-purple-700 font-medium">Doctor Share:</span>
+                                        <span class="text-purple-900 font-bold" id="doctor-share-preview">{{ $doctorPaymentPercentage }}%</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm mt-2">
+                                        <span class="text-purple-700 font-medium">Platform Fee:</span>
+                                        <span class="text-purple-900 font-bold" id="platform-fee-preview">{{ 100 - $doctorPaymentPercentage }}%</span>
+                                    </div>
+                                </div>
+                                @error('doctor_payment_percentage')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+
                             <!-- Force Default Fee for All -->
                             <div class="border-t border-gray-200 pt-6">
                                 <div class="flex items-start">
@@ -181,6 +217,17 @@
             </main>
         </div>
     </div>
+
+    <script>
+        // Update payment percentage preview
+        document.getElementById('doctor_payment_percentage').addEventListener('input', function() {
+            const doctorShare = parseFloat(this.value) || 0;
+            const platformFee = 100 - doctorShare;
+            
+            document.getElementById('doctor-share-preview').textContent = doctorShare.toFixed(2) + '%';
+            document.getElementById('platform-fee-preview').textContent = platformFee.toFixed(2) + '%';
+        });
+    </script>
 </body>
 </html>
 

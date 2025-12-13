@@ -56,11 +56,16 @@ class DashboardController extends Controller
     {
         $doctor = Auth::guard('doctor')->user();
         
-        $query = Consultation::where('doctor_id', $doctor->id);
+        $query = Consultation::where('doctor_id', $doctor->id)->with('payment');
         
-        // Filter by status
+        // Filter by consultation status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+        
+        // Filter by payment status
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
         }
         
         // Search by patient name, email, or reference
@@ -70,6 +75,7 @@ class DashboardController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('mobile', 'like', "%{$search}%")
                   ->orWhere('reference', 'like', "%{$search}%")
                   ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
                 
@@ -91,9 +97,20 @@ class DashboardController extends Controller
             });
         }
         
-        $consultations = $query->latest()->paginate(15);
+        // Calculate statistics
+        $stats = [
+            'total' => Consultation::where('doctor_id', $doctor->id)->count(),
+            'paid' => Consultation::where('doctor_id', $doctor->id)->where('payment_status', 'paid')->count(),
+            'unpaid' => Consultation::where('doctor_id', $doctor->id)
+                ->where('status', 'completed')
+                ->where('payment_status', '!=', 'paid')->count(),
+            'pending' => Consultation::where('doctor_id', $doctor->id)->where('status', 'pending')->count(),
+            'completed' => Consultation::where('doctor_id', $doctor->id)->where('status', 'completed')->count(),
+        ];
         
-        return view('doctor.consultations', compact('consultations'));
+        $consultations = $query->latest()->paginate(20);
+        
+        return view('doctor.consultations', compact('consultations', 'stats'));
     }
 
     /**
@@ -433,6 +450,154 @@ class DashboardController extends Controller
                 'message' => 'Failed to load patient history'
             ], 500);
         }
+    }
+
+    /**
+     * Display bank account management page
+     */
+    public function bankAccounts()
+    {
+        $doctor = Auth::guard('doctor')->user();
+        $bankAccounts = $doctor->bankAccounts()->latest()->get();
+        $defaultAccount = $doctor->defaultBankAccount;
+
+        return view('doctor.bank-accounts', compact('bankAccounts', 'defaultAccount'));
+    }
+
+    /**
+     * Store a new bank account
+     */
+    public function storeBankAccount(Request $request)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+
+            $validated = $request->validate([
+                'bank_name' => 'required|string|max:255',
+                'account_name' => 'required|string|max:255',
+                'account_number' => 'required|string|max:20',
+                'account_type' => 'nullable|string|max:50',
+                'bank_code' => 'nullable|string|max:10',
+                'swift_code' => 'nullable|string|max:20',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            // Check if this is the first bank account
+            $isFirstAccount = !$doctor->bankAccounts()->exists();
+
+            $bankAccount = $doctor->bankAccounts()->create([
+                ...$validated,
+                'is_default' => $isFirstAccount, // First account becomes default
+                'is_verified' => false,
+            ]);
+
+            return redirect()->back()->with('success', 'Bank account added successfully! It will be verified by admin.');
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to add bank account', [
+                'doctor_id' => Auth::guard('doctor')->id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()->with('error', 'Failed to add bank account: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update bank account
+     */
+    public function updateBankAccount(Request $request, $id)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+
+            $bankAccount = $doctor->bankAccounts()->findOrFail($id);
+
+            $validated = $request->validate([
+                'bank_name' => 'required|string|max:255',
+                'account_name' => 'required|string|max:255',
+                'account_number' => 'required|string|max:20',
+                'account_type' => 'nullable|string|max:50',
+                'bank_code' => 'nullable|string|max:10',
+                'swift_code' => 'nullable|string|max:20',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            $bankAccount->update($validated);
+
+            return redirect()->back()->with('success', 'Bank account updated successfully!');
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to update bank account', [
+                'doctor_id' => Auth::guard('doctor')->id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()->with('error', 'Failed to update bank account: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Set bank account as default
+     */
+    public function setDefaultBankAccount($id)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+            $bankAccount = $doctor->bankAccounts()->findOrFail($id);
+            
+            $bankAccount->setAsDefault();
+
+            return redirect()->back()->with('success', 'Default bank account updated!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to set default account: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete bank account
+     */
+    public function deleteBankAccount($id)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+            $bankAccount = $doctor->bankAccounts()->findOrFail($id);
+
+            // Don't allow deletion of default account if there are others
+            if ($bankAccount->is_default && $doctor->bankAccounts()->count() > 1) {
+                return redirect()->back()->with('error', 'Cannot delete default account. Set another account as default first.');
+            }
+
+            $bankAccount->delete();
+
+            return redirect()->back()->with('success', 'Bank account deleted successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to delete bank account: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Display payment history
+     */
+    public function paymentHistory()
+    {
+        $doctor = Auth::guard('doctor')->user();
+        
+        $payments = $doctor->payments()
+            ->with(['bankAccount', 'paidBy'])
+            ->latest()
+            ->paginate(15);
+
+        $stats = [
+            'total_paid' => $doctor->payments()->where('status', 'completed')->sum('doctor_amount'),
+            'pending_amount' => $doctor->pending_earnings,
+            'paid_consultations' => $doctor->paid_consultations_count,
+            'unpaid_consultations' => $doctor->unpaid_consultations_count,
+        ];
+
+        return view('doctor.payment-history', compact('payments', 'stats'));
     }
 }
 

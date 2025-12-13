@@ -29,6 +29,11 @@ use App\Http\Controllers\MedicalDocumentController;
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
 Route::post('/submit', [ConsultationController::class, 'store'])->middleware('rate.limit:consultation,10,1');
 
+// Multi-Patient Booking Routes
+Route::get('/booking/multi-patient', [\App\Http\Controllers\BookingController::class, 'create'])->name('booking.create');
+Route::post('/booking/multi-patient', [\App\Http\Controllers\BookingController::class, 'store'])->name('booking.store');
+Route::get('/booking/confirmation/{reference}', [\App\Http\Controllers\BookingController::class, 'confirmation'])->name('booking.confirmation');
+
 // Redirect /register to home page (for general users) or doctor registration
 Route::get('/register', function () {
     // You can change this to redirect to doctor registration if preferred
@@ -181,6 +186,14 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/security/block-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'blockIp'])->name('security.block-ip');
     Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
     Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
+    
+    // Doctor Payment Management
+    Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
+    Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
+    Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
+    Route::post('/doctor-payments', [DashboardController::class, 'createDoctorPayment'])->name('doctor-payments.create');
+    Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
+    Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
 });
 
 // ==================== CANVASSER ROUTES ====================
@@ -295,8 +308,23 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::post('/consultations/{id}/auto-save-treatment-plan', [DoctorDashboardController::class, 'autoSaveTreatmentPlan'])->name('consultations.auto-save-treatment-plan');
     Route::get('/consultations/{id}/patient-history', [DoctorDashboardController::class, 'getPatientHistory'])->name('consultations.patient-history');
     
+    // Multi-Patient Bookings
+    Route::get('/bookings', [\App\Http\Controllers\BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/{id}', [\App\Http\Controllers\BookingController::class, 'show'])->name('bookings.show');
+    Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
+    
     // Reviews
     Route::post('/reviews', [ReviewController::class, 'storeDoctorReview'])->name('reviews.store');
+    
+    // Bank Account Management
+    Route::get('/bank-accounts', [DoctorDashboardController::class, 'bankAccounts'])->name('bank-accounts');
+    Route::post('/bank-accounts', [DoctorDashboardController::class, 'storeBankAccount'])->name('bank-accounts.store');
+    Route::put('/bank-accounts/{id}', [DoctorDashboardController::class, 'updateBankAccount'])->name('bank-accounts.update');
+    Route::post('/bank-accounts/{id}/set-default', [DoctorDashboardController::class, 'setDefaultBankAccount'])->name('bank-accounts.set-default');
+    Route::delete('/bank-accounts/{id}', [DoctorDashboardController::class, 'deleteBankAccount'])->name('bank-accounts.delete');
+    
+    // Payment History
+    Route::get('/payment-history', [DoctorDashboardController::class, 'paymentHistory'])->name('payment-history');
 });
 
 // ==================== PATIENT ROUTES ====================

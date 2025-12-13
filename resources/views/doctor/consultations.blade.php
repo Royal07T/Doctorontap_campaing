@@ -18,7 +18,6 @@
         <!-- Sidebar -->
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-            <!-- Sidebar Header -->
             <div class="purple-gradient p-5 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 w-auto">
@@ -30,7 +29,6 @@
                 </button>
             </div>
 
-            <!-- User Info -->
             <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
@@ -43,7 +41,6 @@
                 </div>
             </div>
 
-            <!-- Navigation -->
             <nav class="p-4 space-y-2">
                 <a href="{{ route('doctor.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,14 +56,21 @@
                     <span>My Consultations</span>
                 </a>
 
-                <div class="border-t border-gray-200 my-2"></div>
-
-                <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                <a href="{{ route('doctor.bank-accounts') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    <span>View Website</span>
+                    <span>Bank Accounts</span>
                 </a>
+
+                <a href="{{ route('doctor.payment-history') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Payment History</span>
+                </a>
+
+                <div class="border-t border-gray-200 my-2"></div>
 
                 <form method="POST" action="{{ route('doctor.logout') }}">
                     @csrf
@@ -103,33 +107,62 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-                        <div class="flex items-center space-x-3">
-                            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
-                            <h1 class="text-xl font-bold text-white">My Consultations</h1>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-white hidden md:block">{{ now()->format('l, F j, Y') }}</span>
+                        <h1 class="text-xl font-bold text-white">My Consultations</h1>
                     </div>
                 </div>
             </header>
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500">
+                        <p class="text-xs text-gray-600 uppercase font-medium">Total</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $stats['total'] }}</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
+                        <p class="text-xs text-gray-600 uppercase font-medium">Paid</p>
+                        <p class="text-2xl font-bold text-green-600 mt-1">{{ $stats['paid'] }}</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-500">
+                        <p class="text-xs text-gray-600 uppercase font-medium">Unpaid</p>
+                        <p class="text-2xl font-bold text-red-600 mt-1">{{ $stats['unpaid'] }}</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-yellow-500">
+                        <p class="text-xs text-gray-600 uppercase font-medium">Pending</p>
+                        <p class="text-2xl font-bold text-yellow-600 mt-1">{{ $stats['pending'] }}</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-500">
+                        <p class="text-xs text-gray-600 uppercase font-medium">Completed</p>
+                        <p class="text-2xl font-bold text-purple-600 mt-1">{{ $stats['completed'] }}</p>
+                    </div>
+                </div>
+
                 <!-- Search and Filter -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <form method="GET" action="{{ route('doctor.consultations') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <form method="GET" action="{{ route('doctor.consultations') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search Patient</label>
+                            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
                             <input type="text"
                                    id="search"
                                    name="search"
                                    value="{{ request('search') }}"
-                                   placeholder="Name, email, or reference"
+                                   placeholder="Name, email, phone, reference"
                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
                         </div>
                         <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+                            <label for="payment_status" class="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+                            <select id="payment_status"
+                                    name="payment_status"
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
+                                <option value="">All Payments</option>
+                                <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>✅ Paid</option>
+                                <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>❌ Unpaid</option>
+                                <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>⏳ Pending</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Consultation Status</label>
                             <select id="status"
                                     name="status"
                                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
@@ -142,7 +175,7 @@
                         </div>
                         <div class="flex items-end space-x-2">
                             <button type="submit" class="flex-1 px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                                Apply Filters
+                                Filter
                             </button>
                             <a href="{{ route('doctor.consultations') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
                                 Reset
@@ -152,78 +185,77 @@
                 </div>
 
                 <!-- Consultations Table -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-purple-50">
+                            <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Reference</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Patient</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Contact</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Date</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">Actions</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($consultations as $consultation)
-                                    <tr class="hover:bg-purple-50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900 font-mono">{{ $consultation->reference ?? 'N/A' }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{{ $consultation->first_name }} {{ $consultation->last_name }}</div>
-                                            <div class="text-xs text-gray-500">{{ $consultation->age }} yrs, {{ ucfirst($consultation->gender) }}</div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm text-gray-900">{{ $consultation->mobile }}</div>
-                                            <div class="text-xs text-gray-500">{{ $consultation->email }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                @if($consultation->status == 'completed') bg-green-100 text-green-800
-                                                @elseif($consultation->status == 'scheduled') bg-blue-100 text-blue-800
-                                                @elseif($consultation->status == 'cancelled') bg-red-100 text-red-800
-                                                @else bg-yellow-100 text-yellow-800 @endif">
-                                                {{ ucfirst($consultation->status) }}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ $consultation->reference }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ $consultation->full_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->age }} yrs, {{ ucfirst($consultation->gender) }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900">{{ $consultation->mobile }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->email }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            @if($consultation->status === 'completed') bg-green-100 text-green-800
+                                            @elseif($consultation->status === 'pending') bg-yellow-100 text-yellow-800
+                                            @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-800
+                                            @else bg-red-100 text-red-800
+                                            @endif">
+                                            {{ ucfirst($consultation->status) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if($consultation->payment_status === 'paid')
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                ✅ Paid
                                             </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ $consultation->created_at->format('M d, Y') }}
-                                            <div class="text-xs text-gray-400">{{ $consultation->created_at->format('h:i A') }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <button onclick="viewConsultation({{ $consultation->id }})"
-                                                    class="text-purple-600 hover:text-purple-900 font-medium mr-3 transition-colors">
-                                                View
-                                            </button>
-                                            <button onclick="updateStatus({{ $consultation->id }})"
-                                                    class="text-blue-600 hover:text-blue-900 font-medium mr-3 transition-colors">
-                                                Update
-                                            </button>
-                                            @if($consultation->treatment_plan_created)
-                                            <button onclick="createTreatmentPlan({{ $consultation->id }}, true)"
-                                                    class="text-orange-600 hover:text-orange-900 font-medium transition-colors">
-                                                📝 Edit Plan
-                                            </button>
-                                            @elseif($consultation->status !== 'completed')
-                                            <button onclick="createTreatmentPlan({{ $consultation->id }}, false)"
-                                                    class="text-green-600 hover:text-green-900 font-medium transition-colors">
-                                                ➕ Create Plan
-                                            </button>
-                                            @endif
-                                        </td>
-                                    </tr>
+                                        @else
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                ❌ Unpaid
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ $consultation->created_at->format('M d, Y') }}
+                                        <div class="text-xs text-gray-500">{{ $consultation->created_at->format('h:i A') }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="{{ route('doctor.consultations.view', $consultation->id) }}" class="text-purple-600 hover:text-purple-900">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
                                 @empty
-                                    <tr>
-                                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                                            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <tr>
+                                    <td colspan="7" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center">
+                                            <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <p class="text-lg font-medium">No consultations found</p>
-                                            <p class="text-sm mt-1">Try adjusting your search or filters</p>
-                                        </td>
-                                    </tr>
+                                            <h3 class="text-lg font-semibold text-gray-800 mb-2">No Consultations Found</h3>
+                                            <p class="text-gray-600">{{ request()->has('search') || request()->has('status') || request()->has('payment_status') ? 'Try adjusting your filters' : 'Your consultations will appear here' }}</p>
+                                        </div>
+                                    </td>
+                                </tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -231,859 +263,12 @@
 
                     <!-- Pagination -->
                     @if($consultations->hasPages())
-                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                            {{ $consultations->links() }}
-                        </div>
+                    <div class="px-6 py-4 border-t border-gray-200">
+                        {{ $consultations->links() }}
+                    </div>
                     @endif
                 </div>
             </main>
-        </div>
-    </div>
-
-    <!-- View Consultation Modal -->
-    <div id="viewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-2xl rounded-2xl bg-white my-10">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <h3 class="text-2xl font-bold text-gray-900">Consultation Details</h3>
-                <button onclick="closeModal('viewModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div id="consultationDetails" class="space-y-4"></div>
-        </div>
-    </div>
-
-    <!-- Update Status Modal -->
-    <div id="statusModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-6 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-900">Update Status</h3>
-                <button onclick="closeModal('statusModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <form id="statusForm" onsubmit="submitStatusUpdate(event)">
-                <div class="space-y-5">
-                    <div>
-                        <label for="newStatus" class="block text-sm font-semibold text-gray-700 mb-2">New Status <span class="text-red-500">*</span></label>
-                        <select id="newStatus" name="status" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
-                            <option value="">Select Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="scheduled">Scheduled</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="notes" class="block text-sm font-semibold text-gray-700 mb-2">Notes (Optional)</label>
-                        <textarea id="notes" name="notes" rows="4" placeholder="Add any notes about this consultation..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"></textarea>
-                    </div>
-                    <div class="flex space-x-3 pt-4">
-                        <button type="submit" class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
-                            Update Status
-                        </button>
-                        <button type="button" onclick="closeModal('statusModal')" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        let currentConsultationId = null;
-
-        function viewConsultation(id) {
-            fetch(`/doctor/consultations/${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const consultation = data.consultation;
-                        const details = `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-purple-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-purple-700 text-sm uppercase mb-2">Reference Number</h4>
-                                    <p class="text-gray-900 font-medium font-mono">${consultation.reference}</p>
-                                </div>
-                                <div class="bg-purple-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-purple-700 text-sm uppercase mb-2">Status</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.status}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Patient Name</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.patient_name}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Age & Gender</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.age} yrs, ${consultation.gender}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Phone</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.mobile}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Email</h4>
-                                    <p class="text-gray-900 font-medium break-all">${consultation.email}</p>
-                                </div>
-                                <div class="md:col-span-2 bg-blue-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-blue-700 text-sm uppercase mb-2">Symptoms/Problem</h4>
-                                    <p class="text-gray-900">${consultation.symptoms || 'N/A'}</p>
-                                </div>
-                                <div class="md:col-span-2 bg-green-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-green-700 text-sm uppercase mb-2">Doctor Notes</h4>
-                                    <p class="text-gray-900">${consultation.doctor_notes || 'No notes added yet'}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Payment Status</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.payment_status}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Created At</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.created_at}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Registered By</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.canvasser}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-gray-700 text-sm uppercase mb-2">Nurse Assigned</h4>
-                                    <p class="text-gray-900 font-medium">${consultation.nurse}</p>
-                                </div>
-                            </div>
-                        `;
-                        document.getElementById('consultationDetails').innerHTML = details;
-                        document.getElementById('viewModal').classList.remove('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('View consultation error:', error);
-                    showAlertModal('Failed to load consultation details', 'error');
-                });
-        }
-
-        function updateStatus(id) {
-            currentConsultationId = id;
-            document.getElementById('statusModal').classList.remove('hidden');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-            if (modalId === 'statusModal') {
-                document.getElementById('statusForm').reset();
-                currentConsultationId = null;
-            }
-            if (modalId === 'treatmentPlanModal') {
-                closeTreatmentPlanModal();
-            }
-        }
-
-        function closeTreatmentPlanModal() {
-            // Stop auto-save
-            stopAutoSave();
-            
-            // Hide modal
-            document.getElementById('treatmentPlanModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            
-            // Reset form
-            document.getElementById('treatmentPlanForm').reset();
-            document.getElementById('medicationsContainer').innerHTML = '';
-            document.getElementById('referralsContainer').innerHTML = '';
-            
-            // Reset consultation ID
-            currentConsultationId = null;
-        }
-
-        function submitStatusUpdate(event) {
-            event.preventDefault();
-            
-            const formData = new FormData(event.target);
-            
-            fetch(`/doctor/consultations/${currentConsultationId}/update-status`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    status: formData.get('status'),
-                    notes: formData.get('notes')
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlertModal(data.message, 'success');
-                    closeModal('statusModal');
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    showAlertModal(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showAlertModal('Failed to update status', 'error');
-                console.error(error);
-            });
-        }
-
-        // Modal System for Confirmations and Alerts
-        let confirmCallback = null;
-
-        function showConfirmModal(message, onConfirm) {
-            const messageElement = document.getElementById('confirmMessage');
-            // Use textContent with whitespace-pre-line CSS class for proper formatting
-            messageElement.textContent = message;
-            document.getElementById('confirmModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            confirmCallback = onConfirm;
-        }
-
-        function closeConfirmModal() {
-            document.getElementById('confirmModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            confirmCallback = null;
-        }
-
-        function confirmAction() {
-            if (confirmCallback) {
-                confirmCallback();
-            }
-            closeConfirmModal();
-        }
-
-        function showAlertModal(message, type = 'error') {
-            const modal = document.getElementById('alertModal');
-            const icon = document.getElementById('alertIcon');
-            const text = document.getElementById('alertMessage');
-            
-            text.textContent = message;
-            
-            if (type === 'success') {
-                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
-                icon.parentElement.className = 'flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-green-100';
-                icon.className = 'w-6 h-6 text-green-600';
-            } else {
-                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>';
-                icon.parentElement.className = 'flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-100';
-                icon.className = 'w-6 h-6 text-red-600';
-            }
-            
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAlertModal() {
-            document.getElementById('alertModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Treatment Plan Functions
-        let autoSaveInterval = null;
-        let lastAutoSave = null;
-
-        function createTreatmentPlan(consultationId, isEdit = false) {
-            currentConsultationId = consultationId;
-            
-            // Reset form fields
-            const form = document.getElementById('treatmentPlanForm');
-            form.reset();
-            
-            // Clear medications and referrals containers
-            document.getElementById('medicationsContainer').innerHTML = '';
-            document.getElementById('referralsContainer').innerHTML = '';
-            
-            // Update modal title and button based on edit mode
-            const modalTitle = document.getElementById('treatmentPlanModalTitle');
-            const submitButton = document.getElementById('treatmentPlanSubmitButton');
-            
-            if (isEdit) {
-                modalTitle.textContent = 'Update Treatment Plan';
-                submitButton.textContent = 'Update Treatment Plan';
-                // Load existing treatment plan data
-                loadExistingTreatmentPlan(consultationId);
-            } else {
-                modalTitle.textContent = 'Create Treatment Plan';
-                submitButton.textContent = 'Create Treatment Plan';
-                // Load patient's previous medical history
-                loadPatientHistory(consultationId);
-            }
-            
-            // Show modal
-            document.getElementById('treatmentPlanModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            
-            // Start auto-save
-            startAutoSave();
-        }
-
-        function loadExistingTreatmentPlan(consultationId) {
-            // Find consultation data from the table
-            fetch(`/doctor/consultations/${consultationId}`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.consultation) {
-                    const c = data.consultation;
-                    
-                    // Populate form fields
-                    document.getElementById('presenting_complaint').value = c.presenting_complaint || '';
-                    document.getElementById('history_of_complaint').value = c.history_of_complaint || '';
-                    document.getElementById('past_medical_history').value = c.past_medical_history || '';
-                    document.getElementById('family_history').value = c.family_history || '';
-                    document.getElementById('drug_history').value = c.drug_history || '';
-                    document.getElementById('social_history').value = c.social_history || '';
-                    document.getElementById('diagnosis').value = c.diagnosis || '';
-                    document.getElementById('investigation').value = c.investigation || '';
-                    document.getElementById('treatment_plan').value = c.treatment_plan || '';
-                    document.getElementById('follow_up_instructions').value = c.follow_up_instructions || '';
-                    document.getElementById('lifestyle_recommendations').value = c.lifestyle_recommendations || '';
-                    document.getElementById('next_appointment_date').value = c.next_appointment_date || '';
-                    document.getElementById('additional_notes').value = c.additional_notes || '';
-                    
-                    // Load medications
-                    if (c.prescribed_medications && Array.isArray(c.prescribed_medications)) {
-                        c.prescribed_medications.forEach(med => {
-                            addMedication();
-                            const container = document.getElementById('medicationsContainer');
-                            const lastMed = container.lastElementChild;
-                            lastMed.querySelector('[name*="[name]"]').value = med.name || '';
-                            lastMed.querySelector('[name*="[dosage]"]').value = med.dosage || '';
-                            lastMed.querySelector('[name*="[frequency]"]').value = med.frequency || '';
-                            lastMed.querySelector('[name*="[duration]"]').value = med.duration || '';
-                        });
-                    }
-                    
-                    // Load referrals
-                    if (c.referrals && Array.isArray(c.referrals)) {
-                        c.referrals.forEach(ref => {
-                            addReferral();
-                            const container = document.getElementById('referralsContainer');
-                            const lastRef = container.lastElementChild;
-                            lastRef.querySelector('[name*="[specialist]"]').value = ref.specialist || '';
-                            lastRef.querySelector('[name*="[reason]"]').value = ref.reason || '';
-                            lastRef.querySelector('[name*="[urgency]"]').value = ref.urgency || 'routine';
-                        });
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error loading treatment plan:', error);
-            });
-        }
-
-        function loadPatientHistory(consultationId) {
-            // Show loading indicator
-            const historyBtn = document.getElementById('loadHistoryBtn');
-            if (historyBtn) {
-                const originalText = historyBtn.innerHTML;
-                historyBtn.innerHTML = '🔄 Loading...';
-                historyBtn.disabled = true;
-                
-                fetch(`/doctor/consultations/${consultationId}/patient-history`, {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.has_history && data.history) {
-                        // Pre-fill history fields
-                        document.getElementById('past_medical_history').value = data.history.past_medical_history || '';
-                        document.getElementById('family_history').value = data.history.family_history || '';
-                        document.getElementById('drug_history').value = data.history.drug_history || '';
-                        document.getElementById('social_history').value = data.history.social_history || '';
-                        
-                        showAlertModal(`✅ Patient history loaded from ${data.history.last_consultation_date}`, 'success');
-                    } else {
-                        showAlertModal('ℹ️ No previous medical history found for this patient', 'info');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading patient history:', error);
-                    showAlertModal('❌ Failed to load patient history', 'error');
-                })
-                .finally(() => {
-                    historyBtn.innerHTML = originalText;
-                    historyBtn.disabled = false;
-                });
-            }
-        }
-
-        function startAutoSave() {
-            // Clear any existing interval
-            stopAutoSave();
-            
-            // Auto-save every 30 seconds
-            autoSaveInterval = setInterval(() => {
-                autoSaveTreatmentPlan();
-            }, 30000);
-        }
-
-        function stopAutoSave() {
-            if (autoSaveInterval) {
-                clearInterval(autoSaveInterval);
-                autoSaveInterval = null;
-            }
-        }
-
-        function autoSaveTreatmentPlan() {
-            if (!currentConsultationId) return;
-            
-            const form = document.getElementById('treatmentPlanForm');
-            const formData = new FormData(form);
-            const data = {};
-            
-            // Convert FormData to object
-            for (let [key, value] of formData.entries()) {
-                if (key.includes('[') && key.includes(']')) {
-                    const parts = key.split('[');
-                    const field = parts[0];
-                    const index = parts[1].split(']')[0];
-                    const subfield = parts[2].split(']')[0];
-                    
-                    if (!data[field]) data[field] = [];
-                    if (!data[field][index]) data[field][index] = {};
-                    data[field][index][subfield] = value;
-                } else {
-                    data[key] = value;
-                }
-            }
-            
-            // Submit auto-save
-            fetch(`/doctor/consultations/${currentConsultationId}/auto-save-treatment-plan`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    lastAutoSave = data.timestamp;
-                    showAutoSaveNotification();
-                }
-            })
-            .catch(error => {
-                console.error('Auto-save failed:', error);
-            });
-        }
-
-        function showAutoSaveNotification() {
-            const notification = document.getElementById('autoSaveNotification');
-            if (notification) {
-                notification.classList.remove('hidden');
-                notification.textContent = `✓ Draft saved at ${lastAutoSave}`;
-                
-                setTimeout(() => {
-                    notification.classList.add('hidden');
-                }, 2000);
-            }
-        }
-
-        function submitTreatmentPlan(event) {
-            event.preventDefault();
-            
-            // Store the form event for use in the callback
-            const formEvent = event;
-            
-            // Show confirmation modal instead of browser alert
-            showConfirmModal(
-                '⚠️ Confirm Treatment Plan Creation\n\nAre you sure you want to create this treatment plan?\n\nThis will:\n• Mark the consultation as completed\n• Send email notification to patient\n• Make the plan available after payment\n\nClick Confirm to proceed or Cancel to review.',
-                function() {
-                    // This callback runs when user confirms
-                    processTreatmentPlanSubmission(formEvent);
-                }
-            );
-        }
-        
-        function processTreatmentPlanSubmission(event) {
-            const formData = new FormData(event.target);
-            const data = {};
-            
-            // Convert FormData to object
-            for (let [key, value] of formData.entries()) {
-                if (key.includes('[') && key.includes(']')) {
-                    // Handle array fields like prescribed_medications[0][name]
-                    const parts = key.split('[');
-                    const field = parts[0];
-                    const index = parts[1].split(']')[0];
-                    const subfield = parts[2].split(']')[0];
-                    
-                    if (!data[field]) data[field] = [];
-                    if (!data[field][index]) data[field][index] = {};
-                    data[field][index][subfield] = value;
-                } else {
-                    data[key] = value;
-                }
-            }
-            
-            // Remove empty medication and referral entries
-            if (data.prescribed_medications) {
-                data.prescribed_medications = data.prescribed_medications.filter(med => 
-                    med.name && med.dosage && med.frequency && med.duration
-                );
-            }
-            
-            if (data.referrals) {
-                data.referrals = data.referrals.filter(ref => 
-                    ref.specialist && ref.reason && ref.urgency
-                );
-            }
-            
-            // Show loading state
-            const submitButton = event.target.querySelector('button[type="submit"]');
-            const originalText = submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = 'Creating Treatment Plan...';
-            
-            // Submit to server
-            fetch(`/doctor/consultations/${currentConsultationId}/treatment-plan`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlertModal(data.message, 'success');
-                    closeModal('treatmentPlanModal');
-                    // Refresh the page or update the consultation status
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                } else {
-                    showAlertModal(data.message, 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = originalText;
-                }
-            })
-            .catch(error => {
-                showAlertModal('Failed to create treatment plan', 'error');
-                console.error(error);
-                submitButton.disabled = false;
-                submitButton.textContent = originalText;
-            });
-        }
-
-        function addMedication() {
-            const container = document.getElementById('medicationsContainer');
-            const count = container.children.length;
-            
-            const medicationDiv = document.createElement('div');
-            medicationDiv.className = 'medication-item grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border border-gray-200 rounded-lg';
-            medicationDiv.innerHTML = `
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Medication Name</label>
-                    <input type="text" name="prescribed_medications[${count}][name]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Paracetamol">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Dosage</label>
-                    <input type="text" name="prescribed_medications[${count}][dosage]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 500mg">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
-                    <input type="text" name="prescribed_medications[${count}][frequency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Twice daily">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Duration</label>
-                    <input type="text" name="prescribed_medications[${count}][duration]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 7 days">
-                </div>
-            `;
-            
-            container.appendChild(medicationDiv);
-        }
-
-        function addReferral() {
-            const container = document.getElementById('referralsContainer');
-            const count = container.children.length;
-            
-            const referralDiv = document.createElement('div');
-            referralDiv.className = 'referral-item grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-gray-200 rounded-lg';
-            referralDiv.innerHTML = `
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Specialist</label>
-                    <input type="text" name="referrals[${count}][specialist]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Cardiologist">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Reason</label>
-                    <input type="text" name="referrals[${count}][reason]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="Reason for referral">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Urgency</label>
-                    <select name="referrals[${count}][urgency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500">
-                        <option value="routine">Routine</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="emergency">Emergency</option>
-                    </select>
-                </div>
-            `;
-            
-            container.appendChild(referralDiv);
-        }
-    </script>
-
-    <!-- Treatment Plan Modal -->
-    <div id="treatmentPlanModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-5 mx-auto p-6 border w-full max-w-6xl shadow-2xl rounded-2xl bg-white my-5">
-            <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                <div>
-                    <h3 id="treatmentPlanModalTitle" class="text-2xl font-bold text-gray-900">Create Treatment Plan</h3>
-                    <p id="autoSaveNotification" class="hidden text-sm text-green-600 mt-1"></p>
-                </div>
-                <button onclick="closeTreatmentPlanModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Load Previous History Button -->
-            <div class="mb-4">
-                <button type="button" id="loadHistoryBtn" onclick="loadPatientHistory(currentConsultationId)" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                    📋 Load Patient's Previous Medical History
-                </button>
-            </div>
-            
-            <form id="treatmentPlanForm" onsubmit="submitTreatmentPlan(event)">
-                <div class="space-y-6">
-                    <!-- Section 1: Presenting Complaint / History -->
-                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <h3 class="text-md font-bold text-blue-900 mb-3">1. Presenting Complaint / History of Presenting Complaint</h3>
-                        
-                        <div class="space-y-3">
-                            <div>
-                                <label for="presenting_complaint" class="block text-sm font-semibold text-gray-700 mb-2">Presenting Complaint <span class="text-red-500">*</span></label>
-                                <textarea id="presenting_complaint" name="presenting_complaint" required rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Chief complaint in patient's own words..."></textarea>
-                            </div>
-                            
-                            <div>
-                                <label for="history_of_complaint" class="block text-sm font-semibold text-gray-700 mb-2">History of Presenting Complaint <span class="text-red-500">*</span></label>
-                                <textarea id="history_of_complaint" name="history_of_complaint" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Detailed history: onset, duration, progression, associated symptoms, relieving/aggravating factors..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 2: PMH / FMH -->
-                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <h3 class="text-md font-bold text-green-900 mb-3">2. PMH (Past Medical History) / FMH (Family Medical History)</h3>
-                        
-                        <div class="space-y-3">
-                            <div>
-                                <label for="past_medical_history" class="block text-sm font-semibold text-gray-700 mb-2">Past Medical History</label>
-                                <textarea id="past_medical_history" name="past_medical_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Previous illnesses, surgeries, hospitalizations..."></textarea>
-                            </div>
-                            
-                            <div>
-                                <label for="family_history" class="block text-sm font-semibold text-gray-700 mb-2">Family Medical History</label>
-                                <textarea id="family_history" name="family_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Relevant family medical conditions..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 3: DH / SH -->
-                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <h3 class="text-md font-bold text-yellow-900 mb-3">3. DH (Drug History) / SH (Social History)</h3>
-                        
-                        <div class="space-y-3">
-                            <div>
-                                <label for="drug_history" class="block text-sm font-semibold text-gray-700 mb-2">Drug History</label>
-                                <textarea id="drug_history" name="drug_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Current medications, allergies, adverse reactions..."></textarea>
-                            </div>
-                            
-                            <div>
-                                <label for="social_history" class="block text-sm font-semibold text-gray-700 mb-2">Social History</label>
-                                <textarea id="social_history" name="social_history" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Smoking, alcohol, occupation, living conditions..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 4: Diagnosis -->
-                    <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                        <h3 class="text-md font-bold text-red-900 mb-3">4. Diagnosis</h3>
-                        <div>
-                            <label for="diagnosis" class="block text-sm font-semibold text-gray-700 mb-2">Clinical Diagnosis <span class="text-red-500">*</span></label>
-                            <textarea id="diagnosis" name="diagnosis" required rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Primary and differential diagnoses..."></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Section 5: Investigation -->
-                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                        <h3 class="text-md font-bold text-purple-900 mb-3">5. Investigation</h3>
-                        <div>
-                            <label for="investigation" class="block text-sm font-semibold text-gray-700 mb-2">Investigations / Lab Tests</label>
-                            <textarea id="investigation" name="investigation" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Recommended tests, imaging, laboratory investigations..."></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Section 6: Treatment -->
-                    <div class="bg-teal-50 p-4 rounded-lg border border-teal-200">
-                        <h3 class="text-md font-bold text-teal-900 mb-3">6. Treatment</h3>
-                        <div>
-                            <label for="treatment_plan" class="block text-sm font-semibold text-gray-700 mb-2">Treatment Plan <span class="text-red-500">*</span></label>
-                            <textarea id="treatment_plan" name="treatment_plan" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Overall treatment approach, management plan..."></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Medications Section -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Prescribed Medications</label>
-                        <div id="medicationsContainer" class="space-y-3">
-                            <div class="medication-item grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border border-gray-200 rounded-lg">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Medication Name</label>
-                                    <input type="text" name="prescribed_medications[0][name]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Paracetamol">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Dosage</label>
-                                    <input type="text" name="prescribed_medications[0][dosage]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 500mg">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
-                                    <input type="text" name="prescribed_medications[0][frequency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Twice daily">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Duration</label>
-                                    <input type="text" name="prescribed_medications[0][duration]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., 7 days">
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" onclick="addMedication()" class="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm">
-                            + Add Another Medication
-                        </button>
-                    </div>
-
-                    <!-- Follow-up Instructions -->
-                    <div>
-                        <label for="follow_up_instructions" class="block text-sm font-semibold text-gray-700 mb-2">Follow-up Instructions</label>
-                        <textarea id="follow_up_instructions" name="follow_up_instructions" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Instructions for follow-up care..."></textarea>
-                    </div>
-
-                    <!-- Lifestyle Recommendations -->
-                    <div>
-                        <label for="lifestyle_recommendations" class="block text-sm font-semibold text-gray-700 mb-2">Lifestyle Recommendations</label>
-                        <textarea id="lifestyle_recommendations" name="lifestyle_recommendations" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Diet, exercise, and lifestyle recommendations..."></textarea>
-                    </div>
-
-                    <!-- Referrals Section -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Referrals</label>
-                        <div id="referralsContainer" class="space-y-3">
-                            <div class="referral-item grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-gray-200 rounded-lg">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Specialist</label>
-                                    <input type="text" name="referrals[0][specialist]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="e.g., Cardiologist">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Reason</label>
-                                    <input type="text" name="referrals[0][reason]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500" placeholder="Reason for referral">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Urgency</label>
-                                    <select name="referrals[0][urgency]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-purple-500">
-                                        <option value="routine">Routine</option>
-                                        <option value="urgent">Urgent</option>
-                                        <option value="emergency">Emergency</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" onclick="addReferral()" class="mt-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm">
-                            + Add Another Referral
-                        </button>
-                    </div>
-
-                    <!-- Next Appointment -->
-                    <div>
-                        <label for="next_appointment_date" class="block text-sm font-semibold text-gray-700 mb-2">Next Appointment Date</label>
-                        <input type="date" id="next_appointment_date" name="next_appointment_date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
-                    </div>
-
-                    <!-- Additional Notes -->
-                    <div>
-                        <label for="additional_notes" class="block text-sm font-semibold text-gray-700 mb-2">Additional Notes</label>
-                        <textarea id="additional_notes" name="additional_notes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100" placeholder="Any additional notes or recommendations..."></textarea>
-                    </div>
-
-                    <!-- Payment Notice -->
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div class="flex items-start">
-                            <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                            <div>
-                                <h4 class="text-sm font-semibold text-yellow-800">Payment Required</h4>
-                                <p class="text-sm text-yellow-700 mt-1">The patient will need to make payment before they can access this treatment plan.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                        <button type="button" onclick="closeTreatmentPlanModal()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" id="treatmentPlanSubmitButton" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                            Create Treatment Plan
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Confirmation Modal -->
-    <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
-            <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-yellow-100">
-                <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900 text-center mb-3">Confirm Action</h3>
-            <p id="confirmMessage" class="text-gray-700 text-left mb-6 whitespace-pre-line leading-relaxed"></p>
-            <div class="flex gap-3">
-                <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors">
-                    Cancel
-                </button>
-                <button onclick="confirmAction()" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors">
-                    Confirm
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Alert Modal -->
-    <div id="alertModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
-            <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-100">
-                <svg id="alertIcon" class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                </svg>
-            </div>
-            <p id="alertMessage" class="text-gray-600 text-center mb-6"></p>
-            <button onclick="closeAlertModal()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors">
-                OK
-            </button>
         </div>
     </div>
 </body>

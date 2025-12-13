@@ -15,6 +15,8 @@ class Consultation extends Model
     protected $fillable = [
         'reference',
         'patient_id',
+        'booking_id',
+        'is_multi_patient_booking',
         'first_name',
         'last_name',
         'email',
@@ -63,6 +65,7 @@ class Consultation extends Model
     ];
 
     protected $casts = [
+        'is_multi_patient_booking' => 'boolean',
         'emergency_symptoms' => 'array',
         'medical_documents' => 'array',
         'prescribed_medications' => 'array',
@@ -119,6 +122,14 @@ class Consultation extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    /**
+     * Get the booking this consultation is part of (for multi-patient bookings)
+     */
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class);
     }
 
     /**
@@ -331,5 +342,25 @@ class Consultation extends Model
         }
         
         return $query->whereRaw('1 = 0'); // Return no results if user type unknown
+    }
+
+    /**
+     * Check if this is part of a multi-patient booking
+     */
+    public function isPartOfMultiPatientBooking(): bool
+    {
+        return $this->is_multi_patient_booking && $this->booking_id !== null;
+    }
+
+    /**
+     * Get invoice item for this consultation (if part of multi-patient booking)
+     */
+    public function invoiceItem()
+    {
+        if (!$this->isPartOfMultiPatientBooking()) {
+            return null;
+        }
+
+        return InvoiceItem::where('consultation_id', $this->id)->first();
     }
 }
