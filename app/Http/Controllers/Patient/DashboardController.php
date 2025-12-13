@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Patient;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\PatientMedicalHistory;
+use App\Models\Specialty;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -53,24 +54,36 @@ class DashboardController extends Controller
             ->get();
 
         // Get doctor specializations for carousel
-        $specializations = \App\Models\Doctor::whereNotNull('specialization')
-            ->where('specialization', '!=', '')
-            ->distinct()
-            ->pluck('specialization')
+        // First try to get from specialties table, then fallback to doctor specializations
+        $specializations = Specialty::active()
+            ->whereHas('doctors', function($query) {
+                $query->where('is_approved', true);
+            })
+            ->pluck('name')
             ->take(10);
+        
+        // If no specialties found, fallback to doctor specializations
+        if ($specializations->isEmpty()) {
+            $specializations = \App\Models\Doctor::whereNotNull('specialization')
+                ->where('specialization', '!=', '')
+                ->where('is_approved', true)
+                ->distinct()
+                ->pluck('specialization')
+                ->take(10);
+        }
 
-        // Symptoms with their related specializations
+        // Symptoms with their related specializations (mapped to database specialties)
         $symptoms = [
-            ['name' => 'Menstruation Flow', 'specialization' => 'Gynecology', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+            ['name' => 'Menstruation Flow', 'specialization' => 'Obstetrics & Gynecology (OB/GYN)', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
             ['name' => 'Rashes', 'specialization' => 'Dermatology', 'icon' => 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4'],
             ['name' => 'Headache', 'specialization' => 'Neurology', 'icon' => 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'],
-            ['name' => 'Cough', 'specialization' => 'Pulmonology', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-            ['name' => 'Fever', 'specialization' => 'General Medicine', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
+            ['name' => 'Cough', 'specialization' => 'Internal Medicine', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+            ['name' => 'Fever', 'specialization' => 'General Practice (Family Medicine)', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
             ['name' => 'Stomach Pain', 'specialization' => 'Gastroenterology', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-            ['name' => 'Back Pain', 'specialization' => 'Orthopedics', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+            ['name' => 'Back Pain', 'specialization' => 'Orthopaedics', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
             ['name' => 'Eye Problems', 'specialization' => 'Ophthalmology', 'icon' => 'M15 12a3 3 0 11-6 0 3 3 0 016 0z'],
-            ['name' => 'Ear Pain', 'specialization' => 'ENT', 'icon' => 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3'],
-            ['name' => 'Joint Pain', 'specialization' => 'Rheumatology', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+            ['name' => 'Ear Pain', 'specialization' => 'ENT (Otolaryngology)', 'icon' => 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3'],
+            ['name' => 'Joint Pain', 'specialization' => 'Orthopaedics', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
             ['name' => 'Skin Issues', 'specialization' => 'Dermatology', 'icon' => 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4'],
             ['name' => 'Chest Pain', 'specialization' => 'Cardiology', 'icon' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'],
         ];
@@ -95,18 +108,18 @@ class DashboardController extends Controller
      */
     public function doctorsBySymptom($symptom)
     {
-        // Map symptoms to specializations (slug format: lowercase with hyphens)
+        // Map symptoms to specializations (using database specialty names)
         $symptomMap = [
-            'menstruation-flow' => 'Gynecology',
+            'menstruation-flow' => 'Obstetrics & Gynecology (OB/GYN)',
             'rashes' => 'Dermatology',
             'headache' => 'Neurology',
-            'cough' => 'Pulmonology',
-            'fever' => 'General Medicine',
+            'cough' => 'Internal Medicine',
+            'fever' => 'General Practice (Family Medicine)',
             'stomach-pain' => 'Gastroenterology',
-            'back-pain' => 'Orthopedics',
+            'back-pain' => 'Orthopaedics',
             'eye-problems' => 'Ophthalmology',
-            'ear-pain' => 'ENT',
-            'joint-pain' => 'Rheumatology',
+            'ear-pain' => 'ENT (Otolaryngology)',
+            'joint-pain' => 'Orthopaedics',
             'skin-issues' => 'Dermatology',
             'chest-pain' => 'Cardiology',
         ];
