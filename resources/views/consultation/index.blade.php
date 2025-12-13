@@ -1157,6 +1157,49 @@
                             </select>
                             <p x-show="errors.consult_mode" class="text-red-500 text-xs mt-1" x-text="errors.consult_mode"></p>
                         </div>
+
+                        <!-- Consultation Type -->
+                        <div>
+                            <label for="consultation_type" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                                Payment Option *
+                            </label>
+                            <div class="space-y-3">
+                                <!-- Pay Later Option -->
+                                <label class="flex items-start gap-3 p-4 bg-white border-2 border-gray-200 hover:border-purple-400 rounded-lg cursor-pointer transition-all"
+                                       :class="formData.consultation_type === 'pay_later' ? 'border-purple-500 bg-purple-50' : ''">
+                                    <input type="radio" 
+                                           x-model="formData.consultation_type" 
+                                           value="pay_later" 
+                                           required
+                                           class="mt-1 text-purple-600 focus:ring-purple-500">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-semibold text-gray-900">💳 Consult Now, Pay Later</span>
+                                            <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Recommended</span>
+                                        </div>
+                                        <p class="text-xs text-gray-600">Start your consultation immediately. Payment request will be sent after consultation is completed.</p>
+                                    </div>
+                                </label>
+
+                                <!-- Pay Now Option -->
+                                <label class="flex items-start gap-3 p-4 bg-white border-2 border-gray-200 hover:border-purple-400 rounded-lg cursor-pointer transition-all"
+                                       :class="formData.consultation_type === 'pay_now' ? 'border-purple-500 bg-purple-50' : ''">
+                                    <input type="radio" 
+                                           x-model="formData.consultation_type" 
+                                           value="pay_now" 
+                                           required
+                                           class="mt-1 text-purple-600 focus:ring-purple-500">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-semibold text-gray-900">🔒 Pay Before Consultation</span>
+                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">Instant Access</span>
+                                        </div>
+                                        <p class="text-xs text-gray-600">Complete payment first, then immediately connect with a doctor. Faster consultation assignment.</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <p x-show="errors.consultation_type" class="text-red-500 text-xs mt-1" x-text="errors.consultation_type"></p>
+                        </div>
                     </div>
                 </div>
 
@@ -2081,6 +2124,7 @@
                     emergency_symptoms: [],
                     doctor: '',
                     consult_mode: '',
+                    consultation_type: 'pay_later',
                     informed_consent: false,
                     data_privacy: false
                 },
@@ -2236,6 +2280,7 @@
                         emergency_symptoms: [],
                         doctor: '',
                         consult_mode: '',
+                        consultation_type: 'pay_later',
                         informed_consent: false,
                         data_privacy: false
                     };

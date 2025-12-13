@@ -356,7 +356,7 @@ Route::get('/patient/email/verify/{id}/{hash}', [PatientVerificationController::
 
 // Patient Password Reset Routes
 Route::prefix('patient')->name('patient.')->group(function () {
-    Route::get('/forgot-password', [PatientForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::get('/forgot-password', [PatientForgotPasswordController::class, 'showForgotPassword'])->name('forgot-password');
     Route::post('/forgot-password', [PatientForgotPasswordController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [PatientForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
     Route::post('/reset-password', [PatientForgotPasswordController::class, 'resetPassword'])->name('password.update');
@@ -365,5 +365,28 @@ Route::prefix('patient')->name('patient.')->group(function () {
 // Protected Patient Routes (Authentication required)
 Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient.verified'])->group(function () {
     Route::post('/logout', [PatientAuthController::class, 'logout'])->name('logout');
+    
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Consultations
+    Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
+    Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
+    
+    // Medical Records
+    Route::get('/medical-records', [\App\Http\Controllers\Patient\DashboardController::class, 'medicalRecords'])->name('medical-records');
+    
+    // Profile
+    Route::get('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'profile'])->name('profile');
+    Route::put('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'updateProfile'])->name('profile.update');
+    
+    // Dependents
+    Route::get('/dependents', [\App\Http\Controllers\Patient\DashboardController::class, 'dependents'])->name('dependents');
+    
+    // Payments
+    Route::get('/payments', [\App\Http\Controllers\Patient\DashboardController::class, 'payments'])->name('payments');
+    
+    // Doctors by Specialization
+    Route::get('/doctors/specialization/{specialization}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySpecialization'])->name('doctors-by-specialization');
     Route::get('/dashboard', [PatientAuthController::class, 'dashboard'])->name('dashboard');
 });

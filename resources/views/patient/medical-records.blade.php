@@ -1,0 +1,187 @@
+@extends('layouts.patient')
+
+@section('title', 'Medical Records')
+
+@section('content')
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">My Medical Records</h1>
+        <p class="text-gray-600 mt-2">Complete history of your medical consultations and health data</p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <p class="text-gray-500 text-sm font-medium">Total Records</p>
+            <p class="text-3xl font-bold text-gray-800 mt-2">{{ $stats['total_records'] }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <p class="text-gray-500 text-sm font-medium">Vital Signs Recorded</p>
+            <p class="text-3xl font-bold text-gray-800 mt-2">{{ $stats['total_vital_signs'] }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <p class="text-gray-500 text-sm font-medium">Last Consultation</p>
+            <p class="text-xl font-bold text-gray-800 mt-2">
+                {{ $stats['last_consultation'] ? $stats['last_consultation']->format('M d, Y') : 'N/A' }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Latest Vital Signs -->
+    @if($latestVitals)
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Latest Vital Signs</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                @if($latestVitals->blood_pressure)
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Blood Pressure</p>
+                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->blood_pressure }}</p>
+                    </div>
+                @endif
+                @if($latestVitals->heart_rate)
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Heart Rate</p>
+                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->heart_rate }} bpm</p>
+                    </div>
+                @endif
+                @if($latestVitals->temperature)
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Temperature</p>
+                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->temperature }}°C</p>
+                    </div>
+                @endif
+                @if($latestVitals->weight)
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Weight</p>
+                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->weight }} kg</p>
+                    </div>
+                @endif
+                @if($latestVitals->height)
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Height</p>
+                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->height }} cm</p>
+                    </div>
+                @endif
+                @if($latestVitals->oxygen_saturation)
+                    <div class="text-center p-4 bg-indigo-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Oxygen Sat.</p>
+                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->oxygen_saturation }}%</p>
+                    </div>
+                @endif
+            </div>
+            <p class="text-xs text-gray-500 mt-4">Recorded: {{ $latestVitals->created_at->format('M d, Y H:i A') }}</p>
+        </div>
+    @endif
+
+    <!-- Medical History Records -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6 border-b">
+            <h2 class="text-xl font-bold text-gray-800">Medical History</h2>
+        </div>
+
+        @if($medicalHistories->count() > 0)
+            <div class="divide-y divide-gray-200">
+                @foreach($medicalHistories as $history)
+                    <div class="p-6 hover:bg-gray-50 transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">{{ $history->consultation->reference ?? 'N/A' }}</h3>
+                                <p class="text-sm text-gray-600">Dr. {{ $history->consultation->doctor->name ?? 'N/A' }}</p>
+                                <p class="text-xs text-gray-500 mt-1">{{ $history->consultation_date->format('M d, Y') }}</p>
+                            </div>
+                            @if($history->is_latest)
+                                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Latest</span>
+                            @endif
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Chief Complaint -->
+                            @if($history->chief_complaint)
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Chief Complaint</p>
+                                    <p class="text-sm text-gray-600">{{ $history->chief_complaint }}</p>
+                                </div>
+                            @endif
+
+                            <!-- Diagnosis -->
+                            @if($history->diagnosis)
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Diagnosis</p>
+                                    <p class="text-sm text-gray-600">{{ $history->diagnosis }}</p>
+                                </div>
+                            @endif
+
+                            <!-- Treatment Plan -->
+                            @if($history->treatment_plan)
+                                <div class="md:col-span-2">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Treatment Plan</p>
+                                    <p class="text-sm text-gray-600">{{ $history->treatment_plan }}</p>
+                                </div>
+                            @endif
+
+                            <!-- Medications -->
+                            @if($history->medications)
+                                <div class="md:col-span-2">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Medications</p>
+                                    <p class="text-sm text-gray-600">{{ $history->medications }}</p>
+                                </div>
+                            @endif
+
+                            <!-- Allergies -->
+                            @if($history->allergies)
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Allergies</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach(explode(',', $history->allergies) as $allergy)
+                                            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">{{ trim($allergy) }}</span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Notes -->
+                            @if($history->notes)
+                                <div class="md:col-span-2">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Additional Notes</p>
+                                    <p class="text-sm text-gray-600">{{ $history->notes }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t">
+                {{ $medicalHistories->links() }}
+            </div>
+        @else
+            <div class="text-center py-12">
+                <svg class="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Medical Records Yet</h3>
+                <p class="text-gray-500 mb-4">Your medical history will appear here after your consultations.</p>
+            </div>
+        @endif
+    </div>
+
+    <!-- Privacy Notice -->
+    <div class="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Privacy Notice:</strong> Your medical records are secure and confidential. Only you and authorized healthcare providers can access this information.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+

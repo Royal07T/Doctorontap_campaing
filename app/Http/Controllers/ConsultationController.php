@@ -163,6 +163,20 @@ class ConsultationController extends Controller
                     'gender' => $validated['gender'],
                     'age' => $validated['age'],
                 ]);
+                
+                // Send email verification notification for new patients
+                try {
+                    $patient->sendEmailVerificationNotification();
+                    \Log::info('Verification email sent to new patient', [
+                        'patient_id' => $patient->id,
+                        'email' => $patient->email
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send verification email: ' . $e->getMessage(), [
+                        'patient_id' => $patient->id,
+                        'email' => $patient->email
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             \Log::error('Failed to create/update patient record: ' . $e->getMessage(), [
