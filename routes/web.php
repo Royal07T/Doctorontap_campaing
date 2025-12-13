@@ -393,4 +393,8 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     
     // Doctors by Symptom
     Route::get('/doctors/symptom/{symptom}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySymptom'])->name('doctors-by-symptom');
+    
+    // Menstrual Cycle Tracking (for female patients)
+    Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
+    Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
 });

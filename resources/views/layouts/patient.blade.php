@@ -17,10 +17,10 @@
 <body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
-        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
+        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col"
                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
             <!-- Sidebar Header -->
-            <div class="purple-gradient p-5 flex items-center justify-between">
+            <div class="purple-gradient p-5 flex items-center justify-between flex-shrink-0">
                 <div class="flex items-center space-x-3">
                     <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 w-auto">
                 </div>
@@ -32,7 +32,7 @@
             </div>
 
             <!-- User Info -->
-            <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
+            <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100 flex-shrink-0">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
                         {{ substr(Auth::guard('patient')->user()->name, 0, 1) }}
@@ -45,7 +45,7 @@
             </div>
 
             <!-- Navigation -->
-            <nav class="p-4 space-y-2">
+            <nav class="p-4 space-y-2 overflow-y-auto flex-1 overflow-x-visible">
                 <a href="{{ route('patient.dashboard') }}" 
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all {{ request()->routeIs('patient.dashboard') ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,8 +99,8 @@
                 <div class="border-t border-gray-200 my-2"></div>
 
                 <!-- New Consultation Dropdown -->
-                <div x-data="{ consultationMenuOpen: false }" class="relative">
-                    <button @click="consultationMenuOpen = !consultationMenuOpen" 
+                <div x-data="{ consultationMenuOpen: false }" class="relative" style="z-index: 100;">
+                    <button type="button" @click="consultationMenuOpen = !consultationMenuOpen" 
                             class="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all {{ request()->routeIs('patient.consultation.new') ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,44 +123,45 @@
                          x-transition:leave="transition ease-in duration-75"
                          x-transition:leave-start="opacity-100 transform scale-100"
                          x-transition:leave-end="opacity-0 transform scale-95"
-                         class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
-                        <a href="{{ route('patient.consultation.new', ['type' => 'pay_later']) }}" 
-                           class="block px-4 py-4 hover:bg-purple-50 transition-colors border-b border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <h4 class="font-semibold text-gray-800">Consult Now, Pay Later</h4>
+                         class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                         style="z-index: 9999;">
+                            <a href="/patient/consultations/new/create?type=pay_later" 
+                               class="block px-4 py-4 hover:bg-purple-50 transition-colors border-b border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <h4 class="font-semibold text-gray-800">Consult Now, Pay Later</h4>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mb-2">Consult first, pay after service</p>
+                                        <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000)), 2) }}</p>
                                     </div>
-                                    <p class="text-xs text-gray-600 mb-2">Consult first, pay after service</p>
-                                    <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000)), 2) }}</p>
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
                                 </div>
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </a>
-                        <a href="{{ route('patient.consultation.new', ['type' => 'pay_now']) }}" 
-                           class="block px-4 py-4 hover:bg-purple-50 transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <h4 class="font-semibold text-gray-800">Pay Before Consultation</h4>
+                            </a>
+                            <a href="/patient/consultations/new/create?type=pay_now" 
+                               class="block px-4 py-4 hover:bg-purple-50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <h4 class="font-semibold text-gray-800">Pay Before Consultation</h4>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mb-2">Pay upfront to secure consultation</p>
+                                        <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500)), 2) }}</p>
                                     </div>
-                                    <p class="text-xs text-gray-600 mb-2">Pay upfront to secure consultation</p>
-                                    <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500)), 2) }}</p>
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
                                 </div>
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </a>
-                    </div>
+                            </a>
+                        </div>
                 </div>
 
                 <form method="POST" action="{{ route('patient.logout') }}">

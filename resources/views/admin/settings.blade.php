@@ -76,8 +76,8 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-bold text-gray-800">Pricing Settings</h2>
-                                    <p class="text-sm text-gray-600">Configure default consultation fees for all doctors</p>
+                                    <h2 class="text-xl font-bold text-gray-800">Consultation Fee Settings</h2>
+                                    <p class="text-sm text-gray-600">Set custom fees for both consultation types (Pay Later & Pay Now)</p>
                                 </div>
                             </div>
                         </div>
@@ -86,12 +86,16 @@
                             @csrf
 
                             <!-- Consultation Fee - Pay Later -->
-                            <div>
-                                <label for="consultation_fee_pay_later" class="block text-sm font-semibold text-gray-700 mb-2">
-                                    💳 Consult Now, Pay Later Fee (₦)
+                            <div class="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-5">
+                                <label for="consultation_fee_pay_later" class="block text-sm font-bold text-gray-800 mb-3 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Consult Now, Pay Later Fee (₦)
+                                    <span class="ml-2 text-xs font-normal text-gray-500">(Standard Fee)</span>
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-3 text-gray-500">₦</span>
+                                    <span class="absolute left-4 top-3 text-gray-600 font-semibold">₦</span>
                                     <input type="number"
                                            id="consultation_fee_pay_later"
                                            name="consultation_fee_pay_later"
@@ -99,23 +103,33 @@
                                            required
                                            min="0"
                                            step="0.01"
-                                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('consultation_fee_pay_later') border-red-500 @enderror">
+                                           class="w-full pl-10 pr-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-lg font-semibold @error('consultation_fee_pay_later') border-red-500 @enderror">
                                 </div>
-                                <p class="mt-2 text-sm text-gray-600">
-                                    Fee for patients who choose to pay after consultation is completed. This is the standard pricing.
+                                <p class="mt-3 text-sm text-gray-700">
+                                    <span class="font-semibold">Description:</span> This is the fee charged to patients who choose to pay <strong>after</strong> their consultation is completed. This is the standard/default pricing option.
                                 </p>
+                                <div class="mt-3 flex items-center text-sm text-purple-700 bg-white rounded p-2 border border-purple-200">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>This fee will be displayed to patients in the "Consult Now, Pay Later" option.</span>
+                                </div>
                                 @error('consultation_fee_pay_later')
-                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    <p class="mt-2 text-xs text-red-600 font-semibold">{{ $message }}</p>
                                 @enderror
                             </div>
 
                             <!-- Consultation Fee - Pay Now -->
-                            <div class="border-t border-gray-200 pt-6">
-                                <label for="consultation_fee_pay_now" class="block text-sm font-semibold text-gray-700 mb-2">
-                                    🔒 Pay Before Consultation Fee (₦)
+                            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-5 mt-6">
+                                <label for="consultation_fee_pay_now" class="block text-sm font-bold text-gray-800 mb-3 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Pay Before Consultation Fee (₦)
+                                    <span class="ml-2 text-xs font-normal text-gray-500">(Upfront Payment)</span>
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-3 text-gray-500">₦</span>
+                                    <span class="absolute left-4 top-3 text-gray-600 font-semibold">₦</span>
                                     <input type="number"
                                            id="consultation_fee_pay_now"
                                            name="consultation_fee_pay_now"
@@ -123,25 +137,31 @@
                                            required
                                            min="0"
                                            step="0.01"
-                                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('consultation_fee_pay_now') border-red-500 @enderror">
+                                           class="w-full pl-10 pr-4 py-3 border-2 border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-lg font-semibold @error('consultation_fee_pay_now') border-red-500 @enderror">
                                 </div>
-                                <p class="mt-2 text-sm text-gray-600">
-                                    Fee for patients who pay before consultation. 
-                                    <span class="font-semibold text-purple-600">Tip:</span> Set this lower than Pay Later to incentivize upfront payment.
+                                <p class="mt-3 text-sm text-gray-700">
+                                    <span class="font-semibold">Description:</span> This is the fee charged to patients who choose to pay <strong>before</strong> their consultation begins. 
+                                    <span class="font-semibold text-emerald-600">💡 Tip:</span> Set this lower than "Pay Later" to incentivize upfront payment.
                                 </p>
-                                <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                    <div class="flex items-center text-sm text-blue-800">
-                                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <div class="mt-3 bg-white border border-emerald-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-emerald-800">
+                                        <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                         </svg>
-                                        <span>
+                                        <div>
                                             <span class="font-semibold">Discount Preview:</span>
                                             <span id="discount-amount" class="ml-1"></span>
-                                        </span>
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="mt-3 flex items-center text-sm text-emerald-700 bg-white rounded p-2 border border-emerald-200">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>This fee will be displayed to patients in the "Pay Before Consultation" option.</span>
+                                </div>
                                 @error('consultation_fee_pay_now')
-                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    <p class="mt-2 text-xs text-red-600 font-semibold">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -297,25 +317,26 @@
             const discountPercent = payLaterFee > 0 ? ((discount / payLaterFee) * 100) : 0;
             
             const discountDisplay = document.getElementById('discount-amount');
+            const discountContainer = discountDisplay.parentElement.parentElement;
             
             if (discount > 0) {
-                discountDisplay.innerHTML = `Customers save <strong>₦${discount.toFixed(2)}</strong> (${discountPercent.toFixed(1)}%) when paying upfront`;
-                discountDisplay.parentElement.parentElement.classList.remove('bg-blue-50', 'border-blue-200');
-                discountDisplay.parentElement.parentElement.classList.add('bg-green-50', 'border-green-200');
-                discountDisplay.parentElement.classList.remove('text-blue-800');
-                discountDisplay.parentElement.classList.add('text-green-800');
+                discountDisplay.innerHTML = `Customers save <strong class="text-emerald-700">₦${discount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> <strong class="text-emerald-700">(${discountPercent.toFixed(1)}%)</strong> when paying upfront`;
+                discountContainer.classList.remove('bg-white', 'border-emerald-200');
+                discountContainer.classList.add('bg-emerald-50', 'border-emerald-300');
+                discountDisplay.parentElement.classList.remove('text-emerald-800');
+                discountDisplay.parentElement.classList.add('text-emerald-900');
             } else if (discount < 0) {
-                discountDisplay.innerHTML = `<span class="text-red-600">Pay Now fee is higher than Pay Later! Consider reversing this.</span>`;
-                discountDisplay.parentElement.parentElement.classList.remove('bg-green-50', 'border-green-200');
-                discountDisplay.parentElement.parentElement.classList.add('bg-red-50', 'border-red-200');
-                discountDisplay.parentElement.classList.remove('text-green-800');
+                discountDisplay.innerHTML = `<span class="text-red-600 font-semibold">⚠️ Pay Now fee is ₦${Math.abs(discount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} higher than Pay Later! Consider reversing this.</span>`;
+                discountContainer.classList.remove('bg-white', 'border-emerald-200', 'bg-emerald-50', 'border-emerald-300');
+                discountContainer.classList.add('bg-red-50', 'border-red-300');
+                discountDisplay.parentElement.classList.remove('text-emerald-800', 'text-emerald-900');
                 discountDisplay.parentElement.classList.add('text-red-800');
             } else {
-                discountDisplay.innerHTML = 'Both prices are the same';
-                discountDisplay.parentElement.parentElement.classList.remove('bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200');
-                discountDisplay.parentElement.parentElement.classList.add('bg-blue-50', 'border-blue-200');
-                discountDisplay.parentElement.classList.remove('text-red-800', 'text-green-800');
-                discountDisplay.parentElement.classList.add('text-blue-800');
+                discountDisplay.innerHTML = '<span class="text-gray-600">Both prices are the same. No discount applied.</span>';
+                discountContainer.classList.remove('bg-emerald-50', 'border-emerald-300', 'bg-red-50', 'border-red-300');
+                discountContainer.classList.add('bg-white', 'border-emerald-200');
+                discountDisplay.parentElement.classList.remove('text-red-800', 'text-emerald-800', 'text-emerald-900');
+                discountDisplay.parentElement.classList.add('text-gray-700');
             }
         }
 

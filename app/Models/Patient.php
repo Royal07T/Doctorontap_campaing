@@ -229,6 +229,22 @@ class Patient extends Authenticatable
     }
 
     /**
+     * Get all menstrual cycles for this patient
+     */
+    public function menstrualCycles(): HasMany
+    {
+        return $this->hasMany(MenstrualCycle::class);
+    }
+
+    /**
+     * Get the latest menstrual cycle
+     */
+    public function latestMenstrualCycle()
+    {
+        return $this->hasOne(MenstrualCycle::class)->latestOfMany();
+    }
+
+    /**
      * Check if patient is a minor
      */
     public function isMinor(): bool

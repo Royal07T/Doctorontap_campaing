@@ -1484,14 +1484,17 @@ class DashboardController extends Controller
     {
         try {
             $validated = $request->validate([
-                'default_consultation_fee' => 'required|numeric|min:0',
+                'default_consultation_fee' => 'nullable|numeric|min:0',
                 'use_default_fee_for_all' => 'nullable|boolean',
                 'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
                 'consultation_fee_pay_later' => 'required|numeric|min:0',
                 'consultation_fee_pay_now' => 'required|numeric|min:0',
             ]);
 
-            Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
+            // Use pay_later fee as default if default_consultation_fee is not provided
+            $defaultFee = $validated['default_consultation_fee'] ?? $validated['consultation_fee_pay_later'];
+            
+            Setting::set('default_consultation_fee', $defaultFee, 'number');
             Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
             Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
             Setting::set('consultation_fee_pay_later', $validated['consultation_fee_pay_later'], 'number');
@@ -1501,11 +1504,11 @@ class DashboardController extends Controller
             if ($request->has('use_default_fee_for_all')) {
                 Doctor::query()->update([
                     'use_default_fee' => true,
-                    'consultation_fee' => $validated['default_consultation_fee']
+                    'consultation_fee' => $defaultFee
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Settings updated successfully!');
+            return redirect()->back()->with('success', 'Consultation fees updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
         }
