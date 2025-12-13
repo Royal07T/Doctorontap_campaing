@@ -3,17 +3,16 @@
 @section('title', 'Consultation Details')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-4xl mx-auto">
-        <!-- Back Button -->
-        <div class="mb-6">
-            <a href="{{ route('patient.consultations') }}" class="text-blue-600 hover:text-blue-800 font-medium">
-                ← Back to Consultations
-            </a>
-        </div>
+<div class="max-w-4xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{{ route('patient.consultations') }}" class="text-purple-600 hover:text-purple-800 font-medium">
+            ← Back to Consultations
+        </a>
+    </div>
 
-        <!-- Header -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800">{{ $consultation->reference }}</h1>
@@ -30,8 +29,8 @@
             </div>
         </div>
 
-        <!-- Consultation Information -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Consultation Information -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Consultation Information</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -63,7 +62,7 @@
 
         <!-- Payment Information -->
         @if($consultation->payment)
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Payment Information</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -112,7 +111,7 @@
         @endif
 
         <!-- Actions -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Actions</h2>
             <div class="space-y-3">
                 @if($consultation->payment)

@@ -3,23 +3,9 @@
 @section('title', 'My Profile')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-3xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">My Profile</h1>
-            <p class="text-gray-600 mt-2">Manage your personal information and account settings</p>
-        </div>
-
-        <!-- Success Message -->
-        @if(session('success'))
-            <div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded">
-                <p class="text-green-700">{{ session('success') }}</p>
-            </div>
-        @endif
-
-        <!-- Profile Information -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+<div class="max-w-3xl mx-auto">
+    <!-- Profile Information -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Personal Information</h2>
             
             <form method="POST" action="{{ route('patient.profile.update') }}">
@@ -31,7 +17,7 @@
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                         <input type="text" name="name" id="name" value="{{ old('name', $patient->name) }}" 
-                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 @error('name') border-red-500 @enderror" required>
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 @error('name') border-red-500 @enderror" required>
                         @error('name')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -49,7 +35,7 @@
                     <div>
                         <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                         <input type="tel" name="phone" id="phone" value="{{ old('phone', $patient->phone) }}" 
-                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 @error('phone') border-red-500 @enderror" required>
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 @error('phone') border-red-500 @enderror" required>
                         @error('phone')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -59,7 +45,7 @@
                     <div>
                         <label for="gender" class="block text-sm font-medium text-gray-700 mb-2">Gender</label>
                         <select name="gender" id="gender" 
-                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
                             <option value="">Select Gender</option>
                             <option value="male" {{ old('gender', $patient->gender) === 'male' ? 'selected' : '' }}>Male</option>
                             <option value="female" {{ old('gender', $patient->gender) === 'female' ? 'selected' : '' }}>Female</option>
@@ -71,12 +57,12 @@
                         <label for="date_of_birth" class="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
                         <input type="date" name="date_of_birth" id="date_of_birth" 
                                value="{{ old('date_of_birth', $patient->date_of_birth ? $patient->date_of_birth->format('Y-m-d') : '') }}" 
-                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
                     </div>
 
                     <!-- Submit Button -->
                     <div class="flex justify-end">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition">
+                        <button type="submit" class="purple-gradient hover:opacity-90 text-white px-6 py-3 rounded-lg font-medium transition">
                             Update Profile
                         </button>
                     </div>
@@ -84,8 +70,8 @@
             </form>
         </div>
 
-        <!-- Account Information -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Account Information -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Account Information</h2>
             
             <div class="space-y-4">
@@ -117,8 +103,8 @@
             </div>
         </div>
 
-        <!-- Privacy & Security -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+    <!-- Privacy & Security -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Privacy & Security</h2>
             
             <div class="space-y-4">
@@ -132,15 +118,15 @@
                     </svg>
                 </a>
 
-                <div class="py-3 px-3 bg-blue-50 rounded">
+                <div class="py-3 px-3 bg-purple-50 rounded border-l-4 border-purple-500">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="h-5 w-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-blue-700">
+                            <p class="text-sm text-purple-700">
                                 Your medical information is encrypted and stored securely. We never share your data without your explicit consent.
                             </p>
                         </div>
