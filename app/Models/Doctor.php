@@ -28,7 +28,12 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'location',
         'experience',
         'languages',
+        'bio',
+        'photo',
         'days_of_availability',
+        'availability_schedule',
+        'availability_start_time',
+        'availability_end_time',
         'place_of_work',
         'role',
         'mdcn_license_current',
@@ -60,6 +65,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'approved_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'availability_schedule' => 'array',
     ];
 
     /**

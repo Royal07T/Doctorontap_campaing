@@ -118,58 +118,71 @@
                             @endif
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Chief Complaint -->
-                            @if($history->chief_complaint)
-                                <div>
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Chief Complaint</p>
-                                    <p class="text-sm text-gray-600">{{ $history->chief_complaint }}</p>
-                                </div>
-                            @endif
-
-                            <!-- Diagnosis -->
-                            @if($history->diagnosis)
-                                <div>
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Diagnosis</p>
-                                    <p class="text-sm text-gray-600">{{ $history->diagnosis }}</p>
-                                </div>
-                            @endif
-
-                            <!-- Treatment Plan -->
-                            @if($history->treatment_plan)
-                                <div class="md:col-span-2">
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Treatment Plan</p>
-                                    <p class="text-sm text-gray-600">{{ $history->treatment_plan }}</p>
-                                </div>
-                            @endif
-
-                            <!-- Medications -->
-                            @if($history->medications)
-                                <div class="md:col-span-2">
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Medications</p>
-                                    <p class="text-sm text-gray-600">{{ $history->medications }}</p>
-                                </div>
-                            @endif
-
-                            <!-- Allergies -->
-                            @if($history->allergies)
-                                <div>
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Allergies</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        @foreach(explode(',', $history->allergies) as $allergy)
-                                            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">{{ trim($allergy) }}</span>
-                                        @endforeach
+                        <!-- Medical History Section -->
+                        <div class="mb-6">
+                            <h4 class="text-md font-semibold text-gray-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Medical History
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                                <!-- Presenting Complaint -->
+                                @if($history->presenting_complaint)
+                                    <div class="md:col-span-2">
+                                        <p class="text-sm font-medium text-gray-700 mb-1">Presenting Complaint</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->presenting_complaint }}</p>
                                     </div>
-                                </div>
-                            @endif
+                                @endif
 
-                            <!-- Notes -->
-                            @if($history->notes)
-                                <div class="md:col-span-2">
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Additional Notes</p>
-                                    <p class="text-sm text-gray-600">{{ $history->notes }}</p>
-                                </div>
-                            @endif
+                                <!-- History of Complaint -->
+                                @if($history->history_of_complaint)
+                                    <div class="md:col-span-2">
+                                        <p class="text-sm font-medium text-gray-700 mb-1">History of Complaint</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->history_of_complaint }}</p>
+                                    </div>
+                                @endif
+
+                                <!-- Past Medical History -->
+                                @if($history->past_medical_history)
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 mb-1">Past Medical History</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->past_medical_history }}</p>
+                                    </div>
+                                @endif
+
+                                <!-- Family History -->
+                                @if($history->family_history)
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 mb-1">Family History</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->family_history }}</p>
+                                    </div>
+                                @endif
+
+                                <!-- Drug History -->
+                                @if($history->drug_history)
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 mb-1">Drug History</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->drug_history }}</p>
+                                    </div>
+                                @endif
+
+                                <!-- Social History -->
+                                @if($history->social_history)
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 mb-1">Social History</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->social_history }}</p>
+                                    </div>
+                                @endif
+
+                                <!-- Allergies -->
+                                @if($history->allergies)
+                                    <div class="md:col-span-2">
+                                        <p class="text-sm font-medium text-gray-700 mb-1">Allergies</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->allergies }}</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach

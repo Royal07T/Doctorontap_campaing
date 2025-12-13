@@ -9,9 +9,11 @@ use App\Models\Specialty;
 use App\Models\Doctor;
 use App\Models\Setting;
 use App\Models\MenstrualCycle;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Mail\ConsultationConfirmation;
 use App\Mail\ConsultationAdminAlert;
@@ -145,12 +147,96 @@ class DashboardController extends Controller
     }
 
     /**
+     * Display all available doctors
+     */
+    public function doctors(Request $request)
+    {
+        $query = \App\Models\Doctor::where('is_approved', true)
+            ->where('is_available', true);
+
+        // Filter by specialization if provided
+        if ($request->filled('specialization')) {
+            $specialization = urldecode($request->specialization);
+            $specializationMap = [
+                'General Practice (Family Medicine)' => ['General Practice', 'General Practitioner', 'General Practitional'],
+                'General Practitioner' => ['General Practitioner', 'General Practice', 'General Practitional'],
+                'General Practice' => ['General Practice', 'General Practitioner', 'General Practitional'],
+            ];
+            
+            $searchTerms = $specializationMap[$specialization] ?? [$specialization];
+            
+            $query->where(function($q) use ($specialization, $searchTerms) {
+                $q->where('specialization', $specialization)
+                  ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($specialization))]);
+                
+                if (count($searchTerms) > 1 || $searchTerms[0] !== $specialization) {
+                    foreach ($searchTerms as $term) {
+                        $q->orWhere('specialization', $term)
+                          ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($term))]);
+                    }
+                }
+            });
+        }
+
+        // Search by name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('specialization', 'like', "%{$search}%");
+            });
+        }
+
+        $doctors = $query->orderBy('name')->paginate(12);
+        $specializations = \App\Models\Doctor::where('is_approved', true)
+            ->where('is_available', true)
+            ->whereNotNull('specialization')
+            ->distinct()
+            ->orderBy('specialization')
+            ->pluck('specialization');
+
+        return view('patient.doctors', compact('doctors', 'specializations'));
+    }
+
+    /**
      * Display doctors by specialization
      */
     public function doctorsBySpecialization($specialization)
     {
-        $doctors = \App\Models\Doctor::where('specialization', $specialization)
+        // Decode URL-encoded specialization (e.g., "General+Practice+%28Family+Medicine%29" -> "General Practice (Family Medicine)")
+        $specialization = urldecode($specialization);
+        
+        // Map common variations to database values
+        $specializationMap = [
+            'General Practice (Family Medicine)' => ['General Practice', 'General Practitioner', 'General Practitional'],
+            'General Practitioner' => ['General Practitioner', 'General Practice', 'General Practitional'],
+            'General Practice' => ['General Practice', 'General Practitioner', 'General Practitional'],
+        ];
+        
+        // Check if we have a mapping for this specialization
+        $searchTerms = $specializationMap[$specialization] ?? [$specialization];
+        
+        // Query doctors with this specialization (case-insensitive, trimmed)
+        // Try exact match first, then case-insensitive match, then mapped variations
+        $doctors = \App\Models\Doctor::where(function($query) use ($specialization, $searchTerms) {
+                // Exact match
+                $query->where('specialization', $specialization)
+                      // Case-insensitive match
+                      ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($specialization))]);
+                
+                // If we have mapped terms, also search for those
+                if (count($searchTerms) > 1 || $searchTerms[0] !== $specialization) {
+                    foreach ($searchTerms as $term) {
+                        $query->orWhere('specialization', $term)
+                              ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($term))]);
+                    }
+                }
+            })
             ->where('is_approved', true)
+            ->where('is_available', true)
+            ->orderBy('name')
             ->get();
 
         return view('patient.doctors-by-specialization', compact('doctors', 'specialization'));
@@ -188,6 +274,8 @@ class DashboardController extends Controller
 
         $doctors = \App\Models\Doctor::where('specialization', $specialization)
             ->where('is_approved', true)
+            ->where('is_available', true)
+            ->orderBy('name')
             ->get();
 
         $symptomName = ucwords(str_replace('-', ' ', $symptom));
@@ -254,6 +342,11 @@ class DashboardController extends Controller
         $consultation = $patient->consultations()
             ->with(['doctor', 'payment'])
             ->findOrFail($id);
+
+        // Mark treatment plan as accessed if it's accessible
+        if ($consultation->isTreatmentPlanAccessible()) {
+            $consultation->markTreatmentPlanAccessed();
+        }
 
         return view('patient.consultation-details', compact('consultation'));
     }
@@ -335,8 +428,16 @@ class DashboardController extends Controller
             ->latest()
             ->paginate(15);
 
+        // Calculate total paid from actual payments in database
+        // Query payments table directly by joining with consultations for accurate amount
+        $totalPaid = DB::table('payments')
+            ->join('consultations', 'payments.id', '=', 'consultations.payment_id')
+            ->where('consultations.patient_id', $patient->id)
+            ->where('consultations.payment_status', 'paid')
+            ->sum('payments.amount');
+
         $stats = [
-            'total_paid' => $patient->total_amount_paid,
+            'total_paid' => $totalPaid,
             'paid_consultations' => $patient->consultations()->where('payment_status', 'paid')->count(),
             'pending_payments' => $patient->consultations()
                 ->where('status', 'completed')
@@ -373,7 +474,10 @@ class DashboardController extends Controller
             $selectedType = 'pay_later';
         }
         
-        return view('patient.new-consultation', compact('patient', 'doctors', 'specialties', 'payLaterFee', 'payNowFee', 'selectedType'));
+        // Get pre-selected doctor from query parameter
+        $selectedDoctorId = $request->get('doctor_id');
+        
+        return view('patient.new-consultation', compact('patient', 'doctors', 'specialties', 'payLaterFee', 'payNowFee', 'selectedType', 'selectedDoctorId'));
     }
 
     /**

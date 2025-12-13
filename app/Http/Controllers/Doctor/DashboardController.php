@@ -7,6 +7,8 @@ use App\Models\Consultation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Mail\ConsultationStatusChange;
 
 class DashboardController extends Controller
@@ -598,6 +600,131 @@ class DashboardController extends Controller
         ];
 
         return view('doctor.payment-history', compact('payments', 'stats'));
+    }
+
+    /**
+     * Display doctor profile page
+     */
+    public function profile()
+    {
+        $doctor = Auth::guard('doctor')->user();
+        return view('doctor.profile', compact('doctor'));
+    }
+
+    /**
+     * Update doctor profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $doctor = Auth::guard('doctor')->user();
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'required|email|unique:doctors,email,' . $doctor->id,
+            'gender' => 'nullable|in:Male,Female,male,female',
+            'specialization' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'experience' => 'nullable|string|max:255',
+            'languages' => 'nullable|string|max:255',
+            'place_of_work' => 'nullable|string|max:255',
+            'bio' => 'nullable|string|max:2000',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($doctor->photo && Storage::disk('public')->exists($doctor->photo)) {
+                Storage::disk('public')->delete($doctor->photo);
+            }
+
+            // Store new photo
+            $photo = $request->file('photo');
+            $photoName = 'doctors/' . Str::slug($doctor->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+            $photo->storeAs('public', $photoName);
+            $validated['photo'] = $photoName;
+        }
+
+        // Update doctor
+        $doctor->update($validated);
+
+        return redirect()->back()->with('success', 'Profile updated successfully!');
+    }
+
+    /**
+     * Display availability settings page
+     */
+    public function availability()
+    {
+        $doctor = Auth::guard('doctor')->user();
+        
+        // Parse availability schedule if exists
+        $schedule = $doctor->availability_schedule ?? [];
+        $defaultSchedule = [
+            'monday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'tuesday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'wednesday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'thursday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'friday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'saturday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'sunday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+        ];
+        
+        // Merge with existing schedule
+        $schedule = array_merge($defaultSchedule, $schedule);
+        
+        return view('doctor.availability', compact('doctor', 'schedule'));
+    }
+
+    /**
+     * Update availability settings
+     */
+    public function updateAvailability(Request $request)
+    {
+        $doctor = Auth::guard('doctor')->user();
+
+        // Handle is_available checkbox
+        $isAvailable = $request->has('is_available') ? true : false;
+
+        // Process availability schedule
+        $schedule = [];
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        
+        foreach ($days as $day) {
+            $enabled = $request->has("availability_schedule.{$day}.enabled");
+            $start = $request->input("availability_schedule.{$day}.start", '09:00');
+            $end = $request->input("availability_schedule.{$day}.end", '17:00');
+            
+            // Validate time format
+            if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $start)) {
+                $start = '09:00';
+            }
+            if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $end)) {
+                $end = '17:00';
+            }
+            
+            // Ensure end time is after start time
+            if (strtotime($end) <= strtotime($start)) {
+                $end = date('H:i', strtotime($start . ' +8 hours'));
+            }
+            
+            $schedule[$day] = [
+                'enabled' => $enabled,
+                'start' => $start,
+                'end' => $end,
+            ];
+        }
+
+        // Update doctor
+        $doctor->update([
+            'is_available' => $isAvailable,
+            'availability_schedule' => $schedule,
+        ]);
+
+        return redirect()->back()->with('success', 'Availability settings updated successfully!');
     }
 }
 

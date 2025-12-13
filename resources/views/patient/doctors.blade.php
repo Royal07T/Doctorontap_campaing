@@ -1,6 +1,6 @@
 @extends('layouts.patient')
 
-@section('title', 'Doctors - ' . $specialization)
+@section('title', 'Available Doctors')
 
 @section('content')
 <!-- Header -->
@@ -11,25 +11,46 @@
         </svg>
         Back to Dashboard
     </a>
-    <h1 class="text-2xl font-bold text-gray-800">
-        @if(isset($symptomName))
-            Doctors for {{ $symptomName }}
-        @else
-            {{ $specialization }}
-        @endif
-    </h1>
-    <p class="text-gray-600 mt-2">
-        @if(isset($symptomName))
-            {{ $doctors->count() }} {{ Str::plural('doctor', $doctors->count()) }} available in {{ $specialization }}
-        @else
-            {{ $doctors->count() }} {{ Str::plural('doctor', $doctors->count()) }} available
-        @endif
-    </p>
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Available Doctors</h1>
+            <p class="text-gray-600 mt-2">Browse and book appointments with our verified doctors</p>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <form method="GET" action="{{ route('patient.doctors') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <input type="text" name="search" id="search" value="{{ request('search') }}" 
+                   placeholder="Search by name or specialization..."
+                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+        </div>
+        <div>
+            <label for="specialization" class="block text-sm font-medium text-gray-700 mb-2">Specialization</label>
+            <select name="specialization" id="specialization" 
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                <option value="">All Specializations</option>
+                @foreach($specializations as $spec)
+                    <option value="{{ $spec }}" {{ request('specialization') == $spec ? 'selected' : '' }}>
+                        {{ $spec }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
+                Filter
+            </button>
+        </div>
+    </form>
 </div>
 
 @if($doctors->count() > 0)
     <!-- Doctors Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         @foreach($doctors as $doctor)
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
                 <!-- Doctor Photo/Avatar -->
@@ -140,38 +161,42 @@
             </div>
         @endforeach
     </div>
-    @else
-        <!-- No Doctors Found -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <svg class="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No Doctors Found</h3>
-            <p class="text-gray-500 mb-4">We don't have any doctors specializing in {{ $specialization }} at the moment.</p>
-            <div class="flex gap-3 justify-center">
-                <a href="{{ route('patient.dashboard') }}" class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
-                    Back to Dashboard
-                </a>
-                <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">
-                    Book General Consultation
-                </a>
-            </div>
-        </div>
-    @endif
 
-    <!-- Info Box -->
-    <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800">How to Book a Consultation</h3>
-                <div class="mt-2 text-sm text-blue-700">
-                    <p>Click the "Book Consultation" button on any doctor's card to start a consultation. You can describe your symptoms and our doctors will provide expert medical advice.</p>
-                </div>
+    <!-- Pagination -->
+    <div class="mt-6">
+        {{ $doctors->links() }}
+    </div>
+@else
+    <!-- No Doctors Found -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <svg class="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Doctors Found</h3>
+        <p class="text-gray-500 mb-4">We don't have any available doctors matching your criteria at the moment.</p>
+        <div class="flex gap-3 justify-center">
+            <a href="{{ route('patient.dashboard') }}" class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
+                Back to Dashboard
+            </a>
+            <a href="{{ route('patient.consultation.new') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">
+                Book General Consultation
+            </a>
+        </div>
+    </div>
+@endif
+
+<!-- Info Box -->
+<div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800">How to Book an Appointment</h3>
+            <div class="mt-2 text-sm text-blue-700">
+                <p>Click the "Book Appointment" button on any doctor's card to start a consultation. You can describe your symptoms and our doctors will provide expert medical advice.</p>
             </div>
         </div>
     </div>

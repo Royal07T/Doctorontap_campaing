@@ -241,7 +241,7 @@
                             class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
                         <option value="">Auto-assign (Recommended)</option>
                         @foreach($doctors as $doctor)
-                            <option value="{{ $doctor->id }}" {{ old('doctor_id') == $doctor->id ? 'selected' : '' }}>
+                            <option value="{{ $doctor->id }}" {{ old('doctor_id', $selectedDoctorId ?? null) == $doctor->id ? 'selected' : '' }}>
                                 {{ $doctor->name }} - {{ $doctor->specialization ?? 'General Practice' }}
                             </option>
                         @endforeach

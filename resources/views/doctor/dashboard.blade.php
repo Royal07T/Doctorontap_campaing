@@ -33,12 +33,19 @@
             <!-- User Info -->
             <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                        {{ substr(Auth::guard('doctor')->user()->name, 0, 1) }}
-                    </div>
+                    @php
+                        $doctor = Auth::guard('doctor')->user();
+                    @endphp
+                    @if($doctor->photo && \Storage::disk('public')->exists($doctor->photo))
+                        <img src="{{ \Storage::url($doctor->photo) }}" alt="Dr. {{ $doctor->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+                    @else
+                        <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
+                            {{ substr($doctor->name, 0, 1) }}
+                        </div>
+                    @endif
                     <div class="flex-1">
-                        <p class="font-semibold text-gray-800 text-sm">Dr. {{ Auth::guard('doctor')->user()->name }}</p>
-                        <p class="text-xs text-gray-500">{{ Auth::guard('doctor')->user()->specialization ?? 'Doctor' }}</p>
+                        <p class="font-semibold text-gray-800 text-sm">Dr. {{ $doctor->name }}</p>
+                        <p class="text-xs text-gray-500">{{ $doctor->specialization ?? 'Doctor' }}</p>
                     </div>
                 </div>
             </div>
@@ -71,6 +78,20 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>Payment History</span>
+                </a>
+
+                <a href="{{ route('doctor.profile') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>Profile</span>
+                </a>
+
+                <a href="{{ route('doctor.availability') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Availability</span>
                 </a>
 
                 <div class="border-t border-gray-200 my-2"></div>

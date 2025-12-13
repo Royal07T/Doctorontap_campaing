@@ -325,6 +325,14 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     
     // Payment History
     Route::get('/payment-history', [DoctorDashboardController::class, 'paymentHistory'])->name('payment-history');
+    
+    // Profile
+    Route::get('/profile', [DoctorDashboardController::class, 'profile'])->name('profile');
+    Route::post('/profile', [DoctorDashboardController::class, 'updateProfile'])->name('profile.update');
+    
+    // Availability
+    Route::get('/availability', [DoctorDashboardController::class, 'availability'])->name('availability');
+    Route::post('/availability', [DoctorDashboardController::class, 'updateAvailability'])->name('availability.update');
 });
 
 // ==================== PATIENT ROUTES ====================
@@ -387,6 +395,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     
     // Payments
     Route::get('/payments', [\App\Http\Controllers\Patient\DashboardController::class, 'payments'])->name('payments');
+    
+    // Doctors
+    Route::get('/doctors', [\App\Http\Controllers\Patient\DashboardController::class, 'doctors'])->name('doctors');
     
     // Doctors by Specialization
     Route::get('/doctors/specialization/{specialization}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySpecialization'])->name('doctors-by-specialization');
