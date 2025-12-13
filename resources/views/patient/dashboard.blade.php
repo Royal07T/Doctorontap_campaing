@@ -133,7 +133,7 @@
              x-transition:leave="transition-opacity ease-linear duration-300"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden"
+             class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
              style="display: none;"></div>
 
         <!-- Main Content Area -->
@@ -153,21 +153,15 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <span class="text-sm text-white hidden sm:inline">{{ now()->format('l, F j, Y') }}</span>
+                        <span class="text-sm text-white">{{ now()->format('l, F j, Y') }}</span>
                     </div>
                 </div>
             </header>
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-                <!-- Welcome Message -->
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Welcome back, {{ $patient->first_name }}!</h2>
-                    <p class="text-gray-600 mt-1">Here's an overview of your health records and consultations</p>
-                </div>
-
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
                     <!-- Total Consultations -->
                     <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-blue-500">
                         <div class="flex items-center justify-between">
@@ -283,112 +277,130 @@
                 </div>
                 @endif
 
-                <!-- Recent Activity Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Recent Consultations -->
-                    <div class="bg-white rounded-lg shadow-sm">
-                        <div class="p-5 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-base font-bold text-gray-800">Recent Consultations</h3>
-                                <a href="{{ route('patient.consultations') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">View All →</a>
-                            </div>
-                        </div>
-                        
-                        <div class="p-5">
-                            @if($recentConsultations->count() > 0)
-                                <div class="space-y-3">
-                                    @foreach($recentConsultations as $consultation)
-                                        <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
+                <!-- Recent Consultations -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">Recent Consultations</h2>
+                        <a href="{{ route('patient.consultations') }}" class="text-sm text-purple-600 hover:text-purple-800 font-semibold">View All →</a>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                        @if($recentConsultations->count() > 0)
+                            <div class="divide-y divide-gray-200">
+                                @foreach($recentConsultations as $consultation)
+                                    <div class="p-5 hover:bg-gray-50 transition-colors">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-4">
+                                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 class="text-base font-bold text-gray-900">{{ $consultation->reference }}</h3>
+                                                    <p class="text-sm text-gray-600 mt-0.5">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</p>
+                                                    <p class="text-xs text-gray-500 mt-1">{{ $consultation->created_at->format('M d, Y') }}</p>
+                                                </div>
                                             </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-semibold text-gray-900">{{ $consultation->reference }}</p>
-                                                <p class="text-xs text-gray-600">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</p>
-                                                <p class="text-xs text-gray-500 mt-1">{{ $consultation->created_at->format('M d, Y') }}</p>
-                                            </div>
-                                            <div class="flex flex-col items-end space-y-1">
-                                                <span class="px-2 py-1 text-xs font-semibold rounded 
+                                            <div class="flex items-center space-x-3">
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full 
                                                     @if($consultation->status === 'completed') bg-emerald-100 text-emerald-800
                                                     @elseif($consultation->status === 'pending') bg-amber-100 text-amber-800
                                                     @else bg-gray-100 text-gray-800 @endif">
                                                     {{ ucfirst($consultation->status) }}
                                                 </span>
                                                 @if($consultation->payment_status === 'paid')
-                                                    <span class="text-xs text-emerald-600 font-medium">✓ Paid</span>
+                                                    <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">✓ Paid</span>
                                                 @endif
                                             </div>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="text-center py-8">
-                                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <p class="text-sm text-gray-500">No consultations yet</p>
-                                    <a href="{{ route('consultation.index') }}" class="text-xs text-purple-600 hover:text-purple-800 mt-2 inline-block">Start your first consultation</a>
-                                </div>
-                            @endif
-                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="text-center py-12">
+                                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Consultations Yet</h3>
+                                <p class="text-sm text-gray-500 mb-4">You haven't had any consultations yet.</p>
+                                <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">
+                                    Start Your First Consultation
+                                </a>
+                            </div>
+                        @endif
                     </div>
+                </div>
+
+                <!-- Quick Actions & Account Status -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     <!-- Quick Actions & Account Status -->
                     <div class="space-y-6">
                         <!-- Quick Actions -->
-                        <div class="bg-white rounded-lg shadow-sm p-5">
-                            <h3 class="text-base font-bold text-gray-800 mb-4">Quick Actions</h3>
-                            <div class="grid grid-cols-2 gap-3">
-                                <a href="{{ route('consultation.index') }}" class="flex flex-col items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group">
-                                    <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                        </svg>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- New Consultation -->
+                                <a href="{{ route('consultation.index') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">New Consultation</h3>
+                                            <p class="text-xs text-gray-600 mt-0.5">Book with a doctor</p>
+                                        </div>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-700">New Consultation</span>
                                 </a>
-                                <a href="{{ route('patient.consultations') }}" class="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group">
-                                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
+
+                                <!-- View Consultations -->
+                                <a href="{{ route('patient.consultations') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">My Consultations</h3>
+                                            <p class="text-xs text-gray-600 mt-0.5">View all consultations</p>
+                                        </div>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-700">View Consultations</span>
                                 </a>
-                                <a href="{{ route('patient.medical-records') }}" class="flex flex-col items-center justify-center p-4 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors group">
-                                    <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
+
+                                <!-- Medical Records -->
+                                <a href="{{ route('patient.medical-records') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">Medical Records</h3>
+                                            <p class="text-xs text-gray-600 mt-0.5">View health history</p>
+                                        </div>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-700">Medical Records</span>
-                                </a>
-                                <a href="{{ route('patient.profile') }}" class="flex flex-col items-center justify-center p-4 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors group">
-                                    <div class="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                        </svg>
-                                    </div>
-                                    <span class="text-xs font-medium text-gray-700">My Profile</span>
                                 </a>
                             </div>
                         </div>
 
                         <!-- Account Status -->
-                        <div class="bg-white rounded-lg shadow-sm p-5">
-                            <h3 class="text-base font-bold text-gray-800 mb-4">Account Status</h3>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                            <h3 class="text-base font-bold text-gray-800 mb-4">Account Information</h3>
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between">
+                                <div class="flex items-center justify-between py-2 border-b border-gray-100">
                                     <span class="text-sm text-gray-600">Email Verification</span>
                                     @if($patient->is_verified)
-                                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded">✓ Verified</span>
+                                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">✓ Verified</span>
                                     @else
-                                        <span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Pending</span>
+                                        <span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">Pending</span>
                                     @endif
                                 </div>
-                                <div class="flex items-center justify-between">
+                                <div class="flex items-center justify-between py-2">
                                     <span class="text-sm text-gray-600">Member Since</span>
                                     <span class="text-sm font-medium text-gray-900">{{ $patient->created_at->format('M Y') }}</span>
                                 </div>
@@ -397,19 +409,19 @@
 
                         <!-- Dependents -->
                         @if($dependents->count() > 0)
-                        <div class="bg-white rounded-lg shadow-sm p-5">
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-base font-bold text-gray-800">My Dependents</h3>
-                                <a href="{{ route('patient.dependents') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">View All →</a>
+                                <a href="{{ route('patient.dependents') }}" class="text-sm text-purple-600 hover:text-purple-800 font-semibold">View All →</a>
                             </div>
-                            <div class="space-y-2">
+                            <div class="space-y-3">
                                 @foreach($dependents->take(3) as $dependent)
-                                    <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
-                                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span class="text-blue-600 font-bold text-sm">{{ substr($dependent->name, 0, 1) }}</span>
+                                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span class="text-blue-600 font-bold">{{ substr($dependent->name, 0, 1) }}</span>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">{{ $dependent->name }}</p>
+                                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $dependent->name }}</p>
                                             <p class="text-xs text-gray-500">{{ $dependent->age }} years old</p>
                                         </div>
                                     </div>
