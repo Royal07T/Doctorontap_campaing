@@ -11,8 +11,20 @@
         </svg>
         Back to Dashboard
     </a>
-    <h1 class="text-2xl font-bold text-gray-800">{{ $specialization }}</h1>
-    <p class="text-gray-600 mt-2">{{ $doctors->count() }} {{ Str::plural('doctor', $doctors->count()) }} available</p>
+    <h1 class="text-2xl font-bold text-gray-800">
+        @if(isset($symptomName))
+            Doctors for {{ $symptomName }}
+        @else
+            {{ $specialization }}
+        @endif
+    </h1>
+    <p class="text-gray-600 mt-2">
+        @if(isset($symptomName))
+            {{ $doctors->count() }} {{ Str::plural('doctor', $doctors->count()) }} available in {{ $specialization }}
+        @else
+            {{ $doctors->count() }} {{ Str::plural('doctor', $doctors->count()) }} available
+        @endif
+    </p>
 </div>
 
 @if($doctors->count() > 0)

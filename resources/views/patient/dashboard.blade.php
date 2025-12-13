@@ -18,11 +18,21 @@
             100% { transform: translateX(calc(-250px * 7)); }
         }
         
+        @keyframes scroll-symptoms {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(-250px * 12)); }
+        }
+        
         .animate-scroll {
             animation: scroll 30s linear infinite;
         }
         
-        .animate-scroll:hover {
+        .animate-scroll-symptoms {
+            animation: scroll-symptoms 35s linear infinite;
+        }
+        
+        .animate-scroll:hover,
+        .animate-scroll-symptoms:hover {
             animation-play-state: paused;
         }
     </style>
@@ -273,6 +283,62 @@
                             </div>
                         </div>
                         <p class="text-xs text-gray-500 mt-4 text-center">Click any specialization to view available doctors</p>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Find Doctor by Symptoms Carousel -->
+                @if(isset($symptoms) && count($symptoms) > 0)
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">Find a Doctor by Symptoms</h3>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-hidden">
+                        <div class="relative">
+                            <div class="flex space-x-4 animate-scroll-symptoms">
+                                @foreach($symptoms as $symptom)
+                                    @php
+                                        $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
+                                    @endphp
+                                    <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
+                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-emerald-50 to-teal-100 hover:from-emerald-100 hover:to-teal-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-semibold text-gray-900 truncate">{{ $symptom['name'] }}</p>
+                                                <p class="text-xs text-emerald-600 font-medium">Find Doctors →</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @endforeach
+                                <!-- Duplicate items for seamless loop -->
+                                @foreach($symptoms as $symptom)
+                                    @php
+                                        $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
+                                    @endphp
+                                    <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
+                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-emerald-50 to-teal-100 hover:from-emerald-100 hover:to-teal-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-semibold text-gray-900 truncate">{{ $symptom['name'] }}</p>
+                                                <p class="text-xs text-emerald-600 font-medium">Find Doctors →</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-4 text-center">Click any symptom to find doctors who can help</p>
                     </div>
                 </div>
                 @endif

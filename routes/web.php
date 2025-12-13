@@ -388,4 +388,7 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     
     // Doctors by Specialization
     Route::get('/doctors/specialization/{specialization}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySpecialization'])->name('doctors-by-specialization');
+    
+    // Doctors by Symptom
+    Route::get('/doctors/symptom/{symptom}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySymptom'])->name('doctors-by-symptom');
 });
