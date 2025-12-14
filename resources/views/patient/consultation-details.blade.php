@@ -112,9 +112,9 @@
             </div>
         @endif
 
-        <!-- Treatment Plan Section (Only visible if treatment plan exists and is accessible) -->
-        @if($consultation->isTreatmentPlanAccessible() && $consultation->hasTreatmentPlan())
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <!-- Treatment Plan Section (Only visible if treatment plan exists and payment is paid) -->
+        @if($consultation->payment_status === 'paid' && $consultation->hasTreatmentPlan())
+            <div id="treatment-plan" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6" style="scroll-margin-top: 100px;">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-800 flex items-center">
                         <svg class="w-6 h-6 text-teal-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +212,7 @@
                     </div>
                 @endif
             </div>
-        @elseif($consultation->status === 'completed' && !$consultation->hasTreatmentPlan())
+        @elseif($consultation->status === 'completed' && $consultation->payment_status === 'paid' && !$consultation->hasTreatmentPlan())
             <!-- Treatment Plan Not Available -->
             <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded mb-6">
                 <div class="flex">
@@ -281,5 +281,27 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    // Smooth scroll to treatment plan section if anchor is present
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.location.hash === '#treatment-plan') {
+            const element = document.getElementById('treatment-plan');
+            if (element) {
+                setTimeout(function() {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Add a highlight effect
+                    element.style.transition = 'box-shadow 0.3s ease';
+                    element.style.boxShadow = '0 0 0 4px rgba(20, 184, 166, 0.3)';
+                    setTimeout(function() {
+                        element.style.boxShadow = '';
+                    }, 2000);
+                }, 100);
+            }
+        }
+    });
+</script>
+@endpush
 @endsection
 

@@ -290,7 +290,7 @@ class DashboardController extends Controller
     {
         $patient = Auth::guard('patient')->user();
         
-        $query = $patient->consultations()->with(['doctor', 'payment']);
+        $query = $patient->consultations()->with(['doctor', 'payment', 'reviews']);
 
         // Filter by status
         if ($request->filled('status')) {
@@ -357,6 +357,24 @@ class DashboardController extends Controller
     public function medicalRecords()
     {
         $patient = Auth::guard('patient')->user();
+        
+        // Backfill medical history for existing consultations that haven't been synced yet
+        // This ensures all treatment plans are reflected in medical records
+        $historyService = app(\App\Services\PatientMedicalHistoryService::class);
+        
+        // Backfill by patient_id
+        $syncedByPatientId = $historyService->backfillPatientMedicalHistory($patient);
+        
+        // Also backfill by email in case some consultations don't have patient_id set
+        $syncedByEmail = $historyService->backfillMedicalHistoryByEmail($patient->email);
+        
+        if ($syncedByPatientId > 0 || $syncedByEmail > 0) {
+            \Illuminate\Support\Facades\Log::info('Backfilled medical history for patient', [
+                'patient_id' => $patient->id,
+                'synced_by_patient_id' => $syncedByPatientId,
+                'synced_by_email' => $syncedByEmail
+            ]);
+        }
         
         $medicalHistories = $patient->medicalHistories()
             ->with('consultation.doctor')
@@ -545,8 +563,31 @@ class DashboardController extends Controller
                 ->with('error', 'No payment is required for this consultation.');
         }
 
-        // Redirect to payment request page
-        return redirect()->route('payment.request', ['reference' => $consultation->reference]);
+        // Redirect to payment request page with source parameter to track where payment was initiated
+        return redirect()->route('payment.request', [
+            'reference' => $consultation->reference,
+            'source' => 'dashboard'
+        ]);
+    }
+
+    /**
+     * View receipt for a paid consultation
+     */
+    public function viewReceipt($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $consultation = $patient->consultations()
+            ->with(['doctor', 'payment'])
+            ->findOrFail($id);
+
+        // Check if consultation has been paid
+        if (!$consultation->payment || $consultation->payment_status !== 'paid') {
+            return redirect()->route('patient.payments')
+                ->with('error', 'Receipt is only available for paid consultations.');
+        }
+
+        return view('patient.receipt', compact('consultation'));
     }
 
     /**

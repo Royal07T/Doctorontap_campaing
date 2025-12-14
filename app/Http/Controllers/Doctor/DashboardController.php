@@ -406,6 +406,19 @@ class DashboardController extends Controller
             
             $consultation->update($data);
             
+            // Sync medical information to patient medical history (even for drafts)
+            // This ensures family history, social history, etc. are always up-to-date
+            try {
+                $historyService = app(\App\Services\PatientMedicalHistoryService::class);
+                $historyService->syncConsultationToHistory($consultation);
+            } catch (\Exception $e) {
+                // Log but don't fail the auto-save if history sync fails
+                \Illuminate\Support\Facades\Log::warning('Failed to sync medical history during auto-save', [
+                    'consultation_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Draft saved',

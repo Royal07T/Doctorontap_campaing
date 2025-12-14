@@ -8,6 +8,7 @@ use App\Models\Consultation;
 use App\Models\Booking;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -162,10 +163,23 @@ class PaymentController extends Controller
                 'payment_id' => $payment ? $payment->id : null
             ]);
 
+            // Get source from payment metadata
+            $source = 'other';
+            if ($payment && $payment->metadata) {
+                $metadata = is_string($payment->metadata) ? json_decode($payment->metadata, true) : $payment->metadata;
+                $source = $metadata['source'] ?? 'other';
+            }
+
+            // If payment was initiated from dashboard, redirect to dashboard
+            if ($source === 'dashboard' && Auth::guard('patient')->check()) {
+                return redirect()->route('patient.dashboard')
+                    ->with('success', 'Payment successful! Your treatment plan has been sent to your email.');
+            }
             
             return view('payment.success', [
                 'payment' => $payment,
-                'message' => 'Payment successful! Your treatment plan has been sent to your email.'
+                'message' => 'Payment successful! Your treatment plan has been sent to your email.',
+                'source' => $source
             ]);
         } else {
             // Payment failed or pending
@@ -178,6 +192,14 @@ class PaymentController extends Controller
                 'message' => $message
             ]);
             
+            // Get payment to check source
+            $payment = Payment::where('reference', $reference)->first();
+            $source = 'other';
+            if ($payment && $payment->metadata) {
+                $metadata = is_string($payment->metadata) ? json_decode($payment->metadata, true) : $payment->metadata;
+                $source = $metadata['source'] ?? 'other';
+            }
+            
             // Customize message based on status
             if ($status === 'pending') {
                 $message = 'Your payment is still pending. Please complete the payment to access your treatment plan.';
@@ -187,10 +209,17 @@ class PaymentController extends Controller
                 $message = 'Payment was cancelled. You can try again when ready.';
             }
             
+            // If payment was initiated from dashboard, redirect to dashboard
+            if ($source === 'dashboard' && Auth::guard('patient')->check()) {
+                return redirect()->route('patient.dashboard')
+                    ->with('error', $message);
+            }
+            
             return view('payment.failed', [
                 'reference' => $reference,
                 'message' => $message,
-                'status' => $status
+                'status' => $status,
+                'source' => $source
             ]);
         }
     }
@@ -679,12 +708,15 @@ class PaymentController extends Controller
     /**
      * Handle payment request from email link
      */
-    public function handlePaymentRequest($reference)
+    public function handlePaymentRequest(Request $request, $reference)
     {
         // Check if it's a booking or consultation reference
         if (Str::startsWith($reference, 'BOOK-')) {
             return $this->handleBookingPayment($reference);
         }
+
+        // Get source parameter (where payment was initiated from)
+        $source = $request->query('source', 'other');
 
         // Find consultation by reference
         $consultation = Consultation::with('doctor')->where('reference', $reference)->first();
@@ -692,7 +724,8 @@ class PaymentController extends Controller
         if (!$consultation) {
             return view('payment.failed', [
                 'reference' => $reference,
-                'message' => 'Consultation not found. Please contact support.'
+                'message' => 'Consultation not found. Please contact support.',
+                'source' => $source
             ]);
         }
 
@@ -700,7 +733,8 @@ class PaymentController extends Controller
         if ($consultation->isPaid()) {
             return view('payment.success', [
                 'payment' => $consultation->payment,
-                'message' => 'This consultation has already been paid for.'
+                'message' => 'This consultation has already been paid for.',
+                'source' => $source
             ]);
         }
 
@@ -708,7 +742,8 @@ class PaymentController extends Controller
         if (!$consultation->doctor || $consultation->doctor->effective_consultation_fee <= 0) {
             return view('payment.failed', [
                 'reference' => $reference,
-                'message' => 'No payment is required for this consultation.'
+                'message' => 'No payment is required for this consultation.',
+                'source' => $source
             ]);
         }
 
@@ -732,6 +767,7 @@ class PaymentController extends Controller
                 'consultation_reference' => $consultation->reference,
                 'consultation_id' => $consultation->id,
                 'payment_type' => $isUpfrontPayment ? 'upfront' : 'post_consultation',
+                'source' => $source, // Store where payment was initiated from
             ],
         ]);
 
@@ -792,7 +828,8 @@ class PaymentController extends Controller
                 
                 return view('payment.failed', [
                     'reference' => $reference,
-                    'message' => $responseData['message'] ?? 'Payment initialization failed. Please try again or contact support.'
+                    'message' => $responseData['message'] ?? 'Payment initialization failed. Please try again or contact support.',
+                    'source' => $source
                 ]);
             }
         } catch (\Exception $e) {

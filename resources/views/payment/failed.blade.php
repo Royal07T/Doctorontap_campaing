@@ -81,9 +81,15 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="{{ url('/') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
-                        Try Again
-                    </a>
+                    @if(isset($source) && $source === 'dashboard' && Auth::guard('patient')->check())
+                        <a href="{{ route('patient.dashboard') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
+                            Back to Dashboard
+                        </a>
+                    @else
+                        <a href="{{ url('/') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
+                            Try Again
+                        </a>
+                    @endif
                     <a href="mailto:{{ config('mail.admin_email') }}" class="inline-block px-8 py-4 text-lg font-bold text-purple-700 bg-white border-2 border-purple-700 rounded-xl hover:bg-purple-50 hover:scale-105 transition-all">
                         Contact Support
                     </a>
