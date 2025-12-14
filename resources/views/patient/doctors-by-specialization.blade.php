@@ -41,7 +41,7 @@
                             <span class="text-3xl font-bold text-white">{{ substr($doctor->name, 0, 1) }}</span>
                         </div>
                     @endif
-                </div>
+                        </div>
 
                 <div class="p-6">
                     <!-- Doctor Name and Specialization -->
@@ -70,7 +70,7 @@
                             <span class="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">
                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                </svg>
+                            </svg>
                                 Currently Unavailable
                             </span>
                         @endif
@@ -91,16 +91,16 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <span>{{ $doctor->experience }}</span>
-                            </div>
+                        </div>
                         @endif
 
                         @if($doctor->languages)
                             <div class="flex items-center text-gray-600">
                                 <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
-                                </svg>
+                            </svg>
                                 <span>{{ $doctor->languages }}</span>
-                            </div>
+                        </div>
                         @endif
 
                         @if($doctor->location)
@@ -108,14 +108,14 @@
                                 <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
+                            </svg>
                                 <span>{{ $doctor->location }}</span>
-                            </div>
+                        </div>
                         @endif
                     </div>
 
                     <!-- Verified Badge -->
-                    @if($doctor->is_approved)
+                        @if($doctor->is_approved)
                         <div class="mb-4 text-center">
                             <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -124,7 +124,7 @@
                                 Verified Doctor
                             </span>
                         </div>
-                    @endif
+                        @endif
 
                     <!-- Action Button -->
                     <a href="{{ route('patient.consultation.new') }}?doctor_id={{ $doctor->id }}" 
@@ -132,9 +132,9 @@
                         Book Appointment
                     </a>
                 </div>
-            </div>
-        @endforeach
-    </div>
+                </div>
+            @endforeach
+        </div>
     @else
         <!-- No Doctors Found -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">

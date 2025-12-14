@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Mail\ConsultationStatusChange;
 
 class DashboardController extends Controller
 {
@@ -149,8 +148,6 @@ class DashboardController extends Controller
             
             \Log::info('Validation passed', ['validated_data' => $validated]);
             
-            // Store old status for notification
-            $oldStatus = $consultation->status;
             $newStatus = $validated['status'];
             
             $consultation->update([
@@ -159,21 +156,9 @@ class DashboardController extends Controller
                 'consultation_completed_at' => $newStatus === 'completed' ? now() : $consultation->consultation_completed_at,
             ]);
             
-            // Send notification to admin if status changed
-            if ($oldStatus !== $newStatus) {
-                $adminEmail = config('mail.admin_email');
-                
-                Mail::to($adminEmail)->send(new ConsultationStatusChange(
-                    $consultation,
-                    $doctor,
-                    $oldStatus,
-                    $newStatus
-                ));
-            }
-            
             return response()->json([
                 'success' => true,
-                'message' => 'Consultation status updated successfully! Admin has been notified.',
+                'message' => 'Consultation status updated successfully!',
                 'status' => $newStatus
             ]);
             
@@ -204,43 +189,64 @@ class DashboardController extends Controller
                                        ->with(['doctor', 'payment', 'canvasser', 'nurse'])
                                        ->firstOrFail();
             
-            return response()->json([
-                'success' => true,
-                'consultation' => [
-                    'id' => $consultation->id,
-                    'reference' => $consultation->reference,
-                    'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
-                    'email' => $consultation->email,
-                    'mobile' => $consultation->mobile,
-                    'age' => $consultation->age,
-                    'gender' => ucfirst($consultation->gender),
-                    'symptoms' => $consultation->problem,
-                    'status' => ucfirst($consultation->status),
-                    'payment_status' => ucfirst($consultation->payment_status ?? 'unpaid'),
-                    'created_at' => $consultation->created_at->format('M d, Y h:i A'),
-                    'medical_documents' => $consultation->medical_documents,
-                    'doctor_notes' => $consultation->doctor_notes,
-                    'diagnosis' => $consultation->diagnosis,
-                    'treatment_plan' => $consultation->treatment_plan,
-                    'prescribed_medications' => $consultation->prescribed_medications,
-                    'follow_up_instructions' => $consultation->follow_up_instructions,
-                    'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
-                    'referrals' => $consultation->referrals,
-                    'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
-                    'additional_notes' => $consultation->additional_notes,
-                    'has_treatment_plan' => $consultation->hasTreatmentPlan(),
-                    'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
-                    'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
-                    'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
-                    'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
-                ]
-            ]);
+            // If it's an AJAX request, return JSON
+            // Check for Accept header, X-Requested-With header, or wantsJson
+            if (request()->ajax() || request()->wantsJson() || request()->header('Accept') === 'application/json' || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => true,
+                    'consultation' => [
+                        'id' => $consultation->id,
+                        'reference' => $consultation->reference,
+                        'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
+                        'email' => $consultation->email,
+                        'mobile' => $consultation->mobile,
+                        'age' => $consultation->age,
+                        'gender' => ucfirst($consultation->gender),
+                        'symptoms' => $consultation->problem,
+                        'status' => ucfirst($consultation->status),
+                        'payment_status' => ucfirst($consultation->payment_status ?? 'unpaid'),
+                        'created_at' => $consultation->created_at->format('M d, Y h:i A'),
+                        'medical_documents' => $consultation->medical_documents,
+                        'doctor_notes' => $consultation->doctor_notes,
+                        // Treatment Plan Fields
+                        'presenting_complaint' => $consultation->presenting_complaint,
+                        'history_of_complaint' => $consultation->history_of_complaint,
+                        'past_medical_history' => $consultation->past_medical_history,
+                        'family_history' => $consultation->family_history,
+                        'drug_history' => $consultation->drug_history,
+                        'social_history' => $consultation->social_history,
+                        'diagnosis' => $consultation->diagnosis,
+                        'investigation' => $consultation->investigation,
+                        'treatment_plan' => $consultation->treatment_plan,
+                        'prescribed_medications' => $consultation->prescribed_medications,
+                        'follow_up_instructions' => $consultation->follow_up_instructions,
+                        'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
+                        'referrals' => $consultation->referrals,
+                        'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
+                        'additional_notes' => $consultation->additional_notes,
+                        'has_treatment_plan' => $consultation->hasTreatmentPlan(),
+                        'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
+                        'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
+                        'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
+                        'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
+                    ]
+                ]);
+            }
+            
+            // For direct browser requests, return the consultation details view
+            return view('doctor.consultation-details', compact('consultation'));
             
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load consultation: ' . $e->getMessage()
-            ], 500);
+            // Always return JSON for API-like requests (check headers)
+            if (request()->ajax() || request()->wantsJson() || request()->header('Accept') === 'application/json' || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load consultation: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->route('doctor.consultations')
+                ->with('error', 'Failed to load consultation: ' . $e->getMessage());
         }
     }
 

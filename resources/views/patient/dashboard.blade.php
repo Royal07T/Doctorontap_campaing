@@ -36,6 +36,20 @@
         .animate-scroll-symptoms:hover {
             animation-play-state: paused;
         }
+        
+        /* Symptom icon colors */
+        .symptom-icon-menstruation { color: #D72638; }
+        .symptom-icon-rashes { color: #F4A261; }
+        .symptom-icon-skin-issues { color: #F4A261; }
+        .symptom-icon-headache { color: #6D597A; }
+        .symptom-icon-cough { color: #457B9D; }
+        .symptom-icon-fever { color: #E63946; }
+        .symptom-icon-stomach-pain { color: #2A9D8F; }
+        .symptom-icon-back-pain { color: #264653; }
+        .symptom-icon-eye-problems { color: #1D3557; }
+        .symptom-icon-ear-pain { color: #8D99AE; }
+        .symptom-icon-joint-pain { color: #588157; }
+        .symptom-icon-chest-pain { color: #C1121F; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
@@ -58,9 +72,13 @@
             <!-- User Info -->
             <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100 flex-shrink-0">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+                    @if($patient->photo_url)
+                        <img src="{{ $patient->photo_url }}" alt="{{ $patient->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+                    @else
+                        <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
                         {{ substr($patient->name, 0, 1) }}
                     </div>
+                    @endif
                     <div class="flex-1">
                         <p class="font-semibold text-gray-800 text-sm">{{ $patient->name }}</p>
                         <p class="text-xs text-gray-500">Patient</p>
@@ -121,10 +139,10 @@
                     <button type="button" @click="consultationMenuOpen = !consultationMenuOpen" 
                             class="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all {{ request()->routeIs('patient.consultation.new') ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
                         <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span>New Consultation</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>New Consultation</span>
                         </div>
                         <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': consultationMenuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -360,19 +378,53 @@
                                 @foreach($symptoms as $symptom)
                                     @php
                                         $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
-                                        $iconType = $symptom['icon'] ?? 'default';
+                                        $symptomName = $symptom['name'];
+                                        
+                                        // Map symptom names to CSS class names
+                                        $classMap = [
+                                            'Menstruation Flow' => 'menstruation',
+                                            'Rashes' => 'rashes',
+                                            'Skin Issues' => 'skin-issues',
+                                            'Headache' => 'headache',
+                                            'Cough' => 'cough',
+                                            'Fever' => 'fever',
+                                            'Stomach Pain' => 'stomach-pain',
+                                            'Back Pain' => 'back-pain',
+                                            'Eye Problems' => 'eye-problems',
+                                            'Ear Pain' => 'ear-pain',
+                                            'Joint Pain' => 'joint-pain',
+                                            'Chest Pain' => 'chest-pain',
+                                        ];
+                                        $iconClass = 'symptom-icon-' . ($classMap[$symptomName] ?? 'default');
+                                        
+                                        // Map symptom names to colors for background
+                                        $colorMap = [
+                                            'Menstruation Flow' => '#D72638',
+                                            'Rashes' => '#F4A261',
+                                            'Skin Issues' => '#F4A261',
+                                            'Headache' => '#6D597A',
+                                            'Cough' => '#457B9D',
+                                            'Fever' => '#E63946',
+                                            'Stomach Pain' => '#2A9D8F',
+                                            'Back Pain' => '#264653',
+                                            'Eye Problems' => '#1D3557',
+                                            'Ear Pain' => '#8D99AE',
+                                            'Joint Pain' => '#588157',
+                                            'Chest Pain' => '#C1121F',
+                                        ];
+                                        $symptomColor = $colorMap[$symptomName] ?? '#6B7280';
                                     @endphp
                                     <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
-                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-emerald-50 to-teal-100 hover:from-emerald-100 hover:to-teal-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                                                @if($iconType === 'menstruation')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                       class="flex-shrink-0 w-[240px] bg-white hover:bg-gray-50 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
+                                        <div class="flex flex-col items-center text-center space-y-3">
+                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}20;">
+                                                @if($symptomName === 'Menstruation Flow')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C12 2 6 10 6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-4-6-11.31-6-11.31z"/>
                                                     </svg>
-                                                @elseif($iconType === 'rash')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" />
+                                                @elseif($symptomName === 'Rashes' || $symptomName === 'Skin Issues')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
                                                         <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
                                                         <circle cx="16" cy="8" r="1.5" fill="currentColor"/>
                                                         <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
@@ -382,61 +434,72 @@
                                                         <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
                                                         <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'headache')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707" />
+                                                @elseif($symptomName === 'Headache')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8h8M8 12h8M8 16h4"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l2 2M3 10l2-2M21 6l-2 2M21 10l-2-2"/>
                                                     </svg>
-                                                @elseif($iconType === 'cough')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                @elseif($symptomName === 'Cough')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8h-1.5M21 12h-1.5M21 16h-1.5"/>
                                                     </svg>
-                                                @elseif($iconType === 'fever')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2" />
+                                                @elseif($symptomName === 'Fever')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2"/>
                                                     </svg>
-                                                @elseif($iconType === 'stomach')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
+                                                @elseif($symptomName === 'Stomach Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8"/>
+                                                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'back')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8h12M6 12h12M6 16h12" />
+                                                @elseif($symptomName === 'Back Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8h12M6 12h12M6 16h12"/>
+                                                        <circle cx="12" cy="8" r="1" fill="currentColor"/>
+                                                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                                                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'eye')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                @elseif($symptomName === 'Eye Problems')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                                     </svg>
-                                                @elseif($iconType === 'ear')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                                @elseif($symptomName === 'Ear Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5c-1.5 0-3 1-3.5 2.5C4 8.5 4.5 10 5.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C11 6 9.5 5 8 5z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 5c-1.5 0-3 1-3.5 2.5C12 8.5 12.5 10 13.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C19 6 17.5 5 16 5z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
                                                     </svg>
-                                                @elseif($iconType === 'joint')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                @elseif($symptomName === 'Joint Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 12h8M8 17h8"/>
+                                                        <circle cx="6" cy="7" r="1.5" fill="currentColor"/>
+                                                        <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
+                                                        <circle cx="6" cy="17" r="1.5" fill="currentColor"/>
+                                                        <circle cx="18" cy="7" r="1.5" fill="currentColor"/>
+                                                        <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
+                                                        <circle cx="18" cy="17" r="1.5" fill="currentColor"/>
                                                         <circle cx="12" cy="12" r="2" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'skin')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                                    </svg>
-                                                @elseif($iconType === 'chest')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                @elseif($symptomName === 'Chest Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                                                     </svg>
                                                 @else
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                     </svg>
                                                 @endif
                                             </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-gray-900 truncate">{{ $symptom['name'] }}</p>
-                                                <p class="text-xs text-emerald-600 font-medium">Find Doctors →</p>
+                                            <div class="flex-1 w-full">
+                                                <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ $symptomName }}</h4>
+                                                <p class="text-xs font-medium {{ $iconClass }}">Find Doctors →</p>
                                             </div>
                                         </div>
                                     </a>
@@ -445,19 +508,53 @@
                                 @foreach($symptoms as $symptom)
                                     @php
                                         $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
-                                        $iconType = $symptom['icon'] ?? 'default';
+                                        $symptomName = $symptom['name'];
+                                        
+                                        // Map symptom names to CSS class names
+                                        $classMap = [
+                                            'Menstruation Flow' => 'menstruation',
+                                            'Rashes' => 'rashes',
+                                            'Skin Issues' => 'skin-issues',
+                                            'Headache' => 'headache',
+                                            'Cough' => 'cough',
+                                            'Fever' => 'fever',
+                                            'Stomach Pain' => 'stomach-pain',
+                                            'Back Pain' => 'back-pain',
+                                            'Eye Problems' => 'eye-problems',
+                                            'Ear Pain' => 'ear-pain',
+                                            'Joint Pain' => 'joint-pain',
+                                            'Chest Pain' => 'chest-pain',
+                                        ];
+                                        $iconClass = 'symptom-icon-' . ($classMap[$symptomName] ?? 'default');
+                                        
+                                        // Map symptom names to colors for background
+                                        $colorMap = [
+                                            'Menstruation Flow' => '#D72638',
+                                            'Rashes' => '#F4A261',
+                                            'Skin Issues' => '#F4A261',
+                                            'Headache' => '#6D597A',
+                                            'Cough' => '#457B9D',
+                                            'Fever' => '#E63946',
+                                            'Stomach Pain' => '#2A9D8F',
+                                            'Back Pain' => '#264653',
+                                            'Eye Problems' => '#1D3557',
+                                            'Ear Pain' => '#8D99AE',
+                                            'Joint Pain' => '#588157',
+                                            'Chest Pain' => '#C1121F',
+                                        ];
+                                        $symptomColor = $colorMap[$symptomName] ?? '#6B7280';
                                     @endphp
                                     <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
-                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-emerald-50 to-teal-100 hover:from-emerald-100 hover:to-teal-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                                                @if($iconType === 'menstruation')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                       class="flex-shrink-0 w-[240px] bg-white hover:bg-gray-50 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
+                                        <div class="flex flex-col items-center text-center space-y-3">
+                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}20;">
+                                                @if($symptomName === 'Menstruation Flow')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C12 2 6 10 6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-4-6-11.31-6-11.31z"/>
                                                     </svg>
-                                                @elseif($iconType === 'rash')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" />
+                                                @elseif($symptomName === 'Rashes' || $symptomName === 'Skin Issues')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
                                                         <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
                                                         <circle cx="16" cy="8" r="1.5" fill="currentColor"/>
                                                         <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
@@ -467,61 +564,72 @@
                                                         <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
                                                         <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'headache')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707" />
+                                                @elseif($symptomName === 'Headache')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8h8M8 12h8M8 16h4"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l2 2M3 10l2-2M21 6l-2 2M21 10l-2-2"/>
                                                     </svg>
-                                                @elseif($iconType === 'cough')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                @elseif($symptomName === 'Cough')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8h-1.5M21 12h-1.5M21 16h-1.5"/>
                                                     </svg>
-                                                @elseif($iconType === 'fever')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2" />
+                                                @elseif($symptomName === 'Fever')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2"/>
                                                     </svg>
-                                                @elseif($iconType === 'stomach')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
+                                                @elseif($symptomName === 'Stomach Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8"/>
+                                                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'back')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8h12M6 12h12M6 16h12" />
+                                                @elseif($symptomName === 'Back Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8h12M6 12h12M6 16h12"/>
+                                                        <circle cx="12" cy="8" r="1" fill="currentColor"/>
+                                                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                                                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'eye')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                @elseif($symptomName === 'Eye Problems')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                                     </svg>
-                                                @elseif($iconType === 'ear')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                                @elseif($symptomName === 'Ear Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5c-1.5 0-3 1-3.5 2.5C4 8.5 4.5 10 5.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C11 6 9.5 5 8 5z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 5c-1.5 0-3 1-3.5 2.5C12 8.5 12.5 10 13.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C19 6 17.5 5 16 5z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
                                                     </svg>
-                                                @elseif($iconType === 'joint')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                @elseif($symptomName === 'Joint Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 12h8M8 17h8"/>
+                                                        <circle cx="6" cy="7" r="1.5" fill="currentColor"/>
+                                                        <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
+                                                        <circle cx="6" cy="17" r="1.5" fill="currentColor"/>
+                                                        <circle cx="18" cy="7" r="1.5" fill="currentColor"/>
+                                                        <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
+                                                        <circle cx="18" cy="17" r="1.5" fill="currentColor"/>
                                                         <circle cx="12" cy="12" r="2" fill="currentColor"/>
                                                     </svg>
-                                                @elseif($iconType === 'skin')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                                    </svg>
-                                                @elseif($iconType === 'chest')
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                @elseif($symptomName === 'Chest Pain')
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                                                     </svg>
                                                 @else
-                                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                     </svg>
                                                 @endif
                                             </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-gray-900 truncate">{{ $symptom['name'] }}</p>
-                                                <p class="text-xs text-emerald-600 font-medium">Find Doctors →</p>
+                                            <div class="flex-1 w-full">
+                                                <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ $symptomName }}</h4>
+                                                <p class="text-xs font-medium {{ $iconClass }}">Find Doctors →</p>
                                             </div>
                                         </div>
                                     </a>
@@ -562,6 +670,8 @@
                                                 <span class="px-3 py-1 text-xs font-semibold rounded-full 
                                                     @if($consultation->status === 'completed') bg-emerald-100 text-emerald-800
                                                     @elseif($consultation->status === 'pending') bg-amber-100 text-amber-800
+                                                    @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-800
+                                                    @elseif($consultation->status === 'cancelled') bg-red-100 text-red-800
                                                     @else bg-gray-100 text-gray-800 @endif">
                                                     {{ ucfirst($consultation->status) }}
                                                 </span>
@@ -714,23 +824,23 @@
                     <div class="space-y-6">
                         <!-- Quick Actions -->
                         <div>
-                            <h2 class="text-xl font-bold text-gray-800 mb-6">Quick Actions</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <h2 class="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <!-- New Consultation Dropdown -->
                                 <div x-data="{ consultationMenuOpen: false }" class="relative" style="z-index: 100;">
                                     <button type="button" @click="consultationMenuOpen = !consultationMenuOpen" 
-                                            class="w-full bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-7 border-2 border-gray-100 hover:border-purple-400 group transform hover:-translate-y-1">
-                                        <div class="flex flex-col items-center text-center space-y-4">
-                                            <div class="purple-gradient p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                                </svg>
-                                            </div>
+                                            class="w-full bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full">
+                                        <div class="flex flex-col items-center text-center space-y-3">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                        </div>
                                             <div class="flex-1 w-full">
-                                                <h3 class="text-lg font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">New Consultation</h3>
-                                                <p class="text-sm text-gray-600">Book with a doctor</p>
+                                                <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">New Consultation</h3>
+                                                <p class="text-xs text-gray-600">Book with a doctor</p>
                                             </div>
-                                            <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{ 'rotate-180': consultationMenuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': consultationMenuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                             </svg>
                                         </div>
@@ -788,46 +898,46 @@
                                 </div>
 
                                 <!-- View Consultations -->
-                                <a href="{{ route('patient.consultations') }}" class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-7 border-2 border-gray-100 hover:border-purple-400 group transform hover:-translate-y-1">
-                                    <div class="flex flex-col items-center text-center space-y-4">
-                                        <div class="purple-gradient p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <a href="{{ route('patient.consultations') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full flex flex-col">
+                                    <div class="flex flex-col items-center text-center space-y-3 flex-1">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                             </svg>
                                         </div>
                                         <div class="flex-1 w-full">
-                                            <h3 class="text-lg font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">My Consultations</h3>
-                                            <p class="text-sm text-gray-600">View all consultations</p>
+                                            <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">My Consultations</h3>
+                                            <p class="text-xs text-gray-600">View all consultations</p>
                                         </div>
                                     </div>
                                 </a>
 
                                 <!-- Medical Records -->
-                                <a href="{{ route('patient.medical-records') }}" class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-7 border-2 border-gray-100 hover:border-purple-400 group transform hover:-translate-y-1">
-                                    <div class="flex flex-col items-center text-center space-y-4">
-                                        <div class="purple-gradient p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <a href="{{ route('patient.medical-records') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full flex flex-col">
+                                    <div class="flex flex-col items-center text-center space-y-3 flex-1">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                             </svg>
                                         </div>
                                         <div class="flex-1 w-full">
-                                            <h3 class="text-lg font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">Medical Records</h3>
-                                            <p class="text-sm text-gray-600">View health history</p>
+                                            <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">Medical Records</h3>
+                                            <p class="text-xs text-gray-600">View health history</p>
                                         </div>
                                     </div>
                                 </a>
 
-                                <!-- View Doctors -->
-                                <a href="{{ route('patient.doctors') }}" class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-7 border-2 border-gray-100 hover:border-purple-400 group transform hover:-translate-y-1">
-                                    <div class="flex flex-col items-center text-center space-y-4">
-                                        <div class="purple-gradient p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                <!-- Payments -->
+                                <a href="{{ route('patient.payments') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full flex flex-col">
+                                    <div class="flex flex-col items-center text-center space-y-3 flex-1">
+                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
                                         </div>
                                         <div class="flex-1 w-full">
-                                            <h3 class="text-lg font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">Find Doctors</h3>
-                                            <p class="text-sm text-gray-600">Browse available doctors</p>
+                                            <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">Payments</h3>
+                                            <p class="text-xs text-gray-600">View payment history</p>
                                         </div>
                                     </div>
                                 </a>
@@ -989,14 +1099,15 @@
                     document.getElementById('cycleModal').classList.add('hidden');
                     location.reload();
                 } else {
-                    alert(data.error || 'Failed to save cycle');
+                    CustomAlert.error(data.error || 'Failed to save cycle');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                CustomAlert.error('An error occurred. Please try again.');
             });
         }
     </script>
+    @include('components.custom-alert-modal')
 </body>
 </html>

@@ -11,6 +11,7 @@
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
         }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen" x-data="paymentManager()">
@@ -176,8 +177,23 @@
                 </div>
 
                 <!-- Create Payment Modal -->
-                <div x-show="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
-                    <div @click.away="showCreateModal = false" class="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div x-show="showCreateModal" 
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div @click.away="showCreateModal = false" 
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in duration-200"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         class="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold text-gray-800">Create Doctor Payment</h2>
                             <button @click="showCreateModal = false" class="text-gray-500 hover:text-gray-700">
@@ -257,8 +273,23 @@
                 </div>
 
                 <!-- Complete Payment Modal -->
-                <div x-show="showCompleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
-                    <div @click.away="showCompleteModal = false" class="bg-white rounded-lg p-8 max-w-lg w-full">
+                <div x-show="showCompleteModal" 
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div @click.away="showCompleteModal = false" 
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in duration-200"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         class="bg-white rounded-lg p-8 max-w-lg w-full">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold text-gray-800">Complete Payment</h2>
                             <button @click="showCompleteModal = false" class="text-gray-500 hover:text-gray-700">
@@ -310,6 +341,7 @@
     <script>
         function paymentManager() {
             return {
+                sidebarOpen: false,
                 showCreateModal: false,
                 showCompleteModal: false,
                 selectedDoctor: '',
@@ -349,18 +381,30 @@
                             this.selectedConsultations = [];
                         }
                     } catch (error) {
-                        alert('Failed to load consultations');
+                        CustomAlert.error('Failed to load consultations');
                         console.error(error);
                     }
                 },
 
                 async submitPayment() {
+                    // Validate form
+                    if (!this.selectedDoctor) {
+                        CustomAlert.warning('Please select a doctor');
+                        return;
+                    }
+                    
+                    if (this.selectedConsultations.length === 0) {
+                        CustomAlert.warning('Please select at least one consultation');
+                        return;
+                    }
+
                     try {
                         const response = await fetch('/admin/doctor-payments', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
                             },
                             body: JSON.stringify({
                                 doctor_id: this.selectedDoctor,
@@ -372,14 +416,20 @@
                         const data = await response.json();
 
                         if (data.success) {
-                            alert(data.message);
+                            CustomAlert.success(data.message || 'Payment created successfully');
+                            this.showCreateModal = false;
+                            // Reset form
+                            this.selectedDoctor = '';
+                            this.consultations = [];
+                            this.selectedConsultations = [];
                             location.reload();
                         } else {
-                            alert('Error: ' + data.message);
+                            CustomAlert.error('Error: ' + (data.message || 'Failed to create payment'));
+                            console.error('Payment creation error:', data);
                         }
                     } catch (error) {
-                        alert('An error occurred');
-                        console.error(error);
+                        CustomAlert.error('An error occurred: ' + error.message);
+                        console.error('Payment creation exception:', error);
                     }
                 },
 
@@ -402,24 +452,25 @@
                         const data = await response.json();
 
                         if (data.success) {
-                            alert(data.message);
+                            CustomAlert.success(data.message);
                             location.reload();
                         } else {
-                            alert('Error: ' + data.message);
+                            CustomAlert.error('Error: ' + data.message);
                         }
                     } catch (error) {
-                        alert('An error occurred');
+                        CustomAlert.error('An error occurred');
                         console.error(error);
                     }
                 },
 
                 viewPayment(paymentId) {
                     // Implement view payment details
-                    alert('View payment details - ID: ' + paymentId);
+                    CustomAlert.info('View payment details - ID: ' + paymentId);
                 }
             }
         }
     </script>
+    @include('components.custom-alert-modal')
 </body>
 </html>
 

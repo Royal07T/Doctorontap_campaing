@@ -199,8 +199,8 @@
                                                     Pay Now
                                                 </button>
                                             </form>
-                                        @else
-                                            <span class="text-gray-400">N/A</span>
+                                    @else
+                                        <span class="text-gray-400">N/A</span>
                                         @endif
                                     @endif
                                 </td>

@@ -145,44 +145,44 @@
 
                                 <!-- Past Medical History -->
                                 @if($history->past_medical_history)
-                                    <div>
+                                <div>
                                         <p class="text-sm font-medium text-gray-700 mb-1">Past Medical History</p>
                                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->past_medical_history }}</p>
-                                    </div>
-                                @endif
+                                </div>
+                            @endif
 
                                 <!-- Family History -->
                                 @if($history->family_history)
-                                    <div>
+                                <div>
                                         <p class="text-sm font-medium text-gray-700 mb-1">Family History</p>
                                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->family_history }}</p>
-                                    </div>
-                                @endif
+                                </div>
+                            @endif
 
                                 <!-- Drug History -->
                                 @if($history->drug_history)
                                     <div>
                                         <p class="text-sm font-medium text-gray-700 mb-1">Drug History</p>
                                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->drug_history }}</p>
-                                    </div>
-                                @endif
+                                </div>
+                            @endif
 
                                 <!-- Social History -->
                                 @if($history->social_history)
                                     <div>
                                         <p class="text-sm font-medium text-gray-700 mb-1">Social History</p>
                                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->social_history }}</p>
-                                    </div>
-                                @endif
+                                </div>
+                            @endif
 
-                                <!-- Allergies -->
-                                @if($history->allergies)
+                            <!-- Allergies -->
+                            @if($history->allergies)
                                     <div class="md:col-span-2">
-                                        <p class="text-sm font-medium text-gray-700 mb-1">Allergies</p>
+                                    <p class="text-sm font-medium text-gray-700 mb-1">Allergies</p>
                                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->allergies }}</p>
-                                    </div>
-                                @endif
-                            </div>
+                                </div>
+                            @endif
+                                </div>
                         </div>
                     </div>
                 @endforeach

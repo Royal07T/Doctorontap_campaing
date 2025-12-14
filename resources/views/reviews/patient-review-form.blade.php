@@ -177,7 +177,7 @@
             e.preventDefault();
             
             if (!selectedRating) {
-                alert('Please select a rating');
+                CustomAlert.warning('Please select a rating');
                 return;
             }
 
@@ -208,7 +208,7 @@
                     document.getElementById('reviewForm').classList.add('hidden');
                     document.getElementById('successMessage').classList.remove('hidden');
                 } else {
-                    alert(data.message || 'Failed to submit review');
+                    CustomAlert.error(data.message || 'Failed to submit review');
                     submitBtn.disabled = false;
                     btnText.classList.remove('hidden');
                     btnLoading.classList.add('hidden');
@@ -216,13 +216,14 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                CustomAlert.error('An error occurred. Please try again.');
                 submitBtn.disabled = false;
                 btnText.classList.remove('hidden');
                 btnLoading.classList.add('hidden');
             });
         });
     </script>
+    @include('components.custom-alert-modal')
 </body>
 </html>
 

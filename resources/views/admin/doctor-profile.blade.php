@@ -249,32 +249,31 @@
 
     <script>
         function verifyBankAccount(accountId) {
-            if (!confirm('Are you sure you want to verify this bank account?')) {
-                return;
-            }
-
-            fetch(`/admin/doctors/bank-accounts/${accountId}/verify`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('An error occurred. Please try again.');
-                console.error(error);
+            CustomAlert.confirm('Are you sure you want to verify this bank account?', () => {
+                fetch(`/admin/doctors/bank-accounts/${accountId}/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        CustomAlert.success(data.message);
+                        location.reload();
+                    } else {
+                        CustomAlert.error('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    CustomAlert.error('An error occurred. Please try again.');
+                    console.error(error);
+                });
             });
         }
     </script>
+    @include('components.custom-alert-modal')
 </body>
 </html>
 

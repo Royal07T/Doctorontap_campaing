@@ -458,10 +458,10 @@ document.getElementById('blockIpForm').addEventListener('submit', function(e) {
     })
     .then(data => {
         if (data.success) {
-            alert(data.message);
+            CustomAlert.success(data.message);
             closeBlockModal();
         } else {
-            alert('Error: ' + data.message);
+            CustomAlert.error('Error: ' + data.message);
         }
     });
 });
@@ -472,5 +472,6 @@ setInterval(refreshData, 30000);
             </main>
         </div>
     </div>
+    @include('components.custom-alert-modal')
 </body>
 </html>

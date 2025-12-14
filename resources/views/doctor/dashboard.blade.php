@@ -41,7 +41,7 @@
                     @else
                         <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
                             {{ substr($doctor->name, 0, 1) }}
-                        </div>
+                    </div>
                     @endif
                     <div class="flex-1">
                         <p class="font-semibold text-gray-800 text-sm">Dr. {{ $doctor->name }}</p>
@@ -366,6 +366,7 @@
             </main>
         </div>
     </div>
+    @include('components.custom-alert-modal')
 </body>
 </html>
 

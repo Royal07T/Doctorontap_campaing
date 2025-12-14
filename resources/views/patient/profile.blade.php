@@ -8,11 +8,32 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Personal Information</h2>
             
-            <form method="POST" action="{{ route('patient.profile.update') }}">
+            <form method="POST" action="{{ route('patient.profile.update') }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
                 <div class="space-y-6">
+                    <!-- Photo Upload Section -->
+                    <div class="bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-300">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Profile Photo</h3>
+                        <div class="flex items-center space-x-6">
+                            <div class="flex-shrink-0">
+                                @if($patient->photo_url)
+                                    <img src="{{ $patient->photo_url }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border-4 border-purple-200">
+                                @else
+                                    <div class="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center border-4 border-purple-200">
+                                        <span class="text-3xl font-bold text-purple-600">{{ substr($patient->name, 0, 1) }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-1">
+                                <label for="photo" class="block text-sm font-medium text-gray-700 mb-2">Upload Photo</label>
+                                <input type="file" name="photo" id="photo" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                <p class="text-xs text-gray-500 mt-1">JPG, PNG or GIF. Max size: 2MB</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Full Name -->
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>

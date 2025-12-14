@@ -183,28 +183,26 @@
 
 <script>
 function resendTreatmentPlan(consultationId) {
-    if (!confirm('Are you sure you want to resend the treatment plan?')) {
-        return;
-    }
-    
-    fetch(`/admin/consultations/${consultationId}/resend-treatment-plan`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✓ Treatment plan resent successfully!');
-            location.reload();
-        } else {
-            alert('✗ Failed to resend: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
+    CustomAlert.confirm('Are you sure you want to resend the treatment plan?', () => {
+        fetch(`/admin/consultations/${consultationId}/resend-treatment-plan`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                CustomAlert.success('Treatment plan resent successfully!');
+                location.reload();
+            } else {
+                CustomAlert.error('Failed to resend: ' + data.message);
+            }
+        })
+        .catch(error => {
+            CustomAlert.error('Error: ' + error.message);
+        });
     });
 }
 </script>

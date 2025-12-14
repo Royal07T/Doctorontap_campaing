@@ -225,7 +225,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Amount</label>
                             @if($consultation->payment)
-                                <p class="text-xl font-bold text-gray-900">NGN {{ number_format($consultation->payment->amount, 2) }}</p>
+                            <p class="text-xl font-bold text-gray-900">NGN {{ number_format($consultation->payment->amount, 2) }}</p>
                             @else
                                 <p class="text-xl font-bold text-gray-500">Not Paid</p>
                             @endif
@@ -845,6 +845,7 @@
             </main>
         </div>
     </div>
+    @include('components.custom-alert-modal')
 </body>
 </html>
 

@@ -163,6 +163,10 @@
                                     <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
                                         Pending
                                     </span>
+                                @elseif($consultation->status === 'scheduled')
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        Scheduled
+                                    </span>
                                 @elseif($consultation->status === 'cancelled')
                                     <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                                         Cancelled

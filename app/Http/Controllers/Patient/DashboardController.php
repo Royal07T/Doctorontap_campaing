@@ -396,7 +396,54 @@ class DashboardController extends Controller
             'phone' => 'required|string|max:20',
             'gender' => 'nullable|in:male,female',
             'date_of_birth' => 'nullable|date|before:today',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            try {
+                // Delete old photo if exists
+                if ($patient->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($patient->photo)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($patient->photo);
+                }
+
+                // Store new photo
+                $photo = $request->file('photo');
+                $fileName = \Illuminate\Support\Str::slug($patient->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+                
+                // Use putFileAs which properly handles the file stream
+                // This stores the file at storage/app/public/patients/filename.jpg
+                // and returns the path 'patients/filename.jpg'
+                $path = \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('patients', $photo, $fileName);
+                
+                // Verify the file was stored
+                if ($path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                    $validated['photo'] = $path;
+                    
+                    \Log::info('Patient photo uploaded successfully', [
+                        'patient_id' => $patient->id,
+                        'photo_path' => $path,
+                        'url' => \Illuminate\Support\Facades\Storage::url($path)
+                    ]);
+                } else {
+                    \Log::error('Patient photo upload failed - file not found after storage', [
+                        'patient_id' => $patient->id,
+                        'photo_name' => $fileName,
+                        'path' => $path
+                    ]);
+                    
+                    return redirect()->back()->with('error', 'Failed to upload photo. Please try again.');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Patient photo upload exception', [
+                    'patient_id' => $patient->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+            }
+        }
 
         $patient->update($validated);
 

@@ -217,11 +217,11 @@
         function viewReview(id) {
             // This would fetch full review details via AJAX
             // For now, keeping it simple
-            alert('View review details for ID: ' + id);
+            CustomAlert.info('View review details for ID: ' + id);
         }
 
         function togglePublished(id) {
-            if (confirm('Are you sure you want to toggle the published status of this review?')) {
+            CustomAlert.confirm('Are you sure you want to toggle the published status of this review?', () => {
                 fetch(`/admin/reviews/${id}/toggle-published`, {
                     method: 'POST',
                     headers: {
@@ -246,18 +246,18 @@
                     if (data.success) {
                         window.location.reload();
                     } else {
-                        alert(data.message);
+                        CustomAlert.error(data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Failed to update review status');
+                    CustomAlert.error('Failed to update review status');
                 });
             }
         }
 
         function verifyReview(id) {
-            if (confirm('Are you sure you want to verify this review?')) {
+            CustomAlert.confirm('Are you sure you want to verify this review?', () => {
                 fetch(`/admin/reviews/${id}/verify`, {
                     method: 'POST',
                     headers: {
@@ -282,18 +282,18 @@
                     if (data.success) {
                         window.location.reload();
                     } else {
-                        alert(data.message);
+                        CustomAlert.error(data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Failed to verify review');
+                    CustomAlert.error('Failed to verify review');
                 });
-            }
+            });
         }
 
         function deleteReview(id) {
-            if (confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+            CustomAlert.confirm('Are you sure you want to delete this review? This action cannot be undone.', () => {
                 fetch(`/admin/reviews/${id}`, {
                     method: 'DELETE',
                     headers: {
@@ -318,20 +318,21 @@
                     if (data.success) {
                         window.location.reload();
                     } else {
-                        alert(data.message);
+                        CustomAlert.error(data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Failed to delete review');
+                    CustomAlert.error('Failed to delete review');
                 });
-            }
+            });
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
         }
     </script>
+    @include('components.custom-alert-modal')
 </body>
 </html>
 

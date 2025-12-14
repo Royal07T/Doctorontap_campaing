@@ -259,8 +259,8 @@
                             <div class="border-2 border-gray-300 rounded-lg p-5 text-center hover:border-blue-500 transition-all peer-checked:border-blue-600 peer-checked:bg-gradient-to-br peer-checked:from-blue-50 peer-checked:to-blue-100 group-hover:shadow-md">
                                 <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 peer-checked:bg-blue-600 transition-colors">
                                     <svg class="w-6 h-6 text-blue-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                    </svg>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
                                 </div>
                                 <p class="font-bold text-gray-800 text-lg mb-1">Voice Call</p>
                                 <p class="text-xs text-gray-600">Audio consultation via phone</p>
@@ -271,8 +271,8 @@
                             <div class="border-2 border-gray-300 rounded-lg p-5 text-center hover:border-purple-500 transition-all peer-checked:border-purple-600 peer-checked:bg-gradient-to-br peer-checked:from-purple-50 peer-checked:to-purple-100 group-hover:shadow-md">
                                 <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 peer-checked:bg-purple-600 transition-colors">
                                     <svg class="w-6 h-6 text-purple-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
                                 </div>
                                 <p class="font-bold text-gray-800 text-lg mb-1">Video Call</p>
                                 <p class="text-xs text-gray-600">Face-to-face video consultation</p>
@@ -283,8 +283,8 @@
                             <div class="border-2 border-gray-300 rounded-lg p-5 text-center hover:border-emerald-500 transition-all peer-checked:border-emerald-600 peer-checked:bg-gradient-to-br peer-checked:from-emerald-50 peer-checked:to-emerald-100 group-hover:shadow-md">
                                 <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 peer-checked:bg-emerald-600 transition-colors">
                                     <svg class="w-6 h-6 text-emerald-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
                                 </div>
                                 <p class="font-bold text-gray-800 text-lg mb-1">Text Chat</p>
                                 <p class="text-xs text-gray-600">Messaging-based consultation</p>
@@ -424,7 +424,7 @@
 
         if (!isValid) {
             e.preventDefault();
-            alert('Please fix the following errors:\n\n' + errors.join('\n'));
+            CustomAlert.error('Please fix the following errors:\n\n' + errors.join('\n'));
             return false;
         }
 

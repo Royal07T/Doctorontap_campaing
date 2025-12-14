@@ -46,15 +46,28 @@ class ConsultationTable extends Component
             $consultation->status = $newStatus;
             $consultation->save();
             
-            // Send notification if needed
+            // Send notification if needed (non-blocking)
             if ($oldStatus !== $newStatus && $consultation->doctor) {
-                Mail::to(config('mail.admin_email'))
-                    ->send(new \App\Mail\ConsultationStatusChange(
-                        $consultation,
-                        $consultation->doctor,
-                        $oldStatus,
-                        $newStatus
-                    ));
+                try {
+                    $adminEmail = config('mail.admin_email');
+                    if ($adminEmail) {
+                        Mail::to($adminEmail)
+                            ->send(new \App\Mail\ConsultationStatusChange(
+                                $consultation,
+                                $consultation->doctor,
+                                $oldStatus,
+                                $newStatus
+                            ));
+                    }
+                } catch (\Exception $emailException) {
+                    // Log email error but don't fail the status update
+                    \Log::warning('Failed to send consultation status change notification email', [
+                        'consultation_id' => $consultation->id,
+                        'old_status' => $oldStatus,
+                        'new_status' => $newStatus,
+                        'error' => $emailException->getMessage()
+                    ]);
+                }
             }
             
             $this->dispatch('alert', 

@@ -21,6 +21,7 @@ class Patient extends Authenticatable
         'password',
         'phone',
         'gender',
+        'photo',
         'age',
         'guardian_id',
         'date_of_birth',
@@ -105,6 +106,23 @@ class Patient extends Authenticatable
     public function reviewsReceived(): HasMany
     {
         return $this->hasMany(Review::class, 'reviewee_patient_id');
+    }
+
+    /**
+     * Get the photo URL
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if (!$this->photo) {
+            return null;
+        }
+
+        // Check if file exists in public storage
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->photo)) {
+            return \Illuminate\Support\Facades\Storage::url($this->photo);
+        }
+
+        return null;
     }
 
     /**
