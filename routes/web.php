@@ -125,6 +125,11 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultations/{id}/resend-treatment-plan', [DashboardController::class, 'resendTreatmentPlan'])->name('consultation.resend-treatment-plan');
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
+    
+    // Multi-Patient Bookings
+    Route::get('/bookings', [DashboardController::class, 'bookings'])->name('bookings.index');
+    Route::get('/bookings/{id}', [DashboardController::class, 'showBooking'])->name('bookings.show');
+    Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
     Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
     Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');

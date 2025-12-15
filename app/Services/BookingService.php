@@ -12,6 +12,11 @@ use App\Models\InvoiceItem;
 use App\Models\FeeAdjustmentLog;
 use App\Mail\FeeAdjustmentNotification;
 use App\Mail\FeeAdjustmentAdminNotification;
+use App\Mail\ConsultationConfirmation;
+use App\Mail\ConsultationAdminAlert;
+use App\Mail\ConsultationDoctorNotification;
+use App\Notifications\ConsultationSmsNotification;
+use App\Notifications\ConsultationWhatsAppNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -39,9 +44,9 @@ class BookingService
                 'payment_status' => 'unpaid',
             ]);
 
-            // 2. Get doctor's base fee
-            $doctor = Doctor::find($data['doctor_id']);
-            $baseFee = $doctor ? $doctor->effective_consultation_fee : 0;
+            // 2. Get doctor's base fee (use default if no doctor selected)
+            $doctor = $data['doctor_id'] ? Doctor::find($data['doctor_id']) : null;
+            $baseFee = $doctor ? $doctor->effective_consultation_fee : \App\Models\Setting::get('default_consultation_fee', 5000);
 
             // 3. Add each patient to booking
             foreach ($data['patients'] as $index => $patientData) {
@@ -90,6 +95,9 @@ class BookingService
             $booking->save();
 
             $this->createInvoice($booking);
+
+            // 5. Send confirmation emails to each patient
+            $this->sendMultiPatientBookingEmails($booking);
 
             DB::commit();
             return $booking->fresh(['bookingPatients.patient', 'bookingPatients.consultation', 'doctor', 'invoice']);
@@ -173,14 +181,15 @@ class BookingService
     }
 
     /**
-     * Adjust patient fee (doctor-initiated)
+     * Adjust patient fee (doctor or admin-initiated)
      */
     public function adjustPatientFee(
         Booking $booking,
         int $patientId,
         float $newFee,
         string $reason,
-        Doctor $doctor
+        $adjustedBy, // Can be Doctor or AdminUser
+        string $adjustedByType = 'doctor' // 'doctor' or 'admin'
     ): bool {
         DB::beginTransaction();
         try {
@@ -226,8 +235,8 @@ class BookingService
                 'booking_id' => $booking->id,
                 'patient_id' => $patientId,
                 'invoice_item_id' => $invoiceItem->id ?? null,
-                'adjusted_by_type' => 'doctor',
-                'adjusted_by_id' => $doctor->id,
+                'adjusted_by_type' => $adjustedByType,
+                'adjusted_by_id' => $adjustedBy->id,
                 'old_amount' => $oldFee,
                 'new_amount' => $newFee,
                 'adjustment_reason' => $reason,
@@ -268,7 +277,7 @@ class BookingService
         try {
             // Notify payer
             if (class_exists(FeeAdjustmentNotification::class)) {
-                Mail::to($booking->payer_email)->queue(
+                Mail::to($booking->payer_email)->send(
                     new FeeAdjustmentNotification($booking, $patient, $oldFee, $newFee, $reason)
                 );
             }
@@ -276,7 +285,7 @@ class BookingService
             // Notify accountant/admin
             $accountantEmail = config('app.accountant_email') ?? config('mail.from.address');
             if ($accountantEmail && class_exists(FeeAdjustmentAdminNotification::class)) {
-                Mail::to($accountantEmail)->queue(
+                Mail::to($accountantEmail)->send(
                     new FeeAdjustmentAdminNotification($booking, $patient, $oldFee, $newFee, $reason)
                 );
             }
@@ -355,6 +364,242 @@ class BookingService
             'invoice.items',
             'feeAdjustmentLogs'
         ])->find($bookingId);
+    }
+
+    /**
+     * Send confirmation emails for multi-patient booking
+     */
+    private function sendMultiPatientBookingEmails(Booking $booking): void
+    {
+        try {
+            // Send confirmation email to payer
+            $payerData = [
+                'consultation_reference' => $booking->reference,
+                'first_name' => explode(' ', $booking->payer_name)[0] ?? $booking->payer_name,
+                'last_name' => implode(' ', array_slice(explode(' ', $booking->payer_name), 1)) ?? '',
+                'email' => $booking->payer_email,
+                'mobile' => $booking->payer_mobile,
+                'problem' => 'Multi-patient booking',
+                'severity' => 'moderate',
+                'consult_mode' => $booking->consult_mode,
+                'has_documents' => false,
+                'documents_count' => 0,
+            ];
+
+            // Send confirmation email to payer
+            Mail::to($booking->payer_email)->send(
+                new ConsultationConfirmation($payerData)
+            );
+
+            // Send SMS confirmation to payer
+            try {
+                $smsNotification = new ConsultationSmsNotification();
+                $smsResult = $smsNotification->sendConsultationConfirmation($payerData);
+                
+                if ($smsResult['success']) {
+                    \Log::info('Payer confirmation SMS sent successfully', [
+                        'booking_reference' => $booking->reference,
+                        'payer_mobile' => $booking->payer_mobile
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send payer confirmation SMS: ' . $e->getMessage(), [
+                    'booking_reference' => $booking->reference,
+                    'payer_mobile' => $booking->payer_mobile ?? 'N/A'
+                ]);
+            }
+
+            // Send confirmation email to each patient (if they have different email)
+            foreach ($booking->bookingPatients as $bp) {
+                $consultation = $bp->consultation;
+                $patient = $bp->patient;
+                
+                // Only send if patient has a different email than payer
+                if ($consultation->email && $consultation->email !== $booking->payer_email) {
+                    $patientData = [
+                        'consultation_reference' => $consultation->reference,
+                        'first_name' => $consultation->first_name,
+                        'last_name' => $consultation->last_name,
+                        'email' => $consultation->email,
+                        'mobile' => $consultation->mobile ?? $booking->payer_mobile,
+                        'problem' => $consultation->problem ?? 'General consultation',
+                        'severity' => $consultation->severity ?? 'moderate',
+                        'consult_mode' => $consultation->consult_mode,
+                        'has_documents' => false,
+                        'documents_count' => 0,
+                    ];
+
+                    Mail::to($consultation->email)->send(
+                        new ConsultationConfirmation($patientData)
+                    );
+
+                    // Send SMS confirmation to patient (if they have different phone)
+                    if ($consultation->mobile && $consultation->mobile !== $booking->payer_mobile) {
+                        try {
+                            $smsNotification = new ConsultationSmsNotification();
+                            $smsResult = $smsNotification->sendConsultationConfirmation($patientData);
+                            
+                            if ($smsResult['success']) {
+                                \Log::info('Patient confirmation SMS sent successfully', [
+                                    'consultation_reference' => $consultation->reference,
+                                    'patient_mobile' => $consultation->mobile
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            \Log::warning('Failed to send patient confirmation SMS: ' . $e->getMessage(), [
+                                'consultation_reference' => $consultation->reference,
+                                'patient_mobile' => $consultation->mobile ?? 'N/A'
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // Send admin alert
+            $adminEmail = config('mail.admin_email');
+            if ($adminEmail) {
+                Mail::to($adminEmail)->send(
+                    new ConsultationAdminAlert($payerData)
+                );
+            }
+
+            // Send notification to assigned doctor (email + SMS + WhatsApp)
+            if ($booking->doctor) {
+                // Email notification
+                if ($booking->doctor->email) {
+                    Mail::to($booking->doctor->email)->send(
+                        new ConsultationDoctorNotification($payerData)
+                    );
+                }
+
+                // SMS notification to doctor
+                try {
+                    $smsNotification = new ConsultationSmsNotification();
+                    $smsResult = $smsNotification->sendDoctorNewConsultation($booking->doctor, $payerData);
+                    
+                    if ($smsResult['success']) {
+                        \Log::info('Doctor notification SMS sent successfully', [
+                            'booking_reference' => $booking->reference,
+                            'doctor_id' => $booking->doctor->id,
+                            'doctor_phone' => $booking->doctor->phone
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to send doctor notification SMS: ' . $e->getMessage(), [
+                        'booking_reference' => $booking->reference,
+                        'doctor_id' => $booking->doctor->id
+                    ]);
+                }
+
+                // WhatsApp notification to doctor (if enabled)
+                if (config('services.termii.whatsapp_enabled') && $booking->doctor->phone) {
+                    try {
+                        $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
+                        $doctorResult = $whatsapp->sendDoctorNewConsultationTemplate(
+                            $booking->doctor,
+                            $payerData,
+                            'doctor_new_consultation'
+                        );
+                        
+                        if ($doctorResult['success']) {
+                            \Log::info('Doctor WhatsApp notification sent successfully', [
+                                'booking_reference' => $booking->reference,
+                                'doctor_id' => $booking->doctor->id,
+                                'doctor_phone' => $booking->doctor->phone
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to send doctor WhatsApp notification: ' . $e->getMessage(), [
+                            'booking_reference' => $booking->reference,
+                            'doctor_id' => $booking->doctor->id
+                        ]);
+                    }
+                }
+            }
+
+            // Send WhatsApp notification to payer (if enabled)
+            if (config('services.termii.whatsapp_enabled') && $booking->payer_mobile) {
+                try {
+                    $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
+                    $payerResult = $whatsapp->sendConsultationConfirmationTemplate(
+                        $payerData,
+                        'patient_booking_confirmation'
+                    );
+                    
+                    if ($payerResult['success']) {
+                        \Log::info('Payer WhatsApp notification sent successfully', [
+                            'booking_reference' => $booking->reference,
+                            'payer_phone' => $booking->payer_mobile
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to send payer WhatsApp notification: ' . $e->getMessage(), [
+                        'booking_reference' => $booking->reference,
+                        'payer_phone' => $booking->payer_mobile ?? 'N/A'
+                    ]);
+                }
+            }
+
+            // Send WhatsApp notification to each patient (if they have different phone)
+            foreach ($booking->bookingPatients as $bp) {
+                $consultation = $bp->consultation;
+                
+                if ($consultation->mobile && 
+                    $consultation->mobile !== $booking->payer_mobile && 
+                    config('services.termii.whatsapp_enabled')) {
+                    try {
+                        $patientData = [
+                            'consultation_reference' => $consultation->reference,
+                            'first_name' => $consultation->first_name,
+                            'last_name' => $consultation->last_name,
+                            'email' => $consultation->email ?? $booking->payer_email,
+                            'mobile' => $consultation->mobile,
+                            'problem' => $consultation->problem ?? 'General consultation',
+                            'severity' => $consultation->severity ?? 'moderate',
+                            'consult_mode' => $consultation->consult_mode,
+                            'has_documents' => false,
+                            'documents_count' => 0,
+                        ];
+
+                        $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
+                        $patientResult = $whatsapp->sendConsultationConfirmationTemplate(
+                            $patientData,
+                            'patient_booking_confirmation'
+                        );
+                        
+                        if ($patientResult['success']) {
+                            \Log::info('Patient WhatsApp notification sent successfully', [
+                                'consultation_reference' => $consultation->reference,
+                                'patient_phone' => $consultation->mobile
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to send patient WhatsApp notification: ' . $e->getMessage(), [
+                            'consultation_reference' => $consultation->reference,
+                            'patient_phone' => $consultation->mobile ?? 'N/A'
+                        ]);
+                    }
+                }
+            }
+
+            \Log::info('Multi-patient booking notifications queued successfully', [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->reference,
+                'payer_email' => $booking->payer_email,
+                'patients_count' => $booking->bookingPatients->count(),
+                'emails_sent' => true,
+                'sms_sent' => true,
+                'whatsapp_sent' => config('services.termii.whatsapp_enabled', false)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to send multi-patient booking emails', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't throw - email failures shouldn't break booking creation
+        }
     }
 }
 

@@ -182,30 +182,83 @@
 </div>
 
 <script>
-function resendTreatmentPlan(consultationId) {
-    if (!confirm('Are you sure you want to resend the treatment plan?')) {
+(function() {
+    'use strict';
+    
+    // Prevent function from being defined multiple times
+    if (window.resendTreatmentPlan) {
         return;
     }
     
-    fetch(`/admin/consultations/${consultationId}/resend-treatment-plan`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+    window.resendTreatmentPlan = function(consultationId) {
+    // Try to find Alpine.js component data
+    let alpineData = null;
+    try {
+        const alpineElement = document.querySelector('[x-data*="consultationPage"]');
+        if (alpineElement && window.Alpine) {
+            alpineData = Alpine.$data(alpineElement);
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✓ Treatment plan resent successfully!');
-            location.reload();
-        } else {
-            alert('✗ Failed to resend: ' + data.message);
+    } catch (e) {
+        console.log('Alpine.js not available or element not found');
+    }
+    
+    const confirmMessage = 'Are you sure you want to resend the treatment plan?';
+    const performResend = function() {
+        fetch(`/admin/consultations/${consultationId}/resend-treatment-plan`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (alpineData && typeof alpineData.showMessage === 'function') {
+                    alpineData.showMessage('success', 'Success', '✓ Treatment plan resent successfully!');
+                } else if (typeof showAlertModal === 'function') {
+                    showAlertModal('✓ Treatment plan resent successfully!', 'success');
+                } else {
+                    alert('✓ Treatment plan resent successfully!');
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                const errorMsg = '✗ Failed to resend: ' + (data.message || 'Unknown error');
+                if (alpineData && typeof alpineData.showMessage === 'function') {
+                    alpineData.showMessage('error', 'Error', errorMsg);
+                } else if (typeof showAlertModal === 'function') {
+                    showAlertModal(errorMsg, 'error');
+                } else {
+                    alert(errorMsg);
+                }
+            }
+        })
+        .catch(error => {
+            const errorMsg = 'Error: ' + error.message;
+            if (alpineData && typeof alpineData.showMessage === 'function') {
+                alpineData.showMessage('error', 'Error', errorMsg);
+            } else if (typeof showAlertModal === 'function') {
+                showAlertModal(errorMsg, 'error');
+            } else {
+                alert(errorMsg);
+            }
+        });
+    };
+    
+    // Try Alpine.js confirm first (doctor page)
+    if (alpineData && typeof alpineData.showConfirm === 'function') {
+        alpineData.showConfirm('Confirm Resend', confirmMessage, performResend);
+    } 
+    // Try global confirm modal (admin page)
+    else if (typeof showConfirmModal === 'function') {
+        showConfirmModal(confirmMessage, performResend);
+    } 
+    // Fallback to browser confirm
+    else {
+        if (confirm(confirmMessage)) {
+            performResend();
         }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
-    });
-}
+    };
+})();
 </script>
 

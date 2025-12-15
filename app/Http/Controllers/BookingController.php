@@ -23,7 +23,14 @@ class BookingController extends Controller
      */
     public function create()
     {
-        $doctors = Doctor::where('is_available', true)->get();
+        // Get all approved doctors for multi-patient booking
+        // Available doctors are shown first, then unavailable ones
+        $doctors = Doctor::approved()
+            ->orderByRaw('CASE WHEN is_available = 1 THEN 0 ELSE 1 END')
+            ->orderBy('order', 'asc')
+            ->orderBy('first_name', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->get();
         return view('booking.multi-patient', compact('doctors'));
     }
 
@@ -90,15 +97,18 @@ class BookingController extends Controller
     }
 
     /**
-     * Adjust patient fee (doctor only)
+     * Adjust patient fee (doctor or admin)
      */
     public function adjustFee(Request $request, $bookingId)
     {
-        // Check if user is a doctor
-        if (!Auth::guard('doctor')->check()) {
+        // Check if user is a doctor or admin
+        $isDoctor = Auth::guard('doctor')->check();
+        $isAdmin = Auth::guard('admin')->check();
+        
+        if (!$isDoctor && !$isAdmin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only doctors can adjust fees.'
+                'message' => 'Unauthorized. Only doctors or admins can adjust fees.'
             ], 403);
         }
 
@@ -117,14 +127,21 @@ class BookingController extends Controller
 
         try {
             $booking = Booking::findOrFail($bookingId);
-            $doctor = Auth::guard('doctor')->user();
+            
+            if ($isDoctor) {
+                $adjustedBy = Auth::guard('doctor')->user();
+                $adjustedByType = 'doctor';
 
             // Verify doctor is assigned to this booking
-            if ($booking->doctor_id !== $doctor->id) {
+                if ($booking->doctor_id !== $adjustedBy->id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You are not authorized to adjust fees for this booking.'
                 ], 403);
+                }
+            } else {
+                $adjustedBy = Auth::guard('admin')->user();
+                $adjustedByType = 'admin';
             }
 
             $this->bookingService->adjustPatientFee(
@@ -132,7 +149,8 @@ class BookingController extends Controller
                 $request->patient_id,
                 $request->new_fee,
                 $request->reason,
-                $doctor
+                $adjustedBy,
+                $adjustedByType
             );
 
             return response()->json([

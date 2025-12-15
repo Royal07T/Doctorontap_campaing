@@ -217,11 +217,25 @@
         function viewReview(id) {
             // This would fetch full review details via AJAX
             // For now, keeping it simple
-            alert('View review details for ID: ' + id);
+            if (typeof showAlertModal === 'function') {
+                showAlertModal('View review details for ID: ' + id, 'info');
+            } else {
+                alert('View review details for ID: ' + id);
+            }
         }
 
         function togglePublished(id) {
-            if (confirm('Are you sure you want to toggle the published status of this review?')) {
+            const confirmMessage = 'Are you sure you want to toggle the published status of this review?';
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal(confirmMessage, function() {
+                    doTogglePublished(id);
+                });
+            } else if (confirm(confirmMessage)) {
+                doTogglePublished(id);
+            }
+        }
+
+        function doTogglePublished(id) {
                 fetch(`/admin/reviews/${id}/toggle-published`, {
                     method: 'POST',
                     headers: {
@@ -244,20 +258,42 @@
                 })
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Review status updated successfully', 'success');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            window.location.reload();
+                        }
                     } else {
-                        alert(data.message);
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal(data.message, 'error');
+                        } else {
+                            alert(data.message);
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Failed to update review status');
+                    if (typeof showAlertModal === 'function') {
+                        showAlertModal('Failed to update review status', 'error');
+                    } else {
+                        alert('Failed to update review status');
+                    }
                 });
-            }
         }
 
         function verifyReview(id) {
-            if (confirm('Are you sure you want to verify this review?')) {
+            const confirmMessage = 'Are you sure you want to verify this review?';
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal(confirmMessage, function() {
+                    doVerifyReview(id);
+                });
+            } else if (confirm(confirmMessage)) {
+                doVerifyReview(id);
+            }
+        }
+
+        function doVerifyReview(id) {
                 fetch(`/admin/reviews/${id}/verify`, {
                     method: 'POST',
                     headers: {
@@ -316,22 +352,36 @@
                 })
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Review deleted successfully', 'success');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            window.location.reload();
+                        }
                     } else {
-                        alert(data.message);
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal(data.message, 'error');
+                        } else {
+                            alert(data.message);
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Failed to delete review');
+                    if (typeof showAlertModal === 'function') {
+                        showAlertModal('Failed to delete review', 'error');
+                    } else {
+                        alert('Failed to delete review');
+                    }
                 });
-            }
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
         }
     </script>
+
+    @include('components.alert-modal')
 </body>
 </html>
 

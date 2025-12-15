@@ -22,7 +22,15 @@ class ConsultationController extends Controller
      */
     public function index()
     {
-        $doctors = Doctor::available()->ordered()->with('reviews')->get();
+        // Get all approved doctors for multi-patient booking
+        // Available doctors are shown first, then unavailable ones
+        $doctors = Doctor::approved()
+            ->orderByRaw('CASE WHEN is_available = 1 THEN 0 ELSE 1 END')
+            ->orderBy('order', 'asc')
+            ->orderBy('first_name', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->with('reviews')
+            ->get();
         
         return view('consultation.index', compact('doctors'));
     }
@@ -224,24 +232,24 @@ class ConsultationController extends Controller
         $validated['has_documents'] = !empty($uploadedDocuments);
         $validated['documents_count'] = count($uploadedDocuments);
 
-        // Queue emails for asynchronous sending (improves performance under load)
+        // Send emails immediately (synchronous sending)
         // Emails are non-critical - we continue even if they fail
         
         // Count emails to be sent
-        $emailsQueued = 0;
+        $emailsSent = 0;
         // Use ADMIN_EMAIL from config (reads from env)
         $adminEmail = config('mail.admin_email');
         
         try {
             // Send confirmation email to the patient
-            Mail::to($validated['email'])->queue(new ConsultationConfirmation($validated));
-            $emailsQueued++;
-            \Log::info('Patient confirmation email queued successfully', [
+            Mail::to($validated['email'])->send(new ConsultationConfirmation($validated));
+            $emailsSent++;
+            \Log::info('Patient confirmation email sent successfully', [
                 'consultation_reference' => $reference,
                 'patient_email' => $validated['email']
             ]);
         } catch (\Exception $e) {
-            \Log::warning('Failed to queue patient confirmation email: ' . $e->getMessage(), [
+            \Log::warning('Failed to send patient confirmation email: ' . $e->getMessage(), [
                 'consultation_reference' => $reference,
                 'patient_email' => $validated['email']
             ]);
@@ -267,14 +275,14 @@ class ConsultationController extends Controller
 
         try {
             // Send alert email to admin
-            Mail::to($adminEmail)->queue(new ConsultationAdminAlert($validated));
-            $emailsQueued++;
-            \Log::info('Admin alert email queued successfully', [
+            Mail::to($adminEmail)->send(new ConsultationAdminAlert($validated));
+            $emailsSent++;
+            \Log::info('Admin alert email sent successfully', [
                 'consultation_reference' => $reference,
                 'admin_email' => $adminEmail
             ]);
         } catch (\Exception $e) {
-            \Log::warning('Failed to queue admin alert email: ' . $e->getMessage(), [
+            \Log::warning('Failed to send admin alert email: ' . $e->getMessage(), [
                 'consultation_reference' => $reference,
                 'admin_email' => $adminEmail
             ]);
@@ -283,9 +291,9 @@ class ConsultationController extends Controller
         try {
             // Send notification email to the assigned doctor
             if ($doctorEmail) {
-                Mail::to($doctorEmail)->queue(new ConsultationDoctorNotification($validated));
-                $emailsQueued++;
-                \Log::info('Doctor notification email queued successfully', [
+                Mail::to($doctorEmail)->send(new ConsultationDoctorNotification($validated));
+                $emailsSent++;
+                \Log::info('Doctor notification email sent successfully', [
                     'consultation_reference' => $reference,
                     'doctor_email' => $doctorEmail
                 ]);
@@ -295,7 +303,7 @@ class ConsultationController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            \Log::warning('Failed to queue doctor notification email: ' . $e->getMessage(), [
+            \Log::warning('Failed to send doctor notification email: ' . $e->getMessage(), [
                 'consultation_reference' => $reference,
                 'doctor_email' => $doctorEmail ?? 'N/A'
             ]);
@@ -395,9 +403,9 @@ class ConsultationController extends Controller
             }
         }
         
-        \Log::info('Consultation booking completed - emails queued', [
+        \Log::info('Consultation booking completed - emails sent', [
             'consultation_reference' => $reference,
-            'total_emails_queued' => $emailsQueued,
+            'total_emails_sent' => $emailsSent,
             'patient_email' => $validated['email'],
             'admin_email' => $adminEmail,
             'doctor_email' => $doctorEmail ?? 'N/A'
@@ -458,9 +466,9 @@ class ConsultationController extends Controller
             ], 400);
         }
 
-        // Queue payment request email for asynchronous sending
+        // Send payment request email immediately
         try {
-            Mail::to($consultation->email)->queue(new PaymentRequest($consultation));
+            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
 
             // Update consultation
             $consultation->update([
@@ -470,10 +478,10 @@ class ConsultationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment request email queued successfully'
+                'message' => 'Payment request email sent successfully'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to queue payment request email: ' . $e->getMessage(), [
+            \Log::error('Failed to send payment request email: ' . $e->getMessage(), [
                 'consultation_id' => $consultation->id
             ]);
             

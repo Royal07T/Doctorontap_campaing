@@ -59,10 +59,58 @@
                 <div class="bg-white rounded-xl shadow-md p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-2xl font-bold text-gray-900">Patient Information</h2>
+                        <div class="flex items-center gap-2">
+                            @if($consultation->is_multi_patient_booking && $consultation->booking)
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-800" title="Multi-Patient Booking">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    Multi-Patient
+                                </span>
+                            @endif
                         <span class="px-4 py-2 bg-purple-100 text-purple-800 rounded-lg font-mono text-sm font-bold">
                             {{ $consultation->reference }}
                         </span>
+                        </div>
                     </div>
+                    
+                    @if($consultation->is_multi_patient_booking && $consultation->booking)
+                    <!-- Multi-Patient Booking Info -->
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-2">Multi-Patient Booking Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="font-medium text-gray-700">Booking Reference:</span>
+                                <p class="text-gray-900 font-mono">{{ $consultation->booking->reference }}</p>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Payer:</span>
+                                <p class="text-gray-900">{{ $consultation->booking->payer_name }}</p>
+                                <p class="text-xs text-gray-600">{{ $consultation->booking->payer_email }}</p>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Total Patients:</span>
+                                <p class="text-gray-900">{{ $consultation->booking->bookingPatients->count() }}</p>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Total Amount:</span>
+                                <p class="text-gray-900 font-semibold">₦{{ number_format($consultation->booking->total_adjusted_amount, 2) }}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-2">
+                            <a href="{{ route('admin.bookings.show', $consultation->booking->id) }}" 
+                               class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                                View Full Booking Details →
+                            </a>
+                            @if($consultation->booking->invoice)
+                                <button onclick="window.open('{{ route('admin.bookings.show', $consultation->booking->id) }}#fee-adjustment', '_blank')" 
+                                        class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                                    Adjust Fees →
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -71,7 +119,10 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Email</label>
-                            <p class="text-lg text-gray-900">{{ $consultation->email }}</p>
+                            <p class="text-lg text-gray-900">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
+                            @if($consultation->is_multi_patient_booking && !$consultation->email)
+                                <p class="text-xs text-blue-600 mt-1">Using payer email (patient email not provided)</p>
+                            @endif
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Mobile</label>

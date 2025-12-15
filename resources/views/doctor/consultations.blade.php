@@ -72,6 +72,13 @@
 
                 <div class="border-t border-gray-200 my-2"></div>
 
+                <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <span>View Website</span>
+                </a>
+
                 <form method="POST" action="{{ route('doctor.logout') }}">
                     @csrf
                     <button type="submit" class="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all">
@@ -201,27 +208,114 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($consultations as $consultation)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50" 
+                                    data-consultation-id="{{ $consultation->id }}"
+                                    x-data="{ 
+                                        isUpdating: false,
+                                        consultationId: {{ $consultation->id }},
+                                        async updateStatus(newStatus) {
+                                            if (!newStatus || newStatus === '') {
+                                                console.error('No status provided');
+                                                return;
+                                            }
+                                            
+                                            const consultationId = this.consultationId || this.$el.getAttribute('data-consultation-id');
+                                            
+                                            if (!consultationId) {
+                                                console.error('Consultation ID is missing');
+                                                if (typeof showAlertModal === 'function') {
+                                                    showAlertModal('Error: Consultation ID is missing. Please refresh the page.', 'error');
+                                                } else {
+                                                    alert('Error: Consultation ID is missing. Please refresh the page.');
+                                                }
+                                                return;
+                                            }
+                                            
+                                            this.isUpdating = true;
+                                            try {
+                                                const url = `/doctor/consultations/${consultationId}/update-status`;
+                                                console.log('Updating status:', { consultationId, newStatus, url });
+                                                
+                                                const response = await fetch(url, {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                                        'Accept': 'application/json'
+                                                    },
+                                                    body: JSON.stringify({ status: newStatus })
+                                                });
+                                                
+                                                if (!response.ok) {
+                                                    const errorText = await response.text();
+                                                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                                                }
+                                                
+                                                const data = await response.json();
+                                                if (data.success) {
+                                                    if (typeof showAlertModal === 'function') {
+                                                        showAlertModal('Status updated successfully! Admin has been notified.', 'success');
+                                                    } else {
+                                                        alert('Status updated successfully! Admin has been notified.');
+                                                    }
+                                                    setTimeout(() => window.location.reload(), 1500);
+                                                } else {
+                                                    if (typeof showAlertModal === 'function') {
+                                                        showAlertModal(data.message || 'Failed to update status', 'error');
+                                                    } else {
+                                                        alert(data.message || 'Failed to update status');
+                                                    }
+                                                }
+                                            } catch (error) {
+                                                console.error('Error updating status:', error);
+                                                if (typeof showAlertModal === 'function') {
+                                                    showAlertModal('Error updating status: ' + error.message, 'error');
+                                                } else {
+                                                    alert('Error updating status: ' + error.message);
+                                                }
+                                            } finally {
+                                                this.isUpdating = false;
+                                            }
+                                        }
+                                    }">
                                     <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
                                         <div class="text-sm font-medium text-gray-900">{{ $consultation->reference }}</div>
+                                            @if($consultation->is_multi_patient_booking && $consultation->booking)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800" title="Multi-Patient Booking: {{ $consultation->booking->reference }}">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                    Multi
+                                                </span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900">{{ $consultation->full_name }}</div>
                                         <div class="text-xs text-gray-500">{{ $consultation->age }} yrs, {{ ucfirst($consultation->gender) }}</div>
+                                        @if($consultation->is_multi_patient_booking && $consultation->booking)
+                                            <div class="text-xs text-blue-600 mt-1">
+                                                Payer: {{ $consultation->booking->payer_name }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900">{{ $consultation->mobile }}</div>
-                                        <div class="text-xs text-gray-500">{{ $consultation->email }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            @if($consultation->status === 'completed') bg-green-100 text-green-800
-                                            @elseif($consultation->status === 'pending') bg-yellow-100 text-yellow-800
-                                            @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-800
-                                            @else bg-red-100 text-red-800
-                                            @endif">
-                                            {{ ucfirst($consultation->status) }}
-                                        </span>
+                                        <select @change="updateStatus($event.target.value)" :disabled="isUpdating"
+                                                class="px-2.5 py-1 rounded-full text-xs font-semibold border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500
+                                                {{ $consultation->status === 'completed' ? 'bg-green-100 text-green-800' : '' }}
+                                                {{ $consultation->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                                                {{ $consultation->status === 'scheduled' ? 'bg-blue-100 text-blue-800' : '' }}
+                                                {{ $consultation->status === 'cancelled' ? 'bg-red-100 text-red-800' : '' }}">
+                                            <option value="pending" {{ $consultation->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                            <option value="scheduled" {{ $consultation->status === 'scheduled' ? 'selected' : '' }}>Scheduled</option>
+                                            <option value="completed" {{ $consultation->status === 'completed' ? 'selected' : '' }}>Completed</option>
+                                            <option value="cancelled" {{ $consultation->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                        </select>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if($consultation->payment_status === 'paid')
@@ -239,9 +333,28 @@
                                         <div class="text-xs text-gray-500">{{ $consultation->created_at->format('h:i A') }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('doctor.consultations.view', $consultation->id) }}" class="text-purple-600 hover:text-purple-900">
-                                            View Details
-                                        </a>
+                                        <div class="flex flex-col space-y-1">
+                                            <a href="{{ route('doctor.consultations.view', $consultation->id) }}" class="text-purple-600 hover:text-purple-900">
+                                                View Details
+                                            </a>
+                                            @if($consultation->status === 'completed')
+                                                @if($consultation->hasTreatmentPlan())
+                                                    <a href="{{ route('doctor.consultations.view', $consultation->id) }}#treatment-plan" class="text-green-600 hover:text-green-800 inline-flex items-center">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                        Edit Treatment Plan
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('doctor.consultations.view', $consultation->id) }}#treatment-plan" class="text-blue-600 hover:text-blue-800 inline-flex items-center">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                        Create Treatment Plan
+                                                    </a>
+                                                @endif
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                                 @empty
@@ -271,5 +384,7 @@
             </main>
         </div>
     </div>
+
+    @include('components.alert-modal')
 </body>
 </html>

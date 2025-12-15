@@ -41,7 +41,7 @@ class DashboardController extends Controller
 
         // Get recent consultations with payment information
         $recentConsultations = Consultation::where('doctor_id', $doctor->id)
-                                           ->with('payment')
+                                           ->with(['payment', 'booking'])
                                            ->latest()
                                            ->limit(10)
                                            ->get();
@@ -56,7 +56,7 @@ class DashboardController extends Controller
     {
         $doctor = Auth::guard('doctor')->user();
         
-        $query = Consultation::where('doctor_id', $doctor->id)->with('payment');
+        $query = Consultation::where('doctor_id', $doctor->id)->with(['payment', 'booking']);
         
         // Filter by consultation status
         if ($request->filled('status')) {
@@ -192,16 +192,18 @@ class DashboardController extends Controller
     /**
      * View single consultation details
      */
-    public function viewConsultation($id)
+    public function viewConsultation(Request $request, $id)
     {
         try {
             $doctor = Auth::guard('doctor')->user();
             
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
-                                       ->with(['doctor', 'payment', 'canvasser', 'nurse'])
+                                       ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking'])
                                        ->firstOrFail();
             
+            // If request wants JSON (AJAX), return JSON
+            if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'consultation' => [
@@ -214,7 +216,7 @@ class DashboardController extends Controller
                     'gender' => ucfirst($consultation->gender),
                     'symptoms' => $consultation->problem,
                     'status' => ucfirst($consultation->status),
-                    'payment_status' => $consultation->payment ? ucfirst($consultation->payment->status) : 'Pending',
+                        'payment_status' => ucfirst($consultation->payment_status ?? 'unpaid'),
                     'created_at' => $consultation->created_at->format('M d, Y h:i A'),
                     'medical_documents' => $consultation->medical_documents,
                     'doctor_notes' => $consultation->doctor_notes,
@@ -233,12 +235,21 @@ class DashboardController extends Controller
                     'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
                 ]
             ]);
+            }
+            
+            // Otherwise return HTML view
+            return view('doctor.consultation-details', compact('consultation'));
             
         } catch (\Exception $e) {
+            if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load consultation: ' . $e->getMessage()
             ], 500);
+            }
+            
+            return redirect()->route('doctor.consultations')
+                ->with('error', 'Consultation not found or you do not have access to it.');
         }
     }
 
@@ -247,12 +258,32 @@ class DashboardController extends Controller
      */
     public function updateTreatmentPlan(Request $request, $id)
     {
+        \Illuminate\Support\Facades\Log::info('updateTreatmentPlan called', [
+            'consultation_id' => $id,
+            'doctor_id' => Auth::guard('doctor')->id(),
+            'request_data_keys' => array_keys($request->all())
+        ]);
+        
         try {
             $doctor = Auth::guard('doctor')->user();
             
-            $consultation = Consultation::where('id', $id)
+            $consultation = Consultation::with(['patient', 'booking'])
+                                       ->where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
+            
+            \Illuminate\Support\Facades\Log::info('Consultation found for treatment plan update', [
+                'consultation_id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'email' => $consultation->email,
+                'patient_id' => $consultation->patient_id,
+                'patient_email' => $consultation->patient->email ?? 'N/A',
+                'booking_id' => $consultation->booking_id,
+                'payer_email' => $consultation->booking->payer_email ?? 'N/A',
+                'payment_status' => $consultation->payment_status,
+                'is_paid' => $consultation->isPaid(),
+                'treatment_plan_created' => $consultation->treatment_plan_created
+            ]);
             
             // Check if it's an update or create
             $isUpdate = $consultation->treatment_plan_created;
@@ -325,22 +356,99 @@ class DashboardController extends Controller
                 'is_update' => $isUpdate
             ]);
 
-            // Only send notification email on first create, not on update
-            if (!$isUpdate) {
+            // Send payment request email when treatment plan is created/updated and payment hasn't been made
+            \Illuminate\Support\Facades\Log::info('Checking if payment request email should be sent', [
+                'consultation_id' => $consultation->id,
+                'is_paid' => $consultation->isPaid(),
+                'payment_status' => $consultation->payment_status
+            ]);
+            
+            if (!$consultation->isPaid()) {
+                \Illuminate\Support\Facades\Log::info('Consultation is not paid, proceeding to send payment request email', [
+                    'consultation_id' => $consultation->id
+                ]);
+                
                 try {
-                    Mail::to($consultation->email)->queue(new \App\Mail\TreatmentPlanReadyNotification($consultation));
-                    \Illuminate\Support\Facades\Log::info('Treatment plan ready email queued successfully', [
-                        'consultation_id' => $consultation->id,
-                        'email' => $consultation->email
-                    ]);
+                    // Determine recipient email: check multiple sources
+                    $recipientEmail = null;
+                    
+                    // 1. First try consultation email field
+                    if (!empty($consultation->email)) {
+                        $recipientEmail = $consultation->email;
+                        \Illuminate\Support\Facades\Log::info('Using consultation email for payment request', [
+                            'consultation_id' => $consultation->id,
+                            'email' => $recipientEmail
+                        ]);
+                    }
+                    // 2. Try patient relationship email
+                    elseif ($consultation->patient && !empty($consultation->patient->email)) {
+                        $recipientEmail = $consultation->patient->email;
+                        \Illuminate\Support\Facades\Log::info('Using patient email for payment request', [
+                            'consultation_id' => $consultation->id,
+                            'patient_id' => $consultation->patient_id,
+                            'email' => $recipientEmail
+                        ]);
+                    }
+                    // 3. Try booking payer email (for multi-patient bookings)
+                    elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
+                        $recipientEmail = $consultation->booking->payer_email;
+                        \Illuminate\Support\Facades\Log::info('Using payer email for payment request', [
+                            'consultation_id' => $consultation->id,
+                            'booking_id' => $consultation->booking_id,
+                            'payer_email' => $recipientEmail
+                        ]);
+                    }
+                    
+                    if ($recipientEmail) {
+                        \Illuminate\Support\Facades\Log::info('Attempting to send payment request email', [
+                            'consultation_id' => $consultation->id,
+                            'email' => $recipientEmail,
+                            'mail_driver' => config('mail.default'),
+                            'mail_host' => config('mail.mailers.smtp.host')
+                        ]);
+                        
+                        \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\PaymentRequest($consultation));
+                        
+                        \Illuminate\Support\Facades\Log::info('Payment request email sent successfully after treatment plan ' . ($isUpdate ? 'update' : 'creation'), [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $consultation->reference,
+                            'email' => $recipientEmail,
+                            'is_update' => $isUpdate
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('No email available to send payment request', [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $consultation->reference,
+                            'consultation_email' => $consultation->email ?? 'null',
+                            'patient_id' => $consultation->patient_id,
+                            'patient_email' => $consultation->patient->email ?? 'null',
+                            'booking_id' => $consultation->booking_id,
+                            'payer_email' => $consultation->booking->payer_email ?? 'null'
+                        ]);
+                    }
                 } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Failed to queue treatment plan ready email', [
+                    \Illuminate\Support\Facades\Log::error('Failed to send payment request email after treatment plan ' . ($isUpdate ? 'update' : 'creation'), [
                         'consultation_id' => $consultation->id,
-                        'email' => $consultation->email,
-                        'error' => $e->getMessage()
+                        'email' => $consultation->email ?? 'N/A',
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine()
                     ]);
+                    // Don't fail the request if email fails
                 }
+            } else {
+                \Illuminate\Support\Facades\Log::info('Skipping payment request email - consultation already paid', [
+                    'consultation_id' => $consultation->id,
+                    'payment_status' => $consultation->payment_status,
+                    'is_paid' => $consultation->isPaid()
+                ]);
             }
+            
+            \Illuminate\Support\Facades\Log::info('Treatment plan update completed successfully', [
+                'consultation_id' => $consultation->id,
+                'is_update' => $isUpdate
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -351,11 +459,25 @@ class DashboardController extends Controller
                 'is_update' => $isUpdate
             ]);
             
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::error('Validation failed for treatment plan update', [
+                'consultation_id' => $id,
+                'errors' => $e->errors()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to save treatment plan', [
                 'consultation_id' => $id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
             
             return response()->json([

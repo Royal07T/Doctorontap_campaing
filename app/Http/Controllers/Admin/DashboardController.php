@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\Payment;
 use App\Models\Doctor;
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
-use App\Mail\TreatmentPlanNotification;
 use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
@@ -71,7 +71,7 @@ class DashboardController extends Controller
      */
     public function consultations(Request $request)
     {
-        $query = Consultation::with(['doctor', 'payment', 'canvasser', 'nurse']);
+        $query = Consultation::with(['doctor', 'payment', 'canvasser', 'nurse', 'booking']);
 
         // Filter by status
         if ($request->has('status') && $request->status != '') {
@@ -179,7 +179,7 @@ class DashboardController extends Controller
     public function showConsultation($id)
     {
         // Admins can view all consultations (no filtering needed)
-        $consultation = Consultation::with(['doctor', 'payment'])->findOrFail($id);
+        $consultation = Consultation::with(['doctor', 'payment', 'booking.bookingPatients.patient', 'booking.invoice.items'])->findOrFail($id);
         
         // Log viewing for HIPAA compliance
         $consultation->logViewed();
@@ -378,11 +378,11 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        // Send treatment plan notification email
+        // Send payment request email
         try {
-            Mail::to($consultation->email)->queue(new TreatmentPlanNotification($consultation));
+            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
             
-            \Log::info('Treatment plan manually forwarded by admin', [
+            \Log::info('Payment request manually forwarded by admin', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
                 'email' => $consultation->email
@@ -390,7 +390,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Treatment plan sent successfully to ' . $consultation->email
+                'message' => 'Payment request sent successfully to ' . $consultation->email
             ]);
         } catch (\Exception $e) {
             \Log::error('Failed to manually forward treatment plan', [
@@ -428,10 +428,10 @@ class DashboardController extends Controller
 
         // Send Email
         try {
-            Mail::to($consultation->email)->send(new TreatmentPlanNotification($consultation));
+            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
             $results['email'] = ['sent' => true, 'message' => 'Email sent successfully'];
             
-            \Log::info('Treatment plan email resent by admin', [
+            \Log::info('Payment request email resent by admin', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
                 'email' => $consultation->email,
@@ -550,11 +550,11 @@ class DashboardController extends Controller
                     'treatment_plan_accessible' => true,
                 ]);
 
-                // Send treatment plan notification email
+                // Send payment request email
                 try {
-                    Mail::to($consultation->email)->queue(new TreatmentPlanNotification($consultation));
+                    Mail::to($consultation->email)->send(new PaymentRequest($consultation));
                     
-                    \Log::info('Treatment plan unlocked and sent after manual payment', [
+                    \Log::info('Payment request sent after manual payment', [
                         'consultation_id' => $consultation->id,
                         'reference' => $consultation->reference,
                         'payment_method' => $request->payment_method
@@ -2014,5 +2014,54 @@ class DashboardController extends Controller
                 'message' => 'Failed to load consultations: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Display all multi-patient bookings
+     */
+    public function bookings(Request $request)
+    {
+        $query = Booking::with(['doctor', 'bookingPatients.patient', 'invoice']);
+
+        // Search
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('payer_name', 'like', "%{$search}%")
+                  ->orWhere('payer_email', 'like', "%{$search}%")
+                  ->orWhere('payer_mobile', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by status
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by payment status
+        if ($request->has('payment_status') && $request->payment_status != '') {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        $bookings = $query->latest()->paginate(20);
+
+        return view('admin.bookings', compact('bookings'));
+    }
+
+    /**
+     * Show single booking details
+     */
+    public function showBooking($id)
+    {
+        $booking = Booking::with([
+            'doctor',
+            'bookingPatients.patient',
+            'bookingPatients.consultation',
+            'invoice.items',
+            'feeAdjustmentLogs'
+        ])->findOrFail($id);
+
+        return view('admin.booking-details', compact('booking'));
     }
 }

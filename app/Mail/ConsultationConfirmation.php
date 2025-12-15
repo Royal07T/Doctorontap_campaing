@@ -3,40 +3,17 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\Middleware\ThrottlesExceptions;
 
-class ConsultationConfirmation extends Mailable implements ShouldQueue
+class ConsultationConfirmation extends Mailable
 {
-    use Queueable, SerializesModels, InteractsWithQueue;
+    use Queueable, SerializesModels;
 
     public $data;
     
-    /**
-     * The number of times the job may be attempted.
-     *
-     * @var int
-     */
-    public $tries = 3;
-    
-    /**
-     * The number of seconds to wait before retrying the job.
-     *
-     * @var int
-     */
-    public $backoff = [60, 180, 300]; // 1 min, 3 min, 5 min
-    
-    /**
-     * The maximum number of seconds the job can run.
-     *
-     * @var int
-     */
-    public $timeout = 30;
 
     /**
      * Create a new message instance.
@@ -46,17 +23,6 @@ class ConsultationConfirmation extends Mailable implements ShouldQueue
         $this->data = $data;
     }
     
-    /**
-     * Get the middleware the job should pass through.
-     *
-     * @return array
-     */
-    public function middleware()
-    {
-        return [
-            new ThrottlesExceptions(5, 10), // Allow 5 exceptions per 10 minutes
-        ];
-    }
 
     /**
      * Get the message envelope.
