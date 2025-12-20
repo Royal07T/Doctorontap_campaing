@@ -109,6 +109,30 @@
                                 @enderror
                             </div>
 
+                            <!-- Multi-Patient Booking Fee -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <label for="multi_patient_booking_fee" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Multi-Patient Booking Fee (₦) <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-3 text-gray-500">₦</span>
+                                    <input type="number"
+                                           id="multi_patient_booking_fee"
+                                           name="multi_patient_booking_fee"
+                                           value="{{ $multiPatientFee ?? $defaultFee }}"
+                                           required
+                                           min="0"
+                                           step="0.01"
+                                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('multi_patient_booking_fee') border-red-500 @enderror">
+                                </div>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    <strong>Required:</strong> Fee per patient for multi-patient bookings when no specific doctor is selected. This fee will be used for all multi-patient bookings.
+                                </p>
+                                @error('multi_patient_booking_fee')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+
                             <!-- Doctor Payment Percentage -->
                             <div class="border-t border-gray-200 pt-6">
                                 <label for="doctor_payment_percentage" class="block text-sm font-semibold text-gray-700 mb-2">

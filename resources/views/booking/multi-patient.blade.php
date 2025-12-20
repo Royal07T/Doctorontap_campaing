@@ -159,6 +159,24 @@
         // Add first patient on page load
         document.addEventListener('DOMContentLoaded', function() {
             addPatient();
+            
+            // Refresh CSRF token periodically to prevent expiration
+            setInterval(function() {
+                fetch('/')
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newToken = doc.querySelector('meta[name="csrf-token"]')?.content;
+                        if (newToken) {
+                            const metaTag = document.querySelector('meta[name="csrf-token"]');
+                            if (metaTag) {
+                                metaTag.setAttribute('content', newToken);
+                            }
+                        }
+                    })
+                    .catch(err => console.log('CSRF token refresh failed:', err));
+            }, 10 * 60 * 1000); // Refresh every 10 minutes
         });
 
         function addPatient() {
@@ -325,19 +343,54 @@
             });
 
             try {
+                // Get CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrfToken) {
+                    throw new Error('CSRF token not found. Please refresh the page.');
+                }
+
                 const response = await fetch('/booking/multi-patient', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(data),
+                    credentials: 'same-origin'
                 });
 
-                const result = await response.json();
+                // Handle CSRF token expiration (419 error)
+                if (response.status === 419) {
+                    errorMessage.textContent = 'Your session has expired. Please refresh the page and try again.';
+                    errorMessage.classList.remove('hidden');
+                    
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitText.classList.remove('hidden');
+                    submitLoading.classList.add('hidden');
+                    
+                    // Auto-refresh after 3 seconds
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                    return;
+                }
+
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type') || '';
+                let result;
                 
-                if (result.success) {
+                if (contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error('Server returned an invalid response. Please try again.');
+                }
+                
+                if (response.ok && result.success) {
                     // Redirect to confirmation page
                     window.location.href = result.redirect_url || `/booking/confirmation/${result.booking?.reference}`;
                 } else {
@@ -357,7 +410,7 @@
                 }
             } catch (error) {
                 console.error('Booking Error:', error);
-                errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.textContent = error.message || 'An error occurred. Please try again.';
                 errorMessage.classList.remove('hidden');
                 
                 // Re-enable submit button

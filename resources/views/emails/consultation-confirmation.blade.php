@@ -145,7 +145,7 @@
                 Name: {{ $data['first_name'] }} {{ $data['last_name'] }}<br>
                 Email: {{ $data['email'] }}<br>
                 WhatsApp: {{ $data['mobile'] }}<br>
-                Age: {{ $data['age'] }} | Gender: {{ ucfirst($data['gender']) }}<br><br>
+                Age: {{ $data['age'] ?? 'N/A' }} | Gender: {{ isset($data['gender']) ? ucfirst($data['gender']) : 'N/A' }}<br><br>
 
                 <strong>Medical Info:</strong><br>
                 Problem: {{ $data['problem'] }}<br>

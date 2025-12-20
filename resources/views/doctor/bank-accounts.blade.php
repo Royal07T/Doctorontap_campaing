@@ -235,10 +235,10 @@
                                 @endif
                                 
                                 <form method="POST" action="{{ route('doctor.bank-accounts.delete', $account->id) }}" 
-                                      onsubmit="return confirm('Are you sure you want to delete this bank account?')" class="flex-1">
+                                      id="deleteForm{{ $account->id }}" class="flex-1">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-all text-sm">
+                                    <button type="button" onclick="confirmDeleteBankAccount({{ $account->id }})" class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-all text-sm">
                                         Delete
                                     </button>
                                 </form>
@@ -328,6 +328,24 @@
             </main>
         </div>
     </div>
+
+    @include('components.alert-modal')
+
+    <script>
+        function confirmDeleteBankAccount(accountId) {
+            // Use custom confirm modal
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal('Are you sure you want to delete this bank account? This action cannot be undone.', () => {
+                    document.getElementById('deleteForm' + accountId).submit();
+                });
+            } else {
+                // Fallback to browser confirm if custom modal not available
+                if (confirm('Are you sure you want to delete this bank account?')) {
+                    document.getElementById('deleteForm' + accountId).submit();
+                }
+            }
+        }
+    </script>
 </body>
 </html>
 

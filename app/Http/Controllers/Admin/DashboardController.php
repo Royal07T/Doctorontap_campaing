@@ -1462,10 +1462,15 @@ class DashboardController extends Controller
     {
         $settings = Setting::where('group', 'pricing')->get();
         $defaultFee = Setting::get('default_consultation_fee', 5000);
+        $multiPatientFee = Setting::get('multi_patient_booking_fee', null);
+        // If multi-patient fee is not set, default to the default consultation fee
+        if ($multiPatientFee === null) {
+            $multiPatientFee = $defaultFee;
+        }
         $useDefaultForAll = Setting::get('use_default_fee_for_all', false);
         $doctorPaymentPercentage = Setting::get('doctor_payment_percentage', 70);
 
-        return view('admin.settings', compact('settings', 'defaultFee', 'useDefaultForAll', 'doctorPaymentPercentage'));
+        return view('admin.settings', compact('settings', 'defaultFee', 'multiPatientFee', 'useDefaultForAll', 'doctorPaymentPercentage'));
     }
 
     /**
@@ -1476,11 +1481,16 @@ class DashboardController extends Controller
         try {
             $validated = $request->validate([
                 'default_consultation_fee' => 'required|numeric|min:0',
+                'multi_patient_booking_fee' => 'required|numeric|min:0',
                 'use_default_fee_for_all' => 'nullable|boolean',
                 'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
             ]);
 
             Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
+            
+            // Multi-patient booking fee (required setting)
+            Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
+            
             Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
             Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
 

@@ -181,8 +181,8 @@
     <h2>👤 Patient Information</h2>
     <div class="info-grid">
       <div><span class="label">First Name:</span><br><span class="value">{{ $data['first_name'] }}</span></div>
-      <div><span class="label">Gender:</span><br><span class="value">{{ ucfirst($data['gender']) }}</span></div>
-      <div><span class="label">Age:</span><br><span class="value">{{ $data['age'] }} years</span></div>
+      <div><span class="label">Gender:</span><br><span class="value">{{ isset($data['gender']) ? ucfirst($data['gender']) : 'N/A' }}</span></div>
+      <div><span class="label">Age:</span><br><span class="value">{{ $data['age'] ?? 'N/A' }}{{ isset($data['age']) && $data['age'] !== 'N/A' ? ' years' : '' }}</span></div>
       <div><span class="label">Reference:</span><br><span class="value">{{ $data['consultation_reference'] }}</span></div>
     </div>
   </div>

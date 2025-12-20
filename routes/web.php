@@ -25,6 +25,17 @@ use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordCo
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
+use Illuminate\Support\Facades\File;
+
+// Service Worker Route - Handle both /sw.js and /service-worker.js
+Route::get('/service-worker.js', function () {
+    $swPath = public_path('sw.js');
+    if (File::exists($swPath)) {
+        return response(File::get($swPath), 200)
+            ->header('Content-Type', 'application/javascript');
+    }
+    abort(404);
+});
 
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
 Route::post('/submit', [ConsultationController::class, 'store'])->middleware('rate.limit:consultation,10,1');

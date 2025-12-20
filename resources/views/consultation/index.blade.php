@@ -2443,27 +2443,56 @@
                             // Submit multi-patient booking
                             console.log('Submitting multi-patient data:', this.multiPatientData);
                             
+                            // Get CSRF token
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                            if (!csrfToken) {
+                                this.displayErrorModal('Session Error', 'CSRF token not found. Please refresh the page and try again.');
+                                this.isSubmitting = false;
+                                setTimeout(() => window.location.reload(), 2000);
+                                return;
+                            }
+                            
                             const response = await fetch('/booking/multi-patient', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                    'Accept': 'application/json'
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
                                 },
-                                body: JSON.stringify(this.multiPatientData)
+                                body: JSON.stringify(this.multiPatientData),
+                                credentials: 'same-origin'
                             });
 
                             console.log('Multi-patient response status:', response.status);
                             
+                            // Handle CSRF token expiration (419 error)
+                            if (response.status === 419) {
+                                this.displayErrorModal('Session Expired', 'Your session has expired. Please refresh the page and try again.');
+                                this.isSubmitting = false;
+                                setTimeout(() => window.location.reload(), 2000);
+                                return;
+                            }
+                            
                             // Check if response is JSON
-                            const contentType = response.headers.get('content-type');
-                            if (!contentType || !contentType.includes('application/json')) {
-                                const text = await response.text();
-                                console.error('Non-JSON response:', text);
-                                throw new Error('Server returned an invalid response. Please try again.');
+                            const contentType = response.headers.get('content-type') || '';
+                            let data;
+                            
+                            try {
+                                if (contentType.includes('application/json')) {
+                                    data = await response.json();
+                                } else {
+                                    const text = await response.text();
+                                    console.error('Non-JSON response:', text);
+                                    throw new Error('Server returned an invalid response. Please try again.');
+                                }
+                            } catch (parseError) {
+                                console.error('Failed to parse response:', parseError);
+                                this.displayErrorModal('Error', 'Server returned an invalid response. Please try again.');
+                                this.isSubmitting = false;
+                                return;
                             }
 
-                            const data = await response.json();
                             console.log('Multi-patient response data:', data);
 
                             if (response.ok && (data.success === true || data.success === undefined)) {

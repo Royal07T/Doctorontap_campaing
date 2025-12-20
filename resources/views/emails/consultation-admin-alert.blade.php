@@ -124,12 +124,12 @@
                 
                 <div class="info-row">
                     <span class="label">Age:</span>
-                    <span>{{ $data['age'] }} years</span>
+                    <span>{{ $data['age'] ?? 'N/A' }}{{ isset($data['age']) && $data['age'] !== 'N/A' ? ' years' : '' }}</span>
                 </div>
                 
                 <div class="info-row">
                     <span class="label">Gender:</span>
-                    <span>{{ ucfirst($data['gender']) }}</span>
+                    <span>{{ isset($data['gender']) ? ucfirst($data['gender']) : 'N/A' }}</span>
                 </div>
             </div>
             

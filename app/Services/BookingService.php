@@ -44,14 +44,22 @@ class BookingService
                 'payment_status' => 'unpaid',
             ]);
 
-            // 2. Get doctor's base fee (use default if no doctor selected)
-            $doctor = $data['doctor_id'] ? Doctor::find($data['doctor_id']) : null;
-            $baseFee = $doctor ? $doctor->effective_consultation_fee : \App\Models\Setting::get('default_consultation_fee', 5000);
+            // 2. Get base fee for multi-patient bookings (always use admin-set multi-patient booking fee)
+            // Multi-patient bookings always use the admin-configured fee, regardless of doctor selection
+            $baseFee = \App\Models\Setting::get('multi_patient_booking_fee', null);
+            if ($baseFee === null || $baseFee <= 0) {
+                // Fallback to default consultation fee if multi-patient fee not configured
+                $baseFee = \App\Models\Setting::get('default_consultation_fee', 5000);
+                \Log::warning('Multi-patient booking fee not configured, using default consultation fee as fallback', [
+                    'default_fee' => $baseFee,
+                    'message' => 'Please set multi_patient_booking_fee in admin settings'
+                ]);
+            }
 
             // 3. Add each patient to booking
             foreach ($data['patients'] as $index => $patientData) {
                 // 3a. Create or find patient record
-                $patient = $this->findOrCreatePatient($patientData, $data['payer_email']);
+                $patient = $this->findOrCreatePatient($patientData, $data['payer_email'], $data['payer_mobile']);
 
                 // 3b. Create consultation record for this patient
                 $consultation = Consultation::create([
@@ -115,7 +123,7 @@ class BookingService
     /**
      * Find or create patient record
      */
-    private function findOrCreatePatient(array $patientData, string $payerEmail): Patient
+    private function findOrCreatePatient(array $patientData, string $payerEmail, string $payerMobile): Patient
     {
         // Try to find existing patient by email or name+age combination
         $email = $patientData['email'] ?? $payerEmail;
@@ -123,11 +131,15 @@ class BookingService
         $patient = Patient::where('email', $email)->first();
 
         if (!$patient) {
+            // Use patient's mobile if provided, otherwise fall back to payer's mobile
+            // Phone is required in the database, so we must provide a value
+            $phone = $patientData['mobile'] ?? $payerMobile ?? 'N/A';
+            
             // Create new patient record
             $patient = Patient::create([
                 'name' => $patientData['first_name'] . ' ' . $patientData['last_name'],
                 'email' => $email,
-                'phone' => $patientData['mobile'] ?? null,
+                'phone' => $phone,
                 'age' => $patientData['age'],
                 'gender' => $patientData['gender'],
                 'is_minor' => $patientData['age'] < 18,
@@ -379,11 +391,14 @@ class BookingService
                 'last_name' => implode(' ', array_slice(explode(' ', $booking->payer_name), 1)) ?? '',
                 'email' => $booking->payer_email,
                 'mobile' => $booking->payer_mobile,
+                'age' => 'N/A', // Payer is not necessarily a patient
+                'gender' => 'N/A', // Payer is not necessarily a patient
                 'problem' => 'Multi-patient booking',
                 'severity' => 'moderate',
                 'consult_mode' => $booking->consult_mode,
                 'has_documents' => false,
                 'documents_count' => 0,
+                'doctor_fee' => $booking->total_amount ?? 0,
             ];
 
             // Send confirmation email to payer
@@ -422,11 +437,14 @@ class BookingService
                         'last_name' => $consultation->last_name,
                         'email' => $consultation->email,
                         'mobile' => $consultation->mobile ?? $booking->payer_mobile,
+                        'age' => $consultation->age ?? $patient->age ?? 'N/A',
+                        'gender' => $consultation->gender ?? $patient->gender ?? 'N/A',
                         'problem' => $consultation->problem ?? 'General consultation',
                         'severity' => $consultation->severity ?? 'moderate',
                         'consult_mode' => $consultation->consult_mode,
                         'has_documents' => false,
                         'documents_count' => 0,
+                        'doctor_fee' => $bp->adjusted_fee ?? $bp->base_fee ?? 0,
                     ];
 
                     Mail::to($consultation->email)->send(
