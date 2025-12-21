@@ -18,6 +18,21 @@ class DashboardController extends Controller
     {
         $doctor = Auth::guard('doctor')->user();
         
+        // Get doctor payment percentage from settings
+        $doctorPercentage = \App\Models\Setting::get('doctor_payment_percentage', 70);
+        
+        // Get all paid consultations
+        $paidConsultations = Consultation::where('doctor_id', $doctor->id)
+                                         ->where('payment_status', 'paid')
+                                         ->get();
+        
+        // Calculate total earnings from paid consultations
+        // Earnings = Sum of (effective consultation fee * doctor percentage) for all paid consultations
+        $totalEarnings = $paidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
+            $consultationFee = $doctor->effective_consultation_fee ?? 0;
+            return ($consultationFee * $doctorPercentage) / 100;
+        });
+        
         $stats = [
             'total_consultations' => Consultation::where('doctor_id', $doctor->id)->count(),
             'pending_consultations' => Consultation::where('doctor_id', $doctor->id)
@@ -26,17 +41,10 @@ class DashboardController extends Controller
                                                      ->where('status', 'scheduled')->count(),
             'completed_consultations' => Consultation::where('doctor_id', $doctor->id)
                                                      ->where('status', 'completed')->count(),
-            'paid_consultations' => Consultation::where('doctor_id', $doctor->id)
-                                                ->where('payment_status', 'paid')->count(),
+            'paid_consultations' => $paidConsultations->count(),
             'pending_payments' => Consultation::where('doctor_id', $doctor->id)
                                               ->where('payment_status', 'pending')->count(),
-            'total_earnings' => Consultation::where('doctor_id', $doctor->id)
-                                            ->where('payment_status', 'paid')
-                                            ->with('payment')
-                                            ->get()
-                                            ->sum(function($consultation) {
-                                                return $consultation->payment ? $consultation->payment->amount : 0;
-                                            }),
+            'total_earnings' => $totalEarnings, // Current earnings from paid consultations
         ];
 
         // Get recent consultations with payment information
