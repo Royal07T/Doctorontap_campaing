@@ -612,14 +612,31 @@ class DashboardController extends Controller
                 'notes' => 'nullable|string|max:500',
             ]);
 
-            // Check if this is the first bank account
+            // Check if this is the first bank account (excluding soft-deleted)
             $isFirstAccount = !$doctor->bankAccounts()->exists();
+            
+            // Use database transaction to ensure atomicity
+            \DB::beginTransaction();
+            try {
+                // Always unset any existing default accounts first (including soft-deleted)
+                // This prevents the unique constraint violation
+                // Use raw query to update even soft-deleted records
+                \DB::table('doctor_bank_accounts')
+                    ->where('doctor_id', $doctor->id)
+                    ->where('is_default', true)
+                    ->update(['is_default' => false]);
 
-            $bankAccount = $doctor->bankAccounts()->create([
-                ...$validated,
-                'is_default' => $isFirstAccount, // First account becomes default
-                'is_verified' => false,
-            ]);
+                $bankAccount = $doctor->bankAccounts()->create([
+                    ...$validated,
+                    'is_default' => $isFirstAccount, // First account becomes default
+                    'is_verified' => false,
+                ]);
+
+                \DB::commit();
+            } catch (\Exception $e) {
+                \DB::rollBack();
+                throw $e;
+            }
 
             return redirect()->back()->with('success', 'Bank account added successfully! It will be verified by admin.');
 
