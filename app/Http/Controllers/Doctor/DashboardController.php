@@ -590,8 +590,62 @@ class DashboardController extends Controller
         $doctor = Auth::guard('doctor')->user();
         $bankAccounts = $doctor->bankAccounts()->latest()->get();
         $defaultAccount = $doctor->defaultBankAccount;
+        $banks = \App\Models\Bank::getActiveBanks();
 
-        return view('doctor.bank-accounts', compact('bankAccounts', 'defaultAccount'));
+        return view('doctor.bank-accounts', compact('bankAccounts', 'defaultAccount', 'banks'));
+    }
+
+    /**
+     * Verify bank account with KoraPay (AJAX endpoint)
+     */
+    public function verifyBankAccount(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'bank_code' => 'required|string|max:10',
+                'account_number' => 'required|string|max:20',
+            ]);
+
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $verification = $payoutService->verifyBankAccount(
+                $validated['bank_code'],
+                $validated['account_number']
+            );
+
+            if ($verification['success']) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $verification['data'],
+                    'message' => $verification['message'] ?? 'Bank account verified successfully'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $verification['message'] ?? 'Bank account verification failed'
+                ], 400);
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages = array_merge($errorMessages, $messages);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', $errorMessages)
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Bank account verification failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Verification failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -603,14 +657,32 @@ class DashboardController extends Controller
             $doctor = Auth::guard('doctor')->user();
 
             $validated = $request->validate([
-                'bank_name' => 'required|string|max:255',
+                'bank_id' => 'required|exists:banks,id',
                 'account_name' => 'required|string|max:255',
                 'account_number' => 'required|string|max:20',
                 'account_type' => 'nullable|string|max:50',
-                'bank_code' => 'nullable|string|max:10',
                 'swift_code' => 'nullable|string|max:20',
                 'notes' => 'nullable|string|max:500',
             ]);
+
+            // Get bank details
+            $bank = \App\Models\Bank::findOrFail($validated['bank_id']);
+
+            // Verify account with KoraPay before saving
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $verification = $payoutService->verifyBankAccount(
+                $bank->code,
+                $validated['account_number']
+            );
+
+            if (!$verification['success']) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Bank account verification failed: ' . $verification['message'] . '. Please check your account number and try again.');
+            }
+
+            // Extract account name from verification if available
+            $verifiedAccountName = $verification['data']['account_name'] ?? $validated['account_name'];
 
             // Check if this is the first bank account (excluding soft-deleted)
             $isFirstAccount = !$doctor->bankAccounts()->exists();
@@ -619,17 +691,23 @@ class DashboardController extends Controller
             \DB::beginTransaction();
             try {
                 // Always unset any existing default accounts first (including soft-deleted)
-                // This prevents the unique constraint violation
-                // Use raw query to update even soft-deleted records
+                // Since we've removed the problematic unique constraint, we can safely update all defaults
                 \DB::table('doctor_bank_accounts')
                     ->where('doctor_id', $doctor->id)
                     ->where('is_default', true)
                     ->update(['is_default' => false]);
 
                 $bankAccount = $doctor->bankAccounts()->create([
-                    ...$validated,
-                    'is_default' => $isFirstAccount, // First account becomes default
-                    'is_verified' => false,
+                    'bank_name' => $bank->name,
+                    'bank_code' => $bank->code,
+                    'account_name' => $verifiedAccountName,
+                    'account_number' => $validated['account_number'],
+                    'account_type' => $validated['account_type'] ?? null,
+                    'swift_code' => $validated['swift_code'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                    'is_default' => $isFirstAccount,
+                    'is_verified' => true, // Auto-verified since KoraPay verified it
+                    'verified_at' => now(),
                 ]);
 
                 \DB::commit();
@@ -638,7 +716,7 @@ class DashboardController extends Controller
                 throw $e;
             }
 
-            return redirect()->back()->with('success', 'Bank account added successfully! It will be verified by admin.');
+            return redirect()->back()->with('success', 'Bank account added and verified successfully! You can now receive payments.');
 
         } catch (\Exception $e) {
             \Log::error('Failed to add bank account', [
@@ -646,7 +724,9 @@ class DashboardController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return redirect()->back()->with('error', 'Failed to add bank account: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to add bank account: ' . $e->getMessage());
         }
     }
 

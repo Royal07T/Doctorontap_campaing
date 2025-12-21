@@ -261,6 +261,20 @@ class PaymentController extends Controller
      */
     public function webhook(Request $request)
     {
+        // Set precision to maintain amount field precision (per KoraPay docs)
+        ini_set('serialize_precision', '-1');
+        
+        // Check for POST method and signature header (per KoraPay PHP example)
+        if (strtoupper($request->method()) !== 'POST' || !$request->hasHeader('x-korapay-signature')) {
+            Log::warning('Invalid webhook request', [
+                'method' => $request->method(),
+                'has_signature' => $request->hasHeader('x-korapay-signature'),
+                'ip' => $request->ip()
+            ]);
+            // Return 200 to prevent retries (per KoraPay docs)
+            return response()->json(['status' => 'invalid_request'], 200);
+        }
+
         // Log webhook payload for debugging
         Log::info('Korapay Webhook Received', [
             'event' => $request->input('event'),
@@ -270,29 +284,37 @@ class PaymentController extends Controller
         ]);
 
         try {
-            // Verify webhook signature for security
-            $signature = $request->header('x-korapay-signature');
-            $secretKey = config('services.korapay.secret_key');
+            // Get request body and signature (per KoraPay PHP example)
+            $requestBody = $request->all();
+            $webhookSignature = $request->header('x-korapay-signature');
+            $korapaySecretKey = config('services.korapay.secret_key');
             
-            if ($signature && $secretKey) {
-                $expectedSignature = hash_hmac('sha256', json_encode($request->input('data')), $secretKey);
+            // Verify signature according to KoraPay docs
+            if ($webhookSignature && $korapaySecretKey && isset($requestBody['data'])) {
+                // Signature is HMAC SHA256 of ONLY the data object (per KoraPay docs)
+                $dataJson = json_encode($requestBody['data'], JSON_UNESCAPED_SLASHES);
+                $expectedSignature = hash_hmac('sha256', $dataJson, $korapaySecretKey);
                 
-                if (!hash_equals($expectedSignature, $signature)) {
+                if ($webhookSignature !== $expectedSignature) {
                     Log::warning('SECURITY ALERT: Invalid webhook signature', [
                         'expected' => $expectedSignature,
-                        'received' => $signature,
+                        'received' => $webhookSignature,
                         'ip' => $request->ip(),
                         'timestamp' => now()->toDateTimeString()
                     ]);
-                    return response()->json(['status' => 'invalid_signature'], 401);
+                    // Return 200 to prevent retries (per KoraPay docs)
+                    return response()->json(['status' => 'invalid_signature'], 200);
                 }
                 
                 Log::info('Webhook signature verified successfully');
             } else {
-                Log::warning('Webhook received without signature verification', [
-                    'has_signature' => !empty($signature),
-                    'has_secret' => !empty($secretKey)
+                Log::warning('Webhook received without signature or data', [
+                    'has_signature' => !empty($webhookSignature),
+                    'has_secret' => !empty($korapaySecretKey),
+                    'has_data' => isset($requestBody['data'])
                 ]);
+                // Return 200 to prevent retries
+                return response()->json(['status' => 'missing_signature_or_data'], 200);
             }
 
             $event = $request->input('event');
@@ -304,7 +326,32 @@ class PaymentController extends Controller
                 return response()->json(['status' => 'invalid_data'], 400);
             }
 
-            // Extract reference from webhook data
+            // Check if this is a payout/disbursement webhook
+            // According to KoraPay docs: payout webhooks use events "transfer.success" or "transfer.failed"
+            // Patient payment webhooks use events "charge.success" or "charge.failed"
+            $isPayoutWebhook = false;
+            if ($event === 'transfer.success' || $event === 'transfer.failed') {
+                $isPayoutWebhook = true;
+            } elseif (isset($data['status']) && in_array($data['status'], ['success', 'failed', 'processing'])) {
+                // Fallback: Check if it's a payout by looking for KoraPay reference format (KPY-D-*)
+                $reference = $data['reference'] ?? null;
+                if ($reference && (strpos($reference, 'KPY-D-') === 0 || strpos($reference, 'KPY-') === 0)) {
+                    $isPayoutWebhook = true;
+                }
+            }
+
+            // Handle payout webhooks
+            if ($isPayoutWebhook) {
+                Log::info('Detected payout webhook, routing to payout handler', [
+                    'event' => $event,
+                    'reference' => $data['reference'] ?? null
+                ]);
+                
+                // Route to payout webhook handler
+                return $this->payoutWebhook($request);
+            }
+
+            // Extract reference from webhook data (for patient payments)
             $reference = $data['reference'] ?? $data['merchant_reference'] ?? null;
             
             if (!$reference) {
@@ -312,10 +359,17 @@ class PaymentController extends Controller
                 return response()->json(['status' => 'missing_reference'], 400);
             }
 
-            // Find payment record first
+            // Find payment record first (patient payment)
             $payment = Payment::where('reference', $reference)->first();
 
             if (!$payment) {
+                // Check if it might be a doctor payment (payout) that wasn't detected above
+                $doctorPayment = \App\Models\DoctorPayment::where('korapay_reference', $reference)->first();
+                if ($doctorPayment) {
+                    Log::info('Found doctor payment by KoraPay reference, routing to payout handler');
+                    return $this->payoutWebhook($request);
+                }
+                
                 Log::warning('Payment record not found for webhook', ['reference' => $reference]);
                 return response()->json(['status' => 'payment_not_found'], 404);
             }
@@ -656,6 +710,176 @@ class PaymentController extends Controller
             
             // Still return 200 to prevent webhook retries on our errors
             return response()->json(['status' => 'error', 'message' => 'Internal error'], 200);
+        }
+    }
+
+    /**
+     * Handle payout webhook notification from Korapay
+     * 
+     * This handles webhooks for doctor payout transactions
+     */
+    public function payoutWebhook(Request $request)
+    {
+        // Set precision to maintain amount field precision (per KoraPay docs)
+        ini_set('serialize_precision', '-1');
+        
+        // Check for POST method and signature header (per KoraPay docs)
+        if (strtoupper($request->method()) !== 'POST' || !$request->hasHeader('x-korapay-signature')) {
+            Log::warning('Invalid payout webhook request', [
+                'method' => $request->method(),
+                'has_signature' => $request->hasHeader('x-korapay-signature'),
+                'ip' => $request->ip()
+            ]);
+            // Return 200 to prevent retries
+            return response()->json(['status' => 'invalid_request'], 200);
+        }
+
+        // Log webhook payload for debugging
+        Log::info('Korapay Payout Webhook Received', [
+            'event' => $request->input('event'),
+            'timestamp' => now()->toDateTimeString(),
+            'ip' => $request->ip(),
+            'full_payload' => $request->all()
+        ]);
+
+        try {
+            // Get request body and signature (per KoraPay PHP example)
+            $requestBody = $request->all();
+            $webhookSignature = $request->header('x-korapay-signature');
+            $korapaySecretKey = config('services.korapay.secret_key');
+            
+            // Verify signature according to KoraPay docs
+            if ($webhookSignature && $korapaySecretKey && isset($requestBody['data'])) {
+                // Signature is HMAC SHA256 of ONLY the data object (per KoraPay docs)
+                $dataJson = json_encode($requestBody['data'], JSON_UNESCAPED_SLASHES);
+                $expectedSignature = hash_hmac('sha256', $dataJson, $korapaySecretKey);
+                
+                if ($webhookSignature !== $expectedSignature) {
+                    Log::warning('SECURITY ALERT: Invalid payout webhook signature', [
+                        'expected' => $expectedSignature,
+                        'received' => $webhookSignature,
+                        'ip' => $request->ip(),
+                        'timestamp' => now()->toDateTimeString()
+                    ]);
+                    // Return 200 to prevent retries (per KoraPay docs)
+                    return response()->json(['status' => 'invalid_signature'], 200);
+                }
+                
+                Log::info('Payout webhook signature verified successfully');
+            } else {
+                Log::warning('Payout webhook received without signature or data', [
+                    'has_signature' => !empty($webhookSignature),
+                    'has_secret' => !empty($korapaySecretKey),
+                    'has_data' => isset($requestBody['data'])
+                ]);
+                // Return 200 to prevent retries
+                return response()->json(['status' => 'missing_signature_or_data'], 200);
+            }
+
+            $event = $request->input('event');
+            $data = $request->input('data');
+
+            if (!$data || !isset($data['reference'])) {
+                Log::error('Invalid payout webhook payload', ['payload' => $request->all()]);
+                // Return 200 to acknowledge receipt even if invalid
+                return response()->json(['status' => 'invalid_payload'], 200);
+            }
+
+            $korapayReference = $data['reference'];
+            // According to KoraPay docs: status can be "success" or "failed"
+            $status = $data['status'] ?? 'processing';
+
+            // Find payment by KoraPay reference
+            $payment = \App\Models\DoctorPayment::where('korapay_reference', $korapayReference)->first();
+
+            if (!$payment) {
+                Log::warning('Payout webhook received for unknown payment', [
+                    'korapay_reference' => $korapayReference,
+                    'event' => $event
+                ]);
+                // Return 200 to prevent retries (per KoraPay best practices)
+                return response()->json(['status' => 'payment_not_found'], 200);
+            }
+
+            // Idempotency check: Prevent duplicate processing (per KoraPay best practices)
+            // Check if this webhook has already been processed by comparing current status
+            $currentStatus = $payment->korapay_status;
+            $currentPaymentStatus = $payment->status;
+            
+            // If already processed with same status, acknowledge and skip
+            if ($currentStatus === $status && 
+                (($status === 'success' && $currentPaymentStatus === 'completed') || 
+                 ($status === 'failed' && $currentPaymentStatus === 'failed'))) {
+                Log::info('Webhook already processed (idempotency check)', [
+                    'payment_reference' => $payment->reference,
+                    'korapay_reference' => $korapayReference,
+                    'status' => $status,
+                    'event' => $event
+                ]);
+                // Return 200 to acknowledge receipt
+                return response()->json(['status' => 'already_processed'], 200);
+            }
+
+            Log::info('Processing payout webhook', [
+                'payment_reference' => $payment->reference,
+                'korapay_reference' => $korapayReference,
+                'status' => $status,
+                'event' => $event,
+                'current_status' => $currentStatus
+            ]);
+
+            // Update payment based on status
+            $updateData = [
+                'korapay_status' => $status,
+                'korapay_response' => json_encode($data, JSON_UNESCAPED_SLASHES),
+            ];
+
+            if ($status === 'success') {
+                $updateData['status'] = 'completed';
+                $updateData['paid_at'] = now();
+                $updateData['payout_completed_at'] = now();
+                $updateData['transaction_reference'] = $korapayReference;
+                
+                if (isset($data['fee'])) {
+                    $updateData['korapay_fee'] = (float) $data['fee'];
+                }
+
+                // Mark consultations as paid
+                if ($payment->consultation_ids) {
+                    \App\Models\Consultation::whereIn('id', $payment->consultation_ids)
+                        ->update(['payment_status' => 'paid']);
+                }
+
+                Log::info('✅ Payout completed successfully', [
+                    'payment_reference' => $payment->reference,
+                    'doctor_id' => $payment->doctor_id,
+                    'amount' => $payment->doctor_amount,
+                ]);
+
+            } elseif ($status === 'failed') {
+                $updateData['status'] = 'failed';
+                
+                Log::warning('Payout failed', [
+                    'payment_reference' => $payment->reference,
+                    'message' => $data['message'] ?? 'Payout failed',
+                ]);
+            } else {
+                $updateData['status'] = 'processing';
+            }
+
+            $payment->update($updateData);
+
+            // Always return 200 to acknowledge receipt (per KoraPay docs)
+            return response()->json(['status' => 'ok'], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Payout webhook processing error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'payload' => $request->all()
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 

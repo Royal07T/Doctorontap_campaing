@@ -85,6 +85,11 @@ Route::prefix('payment')->group(function () {
         ->middleware('verify.korapay.webhook')
         ->name('payment.webhook');
     
+    // Payout webhook endpoint for doctor payments
+    Route::post('/payout-webhook', [PaymentController::class, 'payoutWebhook'])
+        ->middleware('verify.korapay.webhook')
+        ->name('payment.payout-webhook');
+    
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
@@ -207,7 +212,11 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
     Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
     Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
+    Route::get('/doctor-payments/{id}/details', [DashboardController::class, 'getPaymentDetails'])->name('doctor-payments.details');
     Route::post('/doctor-payments', [DashboardController::class, 'createDoctorPayment'])->name('doctor-payments.create');
+    Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
+    Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
+    Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
     Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
     Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
 });
@@ -334,6 +343,8 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     
     // Bank Account Management
     Route::get('/bank-accounts', [DoctorDashboardController::class, 'bankAccounts'])->name('bank-accounts');
+    Route::get('/banks', [DoctorDashboardController::class, 'getBanks'])->name('banks.list');
+    Route::post('/banks/verify-account', [DoctorDashboardController::class, 'verifyBankAccount'])->name('banks.verify-account');
     Route::post('/bank-accounts', [DoctorDashboardController::class, 'storeBankAccount'])->name('bank-accounts.store');
     Route::put('/bank-accounts/{id}', [DoctorDashboardController::class, 'updateBankAccount'])->name('bank-accounts.update');
     Route::post('/bank-accounts/{id}/set-default', [DoctorDashboardController::class, 'setDefaultBankAccount'])->name('bank-accounts.set-default');

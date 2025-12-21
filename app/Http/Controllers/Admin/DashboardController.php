@@ -1876,6 +1876,87 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get payment details with consultations
+     */
+    public function getPaymentDetails($id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy'])
+                ->findOrFail($id);
+
+            // Get consultations included in this payment
+            $consultations = [];
+            if (!empty($payment->consultation_ids)) {
+                $consultations = \App\Models\Consultation::whereIn('id', $payment->consultation_ids)
+                    ->with('payment')
+                    ->get()
+                    ->map(function($consultation) use ($payment) {
+                        return [
+                            'id' => $consultation->id,
+                            'reference' => $consultation->reference,
+                            'full_name' => $consultation->full_name,
+                            'created_at' => $consultation->created_at->toISOString(),
+                            'amount' => $payment->doctor->effective_consultation_fee ?? 0,
+                            'payment_status' => $consultation->payment_status,
+                        ];
+                    })
+                    ->toArray();
+            }
+
+            return response()->json([
+                'success' => true,
+                'payment' => [
+                    'id' => $payment->id,
+                    'reference' => $payment->reference,
+                    'status' => $payment->status,
+                    'korapay_status' => $payment->korapay_status,
+                    'korapay_reference' => $payment->korapay_reference,
+                    'korapay_fee' => $payment->korapay_fee,
+                    'total_consultations_count' => $payment->total_consultations_count,
+                    'total_consultations_amount' => $payment->total_consultations_amount,
+                    'doctor_percentage' => $payment->doctor_percentage,
+                    'doctor_amount' => $payment->doctor_amount,
+                    'platform_fee' => $payment->platform_fee,
+                    'payment_method' => $payment->payment_method,
+                    'transaction_reference' => $payment->transaction_reference,
+                    'payment_notes' => $payment->payment_notes,
+                    'admin_notes' => $payment->admin_notes,
+                    'paid_at' => $payment->paid_at ? $payment->paid_at->toISOString() : null,
+                    'payout_initiated_at' => $payment->payout_initiated_at ? $payment->payout_initiated_at->toISOString() : null,
+                    'payout_completed_at' => $payment->payout_completed_at ? $payment->payout_completed_at->toISOString() : null,
+                    'korapay_response' => $payment->korapay_response, // Already decoded by model cast
+                    'created_at' => $payment->created_at->toISOString(),
+                    'doctor' => $payment->doctor ? [
+                        'id' => $payment->doctor->id,
+                        'full_name' => $payment->doctor->full_name,
+                    ] : null,
+                    'bank_account' => $payment->bankAccount ? [
+                        'bank_name' => $payment->bankAccount->bank_name,
+                        'account_name' => $payment->bankAccount->account_name,
+                        'account_number' => $payment->bankAccount->account_number,
+                        'account_type' => $payment->bankAccount->account_type,
+                    ] : null,
+                    'paid_by_user' => $payment->paidBy ? [
+                        'id' => $payment->paidBy->id,
+                        'name' => $payment->paidBy->name,
+                    ] : null,
+                ],
+                'consultations' => $consultations,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to load payment details', [
+                'payment_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load payment details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Create payment for doctor
      */
     public function createDoctorPayment(Request $request)
@@ -1892,8 +1973,18 @@ class DashboardController extends Controller
 
             $doctor = Doctor::with('defaultBankAccount')->findOrFail($validated['doctor_id']);
 
+            // Get verified bank account (prefer default, otherwise get first verified)
+            $bankAccount = $doctor->defaultBankAccount;
+            
+            // If no default account, get the first verified account
+            if (!$bankAccount || !$bankAccount->is_verified) {
+                $bankAccount = $doctor->bankAccounts()
+                    ->where('is_verified', true)
+                    ->first();
+            }
+
             // Check if doctor has a verified bank account
-            if (!$doctor->defaultBankAccount || !$doctor->defaultBankAccount->is_verified) {
+            if (!$bankAccount || !$bankAccount->is_verified) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Doctor does not have a verified bank account.'
@@ -1925,7 +2016,7 @@ class DashboardController extends Controller
             // Create payment record
             $payment = \App\Models\DoctorPayment::create([
                 'doctor_id' => $doctor->id,
-                'bank_account_id' => $doctor->defaultBankAccount->id,
+                'bank_account_id' => $bankAccount->id,
                 'consultation_ids' => $validated['consultation_ids'],
                 'period_from' => $validated['period_from'] ?? null,
                 'period_to' => $validated['period_to'] ?? null,
@@ -1953,7 +2044,211 @@ class DashboardController extends Controller
     }
 
     /**
-     * Mark payment as completed
+     * Initiate KoraPay payout for a doctor payment
+     */
+    public function initiateDoctorPayout(Request $request, $id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::findOrFail($id);
+            $admin = auth()->guard('admin')->user();
+
+            // Check if payment is already processed
+            if ($payment->status === 'completed' && $payment->korapay_status === 'success') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This payment has already been completed.'
+                ], 400);
+            }
+
+            // Allow retrying failed payments - reset status to pending
+            if ($payment->status === 'failed' || $payment->korapay_status === 'failed') {
+                $payment->update([
+                    'status' => 'pending',
+                    'korapay_status' => null,
+                    'korapay_reference' => null,
+                    'korapay_response' => null,
+                    'payout_initiated_at' => null,
+                    'payout_completed_at' => null,
+                ]);
+            }
+
+            // Check if doctor has verified bank account
+            if (!$payment->bankAccount || !$payment->bankAccount->is_verified) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Doctor does not have a verified bank account.'
+                ], 400);
+            }
+
+            // Check if bank code is available
+            if (empty($payment->bankAccount->bank_code)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bank code is missing for this bank account. Please update the bank account with the correct bank code before initiating payout.'
+                ], 400);
+            }
+
+            // Initiate payout via KoraPay
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $result = $payoutService->initiatePayout($payment);
+
+            if ($result['success']) {
+                // Update payment with admin info
+                $payment->update([
+                    'paid_by' => $admin->id,
+                    'payment_method' => 'korapay_bank_transfer',
+                    'admin_notes' => 'Payout initiated via KoraPay by ' . $admin->name,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'],
+                    'payment' => $payment->fresh(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'data' => $result['data'] ?? null,
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to initiate doctor payout', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate payout: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process bulk payouts for multiple doctor payments
+     * Uses KoraPay bulk payout API endpoint
+     */
+    public function processBulkPayouts(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'payment_ids' => 'required|array',
+                'payment_ids.*' => 'exists:doctor_payments,id',
+                'merchant_bears_cost' => 'nullable|boolean', // Optional: whether merchant pays fees
+            ]);
+
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $merchantBearsCost = $validated['merchant_bears_cost'] ?? true;
+            $result = $payoutService->processBulkPayouts($validated['payment_ids'], $merchantBearsCost);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'] ?? 'Bulk payout initiated successfully',
+                    'data' => [
+                        'batch_reference' => $result['batch_reference'],
+                        'payout_count' => $result['data']['payout_count'] ?? count($validated['payment_ids']),
+                        'total_chargeable_amount' => $result['data']['total_chargeable_amount'] ?? null,
+                        'status' => $result['data']['status'] ?? 'pending',
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to initiate bulk payout',
+                'data' => $result['data'] ?? null,
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to process bulk payouts', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process bulk payouts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify payout status
+     */
+    public function verifyPayoutStatus($id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::findOrFail($id);
+
+            if (!$payment->korapay_reference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No KoraPay reference found for this payment.'
+                ], 400);
+            }
+
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $result = $payoutService->verifyPayoutStatus($payment->korapay_reference);
+
+            if ($result['success'] && !empty($result['data'])) {
+                $data = $result['data'];
+                
+                // Update payment status based on verification
+                $korapayStatus = $data['status'] ?? 'processing';
+                $paymentStatus = $korapayStatus === 'success' ? 'completed' : 
+                                ($korapayStatus === 'failed' ? 'failed' : 'processing');
+
+                $updateData = [
+                    'korapay_status' => $korapayStatus,
+                    'status' => $paymentStatus,
+                    'korapay_response' => json_encode($data),
+                ];
+
+                if ($korapayStatus === 'success') {
+                    $updateData['paid_at'] = now();
+                    $updateData['payout_completed_at'] = now();
+                    $updateData['transaction_reference'] = $payment->korapay_reference;
+                    
+                    if (isset($data['fee'])) {
+                        $updateData['korapay_fee'] = (float) $data['fee'];
+                    }
+                }
+
+                $payment->update($updateData);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payout status verified successfully.',
+                    'data' => $data,
+                    'payment' => $payment->fresh(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to verify payout status.',
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to verify payout status', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify payout: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark payment as completed (manual override - for non-KoraPay payments)
      */
     public function completeDoctorPayment(Request $request, $id)
     {
@@ -1993,20 +2288,42 @@ class DashboardController extends Controller
     public function getDoctorUnpaidConsultations($doctorId)
     {
         try {
-            $consultations = Consultation::where('doctor_id', $doctorId)
-                ->where('status', 'completed')
-                ->where('payment_status', '!=', 'paid')
-                ->whereNotIn('id', function($query) use ($doctorId) {
-                    $query->select(\DB::raw('JSON_EXTRACT(consultation_ids, "$[*]")'))
-                          ->from('doctor_payments')
-                          ->where('doctor_id', $doctorId)
-                          ->whereIn('status', ['pending', 'processing', 'completed']);
+            // Get all consultation IDs that are already included in pending/processing/completed payments
+            $excludedConsultationIds = \App\Models\DoctorPayment::where('doctor_id', $doctorId)
+                ->whereIn('status', ['pending', 'processing', 'completed'])
+                ->whereNotNull('consultation_ids')
+                ->get()
+                ->flatMap(function($payment) {
+                    // Extract consultation IDs from JSON array
+                    $ids = $payment->consultation_ids ?? [];
+                    return is_array($ids) ? $ids : [];
                 })
-                ->with('payment')
-                ->latest()
-                ->get();
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Get consultations that are completed and either:
+            // 1. Not paid yet (payment_status != 'paid'), OR
+            // 2. Paid but not yet included in any doctor payment
+            $query = Consultation::where('doctor_id', $doctorId)
+                ->where('status', 'completed');
+
+            // Exclude consultations already in pending/processing/completed payments
+            if (!empty($excludedConsultationIds)) {
+                $query->whereNotIn('id', $excludedConsultationIds);
+            }
+
+            $consultations = $query->with('payment')->latest()->get();
 
             $doctor = Doctor::findOrFail($doctorId);
+
+            // Log for debugging
+            \Log::info('Loading unpaid consultations', [
+                'doctor_id' => $doctorId,
+                'total_consultations' => $consultations->count(),
+                'excluded_ids_count' => count($excludedConsultationIds),
+                'excluded_ids' => $excludedConsultationIds,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -2024,6 +2341,12 @@ class DashboardController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to load unpaid consultations', [
+                'doctor_id' => $doctorId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load consultations: ' . $e->getMessage()
