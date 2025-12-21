@@ -23,15 +23,21 @@ class BookingController extends Controller
      */
     public function create()
     {
-        // Get all approved doctors for multi-patient booking
+        // Get only General Practitioner/General Practice doctors for patients
         // Available doctors are shown first, then unavailable ones
         $doctors = Doctor::approved()
+            ->generalPractitioner() // Only show GP doctors to patients
             ->orderByRaw('CASE WHEN is_available = 1 THEN 0 ELSE 1 END')
             ->orderBy('order', 'asc')
             ->orderBy('first_name', 'asc')
             ->orderBy('last_name', 'asc')
             ->get();
-        return view('booking.multi-patient', compact('doctors'));
+
+        // Get dynamic fees from settings
+        $baseFee = \App\Models\Setting::get('default_consultation_fee', 3000);
+        $additionalPatientDiscount = \App\Models\Setting::get('additional_child_discount_percentage', 60);
+
+        return view('booking.multi-patient', compact('doctors', 'baseFee', 'additionalPatientDiscount'));
     }
 
     /**
@@ -51,18 +57,51 @@ class BookingController extends Controller
             'patients.*.age' => 'required|integer|min:0|max:150',
             'patients.*.gender' => 'required|in:male,female',
             'patients.*.relationship' => 'required|string',
+            'patients.*.problem' => 'required|string|min:10|max:500',
             'patients.*.symptoms' => 'nullable|string',
+            'patients.*.severity' => 'required|in:mild,moderate,severe',
+            'patients.*.emergency_symptoms' => 'nullable|array',
+            'patients.*.medical_documents' => 'nullable|array',
+            'patients.*.medical_documents.*' => 'file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'message' => 'Validation failed. Please check your data.',
                 'errors' => $validator->errors()
             ], 422);
         }
 
         try {
-            $booking = $this->bookingService->createMultiPatientBooking($request->all());
+            $data = $request->all();
+            
+            // Handle file uploads for each patient
+            if ($request->has('patients')) {
+                foreach ($data['patients'] as $index => &$patientData) {
+                    $patientDocs = [];
+                    $patientFiles = $request->file("patients.{$index}.medical_documents");
+
+                    if ($patientFiles) {
+                        foreach ($patientFiles as $file) {
+                            $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                            // Store in private storage
+                            $filePath = $file->storeAs('medical_documents', $fileName);
+                            
+                            $patientDocs[] = [
+                                'original_name' => $file->getClientOriginalName(),
+                                'stored_name' => $fileName,
+                                'path' => $filePath,
+                                'size' => $file->getSize(),
+                                'mime_type' => $file->getMimeType(),
+                            ];
+                        }
+                    }
+                    $patientData['medical_documents'] = $patientDocs;
+                }
+            }
+
+            $booking = $this->bookingService->createMultiPatientBooking($data);
 
             return response()->json([
                 'success' => true,
@@ -74,12 +113,12 @@ class BookingController extends Controller
         } catch (\Exception $e) {
             \Log::error('Booking creation failed', [
                 'error' => $e->getMessage(),
-                'data' => $request->all()
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create booking. Please try again.'
+                'message' => 'Failed to create booking: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -126,7 +165,7 @@ class BookingController extends Controller
         }
 
         try {
-            $booking = Booking::findOrFail($bookingId);
+            $booking = Booking::with('doctor')->findOrFail($bookingId);
             
             if ($isDoctor) {
                 $adjustedBy = Auth::guard('doctor')->user();
@@ -167,6 +206,54 @@ class BookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to adjust fee. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Apply multi-patient pricing rules to a booking
+     */
+    public function applyPricingRules(Request $request, $bookingId)
+    {
+        // Check if user is admin
+        if (!Auth::guard('admin')->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can apply pricing rules.'
+            ], 403);
+        }
+
+        try {
+            $booking = Booking::with('bookingPatients.patient')->findOrFail($bookingId);
+            
+            // Calculate fees based on pricing rules
+            $calculatedFees = $this->bookingService->calculateMultiPatientFees($booking);
+            
+            if (empty($calculatedFees)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No patients found in this booking.'
+                ], 400);
+            }
+            
+            // Apply the calculated fees
+            $this->bookingService->applyMultiPatientFees($booking, $calculatedFees);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Pricing rules applied successfully!',
+                'fees' => $calculatedFees
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to apply pricing rules', [
+                'error' => $e->getMessage(),
+                'booking_id' => $bookingId
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to apply pricing rules: ' . $e->getMessage()
             ], 500);
         }
     }

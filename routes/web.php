@@ -137,10 +137,10 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
     
-    // Multi-Patient Bookings
-    Route::get('/bookings', [DashboardController::class, 'bookings'])->name('bookings.index');
+    // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
     Route::get('/bookings/{id}', [DashboardController::class, 'showBooking'])->name('bookings.show');
     Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
+    Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
     Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
     Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');

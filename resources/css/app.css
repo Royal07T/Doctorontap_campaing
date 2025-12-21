@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -6,9 +7,17 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
     --color-primary: #7B3DE9;
+    /* Existing Purple */
     --color-primary-dark: #5a2ba8;
+    --color-accent: #0EA5E9;
+    /* Clinical Blue/Teal */
+    --color-accent-light: #E0F2FE;
+    --color-surface: #F8FAFC;
+    /* Clean Clinical Background */
+    --color-text-main: #0F172A;
+    --color-text-muted: #64748B;
 }

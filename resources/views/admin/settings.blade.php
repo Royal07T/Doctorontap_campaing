@@ -111,8 +111,11 @@
 
                             <!-- Multi-Patient Booking Fee -->
                             <div class="border-t border-gray-200 pt-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Multi-Patient Booking Pricing</h3>
+                                
+                                <div class="mb-4">
                                 <label for="multi_patient_booking_fee" class="block text-sm font-semibold text-gray-700 mb-2">
-                                    Multi-Patient Booking Fee (₦) <span class="text-red-500">*</span>
+                                        Base Fee per Patient (₦) <span class="text-red-500">*</span>
                                 </label>
                                 <div class="relative">
                                     <span class="absolute left-4 top-3 text-gray-500">₦</span>
@@ -126,11 +129,54 @@
                                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('multi_patient_booking_fee') border-red-500 @enderror">
                                 </div>
                                 <p class="mt-2 text-sm text-gray-600">
-                                    <strong>Required:</strong> Fee per patient for multi-patient bookings when no specific doctor is selected. This fee will be used for all multi-patient bookings.
+                                        Base fee for parent/guardian and first child. Example: If set to 4000, parent pays 4000 and first child pays 4000.
                                 </p>
                                 @error('multi_patient_booking_fee')
                                     <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                                 @enderror
+                                </div>
+
+                                <div>
+                                    <label for="additional_child_discount_percentage" class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Additional Child Charge Percentage (%) <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number"
+                                               id="additional_child_discount_percentage"
+                                               name="additional_child_discount_percentage"
+                                               value="{{ $additionalChildDiscount ?? 60 }}"
+                                               required
+                                               min="0"
+                                               max="100"
+                                               step="0.01"
+                                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('additional_child_discount_percentage') border-red-500 @enderror">
+                                        <span class="absolute right-4 top-3 text-gray-500">%</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        Additional percentage charge added to base fee for additional children (beyond the first child). 
+                                        <strong>Example:</strong> If base fee is {{ number_format($multiPatientFee ?? $defaultFee, 0) }} and additional charge is {{ $additionalChildDiscount ?? 60 }}%, additional children pay {{ number_format($multiPatientFee ?? $defaultFee, 0) }} + ({{ number_format($multiPatientFee ?? $defaultFee, 0) }} × {{ $additionalChildDiscount ?? 60 }}%) = ₦{{ number_format(($multiPatientFee ?? $defaultFee) + (($multiPatientFee ?? $defaultFee) * (($additionalChildDiscount ?? 60) / 100)), 2) }} each.
+                                    </p>
+                                    @php
+                                        $baseFee = $multiPatientFee ?? $defaultFee;
+                                        $discountPercent = $additionalChildDiscount ?? 60;
+                                        $additionalAmount = $baseFee * ($discountPercent / 100);
+                                        $additionalChildFee = $baseFee + $additionalAmount;
+                                        $totalForExample = $baseFee + $baseFee + $additionalChildFee + $additionalChildFee; // Parent + First Child + Second Child + Third Child
+                                    @endphp
+                                    <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <p class="text-sm text-blue-800">
+                                            <strong>Pricing Example:</strong> Base fee = ₦{{ number_format($baseFee, 2) }}, Additional charge = {{ $discountPercent }}%<br>
+                                            • Parent/Guardian: ₦{{ number_format($baseFee, 2) }}<br>
+                                            • First Child: ₦{{ number_format($baseFee, 2) }}<br>
+                                            • Second Child: ₦{{ number_format($additionalChildFee, 2) }} ({{ number_format($baseFee, 2) }} + {{ $discountPercent }}% = {{ number_format($baseFee, 2) }} + {{ number_format($additionalAmount, 2) }})<br>
+                                            • Third Child: ₦{{ number_format($additionalChildFee, 2) }} ({{ number_format($baseFee, 2) }} + {{ $discountPercent }}% = {{ number_format($baseFee, 2) }} + {{ number_format($additionalAmount, 2) }})<br>
+                                            <strong>Total for 1 parent + 3 children: ₦{{ number_format($totalForExample, 2) }}</strong>
+                                        </p>
+                                    </div>
+                                    @error('additional_child_discount_percentage')
+                                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    @enderror
+                                </div>
                             </div>
 
                             <!-- Doctor Payment Percentage -->

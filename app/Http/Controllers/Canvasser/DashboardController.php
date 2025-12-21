@@ -179,7 +179,12 @@ class DashboardController extends Controller
                          ->where('canvasser_id', $canvasser->id)
                          ->firstOrFail();
         
-        $doctors = Doctor::available()->ordered()->with('reviews')->get();
+        // Canvassers can see ALL approved doctors with all specialties
+        $doctors = Doctor::approved()
+            ->orderByRaw('CASE WHEN is_available = 1 THEN 0 ELSE 1 END')
+            ->ordered()
+            ->with('reviews')
+            ->get();
         
         return view('canvasser.create-consultation', compact('patient', 'doctors'));
     }

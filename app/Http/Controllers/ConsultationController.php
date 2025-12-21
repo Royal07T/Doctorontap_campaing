@@ -22,9 +22,10 @@ class ConsultationController extends Controller
      */
     public function index()
     {
-        // Get all approved doctors for multi-patient booking
+        // Get only General Practitioner/General Practice doctors for patients
         // Available doctors are shown first, then unavailable ones
         $doctors = Doctor::approved()
+            ->generalPractitioner() // Only show GP doctors to patients
             ->orderByRaw('CASE WHEN is_available = 1 THEN 0 ELSE 1 END')
             ->orderBy('order', 'asc')
             ->orderBy('first_name', 'asc')
@@ -132,7 +133,7 @@ class ConsultationController extends Controller
                 $validated['doctor_name'] = $doctor->name;
                 $validated['doctor_id'] = $validated['doctor'];
                 $validated['doctor'] = $doctor->name; // Replace ID with name for emails
-                $validated['doctor_fee'] = $doctor->consultation_fee;
+                $validated['doctor_fee'] = $doctor->effective_consultation_fee;
                 $doctorEmail = $doctor->email;
                 $doctorId = $doctor->id;
             }

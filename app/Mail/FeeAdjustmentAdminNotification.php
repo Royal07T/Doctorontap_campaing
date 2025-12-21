@@ -37,6 +37,9 @@ class FeeAdjustmentAdminNotification extends Mailable
     {
         $difference = $this->newFee - $this->oldFee;
 
+        // Load doctor relationship if it exists
+        $doctor = $this->booking->doctor;
+
         return $this->subject('[AUDIT] Fee Adjustment - ' . $this->booking->reference)
                     ->view('emails.fee-adjustment-admin-notification')
                     ->with([
@@ -46,7 +49,7 @@ class FeeAdjustmentAdminNotification extends Mailable
                         'newFee' => number_format($this->newFee, 2),
                         'difference' => number_format($difference, 2),
                         'reason' => $this->reason,
-                        'doctor' => $this->booking->doctor,
+                        'doctor' => $doctor, // Can be null if no doctor assigned
                     ]);
     }
 }

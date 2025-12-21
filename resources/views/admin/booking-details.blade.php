@@ -29,11 +29,11 @@
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Back Button -->
                 <div class="mb-6">
-                    <a href="{{ route('admin.bookings.index') }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 font-semibold">
+                    <a href="{{ route('admin.consultations') }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 font-semibold">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
-                        Back to Bookings
+                        Back to Consultations
                     </a>
                 </div>
 
@@ -151,24 +151,42 @@
 
                         <!-- Fee Adjustment Section -->
                         <div id="fee-adjustment" class="bg-white rounded-xl shadow-md p-6">
-                            <h3 class="text-xl font-bold text-gray-900 mb-4">Adjust Fees</h3>
-                            <p class="text-sm text-gray-600 mb-4">Adjust fees for individual patients in this booking</p>
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900">Adjust Fees</h3>
+                                    <p class="text-sm text-gray-600 mt-1">Adjust fees for individual patients in this booking</p>
+                                </div>
+                                <button id="applyPricingRulesBtn" 
+                                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Apply Pricing Rules
+                                </button>
+                            </div>
                             
                             <div class="space-y-4">
                                 @foreach($booking->bookingPatients as $bp)
                                 <div class="border border-gray-200 rounded-lg p-4">
                                     <div class="mb-3">
                                         <p class="font-semibold text-gray-900">{{ $bp->patient->name }}</p>
-                                        <p class="text-xs text-gray-500">Current: ₦{{ number_format($bp->adjusted_fee, 2) }}</p>
+                                        <p class="text-xs text-gray-500">
+                                            Current: 
+                                            @if($bp->adjusted_fee && $bp->adjusted_fee > 0)
+                                                ₦{{ number_format($bp->adjusted_fee, 2) }}
+                                            @else
+                                                <span class="text-gray-400">Not set</span>
+                                            @endif
+                                        </p>
                                     </div>
                                     <form class="adjust-fee-form" data-booking-id="{{ $booking->id }}" data-patient-id="{{ $bp->patient->id }}">
                                         <div class="mb-2">
                                             <input type="number" 
                                                    step="0.01" 
                                                    min="0" 
-                                                   value="{{ $bp->adjusted_fee }}" 
+                                                   value="{{ $bp->adjusted_fee && $bp->adjusted_fee > 0 ? $bp->adjusted_fee : '' }}" 
                                                    class="new-fee-input w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                                                   placeholder="New fee">
+                                                   placeholder="Enter fee amount">
                                         </div>
                                         <div class="mb-2">
                                             <textarea rows="2" 
@@ -212,6 +230,60 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Apply Pricing Rules Button
+            const applyPricingRulesBtn = document.getElementById('applyPricingRulesBtn');
+            if (applyPricingRulesBtn) {
+                applyPricingRulesBtn.addEventListener('click', async function() {
+                    if (!confirm('This will automatically calculate and apply fees based on the configured pricing rules. Continue?')) {
+                        return;
+                    }
+                    
+                    const bookingId = {{ $booking->id }};
+                    this.disabled = true;
+                    this.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Applying...';
+                    
+                    try {
+                        const response = await fetch(`/admin/bookings/${bookingId}/apply-pricing-rules`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal('Pricing rules applied successfully! Fees have been calculated and set for all patients.', 'success');
+                                setTimeout(() => window.location.reload(), 2000);
+                            } else {
+                                alert('Pricing rules applied successfully! Fees have been calculated and set for all patients.');
+                                window.location.reload();
+                            }
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message || 'Failed to apply pricing rules. Please try again.', 'error');
+                            } else {
+                                alert(data.message || 'Failed to apply pricing rules. Please try again.');
+                            }
+                            this.disabled = false;
+                            this.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Apply Pricing Rules';
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('An error occurred. Please try again.', 'error');
+                        } else {
+                            alert('An error occurred. Please try again.');
+                        }
+                        this.disabled = false;
+                        this.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Apply Pricing Rules';
+                    }
+                });
+            }
+            
             const forms = document.querySelectorAll('.adjust-fee-form');
             
             forms.forEach(form => {

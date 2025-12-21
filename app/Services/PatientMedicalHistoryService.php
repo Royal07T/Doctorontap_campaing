@@ -37,6 +37,7 @@ class PatientMedicalHistoryService
             $vitalSigns = $this->getVitalSignsForConsultation($consultation);
             
             // Create or update medical history record
+            // This ensures all medical information from the treatment plan is synced to patient medical record
             $history = PatientMedicalHistory::updateOrCreate(
                 [
                     'consultation_id' => $consultation->id,
@@ -49,7 +50,7 @@ class PatientMedicalHistoryService
                     'consultation_reference' => $consultation->reference,
                     'doctor_id' => $consultation->doctor_id,
                     
-                    // Medical History
+                    // Medical History - Always update with latest from treatment plan
                     'presenting_complaint' => $consultation->presenting_complaint,
                     'history_of_complaint' => $consultation->history_of_complaint,
                     'past_medical_history' => $consultation->past_medical_history,
@@ -57,7 +58,7 @@ class PatientMedicalHistoryService
                     'drug_history' => $consultation->drug_history,
                     'social_history' => $consultation->social_history,
                     
-                    // Diagnosis & Treatment
+                    // Diagnosis & Treatment - Always update with latest from treatment plan
                     'diagnosis' => $consultation->diagnosis,
                     'investigation' => $consultation->investigation,
                     'treatment_plan' => $consultation->treatment_plan,
@@ -68,7 +69,7 @@ class PatientMedicalHistoryService
                     'next_appointment_date' => $consultation->next_appointment_date,
                     'additional_notes' => $consultation->additional_notes,
                     
-                    // Vital Signs
+                    // Vital Signs - Update if available
                     'blood_pressure' => $vitalSigns['blood_pressure'] ?? null,
                     'temperature' => $vitalSigns['temperature'] ?? null,
                     'heart_rate' => $vitalSigns['heart_rate'] ?? null,
@@ -85,15 +86,44 @@ class PatientMedicalHistoryService
                 ]
             );
             
+            // Ensure the medical history record is updated with the latest consultation data
+            // This handles cases where the consultation was updated after initial sync
+            $history->refresh();
+            $history->update([
+                // Medical History - Update with latest from treatment plan
+                'presenting_complaint' => $consultation->presenting_complaint,
+                'history_of_complaint' => $consultation->history_of_complaint,
+                'past_medical_history' => $consultation->past_medical_history,
+                'family_history' => $consultation->family_history,
+                'drug_history' => $consultation->drug_history,
+                'social_history' => $consultation->social_history,
+                
+                // Diagnosis & Treatment - Update with latest from treatment plan
+                'diagnosis' => $consultation->diagnosis,
+                'investigation' => $consultation->investigation,
+                'treatment_plan' => $consultation->treatment_plan,
+                'prescribed_medications' => $consultation->prescribed_medications,
+                'follow_up_instructions' => $consultation->follow_up_instructions,
+                'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
+                'referrals' => $consultation->referrals,
+                'next_appointment_date' => $consultation->next_appointment_date,
+                'additional_notes' => $consultation->additional_notes,
+            ]);
+            
             // Update patient stats
             $this->updatePatientStats($patient);
+            
+            // Update consolidated patient medical record with latest information
+            $this->updateConsolidatedPatientRecord($patient, $consultation);
             
             DB::commit();
             
             Log::info('Patient medical history synced', [
                 'patient_id' => $patient->id,
                 'consultation_id' => $consultation->id,
-                'history_id' => $history->id
+                'history_id' => $history->id,
+                'has_vital_signs' => !empty(array_filter($vitalSigns)),
+                'vital_signs_count' => count(array_filter($vitalSigns))
             ]);
             
             return $history;
@@ -141,29 +171,66 @@ class PatientMedicalHistoryService
 
     /**
      * Get vital signs for consultation
+     * Searches by patient_id (vital signs are linked to patients)
      */
     protected function getVitalSignsForConsultation(Consultation $consultation): array
     {
-        // Try to find vital signs by patient email or consultation reference
-        $vitalSign = VitalSign::where('email', $consultation->email)
-            ->orWhere('consultation_reference', $consultation->reference)
-            ->latest()
-            ->first();
+        $vitalSign = null;
+        
+        // First, try to find by patient_id if consultation is linked to a patient
+        if ($consultation->patient_id) {
+            $vitalSign = VitalSign::where('patient_id', $consultation->patient_id)
+                ->latest()
+                ->first();
+        }
+        
+        // If consultation is not linked to patient yet, try to find patient by email first
+        if (!$vitalSign && $consultation->email) {
+            $patient = Patient::where('email', $consultation->email)->first();
+            if ($patient) {
+                $vitalSign = VitalSign::where('patient_id', $patient->id)
+                    ->latest()
+                    ->first();
+            }
+        }
         
         if (!$vitalSign) {
+            Log::debug('No vital signs found for consultation', [
+                'consultation_id' => $consultation->id,
+                'patient_id' => $consultation->patient_id,
+                'email' => $consultation->email,
+                'reference' => $consultation->reference
+            ]);
             return [];
         }
         
-        return [
+        // Calculate BMI if not already set
+        $bmi = $vitalSign->bmi;
+        if (!$bmi && $vitalSign->height && $vitalSign->weight) {
+            $heightInMeters = $vitalSign->height / 100;
+            $bmi = round($vitalSign->weight / ($heightInMeters * $heightInMeters), 2);
+        }
+        
+        $vitals = [
             'blood_pressure' => $vitalSign->blood_pressure,
             'temperature' => $vitalSign->temperature,
             'heart_rate' => $vitalSign->heart_rate,
             'respiratory_rate' => $vitalSign->respiratory_rate,
             'weight' => $vitalSign->weight,
             'height' => $vitalSign->height,
-            'bmi' => $vitalSign->bmi,
+            'bmi' => $bmi,
             'oxygen_saturation' => $vitalSign->oxygen_saturation,
         ];
+        
+        Log::info('Vital signs found and will be synced to medical history', [
+            'consultation_id' => $consultation->id,
+            'vital_sign_id' => $vitalSign->id,
+            'patient_id' => $vitalSign->patient_id,
+            'has_vitals' => !empty(array_filter($vitals)),
+            'vitals' => array_filter($vitals)
+        ]);
+        
+        return $vitals;
     }
 
     /**
@@ -193,6 +260,90 @@ class PatientMedicalHistoryService
     }
 
     /**
+     * Backfill medical history for all consultations that have treatment plans
+     * This is useful for syncing existing consultations that were created before the sync was implemented
+     */
+    public function backfillPatientMedicalHistory(Patient $patient): int
+    {
+        $syncedCount = 0;
+        
+        // Get all consultations for this patient that have treatment plans
+        $consultations = Consultation::where('patient_id', $patient->id)
+            ->whereNotNull('treatment_plan')
+            ->get();
+        
+        foreach ($consultations as $consultation) {
+            // Check if medical history already exists
+            $existingHistory = PatientMedicalHistory::where('consultation_id', $consultation->id)->first();
+            if ($existingHistory) {
+                continue; // Skip if already synced
+            }
+            
+            try {
+                $result = $this->syncConsultationToHistory($consultation);
+                if ($result) {
+                    $syncedCount++;
+                    Log::info('Backfilled medical history for consultation', [
+                        'consultation_id' => $consultation->id,
+                        'patient_id' => $patient->id,
+                        'history_id' => $result->id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to backfill medical history for consultation', [
+                    'consultation_id' => $consultation->id,
+                    'patient_id' => $patient->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        return $syncedCount;
+    }
+
+    /**
+     * Backfill medical history for all consultations (by email if patient_id is not set)
+     * This handles cases where consultations exist but patient_id is not set
+     */
+    public function backfillMedicalHistoryByEmail(string $email): int
+    {
+        $syncedCount = 0;
+        
+        // Get all consultations for this email that have treatment plans
+        $consultations = Consultation::where('email', $email)
+            ->whereNotNull('treatment_plan')
+            ->get();
+        
+        foreach ($consultations as $consultation) {
+            // Check if medical history already exists
+            $existingHistory = PatientMedicalHistory::where('consultation_id', $consultation->id)->first();
+            if ($existingHistory) {
+                continue; // Skip if already synced
+            }
+            
+            try {
+                $result = $this->syncConsultationToHistory($consultation);
+                if ($result) {
+                    $syncedCount++;
+                    Log::info('Backfilled medical history for consultation by email', [
+                        'consultation_id' => $consultation->id,
+                        'email' => $email,
+                        'history_id' => $result->id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to backfill medical history for consultation by email', [
+                    'consultation_id' => $consultation->id,
+                    'email' => $email,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        return $syncedCount;
+    }
+
+    /**
      * Pre-fill treatment plan form with patient's previous data
      */
     public function getPreviousHistoryForConsultation(Consultation $consultation): ?PatientMedicalHistory
@@ -204,6 +355,35 @@ class PatientMedicalHistoryService
             ->first();
         
         return $previousHistory;
+    }
+
+    /**
+     * Update consolidated patient medical record with latest information
+     * This ensures medical history fields from treatment plans are properly stored and updated
+     * The latest record is updated with the most current information from the treatment plan
+     */
+    protected function updateConsolidatedPatientRecord(Patient $patient, Consultation $consultation): void
+    {        // The medical history record is already updated in syncConsultationToHistory
+        // This method logs the update for tracking purposes
+        $latestHistory = PatientMedicalHistory::where('patient_id', $patient->id)
+            ->where('consultation_id', $consultation->id)
+            ->where('is_latest', true)
+            ->first();
+        
+        if (!$latestHistory) {
+            return;
+        }
+        
+        Log::info('Patient medical record updated with latest treatment plan information', [
+            'patient_id' => $patient->id,
+            'consultation_id' => $consultation->id,
+            'history_id' => $latestHistory->id,
+            'has_family_history' => !empty($latestHistory->family_history),
+            'has_social_history' => !empty($latestHistory->social_history),
+            'has_past_medical_history' => !empty($latestHistory->past_medical_history),
+            'has_drug_history' => !empty($latestHistory->drug_history),
+            'has_vital_signs' => !empty($latestHistory->blood_pressure) || !empty($latestHistory->temperature) || !empty($latestHistory->heart_rate),
+        ]);
     }
 }
 

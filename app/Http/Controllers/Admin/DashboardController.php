@@ -1469,8 +1469,9 @@ class DashboardController extends Controller
         }
         $useDefaultForAll = Setting::get('use_default_fee_for_all', false);
         $doctorPaymentPercentage = Setting::get('doctor_payment_percentage', 70);
+        $additionalChildDiscount = Setting::get('additional_child_discount_percentage', 60);
 
-        return view('admin.settings', compact('settings', 'defaultFee', 'multiPatientFee', 'useDefaultForAll', 'doctorPaymentPercentage'));
+        return view('admin.settings', compact('settings', 'defaultFee', 'multiPatientFee', 'useDefaultForAll', 'doctorPaymentPercentage', 'additionalChildDiscount'));
     }
 
     /**
@@ -1482,6 +1483,7 @@ class DashboardController extends Controller
             $validated = $request->validate([
                 'default_consultation_fee' => 'required|numeric|min:0',
                 'multi_patient_booking_fee' => 'required|numeric|min:0',
+                'additional_child_discount_percentage' => 'required|numeric|min:0|max:100',
                 'use_default_fee_for_all' => 'nullable|boolean',
                 'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
             ]);
@@ -1490,6 +1492,9 @@ class DashboardController extends Controller
             
             // Multi-patient booking fee (required setting)
             Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
+            
+            // Additional child discount percentage
+            Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
             
             Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
             Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');

@@ -1,11 +1,10 @@
 <!-- Alert Modal -->
-<div id="alertModal" class="hidden fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-    <div class="flex items-center justify-center min-h-screen px-4">
+<div id="alertModal" class="hidden fixed inset-0 z-50 overflow-y-auto flex items-center justify-center" style="display: none;">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onclick="closeAlertModal()"></div>
         
         <!-- Modal Content -->
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all z-10">
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 transform transition-all z-10">
             <!-- Icon -->
             <div id="alertIconContainer" class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-100">
                 <svg id="alertIcon" class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,18 +23,16 @@
                     class="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 hover:shadow-lg transition-all">
                 OK
             </button>
-        </div>
     </div>
 </div>
 
 <!-- Confirmation Modal -->
-<div id="confirmModal" class="hidden fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-    <div class="flex items-center justify-center min-h-screen px-4">
+<div id="confirmModal" class="hidden fixed inset-0 z-50 overflow-y-auto flex items-center justify-center" style="display: none;">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onclick="closeConfirmModal()"></div>
         
         <!-- Modal Content -->
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all z-10">
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 transform transition-all z-10">
             <!-- Icon -->
             <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-100">
                 <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +56,6 @@
                         class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 hover:shadow-lg transition-all">
                     Confirm
                 </button>
-            </div>
         </div>
     </div>
 </div>
