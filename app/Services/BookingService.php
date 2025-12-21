@@ -49,7 +49,19 @@ class BookingService
             $doctorFee = 0;
             if ($booking->doctor_id) {
                 $doctor = Doctor::find($booking->doctor_id);
-                $doctorFee = $doctor ? $doctor->effective_consultation_fee : 0;
+                if ($doctor) {
+                    $doctorFee = $doctor->effective_consultation_fee ?? 0;
+                } else {
+                    \Log::warning('Doctor not found for booking', [
+                        'doctor_id' => $booking->doctor_id,
+                        'booking_reference' => $booking->reference
+                    ]);
+                }
+            }
+            
+            // If no doctor fee, use default from settings
+            if ($doctorFee <= 0) {
+                $doctorFee = Setting::get('default_consultation_fee', 3000);
             }
 
             $totalBaseAmount = 0;
@@ -61,7 +73,7 @@ class BookingService
                 $patient = $this->findOrCreatePatient($patientData, $data['payer_email'], $data['payer_mobile']);
 
                 // 3b. Create consultation record for this patient
-                $consultation = Consultation::create([
+                $consultationData = [
                     'reference' => $this->generateConsultationReference(),
                     'booking_id' => $booking->id,
                     'patient_id' => $patient->id,
@@ -73,7 +85,6 @@ class BookingService
                     'age' => $patientData['age'],
                     'gender' => $patientData['gender'],
                     'problem' => $patientData['problem'], // Forms ensure this is present
-                    'symptoms' => $patientData['symptoms'] ?? '',
                     'medical_documents' => $patientData['medical_documents'] ?? null,
                     'severity' => $patientData['severity'] ?? 'moderate',
                     'emergency_symptoms' => $patientData['emergency_symptoms'] ?? null,
@@ -83,7 +94,18 @@ class BookingService
                     'nurse_id' => $booking->nurse_id,
                     'status' => 'pending',
                     'payment_status' => 'unpaid',
-                ]);
+                ];
+                
+                // Only add symptoms if the column exists in the database
+                // Symptoms can be stored in the problem field or as a separate field if migration exists
+                if (isset($patientData['symptoms']) && !empty($patientData['symptoms'])) {
+                    // If symptoms column doesn't exist, append to problem field
+                    $consultationData['problem'] = $consultationData['problem'] . 
+                        (strlen($consultationData['problem']) > 0 ? "\n\nSymptoms: " : "Symptoms: ") . 
+                        $patientData['symptoms'];
+                }
+                
+                $consultation = Consultation::create($consultationData);
 
                 // 3c. Link patient to booking with pricing
                 // First patient 100%, others based on setting (e.g. 60%)
@@ -111,16 +133,34 @@ class BookingService
             $booking->total_adjusted_amount = $totalAdjustedAmount;
             $booking->save();
 
-            // 5. Create initial invoice
+            // 5. Reload booking with relationships for invoice creation
+            $booking->load('bookingPatients.patient', 'bookingPatients.consultation');
+
+            // 6. Create initial invoice
             if ($totalAdjustedAmount > 0) {
-                $this->createInvoice($booking);
+                try {
+                    $this->createInvoice($booking);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create invoice for booking', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // Don't fail the entire booking if invoice creation fails
+                    // Invoice can be created later
+                }
             }
 
-
-            // 6. Send confirmation emails
-
-            // 5. Send confirmation emails to each patient
-            $this->sendMultiPatientBookingEmails($booking);
+            // 7. Send confirmation emails (don't fail booking if emails fail)
+            try {
+                $this->sendMultiPatientBookingEmails($booking);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send booking confirmation emails', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the entire booking if email sending fails
+            }
 
             DB::commit();
             return $booking->fresh(['bookingPatients.patient', 'bookingPatients.consultation', 'doctor', 'invoice']);
@@ -189,6 +229,11 @@ class BookingService
      */
     private function createInvoice(Booking $booking): Invoice
     {
+        // Ensure relationships are loaded
+        if (!$booking->relationLoaded('bookingPatients')) {
+            $booking->load('bookingPatients.patient', 'bookingPatients.consultation');
+        }
+        
         // Calculate totals from patients with fees set
         $totalAmount = $booking->bookingPatients
             ->whereNotNull('adjusted_fee')
@@ -213,17 +258,27 @@ class BookingService
                 continue;
             }
             
+            // Ensure patient relationship is loaded
+            if (!$bp->relationLoaded('patient')) {
+                $bp->load('patient');
+            }
+            
+            // Get patient name safely
+            $patientName = $bp->patient->name ?? 'Patient';
+            $patientAge = $bp->patient->age ?? 'N/A';
+            $patientGender = $bp->patient->gender ?? 'N/A';
+            
             InvoiceItem::create([
                 'invoice_id' => $invoice->id,
                 'patient_id' => $bp->patient_id,
                 'consultation_id' => $bp->consultation_id,
-                'description' => "Consultation for {$bp->patient->name} ({$bp->patient->age} yrs, {$bp->patient->gender})",
+                'description' => "Consultation for {$patientName} ({$patientAge} yrs, {$patientGender})",
                 'quantity' => 1,
                 'unit_price' => $bp->base_fee ?? $bp->adjusted_fee,
                 'adjustment' => ($bp->adjusted_fee - ($bp->base_fee ?? $bp->adjusted_fee)),
                 'total_price' => $bp->adjusted_fee,
                 'item_type' => 'consultation',
-                'order_index' => $bp->order_index,
+                'order_index' => $bp->order_index ?? 0,
             ]);
         }
 

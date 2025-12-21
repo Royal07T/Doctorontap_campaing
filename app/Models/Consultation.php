@@ -24,7 +24,6 @@ class Consultation extends Model
         'age',
         'gender',
         'problem',
-        'symptoms',
         'medical_documents',
         'severity',
         'emergency_symptoms',

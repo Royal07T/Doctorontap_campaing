@@ -110,15 +110,39 @@ class BookingController extends Controller
                 'redirect_url' => route('booking.confirmation', ['reference' => $booking->reference])
             ]);
 
-        } catch (\Exception $e) {
-            \Log::error('Booking creation failed', [
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Please check your data.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Database error during booking creation', [
                 'error' => $e->getMessage(),
+                'sql' => $e->getSql() ?? 'N/A',
+                'bindings' => $e->getBindings() ?? [],
                 'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create booking: ' . $e->getMessage()
+                'message' => 'Database error occurred. Please try again or contact support.'
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Booking creation failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => [
+                    'payer_email' => $request->input('payer_email'),
+                    'patients_count' => count($request->input('patients', [])),
+                ]
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create booking. Please try again or contact support if the problem persists.'
             ], 500);
         }
     }
