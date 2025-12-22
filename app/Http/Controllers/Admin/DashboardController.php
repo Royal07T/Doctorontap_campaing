@@ -1126,11 +1126,14 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-            AdminUser::create($validated);
+            $admin = AdminUser::create($validated);
+            
+            // Send email verification notification
+            $admin->sendEmailVerificationNotification();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Admin user created successfully!'
+                'message' => 'Admin user created successfully! A verification email has been sent to ' . $admin->email . '.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -2509,16 +2512,48 @@ class DashboardController extends Controller
                 ], 400);
             }
 
-            // Get consultations
+            // Validate that all submitted consultations belong to this doctor and are paid
+            $submittedConsultations = Consultation::whereIn('id', $validated['consultation_ids'])->get();
+            
+            // Check if all consultations belong to this doctor
+            $invalidDoctorConsultations = $submittedConsultations->where('doctor_id', '!=', $doctor->id);
+            if ($invalidDoctorConsultations->isNotEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some consultations do not belong to this doctor.'
+                ], 400);
+            }
+
+            // Check if all consultations are completed
+            $incompleteConsultations = $submittedConsultations->where('status', '!=', 'completed');
+            if ($incompleteConsultations->isNotEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some consultations are not completed. Only completed consultations can be included in doctor payments.'
+                ], 400);
+            }
+
+            // Check if all consultations are paid - this is the critical requirement
+            $unpaidConsultations = $submittedConsultations->where('payment_status', '!=', 'paid');
+            if ($unpaidConsultations->isNotEmpty()) {
+                $unpaidReferences = $unpaidConsultations->pluck('reference')->implode(', ');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some consultations are not paid. Only consultations with payment_status = "paid" can be included in doctor payments. Unpaid consultations: ' . $unpaidReferences
+                ], 400);
+            }
+
+            // Get consultations - only include paid consultations
             $consultations = Consultation::whereIn('id', $validated['consultation_ids'])
                 ->where('doctor_id', $doctor->id)
                 ->where('status', 'completed')
+                ->where('payment_status', 'paid')
                 ->get();
 
             if ($consultations->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No valid consultations found.'
+                    'message' => 'No valid paid consultations found. Only consultations with payment_status = "paid" can be included in doctor payments.'
                 ], 400);
             }
 
@@ -2820,11 +2855,11 @@ class DashboardController extends Controller
                 ->values()
                 ->toArray();
 
-            // Get consultations that are completed and either:
-            // 1. Not paid yet (payment_status != 'paid'), OR
-            // 2. Paid but not yet included in any doctor payment
+            // Get consultations that are completed, paid by patient, but not yet paid to doctor
+            // Only include consultations with payment_status = 'paid'
             $query = Consultation::where('doctor_id', $doctorId)
-                ->where('status', 'completed');
+                ->where('status', 'completed')
+                ->where('payment_status', 'paid');
 
             // Exclude consultations already in pending/processing/completed payments
             if (!empty($excludedConsultationIds)) {
@@ -2836,11 +2871,12 @@ class DashboardController extends Controller
             $doctor = Doctor::findOrFail($doctorId);
 
             // Log for debugging
-            \Log::info('Loading unpaid consultations', [
+            \Log::info('Loading paid consultations (unpaid to doctor)', [
                 'doctor_id' => $doctorId,
                 'total_consultations' => $consultations->count(),
                 'excluded_ids_count' => count($excludedConsultationIds),
                 'excluded_ids' => $excludedConsultationIds,
+                'note' => 'Only consultations with payment_status = "paid" are included',
             ]);
 
             return response()->json([
