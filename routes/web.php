@@ -22,6 +22,7 @@ use App\Http\Controllers\Doctor\ForgotPasswordController as DoctorForgotPassword
 use App\Http\Controllers\Nurse\ForgotPasswordController as NurseForgotPasswordController;
 use App\Http\Controllers\Canvasser\ForgotPasswordController as CanvasserForgotPasswordController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
+use App\Http\Controllers\Admin\VerificationController as AdminVerificationController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
@@ -123,9 +124,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/reset-password', [AdminForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 
+// Admin Email Verification Route (No authentication required - public verification link)
+Route::get('/admin/email/verify/{id}/{hash}', [AdminVerificationController::class, 'verify'])
+    ->middleware(['signed'])
+    ->name('admin.verification.verify');
+
 // Protected Admin Routes (Authentication required)
 Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.management'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    
+    // Admin Email Verification Routes
+    Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations-livewire', function() {

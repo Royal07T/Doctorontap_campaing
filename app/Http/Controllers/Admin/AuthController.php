@@ -52,6 +52,12 @@ class AuthController extends Controller
             $admin->last_login_at = now();
             $admin->save();
             
+            // Check if email is verified, if not redirect to verification page
+            if (!$admin->hasVerifiedEmail()) {
+                return redirect()->route('admin.verification.notice')
+                    ->with('warning', 'Please verify your email address to access all features.');
+            }
+            
             return redirect()->intended(route('admin.dashboard'))
                 ->with('success', 'Welcome back, ' . $admin->name . '!');
         }
