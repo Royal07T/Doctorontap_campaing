@@ -409,22 +409,59 @@ class SecurityMonitoring
         }
         
         // Send email to all configured recipients
+        $sentCount = 0;
+        $failedEmails = [];
+        
         try {
             foreach ($alertEmails as $email) {
                 if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    Mail::to($email)->send(new SecurityAlert($eventType, $data, $severity));
+                    try {
+                        Log::info('Sending security alert email', [
+                            'recipient' => $email,
+                            'event_type' => $eventType,
+                            'severity' => $severity,
+                            'ip' => $data['ip'] ?? 'N/A'
+                        ]);
+                        
+                        Mail::to($email)->send(new SecurityAlert($eventType, $data, $severity));
+                        
+                        $sentCount++;
+                        
+                        Log::info('Security alert email sent successfully', [
+                            'recipient' => $email,
+                            'event_type' => $eventType,
+                            'severity' => $severity
+                        ]);
+                    } catch (\Exception $e) {
+                        $failedEmails[] = $email;
+                        Log::error('Failed to send security alert email to recipient', [
+                            'recipient' => $email,
+                            'event_type' => $eventType,
+                            'severity' => $severity,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                } else {
+                    Log::warning('Invalid email address in security alert recipients', [
+                        'email' => $email,
+                        'event_type' => $eventType
+                    ]);
                 }
             }
             
-            Log::info('Security alert emails sent', [
+            Log::info('Security alert email sending completed', [
                 'event_type' => $eventType,
                 'severity' => $severity,
-                'recipients' => $alertEmails,
-                'count' => count($alertEmails)
+                'total_recipients' => count($alertEmails),
+                'sent_count' => $sentCount,
+                'failed_count' => count($failedEmails),
+                'sent_to' => array_diff($alertEmails, $failedEmails),
+                'failed_to' => $failedEmails
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send security alert emails', [
                 'event_type' => $eventType,
+                'severity' => $severity,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

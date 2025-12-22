@@ -111,6 +111,11 @@
         </div>
 
         <div class="event-type">
+            @if(isset($data['test']) && $data['test'])
+                <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                    <strong>🧪 TEST ALERT</strong> - This is a test security alert email to verify your configuration.
+                </div>
+            @endif
             Event Type: {{ ucwords(str_replace('_', ' ', $eventType)) }}
         </div>
 

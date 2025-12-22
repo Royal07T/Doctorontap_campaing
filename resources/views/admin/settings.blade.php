@@ -84,6 +84,7 @@
 
                         <form method="POST" action="{{ route('admin.settings.update') }}" class="p-6 space-y-6">
                             @csrf
+                            <input type="hidden" name="form_type" value="pricing">
 
                             <!-- Default Consultation Fee -->
                             <div>
@@ -284,6 +285,7 @@
 
                         <form method="POST" action="{{ route('admin.settings.update') }}" class="p-6 space-y-6">
                             @csrf
+                            <input type="hidden" name="form_type" value="security_alerts">
 
                             <!-- Enable/Disable Alerts -->
                             <div class="flex items-start">
@@ -485,6 +487,9 @@
         </div>
     </div>
 
+    <!-- Include Alert Modal Component -->
+    @include('components.alert-modal')
+
     <script>
         // Update payment percentage preview
         document.getElementById('doctor_payment_percentage').addEventListener('input', function() {
@@ -522,34 +527,43 @@
             if (container.children.length > 1) {
                 button.closest('.email-recipient-row').remove();
             } else {
-                alert('You must have at least one email recipient.');
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal('You must have at least one email recipient.', 'error', 'Cannot Remove');
+                }
             }
         }
 
         // Test security alert
         function testSecurityAlert() {
-            if (!confirm('This will send a test security alert email to all configured recipients. Continue?')) {
-                return;
-            }
-
-            fetch('/admin/settings/test-security-alert', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            showConfirmModal(
+                'This will send a test security alert email to all configured recipients. Continue?',
+                function() {
+                    fetch('/admin/settings/test-security-alert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal('Test alert email sent successfully!', 'success', 'Test Alert Sent');
+                            }
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal('Error: ' + (data.message || 'Failed to send test alert'), 'error', 'Test Alert Failed');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Error: ' + error.message, 'error', 'Network Error');
+                        }
+                    });
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Test alert email sent successfully!');
-                } else {
-                    alert('Error: ' + (data.message || 'Failed to send test alert'));
-                }
-            })
-            .catch(error => {
-                alert('Error: ' + error.message);
-            });
+            );
         }
     </script>
 </body>

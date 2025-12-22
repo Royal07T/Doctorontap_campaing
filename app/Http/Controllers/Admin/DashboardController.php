@@ -1704,52 +1704,71 @@ class DashboardController extends Controller
     public function updateSettings(Request $request)
     {
         try {
-            // Validate pricing settings
-            $validated = $request->validate([
-                'default_consultation_fee' => 'required|numeric|min:0',
-                'multi_patient_booking_fee' => 'required|numeric|min:0',
-                'additional_child_discount_percentage' => 'required|numeric|min:0|max:100',
-                'use_default_fee_for_all' => 'nullable|boolean',
-                'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
-                // Security alert settings
-                'security_alerts_enabled' => 'nullable|boolean',
-                'security_alert_emails' => 'nullable|array',
-                'security_alert_emails.*' => 'required|email',
-                'security_alert_severities' => 'nullable|array',
-                'security_alert_severities.*' => 'in:critical,high,medium,low',
-                'security_alert_threshold_critical' => 'nullable|integer|min:1',
-                'security_alert_threshold_high' => 'nullable|integer|min:1',
-            ]);
+            $formType = $request->input('form_type', 'both');
+            
+            // Build validation rules based on form type
+            $rules = [];
+            
+            // Pricing settings (only validate if pricing form is submitted)
+            if ($formType === 'pricing' || $formType === 'both') {
+                $rules['default_consultation_fee'] = 'required|numeric|min:0';
+                $rules['multi_patient_booking_fee'] = 'required|numeric|min:0';
+                $rules['additional_child_discount_percentage'] = 'required|numeric|min:0|max:100';
+                $rules['doctor_payment_percentage'] = 'required|numeric|min:0|max:100';
+                $rules['use_default_fee_for_all'] = 'nullable|boolean';
+            }
 
-            // Update pricing settings
-            Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
-            Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
-            Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
-            Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
-            Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
+            // Security alert settings (only validate if security form is submitted)
+            if ($formType === 'security_alerts' || $formType === 'both') {
+                $rules['security_alerts_enabled'] = 'nullable|boolean';
+                $rules['security_alert_emails'] = 'nullable|array';
+                $rules['security_alert_emails.*'] = 'required|email';
+                $rules['security_alert_severities'] = 'nullable|array';
+                $rules['security_alert_severities.*'] = 'in:critical,high,medium,low';
+                $rules['security_alert_threshold_critical'] = 'nullable|integer|min:1';
+                $rules['security_alert_threshold_high'] = 'nullable|integer|min:1';
+            }
 
-            // Update security alert settings
-            Setting::set('security_alerts_enabled', $request->has('security_alerts_enabled') ? 1 : 0, 'boolean');
-            
-            if ($request->has('security_alert_emails')) {
-                $emails = array_filter($request->input('security_alert_emails', []));
-                Setting::set('security_alert_emails', $emails, 'json');
+            $validated = $request->validate($rules);
+
+            // Update pricing settings (only if pricing form was submitted)
+            if ($formType === 'pricing' || $formType === 'both') {
+                Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
+                Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
+                Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
+                Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
+                Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
             }
-            
-            if ($request->has('security_alert_severities')) {
-                Setting::set('security_alert_severities', $request->input('security_alert_severities', []), 'json');
-            }
-            
-            if ($request->has('security_alert_threshold_critical')) {
-                Setting::set('security_alert_threshold_critical', $request->input('security_alert_threshold_critical', 1), 'integer');
-            }
-            
-            if ($request->has('security_alert_threshold_high')) {
-                Setting::set('security_alert_threshold_high', $request->input('security_alert_threshold_high', 5), 'integer');
+
+            // Update security alert settings (only if security form was submitted)
+            if ($formType === 'security_alerts' || $formType === 'both') {
+                Setting::set('security_alerts_enabled', $request->has('security_alerts_enabled') ? 1 : 0, 'boolean');
+                
+                if ($request->has('security_alert_emails')) {
+                    $emails = array_filter($request->input('security_alert_emails', []));
+                    Setting::set('security_alert_emails', $emails, 'json');
+                    \Log::info('Security alert emails updated', [
+                        'emails' => $emails,
+                        'count' => count($emails),
+                        'updated_by' => auth()->guard('admin')->id()
+                    ]);
+                }
+                
+                if ($request->has('security_alert_severities')) {
+                    Setting::set('security_alert_severities', $request->input('security_alert_severities', []), 'json');
+                }
+                
+                if ($request->has('security_alert_threshold_critical')) {
+                    Setting::set('security_alert_threshold_critical', $request->input('security_alert_threshold_critical', 1), 'integer');
+                }
+                
+                if ($request->has('security_alert_threshold_high')) {
+                    Setting::set('security_alert_threshold_high', $request->input('security_alert_threshold_high', 5), 'integer');
+                }
             }
 
             // If forcing all doctors to use default fee, update all doctors
-            if ($request->has('use_default_fee_for_all')) {
+            if ($request->has('use_default_fee_for_all') && $request->has('default_consultation_fee')) {
                 Doctor::query()->update([
                     'use_default_fee' => true,
                     'consultation_fee' => $validated['default_consultation_fee']
@@ -1770,10 +1789,32 @@ class DashboardController extends Controller
         try {
             $alertEmails = Setting::get('security_alert_emails', []);
             
+            \Log::info('Test security alert requested', [
+                'configured_emails' => $alertEmails,
+                'emails_count' => is_array($alertEmails) ? count($alertEmails) : 0,
+                'ip' => $request->ip(),
+            ]);
+            
             if (empty($alertEmails) || !is_array($alertEmails)) {
+                \Log::warning('Test security alert failed: No email recipients configured');
                 return response()->json([
                     'success' => false,
                     'message' => 'No email recipients configured. Please add at least one email address in Security Alerts settings.'
+                ], 400);
+            }
+
+            // Filter valid emails
+            $validEmails = array_filter($alertEmails, function($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL);
+            });
+
+            if (empty($validEmails)) {
+                \Log::warning('Test security alert failed: No valid email addresses', [
+                    'provided_emails' => $alertEmails
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid email addresses found. Please check your email configuration.'
                 ], 400);
             }
 
@@ -1786,17 +1827,64 @@ class DashboardController extends Controller
                 'test' => true,
             ];
 
-            // Send test alert
-            foreach ($alertEmails as $email) {
-                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $sentCount = 0;
+            $failedEmails = [];
+
+            // Send test alert to each valid email
+            foreach ($validEmails as $email) {
+                try {
+                    \Log::info('Sending test security alert email', [
+                        'recipient' => $email,
+                        'event_type' => 'test_alert',
+                        'severity' => 'medium'
+                    ]);
+
                     \Mail::to($email)->send(new \App\Mail\SecurityAlert('test_alert', $testData, 'medium'));
+                    
+                    $sentCount++;
+                    
+                    \Log::info('Test security alert email sent successfully', [
+                        'recipient' => $email
+                    ]);
+                } catch (\Exception $e) {
+                    $failedEmails[] = $email;
+                    \Log::error('Failed to send test security alert email', [
+                        'recipient' => $email,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Test security alert email sent successfully to ' . count($alertEmails) . ' recipient(s).'
-            ]);
+            if ($sentCount > 0) {
+                $message = "Test security alert email sent successfully to {$sentCount} recipient(s): " . implode(', ', array_diff($validEmails, $failedEmails));
+                
+                if (!empty($failedEmails)) {
+                    $message .= ". Failed to send to: " . implode(', ', $failedEmails);
+                }
+
+                \Log::info('Test security alert completed', [
+                    'sent_count' => $sentCount,
+                    'failed_count' => count($failedEmails),
+                    'sent_to' => array_diff($validEmails, $failedEmails),
+                    'failed_to' => $failedEmails
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $message
+                ]);
+            } else {
+                \Log::error('Test security alert failed: All emails failed to send', [
+                    'attempted_emails' => $validEmails,
+                    'failed_emails' => $failedEmails
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send test alert to all recipients. Please check your mail configuration and logs.'
+                ], 500);
+            }
         } catch (\Exception $e) {
             \Log::error('Failed to send test security alert', [
                 'error' => $e->getMessage(),

@@ -167,6 +167,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     // Settings
     Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
     Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
     
     // Admin Users Management
     Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
