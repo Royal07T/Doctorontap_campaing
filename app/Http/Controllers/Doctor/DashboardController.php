@@ -7,8 +7,7 @@ use App\Models\Consultation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use App\Mail\ConsultationStatusChange;
 
 class DashboardController extends Controller
 {
@@ -19,6 +18,21 @@ class DashboardController extends Controller
     {
         $doctor = Auth::guard('doctor')->user();
         
+        // Get doctor payment percentage from settings
+        $doctorPercentage = \App\Models\Setting::get('doctor_payment_percentage', 70);
+        
+        // Get all paid consultations
+        $paidConsultations = Consultation::where('doctor_id', $doctor->id)
+                                         ->where('payment_status', 'paid')
+                                         ->get();
+        
+        // Calculate total earnings from paid consultations
+        // Earnings = Sum of (effective consultation fee * doctor percentage) for all paid consultations
+        $totalEarnings = $paidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
+            $consultationFee = $doctor->effective_consultation_fee ?? 0;
+            return ($consultationFee * $doctorPercentage) / 100;
+        });
+        
         $stats = [
             'total_consultations' => Consultation::where('doctor_id', $doctor->id)->count(),
             'pending_consultations' => Consultation::where('doctor_id', $doctor->id)
@@ -27,22 +41,15 @@ class DashboardController extends Controller
                                                      ->where('status', 'scheduled')->count(),
             'completed_consultations' => Consultation::where('doctor_id', $doctor->id)
                                                      ->where('status', 'completed')->count(),
-            'paid_consultations' => Consultation::where('doctor_id', $doctor->id)
-                                                ->where('payment_status', 'paid')->count(),
+            'paid_consultations' => $paidConsultations->count(),
             'pending_payments' => Consultation::where('doctor_id', $doctor->id)
                                               ->where('payment_status', 'pending')->count(),
-            'total_earnings' => Consultation::where('doctor_id', $doctor->id)
-                                            ->where('payment_status', 'paid')
-                                            ->with('payment')
-                                            ->get()
-                                            ->sum(function($consultation) {
-                                                return $consultation->payment ? $consultation->payment->amount : 0;
-                                            }),
+            'total_earnings' => $totalEarnings, // Current earnings from paid consultations
         ];
 
         // Get recent consultations with payment information
         $recentConsultations = Consultation::where('doctor_id', $doctor->id)
-                                           ->with('payment')
+                                           ->with(['payment', 'booking'])
                                            ->latest()
                                            ->limit(10)
                                            ->get();
@@ -57,7 +64,7 @@ class DashboardController extends Controller
     {
         $doctor = Auth::guard('doctor')->user();
         
-        $query = Consultation::where('doctor_id', $doctor->id)->with('payment');
+        $query = Consultation::where('doctor_id', $doctor->id)->with(['payment', 'booking']);
         
         // Filter by consultation status
         if ($request->filled('status')) {
@@ -179,74 +186,53 @@ class DashboardController extends Controller
     /**
      * View single consultation details
      */
-    public function viewConsultation($id)
+    public function viewConsultation(Request $request, $id)
     {
         try {
             $doctor = Auth::guard('doctor')->user();
             
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
-                                       ->with(['doctor', 'payment', 'canvasser', 'nurse'])
+                                       ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking'])
                                        ->firstOrFail();
             
-            // If it's an AJAX request, return JSON
-            // Check for Accept header, X-Requested-With header, or wantsJson
-            if (request()->ajax() || request()->wantsJson() || request()->header('Accept') === 'application/json' || request()->header('X-Requested-With') === 'XMLHttpRequest') {
-                return response()->json([
-                    'success' => true,
-                    'consultation' => [
-                        'id' => $consultation->id,
-                        'reference' => $consultation->reference,
-                        'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
-                        'email' => $consultation->email,
-                        'mobile' => $consultation->mobile,
-                        'age' => $consultation->age,
-                        'gender' => ucfirst($consultation->gender),
-                        'symptoms' => $consultation->problem,
-                        'status' => ucfirst($consultation->status),
-                        'payment_status' => ucfirst($consultation->payment_status ?? 'unpaid'),
-                        'created_at' => $consultation->created_at->format('M d, Y h:i A'),
-                        'medical_documents' => $consultation->medical_documents,
-                        'doctor_notes' => $consultation->doctor_notes,
-                        // Treatment Plan Fields
-                        'presenting_complaint' => $consultation->presenting_complaint,
-                        'history_of_complaint' => $consultation->history_of_complaint,
-                        'past_medical_history' => $consultation->past_medical_history,
-                        'family_history' => $consultation->family_history,
-                        'drug_history' => $consultation->drug_history,
-                        'social_history' => $consultation->social_history,
-                        'diagnosis' => $consultation->diagnosis,
-                        'investigation' => $consultation->investigation,
-                        'treatment_plan' => $consultation->treatment_plan,
-                        'prescribed_medications' => $consultation->prescribed_medications,
-                        'follow_up_instructions' => $consultation->follow_up_instructions,
-                        'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
-                        'referrals' => $consultation->referrals,
-                        'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
-                        'additional_notes' => $consultation->additional_notes,
-                        'has_treatment_plan' => $consultation->hasTreatmentPlan(),
-                        'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
-                        'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
-                        'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
-                        'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
-                    ]
-                ]);
-            }
-            
-            // For direct browser requests, return the consultation details view
-            return view('doctor.consultation-details', compact('consultation'));
+            return response()->json([
+                'success' => true,
+                'consultation' => [
+                    'id' => $consultation->id,
+                    'reference' => $consultation->reference,
+                    'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
+                    'email' => $consultation->email,
+                    'mobile' => $consultation->mobile,
+                    'age' => $consultation->age,
+                    'gender' => ucfirst($consultation->gender),
+                    'symptoms' => $consultation->problem,
+                    'status' => ucfirst($consultation->status),
+                    'payment_status' => $consultation->payment ? ucfirst($consultation->payment->status) : 'Pending',
+                    'created_at' => $consultation->created_at->format('M d, Y h:i A'),
+                    'medical_documents' => $consultation->medical_documents,
+                    'doctor_notes' => $consultation->doctor_notes,
+                    'diagnosis' => $consultation->diagnosis,
+                    'treatment_plan' => $consultation->treatment_plan,
+                    'prescribed_medications' => $consultation->prescribed_medications,
+                    'follow_up_instructions' => $consultation->follow_up_instructions,
+                    'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
+                    'referrals' => $consultation->referrals,
+                    'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
+                    'additional_notes' => $consultation->additional_notes,
+                    'has_treatment_plan' => $consultation->hasTreatmentPlan(),
+                    'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
+                    'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
+                    'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
+                    'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
+                ]
+            ]);
             
         } catch (\Exception $e) {
-            // Always return JSON for API-like requests (check headers)
-            if (request()->ajax() || request()->wantsJson() || request()->header('Accept') === 'application/json' || request()->header('X-Requested-With') === 'XMLHttpRequest') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to load consultation: ' . $e->getMessage()
-                ], 500);
-            }
-            
-            return redirect()->route('doctor.consultations')
-                ->with('error', 'Failed to load consultation: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load consultation: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -255,12 +241,32 @@ class DashboardController extends Controller
      */
     public function updateTreatmentPlan(Request $request, $id)
     {
+        \Illuminate\Support\Facades\Log::info('updateTreatmentPlan called', [
+            'consultation_id' => $id,
+            'doctor_id' => Auth::guard('doctor')->id(),
+            'request_data_keys' => array_keys($request->all())
+        ]);
+        
         try {
             $doctor = Auth::guard('doctor')->user();
             
-            $consultation = Consultation::where('id', $id)
+            $consultation = Consultation::with(['patient', 'booking'])
+                                       ->where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
+            
+            \Illuminate\Support\Facades\Log::info('Consultation found for treatment plan update', [
+                'consultation_id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'email' => $consultation->email,
+                'patient_id' => $consultation->patient_id,
+                'patient_email' => $consultation->patient->email ?? 'N/A',
+                'booking_id' => $consultation->booking_id,
+                'payer_email' => $consultation->booking->payer_email ?? 'N/A',
+                'payment_status' => $consultation->payment_status,
+                'is_paid' => $consultation->isPaid(),
+                'treatment_plan_created' => $consultation->treatment_plan_created
+            ]);
             
             // Check if it's an update or create
             $isUpdate = $consultation->treatment_plan_created;
@@ -333,22 +339,99 @@ class DashboardController extends Controller
                 'is_update' => $isUpdate
             ]);
 
-            // Only send notification email on first create, not on update
-            if (!$isUpdate) {
+            // Send payment request email when treatment plan is created/updated and payment hasn't been made
+            \Illuminate\Support\Facades\Log::info('Checking if payment request email should be sent', [
+                'consultation_id' => $consultation->id,
+                'is_paid' => $consultation->isPaid(),
+                'payment_status' => $consultation->payment_status
+            ]);
+            
+            if (!$consultation->isPaid()) {
+                \Illuminate\Support\Facades\Log::info('Consultation is not paid, proceeding to send payment request email', [
+                    'consultation_id' => $consultation->id
+                ]);
+                
                 try {
-                    Mail::to($consultation->email)->queue(new \App\Mail\TreatmentPlanReadyNotification($consultation));
-                    \Illuminate\Support\Facades\Log::info('Treatment plan ready email queued successfully', [
-                        'consultation_id' => $consultation->id,
-                        'email' => $consultation->email
-                    ]);
+                    // Determine recipient email: check multiple sources
+                    $recipientEmail = null;
+                    
+                    // 1. First try consultation email field
+                    if (!empty($consultation->email)) {
+                        $recipientEmail = $consultation->email;
+                        \Illuminate\Support\Facades\Log::info('Using consultation email for payment request', [
+                            'consultation_id' => $consultation->id,
+                            'email' => $recipientEmail
+                        ]);
+                    }
+                    // 2. Try patient relationship email
+                    elseif ($consultation->patient && !empty($consultation->patient->email)) {
+                        $recipientEmail = $consultation->patient->email;
+                        \Illuminate\Support\Facades\Log::info('Using patient email for payment request', [
+                            'consultation_id' => $consultation->id,
+                            'patient_id' => $consultation->patient_id,
+                            'email' => $recipientEmail
+                        ]);
+                    }
+                    // 3. Try booking payer email (for multi-patient bookings)
+                    elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
+                        $recipientEmail = $consultation->booking->payer_email;
+                        \Illuminate\Support\Facades\Log::info('Using payer email for payment request', [
+                            'consultation_id' => $consultation->id,
+                            'booking_id' => $consultation->booking_id,
+                            'payer_email' => $recipientEmail
+                        ]);
+                    }
+                    
+                    if ($recipientEmail) {
+                        \Illuminate\Support\Facades\Log::info('Attempting to send payment request email', [
+                            'consultation_id' => $consultation->id,
+                            'email' => $recipientEmail,
+                            'mail_driver' => config('mail.default'),
+                            'mail_host' => config('mail.mailers.smtp.host')
+                        ]);
+                        
+                        \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\PaymentRequest($consultation));
+                        
+                        \Illuminate\Support\Facades\Log::info('Payment request email sent successfully after treatment plan ' . ($isUpdate ? 'update' : 'creation'), [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $consultation->reference,
+                            'email' => $recipientEmail,
+                            'is_update' => $isUpdate
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('No email available to send payment request', [
+                            'consultation_id' => $consultation->id,
+                            'reference' => $consultation->reference,
+                            'consultation_email' => $consultation->email ?? 'null',
+                            'patient_id' => $consultation->patient_id,
+                            'patient_email' => $consultation->patient->email ?? 'null',
+                            'booking_id' => $consultation->booking_id,
+                            'payer_email' => $consultation->booking->payer_email ?? 'null'
+                        ]);
+                    }
                 } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Failed to queue treatment plan ready email', [
+                    \Illuminate\Support\Facades\Log::error('Failed to send payment request email after treatment plan ' . ($isUpdate ? 'update' : 'creation'), [
                         'consultation_id' => $consultation->id,
-                        'email' => $consultation->email,
-                        'error' => $e->getMessage()
+                        'email' => $consultation->email ?? 'N/A',
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine()
                     ]);
+                    // Don't fail the request if email fails
                 }
+            } else {
+                \Illuminate\Support\Facades\Log::info('Skipping payment request email - consultation already paid', [
+                    'consultation_id' => $consultation->id,
+                    'payment_status' => $consultation->payment_status,
+                    'is_paid' => $consultation->isPaid()
+                ]);
             }
+            
+            \Illuminate\Support\Facades\Log::info('Treatment plan update completed successfully', [
+                'consultation_id' => $consultation->id,
+                'is_update' => $isUpdate
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -359,11 +442,25 @@ class DashboardController extends Controller
                 'is_update' => $isUpdate
             ]);
             
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::error('Validation failed for treatment plan update', [
+                'consultation_id' => $id,
+                'errors' => $e->errors()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to save treatment plan', [
                 'consultation_id' => $id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
             
             return response()->json([
@@ -481,8 +578,62 @@ class DashboardController extends Controller
         $doctor = Auth::guard('doctor')->user();
         $bankAccounts = $doctor->bankAccounts()->latest()->get();
         $defaultAccount = $doctor->defaultBankAccount;
+        $banks = \App\Models\Bank::getActiveBanks();
 
-        return view('doctor.bank-accounts', compact('bankAccounts', 'defaultAccount'));
+        return view('doctor.bank-accounts', compact('bankAccounts', 'defaultAccount', 'banks'));
+    }
+
+    /**
+     * Verify bank account with KoraPay (AJAX endpoint)
+     */
+    public function verifyBankAccount(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'bank_code' => 'required|string|max:10',
+                'account_number' => 'required|string|max:20',
+            ]);
+
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $verification = $payoutService->verifyBankAccount(
+                $validated['bank_code'],
+                $validated['account_number']
+            );
+
+            if ($verification['success']) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $verification['data'],
+                    'message' => $verification['message'] ?? 'Bank account verified successfully'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $verification['message'] ?? 'Bank account verification failed'
+                ], 400);
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages = array_merge($errorMessages, $messages);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', $errorMessages)
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Bank account verification failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Verification failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -494,33 +645,153 @@ class DashboardController extends Controller
             $doctor = Auth::guard('doctor')->user();
 
             $validated = $request->validate([
-                'bank_name' => 'required|string|max:255',
+                'bank_id' => 'required|exists:banks,id',
                 'account_name' => 'required|string|max:255',
                 'account_number' => 'required|string|max:20',
                 'account_type' => 'nullable|string|max:50',
-                'bank_code' => 'nullable|string|max:10',
                 'swift_code' => 'nullable|string|max:20',
                 'notes' => 'nullable|string|max:500',
             ]);
 
-            // Check if this is the first bank account
-            $isFirstAccount = !$doctor->bankAccounts()->exists();
+            // Get bank details
+            $bank = \App\Models\Bank::findOrFail($validated['bank_id']);
 
-            $bankAccount = $doctor->bankAccounts()->create([
-                ...$validated,
-                'is_default' => $isFirstAccount, // First account becomes default
-                'is_verified' => false,
+            // Check if this bank account already exists for this doctor (including soft-deleted)
+            $existingAccount = \App\Models\DoctorBankAccount::withTrashed()
+                ->where('doctor_id', $doctor->id)
+                ->where('account_number', $validated['account_number'])
+                ->where('bank_code', $bank->code)
+                ->first();
+
+            if ($existingAccount) {
+                if ($existingAccount->trashed()) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'This bank account was previously added and deleted. Please contact support if you need to restore it.');
+                }
+                
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'This bank account has already been added to your account. Please use a different account number or edit the existing account.');
+            }
+
+            // Verify account with KoraPay before saving
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $verification = $payoutService->verifyBankAccount(
+                $bank->code,
+                $validated['account_number']
+            );
+
+            if (!$verification['success']) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Bank account verification failed: ' . $verification['message'] . '. Please check your account number and try again.');
+            }
+
+            // Extract account name from verification if available
+            $verifiedAccountName = $verification['data']['account_name'] ?? $validated['account_name'];
+
+            // Check if this is the first bank account (excluding soft-deleted)
+            $isFirstAccount = !$doctor->bankAccounts()->exists();
+            
+            // Use database transaction to ensure atomicity
+            \DB::beginTransaction();
+            try {
+                // Always unset any existing default accounts first (including soft-deleted)
+                // Since we've removed the problematic unique constraint, we can safely update all defaults
+                \DB::table('doctor_bank_accounts')
+                    ->where('doctor_id', $doctor->id)
+                    ->where('is_default', true)
+                    ->update(['is_default' => false]);
+
+                $bankAccount = $doctor->bankAccounts()->create([
+                    'bank_name' => $bank->name,
+                    'bank_code' => $bank->code,
+                    'account_name' => $verifiedAccountName,
+                    'account_number' => $validated['account_number'],
+                    'account_type' => $validated['account_type'] ?? null,
+                    'swift_code' => $validated['swift_code'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                    'is_default' => $isFirstAccount,
+                    'is_verified' => true, // Auto-verified since KoraPay verified it
+                    'verified_at' => now(),
+                ]);
+
+                \DB::commit();
+            } catch (QueryException $e) {
+                \DB::rollBack();
+                
+                // Handle specific database constraint violations
+                if ($e->getCode() === '23000') {
+                    $errorMessage = $e->getMessage();
+                    
+                    // Check for unique constraint violations
+                    if (str_contains($errorMessage, 'unique_default_bank_per_doctor')) {
+                        \Log::error('Bank account unique constraint violation', [
+                            'doctor_id' => $doctor->id,
+                            'error' => $errorMessage
+                        ]);
+                        
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Unable to add bank account. There was a conflict with your existing accounts. Please try again or contact support if the issue persists.');
+                    }
+                    
+                    // Generic duplicate entry error
+                    if (str_contains($errorMessage, 'Duplicate entry')) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'This bank account already exists in your account. Please use a different account number or edit the existing account.');
+                    }
+                }
+                
+                // Re-throw if it's not a constraint violation we can handle
+                throw $e;
+            } catch (\Exception $e) {
+                \DB::rollBack();
+                throw $e;
+            }
+
+            return redirect()->back()->with('success', 'Bank account added and verified successfully! You can now receive payments.');
+
+        } catch (QueryException $e) {
+            \Log::error('Failed to add bank account - Database error', [
+                'doctor_id' => Auth::guard('doctor')->id(),
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
             ]);
 
-            return redirect()->back()->with('success', 'Bank account added successfully! It will be verified by admin.');
+            // Handle database constraint violations with friendly messages
+            if ($e->getCode() === '23000') {
+                $errorMessage = $e->getMessage();
+                
+                if (str_contains($errorMessage, 'unique_default_bank_per_doctor')) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Unable to add bank account. There was a conflict with your existing accounts. Please try again or contact support if the issue persists.');
+                }
+                
+                if (str_contains($errorMessage, 'Duplicate entry')) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'This bank account already exists in your account. Please use a different account number or edit the existing account.');
+                }
+            }
 
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Unable to add bank account at this time. Please try again later or contact support if the problem continues.');
+                
         } catch (\Exception $e) {
             \Log::error('Failed to add bank account', [
                 'doctor_id' => Auth::guard('doctor')->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            return redirect()->back()->with('error', 'Failed to add bank account: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Unable to add bank account at this time. Please try again later or contact support if the problem continues.');
         }
     }
 

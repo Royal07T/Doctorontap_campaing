@@ -103,28 +103,71 @@
 
                         <!-- Bank Accounts -->
                         <div class="bg-white rounded-lg shadow-sm p-6">
-                            <h2 class="text-lg font-bold text-gray-800 mb-4">Bank Accounts</h2>
+                            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-between">
+                                <span>Bank Accounts</span>
+                                @if($doctor->bankAccounts->where('is_verified', false)->count() > 0)
+                                    <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-semibold">
+                                        {{ $doctor->bankAccounts->where('is_verified', false)->count() }} Pending
+                                    </span>
+                                @endif
+                            </h2>
                             @forelse($doctor->bankAccounts as $account)
-                                <div class="mb-4 p-4 border rounded-lg {{ $account->is_default ? 'border-purple-500 bg-purple-50' : 'border-gray-200' }}">
-                                    @if($account->is_default)
-                                        <span class="inline-block bg-purple-600 text-white text-xs px-2 py-1 rounded-full mb-2">DEFAULT</span>
-                                    @endif
-                                    <h3 class="font-semibold text-gray-800">{{ $account->bank_name }}</h3>
-                                    <p class="text-sm text-gray-600 mt-1">{{ $account->account_name }}</p>
-                                    <p class="text-sm text-gray-600">{{ $account->masked_account_number }}</p>
-                                    @if($account->is_verified)
-                                        <span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-2">✓ Verified</span>
-                                    @else
-                                        <div class="mt-2">
-                                            <span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Pending</span>
-                                            <button onclick="verifyBankAccount({{ $account->id }})" class="ml-2 text-xs text-purple-600 hover:text-purple-800 font-semibold">
+                                <div class="mb-4 p-4 border-2 rounded-lg {{ $account->is_default ? 'border-purple-500 bg-purple-50' : ($account->is_verified ? 'border-gray-200' : 'border-yellow-300 bg-yellow-50') }}">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            @if($account->is_default)
+                                                <span class="inline-block bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-semibold">DEFAULT</span>
+                                            @endif
+                                            @if($account->is_verified)
+                                                <span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-semibold">✓ Verified</span>
+                                            @else
+                                                <span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-semibold">⚠ Pending Verification</span>
+                                            @endif
+                                        </div>
+                                        @if(!$account->is_verified)
+                                            <button onclick="verifyBankAccount({{ $account->id }})" 
+                                                    class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-all">
                                                 Verify Now
                                             </button>
-                                        </div>
-                                    @endif
+                                        @endif
+                                    </div>
+                                    <h3 class="font-semibold text-gray-800 text-lg mb-2">{{ $account->bank_name }}</h3>
+                                    <div class="space-y-1 text-sm">
+                                        <p class="text-gray-700">
+                                            <span class="font-medium">Account Name:</span> 
+                                            <span class="text-gray-900">{{ $account->account_name }}</span>
+                                        </p>
+                                        <p class="text-gray-700">
+                                            <span class="font-medium">Account Number:</span> 
+                                            <span class="text-gray-900 font-mono">{{ $account->account_number }}</span>
+                                        </p>
+                                        <p class="text-gray-700">
+                                            <span class="font-medium">Account Type:</span> 
+                                            <span class="text-gray-900 capitalize">{{ $account->account_type ?? 'N/A' }}</span>
+                                        </p>
+                                        @if($account->bank_code)
+                                        <p class="text-gray-700">
+                                            <span class="font-medium">Bank Code:</span> 
+                                            <span class="text-gray-900">{{ $account->bank_code }}</span>
+                                        </p>
+                                        @endif
+                                        @if($account->verified_at)
+                                        <p class="text-xs text-gray-500 mt-2">
+                                            Verified on: {{ $account->verified_at->format('M d, Y H:i') }}
+                                            @if($account->verifiedBy)
+                                                by {{ $account->verifiedBy->name }}
+                                            @endif
+                                        </p>
+                                        @endif
+                                    </div>
                                 </div>
                             @empty
-                                <p class="text-gray-500 text-sm">No bank accounts added yet</p>
+                                <div class="text-center py-8">
+                                    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                    <p class="text-gray-500 text-sm">No bank accounts added yet</p>
+                                </div>
                             @endforelse
                         </div>
                     </div>
@@ -249,31 +292,51 @@
 
     <script>
         function verifyBankAccount(accountId) {
-            CustomAlert.confirm('Are you sure you want to verify this bank account?', () => {
-                fetch(`/admin/doctors/bank-accounts/${accountId}/verify`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        CustomAlert.success(data.message);
-                        location.reload();
-                    } else {
-                        CustomAlert.error('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    CustomAlert.error('An error occurred. Please try again.');
-                    console.error(error);
+            // Use custom confirm modal
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal('Are you sure you want to verify this bank account?', () => {
+                    performVerification(accountId);
                 });
+            }
+        }
+
+        function performVerification(accountId) {
+            fetch(`/admin/doctors/bank-accounts/${accountId}/verify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Use custom alert modal
+                    if (typeof showAlertModal === 'function') {
+                        showAlertModal(data.message, 'success', 'Success');
+                        // Reload after a short delay to show the success message
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    }
+                } else {
+                    // Use custom alert modal for errors
+                    if (typeof showAlertModal === 'function') {
+                        showAlertModal('Error: ' + data.message, 'error', 'Error');
+                    }
+                }
+            })
+            .catch(error => {
+                // Use custom alert modal for errors
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal('An error occurred. Please try again.', 'error', 'Error');
+                }
+                console.error(error);
             });
         }
     </script>
-    @include('components.custom-alert-modal')
+
+    @include('components.alert-modal')
 </body>
 </html>
 

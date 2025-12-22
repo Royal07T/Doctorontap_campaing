@@ -25,6 +25,17 @@ use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordCo
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
+use Illuminate\Support\Facades\File;
+
+// Service Worker Route - Handle both /sw.js and /service-worker.js
+Route::get('/service-worker.js', function () {
+    $swPath = public_path('sw.js');
+    if (File::exists($swPath)) {
+        return response(File::get($swPath), 200)
+            ->header('Content-Type', 'application/javascript');
+    }
+    abort(404);
+});
 
 Route::get('/', [ConsultationController::class, 'index'])->name('consultation.index');
 Route::post('/submit', [ConsultationController::class, 'store'])->middleware('rate.limit:consultation,10,1');
@@ -74,6 +85,11 @@ Route::prefix('payment')->group(function () {
         ->middleware('verify.korapay.webhook')
         ->name('payment.webhook');
     
+    // Payout webhook endpoint for doctor payments
+    Route::post('/payout-webhook', [PaymentController::class, 'payoutWebhook'])
+        ->middleware('verify.korapay.webhook')
+        ->name('payment.payout-webhook');
+    
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
@@ -119,12 +135,17 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
     Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
     Route::post('/consultation/{id}/reassign-doctor', [DashboardController::class, 'reassignDoctor'])->name('consultation.reassign-doctor');
+    Route::post('/consultation/{id}/query-doctor', [DashboardController::class, 'queryDoctor'])->name('consultation.query-doctor');
     Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
     Route::post('/consultation/{id}/mark-payment-paid', [DashboardController::class, 'markPaymentAsPaid'])->name('consultation.mark-payment-paid');
     Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
     Route::post('/consultations/{id}/resend-treatment-plan', [DashboardController::class, 'resendTreatmentPlan'])->name('consultation.resend-treatment-plan');
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
+    
+    // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
+    Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
+    Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
     Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
     Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
@@ -146,6 +167,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     // Settings
     Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
     Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
     
     // Admin Users Management
     Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
@@ -191,7 +213,11 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
     Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
     Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
+    Route::get('/doctor-payments/{id}/details', [DashboardController::class, 'getPaymentDetails'])->name('doctor-payments.details');
     Route::post('/doctor-payments', [DashboardController::class, 'createDoctorPayment'])->name('doctor-payments.create');
+    Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
+    Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
+    Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
     Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
     Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
 });
@@ -318,6 +344,8 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     
     // Bank Account Management
     Route::get('/bank-accounts', [DoctorDashboardController::class, 'bankAccounts'])->name('bank-accounts');
+    Route::get('/banks', [DoctorDashboardController::class, 'getBanks'])->name('banks.list');
+    Route::post('/banks/verify-account', [DoctorDashboardController::class, 'verifyBankAccount'])->name('banks.verify-account');
     Route::post('/bank-accounts', [DoctorDashboardController::class, 'storeBankAccount'])->name('bank-accounts.store');
     Route::put('/bank-accounts/{id}', [DoctorDashboardController::class, 'updateBankAccount'])->name('bank-accounts.update');
     Route::post('/bank-accounts/{id}/set-default', [DoctorDashboardController::class, 'setDefaultBankAccount'])->name('bank-accounts.set-default');

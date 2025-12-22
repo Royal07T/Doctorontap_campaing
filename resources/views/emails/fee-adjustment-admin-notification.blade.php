@@ -7,6 +7,7 @@
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: #dc2626; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" style="max-width: 150px; height: auto; margin: 0 auto 15px auto; display: block;">
         <h1 style="color: white; margin: 0; font-size: 24px;">🔔 Fee Adjustment Alert</h1>
         <p style="color: white; margin: 5px 0 0 0;">Audit & Accounting Notification</p>
     </div>
@@ -65,10 +66,6 @@
             <p style="margin: 0; color: #92400e;">
                 <strong>📝 Action Required:</strong> Review this adjustment and verify it's appropriate for your accounting records.
             </p>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="{{ url('/admin/bookings/' . $booking->id) }}" style="display: inline-block; background: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Booking Details</a>
         </div>
         
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">

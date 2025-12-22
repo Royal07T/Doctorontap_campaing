@@ -59,10 +59,46 @@
                 <div class="bg-white rounded-xl shadow-md p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-2xl font-bold text-gray-900">Patient Information</h2>
+                        <div class="flex items-center gap-2">
+                            @if($consultation->is_multi_patient_booking && $consultation->booking)
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-800" title="Multi-Patient Booking">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    Multi-Patient
+                                </span>
+                            @endif
                         <span class="px-4 py-2 bg-purple-100 text-purple-800 rounded-lg font-mono text-sm font-bold">
                             {{ $consultation->reference }}
                         </span>
+                        </div>
                     </div>
+                    
+                    @if($consultation->is_multi_patient_booking && $consultation->booking)
+                    <!-- Multi-Patient Booking Info -->
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-2">Multi-Patient Booking Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="font-medium text-gray-700">Booking Reference:</span>
+                                <p class="text-gray-900 font-mono">{{ $consultation->booking->reference }}</p>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Payer:</span>
+                                <p class="text-gray-900">{{ $consultation->booking->payer_name }}</p>
+                                <p class="text-xs text-gray-600">{{ $consultation->booking->payer_email }}</p>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Total Patients:</span>
+                                <p class="text-gray-900">{{ $consultation->booking->bookingPatients->count() }}</p>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Total Amount:</span>
+                                <p class="text-gray-900 font-semibold">₦{{ number_format($consultation->booking->total_adjusted_amount, 2) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -71,7 +107,10 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Email</label>
-                            <p class="text-lg text-gray-900">{{ $consultation->email }}</p>
+                            <p class="text-lg text-gray-900">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
+                            @if($consultation->is_multi_patient_booking && !$consultation->email)
+                                <p class="text-xs text-blue-600 mt-1">Using payer email (patient email not provided)</p>
+                            @endif
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-600 mb-1">Mobile</label>
@@ -184,7 +223,34 @@
 
                 <!-- Doctor Information -->
                 <div class="bg-white rounded-xl shadow-md p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Doctor Information</h2>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-gray-900">Doctor Information</h2>
+                        @if($consultation->doctor)
+                        <div class="flex gap-2">
+                            @if($consultation->status === 'scheduled' || ($consultation->status === 'pending' && $consultation->doctor))
+                            <button @click="queryDoctor()" 
+                                    :disabled="isQuerying"
+                                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                                <svg x-show="!isQuerying" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <svg x-show="isQuerying" class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-text="isQuerying ? 'Sending...' : 'Query Doctor'"></span>
+                            </button>
+                            @endif
+                            <button @click="showReassignModal = true" 
+                                    class="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Reassign Doctor
+                            </button>
+                        </div>
+                        @endif
+                    </div>
                     
                     @if($consultation->doctor)
                     <div class="flex items-start space-x-4">
@@ -213,6 +279,13 @@
                     </div>
                     @else
                     <p class="text-gray-600">No specific doctor assigned - Any available doctor</p>
+                    <button @click="showReassignModal = true" 
+                            class="mt-4 inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        Assign Doctor
+                    </button>
                     @endif
                 </div>
 
@@ -415,9 +488,6 @@
                     </p>
                 </div>
                 @endif
-
-                {{-- DELIVERY TRACKING: Shows if emails/SMS were delivered --}}
-                @include('components.notification-delivery-status', ['consultation' => $consultation])
 
                 <!-- Timestamps -->
                 <div class="bg-white rounded-xl shadow-md p-6">
@@ -645,6 +715,73 @@
         </div>
     </div>
 
+    <!-- Reassign Doctor Modal -->
+    <div x-show="showReassignModal" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         @keydown.escape.window="showReassignModal = false">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="modal-backdrop fixed inset-0" @click="showReassignModal = false"></div>
+            
+            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-90"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-90">
+                
+                <!-- Icon -->
+                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100">
+                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+
+                <!-- Content -->
+                <div class="text-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Reassign Doctor</h3>
+                    <p class="text-gray-600">
+                        Current: <span class="font-semibold">{{ $consultation->doctor ? $consultation->doctor->full_name : 'No Doctor' }}</span>
+                    </p>
+                </div>
+
+                <!-- Doctor Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Select New Doctor</label>
+                    <select x-model="selectedDoctorId" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                        <option value="">-- Select a doctor --</option>
+                        @foreach($doctors as $doctor)
+                        <option value="{{ $doctor->id }}">{{ $doctor->full_name }} - {{ $doctor->specialization ?? 'General' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex space-x-3">
+                    <button @click="showReassignModal = false; selectedDoctorId = ''"
+                            :disabled="isReassigning"
+                            class="flex-1 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-all disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button @click="doReassignDoctor()"
+                            :disabled="isReassigning || !selectedDoctorId"
+                            class="flex-1 px-6 py-3 purple-gradient text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center">
+                        <svg x-show="!isReassigning" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <svg x-show="isReassigning" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="isReassigning ? 'Reassigning...' : 'Reassign'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -670,6 +807,10 @@
                 paymentReference: '',
                 adminNotes: '',
                 isMarkingPaid: false,
+                showReassignModal: false,
+                selectedDoctorId: '',
+                isReassigning: false,
+                isQuerying: false,
                 
                 showMessage(type, title, text) {
                     this.messageType = type;
@@ -838,6 +979,67 @@
                 
                 forwardTreatmentPlan() {
                     this.showConfirm('Forward Treatment Plan', 'Send treatment plan to {{ $consultation->email }}?', () => this.doForwardTreatmentPlan());
+                },
+                
+                async queryDoctor() {
+                    this.showConfirm('Query Doctor', 'Send urgent delay query notification to Dr. {{ $consultation->doctor ? $consultation->doctor->full_name : "Doctor" }}? This will notify them that they are late for the appointment.', () => this.doQueryDoctor());
+                },
+                
+                async doQueryDoctor() {
+                    this.isQuerying = true;
+                    try {
+                        const response = await fetch('/admin/consultation/{{ $consultation->id }}/query-doctor', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showMessage('success', 'Success!', data.message || 'Urgent delay query notification sent to doctor successfully');
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to send delay query notification');
+                        }
+                    } catch (error) {
+                        this.showMessage('error', 'Error', 'An error occurred while sending the delay query. Please try again.');
+                    } finally {
+                        this.isQuerying = false;
+                    }
+                },
+                
+                async doReassignDoctor() {
+                    if (!this.selectedDoctorId) {
+                        this.showMessage('error', 'Error', 'Please select a doctor');
+                        return;
+                    }
+                    
+                    this.isReassigning = true;
+                    try {
+                        const response = await fetch('/admin/consultation/{{ $consultation->id }}/reassign-doctor', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({ doctor_id: this.selectedDoctorId })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showReassignModal = false;
+                            this.selectedDoctorId = '';
+                            this.showMessage('success', 'Success!', data.message || 'Doctor reassigned successfully');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to reassign doctor');
+                        }
+                    } catch (error) {
+                        this.showMessage('error', 'Error', 'An error occurred while reassigning doctor. Please try again.');
+                    } finally {
+                        this.isReassigning = false;
+                    }
                 }
             }
         }

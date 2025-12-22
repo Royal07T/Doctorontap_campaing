@@ -33,6 +33,12 @@ class DoctorPayment extends Model
         'consultation_ids',
         'period_from',
         'period_to',
+        'korapay_reference',
+        'korapay_status',
+        'korapay_fee',
+        'korapay_response',
+        'payout_initiated_at',
+        'payout_completed_at',
     ];
 
     protected $casts = [
@@ -41,8 +47,12 @@ class DoctorPayment extends Model
         'platform_percentage' => 'decimal:2',
         'doctor_amount' => 'decimal:2',
         'platform_fee' => 'decimal:2',
+        'korapay_fee' => 'decimal:2',
         'paid_at' => 'datetime',
+        'payout_initiated_at' => 'datetime',
+        'payout_completed_at' => 'datetime',
         'consultation_ids' => 'array',
+        'korapay_response' => 'array',
         'period_from' => 'date',
         'period_to' => 'date',
     ];

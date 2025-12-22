@@ -166,19 +166,30 @@
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered:', registration.scope);
-                        
-                        // Check for updates periodically
-                        setInterval(() => {
-                            registration.update();
-                        }, 60000); // Check every minute
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
+            window.addEventListener('load', async () => {
+                try {
+                    // Unregister any existing service workers from different origins
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        const currentOrigin = window.location.origin;
+                        const swOrigin = new URL(registration.scope).origin;
+                        if (swOrigin !== currentOrigin) {
+                            console.log('Unregistering service worker from different origin:', swOrigin);
+                            await registration.unregister();
+                        }
+                    }
+                    
+                    // Register service worker for current origin
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('ServiceWorker registered:', registration.scope);
+                    
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+                } catch (error) {
+                    console.log('ServiceWorker registration failed:', error);
+                }
             });
             
             // Handle service worker updates

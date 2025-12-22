@@ -132,7 +132,7 @@
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap">
+            <img src="{{ email_logo_inline() }}" alt="DoctorOnTap">
             <h1>Payment Unsuccessful</h1>
         </div>
 

@@ -177,7 +177,9 @@
             e.preventDefault();
             
             if (!selectedRating) {
-                CustomAlert.warning('Please select a rating');
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal('Please select a rating', 'error');
+                }
                 return;
             }
 
@@ -208,7 +210,9 @@
                     document.getElementById('reviewForm').classList.add('hidden');
                     document.getElementById('successMessage').classList.remove('hidden');
                 } else {
-                    CustomAlert.error(data.message || 'Failed to submit review');
+                    if (typeof showAlertModal === 'function') {
+                        showAlertModal(data.message || 'Failed to submit review', 'error');
+                    }
                     submitBtn.disabled = false;
                     btnText.classList.remove('hidden');
                     btnLoading.classList.add('hidden');
@@ -216,14 +220,17 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                CustomAlert.error('An error occurred. Please try again.');
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal('An error occurred. Please try again.', 'error');
+                }
                 submitBtn.disabled = false;
                 btnText.classList.remove('hidden');
                 btnLoading.classList.add('hidden');
             });
         });
     </script>
-    @include('components.custom-alert-modal')
+
+    @include('components.alert-modal')
 </body>
 </html>
 

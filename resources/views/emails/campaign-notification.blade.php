@@ -112,7 +112,7 @@
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" style="height: 50px; width: auto; margin: 0 auto 15px auto; display: block;">
+            <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" style="height: 50px; width: auto; margin: 0 auto 15px auto; display: block;">
             <div class="icon">🚀</div>
             <h1>Campaign Alert!</h1>
             <p>Important Update for Our Medical Team</p>

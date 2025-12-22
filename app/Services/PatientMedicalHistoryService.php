@@ -363,8 +363,7 @@ class PatientMedicalHistoryService
      * The latest record is updated with the most current information from the treatment plan
      */
     protected function updateConsolidatedPatientRecord(Patient $patient, Consultation $consultation): void
-    {
-        // The medical history record is already updated in syncConsultationToHistory
+    {        // The medical history record is already updated in syncConsultationToHistory
         // This method logs the update for tracking purposes
         $latestHistory = PatientMedicalHistory::where('patient_id', $patient->id)
             ->where('consultation_id', $consultation->id)

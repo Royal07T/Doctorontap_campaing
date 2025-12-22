@@ -458,10 +458,14 @@ document.getElementById('blockIpForm').addEventListener('submit', function(e) {
     })
     .then(data => {
         if (data.success) {
-            CustomAlert.success(data.message);
+            if (typeof showAlertModal === 'function') {
+                showAlertModal(data.message, 'success');
+            }
             closeBlockModal();
         } else {
-            CustomAlert.error('Error: ' + data.message);
+            if (typeof showAlertModal === 'function') {
+                showAlertModal('Error: ' + data.message, 'error');
+            }
         }
     });
 });
@@ -469,9 +473,10 @@ document.getElementById('blockIpForm').addEventListener('submit', function(e) {
 // Auto-refresh every 30 seconds
 setInterval(refreshData, 30000);
 </script>
+    <!-- Include Alert Modal Component -->
+    @include('components.alert-modal')
             </main>
         </div>
     </div>
-    @include('components.custom-alert-modal')
 </body>
 </html>

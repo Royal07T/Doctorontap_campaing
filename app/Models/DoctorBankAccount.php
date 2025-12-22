@@ -56,6 +56,14 @@ class DoctorBankAccount extends Model
     }
 
     /**
+     * Get the bank details using bank_code
+     */
+    public function bank()
+    {
+        return $this->belongsTo(Bank::class, 'bank_code', 'code');
+    }
+
+    /**
      * Scope to get only verified bank accounts
      */
     public function scopeVerified($query)

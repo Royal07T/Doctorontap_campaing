@@ -256,6 +256,44 @@ class ConsultationSmsNotification
     }
 
     /**
+     * Send delay query SMS to doctor (Admin-initiated)
+     *
+     * @param \App\Models\Doctor $doctor
+     * @param array $consultationData Consultation information
+     * @return array Result of SMS sending
+     */
+    public function sendDelayQuerySms($doctor, array $consultationData): array
+    {
+        if (!$doctor || empty($doctor->phone)) {
+            return $this->logAndReturnError(
+                'Cannot send delay query SMS: No phone number',
+                [
+                    'doctor_id' => $doctor->id ?? null,
+                    'consultation_reference' => $consultationData['consultation_reference'] ?? 'N/A'
+                ],
+                'No doctor phone number provided'
+            );
+        }
+
+        $doctorName = $doctor->first_name ?? $doctor->name ?? 'Doctor';
+        $patientName = ($consultationData['first_name'] ?? 'Patient') . ' ' . ($consultationData['last_name'] ?? '');
+        $reference = $consultationData['consultation_reference'] ?? 'N/A';
+
+        $message = $this->getDelayQueryTemplate($doctorName, $patientName, $reference);
+        
+        return $this->sendSmsWithLogging(
+            $doctor->phone,
+            $message,
+            'delay_query',
+            [
+                'doctor_id' => $doctor->id,
+                'doctor_phone' => $doctor->phone,
+                'consultation_reference' => $reference
+            ]
+        );
+    }
+
+    /**
      * Get doctor new consultation SMS template
      *
      * @param string $doctorName
@@ -273,6 +311,19 @@ class ConsultationSmsNotification
         string $reference
     ): string {
         return "Dr. {$doctorName}, new consultation assigned! Patient: {$patientName}, Severity: {$severity}, Mode: {$mode}, Ref: {$reference}. Check your dashboard. - DoctorOnTap";
+    }
+
+    /**
+     * Get delay query SMS template
+     *
+     * @param string $doctorName
+     * @param string $patientName
+     * @param string $reference
+     * @return string
+     */
+    protected function getDelayQueryTemplate(string $doctorName, string $patientName, string $reference): string
+    {
+        return "URGENT: Dr. {$doctorName}, you are late for appointment. Patient: {$patientName}, Ref: {$reference}. Please initiate consultation immediately or update status. Check your dashboard now! - DoctorOnTap";
     }
 
     // ========================================

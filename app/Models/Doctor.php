@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Doctor extends Authenticatable implements MustVerifyEmail
 {
     use Notifiable, SoftDeletes, Auditable;
+    
+    protected $appends = ['average_rating', 'total_reviews', 'full_name', 'effective_consultation_fee'];
 
     protected $fillable = [
         'name',
@@ -244,6 +246,21 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     public function scopeOrdered($query)
     {
         return $query->orderBy('order', 'asc');
+    }
+
+    /**
+     * Scope to get only General Practitioner/General Practice doctors
+     * This is used for patient-facing views where only GP doctors should be shown
+     */
+    public function scopeGeneralPractitioner($query)
+    {
+        return $query->where(function($q) {
+            $q->whereRaw('LOWER(specialization) LIKE ?', ['%general practitioner%'])
+              ->orWhereRaw('LOWER(specialization) LIKE ?', ['%general practice%'])
+              ->orWhereRaw('LOWER(specialization) = ?', ['gp'])
+              ->orWhereRaw('LOWER(specialization) = ?', ['general practitioner'])
+              ->orWhereRaw('LOWER(specialization) = ?', ['general practice']);
+        });
     }
 
     /**

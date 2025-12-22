@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\Payment;
 use App\Models\Doctor;
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
-use App\Mail\TreatmentPlanNotification;
 use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
@@ -71,7 +71,7 @@ class DashboardController extends Controller
      */
     public function consultations(Request $request)
     {
-        $query = Consultation::with(['doctor', 'payment', 'canvasser', 'nurse']);
+        $query = Consultation::with(['doctor', 'payment', 'canvasser', 'nurse', 'booking']);
 
         // Filter by status
         if ($request->has('status') && $request->status != '') {
@@ -81,6 +81,29 @@ class DashboardController extends Controller
         // Filter by payment status
         if ($request->has('payment_status') && $request->payment_status != '') {
             $query->where('payment_status', $request->payment_status);
+        }
+        
+        // Filter by doctor
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+        
+        // Filter by canvasser
+        if ($request->filled('canvasser_id')) {
+            $query->where('canvasser_id', $request->canvasser_id);
+        }
+        
+        // Filter by nurse
+        if ($request->filled('nurse_id')) {
+            $query->where('nurse_id', $request->nurse_id);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
 
         // Search
@@ -116,12 +139,15 @@ class DashboardController extends Controller
         // Get all nurses for assignment dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
         
-        // Get all available doctors for reassignment dropdown
+        // Get all available doctors for reassignment dropdown  
         $doctors = Doctor::where('is_available', true)
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
+        
+        // Get all canvassers for filter dropdown
+        $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.consultations', compact('consultations', 'nurses', 'doctors'));
+        return view('admin.consultations', compact('consultations', 'nurses', 'doctors', 'canvassers'));
     }
 
     /**
@@ -166,11 +192,32 @@ class DashboardController extends Controller
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
         }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        // Filter by canvasser
+        if ($request->filled('canvasser_id')) {
+            $query->where('canvasser_id', $request->canvasser_id);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
         // Get all patients, grouped by email to avoid duplicates in view
         $patients = $query->latest()->paginate(20);
+        
+        // Get canvassers for filter dropdown
+        $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.patients', compact('patients'));
+        return view('admin.patients', compact('patients', 'canvassers'));
     }
 
     /**
@@ -179,12 +226,17 @@ class DashboardController extends Controller
     public function showConsultation($id)
     {
         // Admins can view all consultations (no filtering needed)
-        $consultation = Consultation::with(['doctor', 'payment'])->findOrFail($id);
+        $consultation = Consultation::with(['doctor', 'payment', 'booking.bookingPatients.patient', 'booking.invoice.items'])->findOrFail($id);
         
         // Log viewing for HIPAA compliance
         $consultation->logViewed();
         
-        return view('admin.consultation-details', compact('consultation'));
+        // Get available doctors for reassignment
+        $doctors = Doctor::where('is_available', true)
+            ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
+            ->get();
+        
+        return view('admin.consultation-details', compact('consultation', 'doctors'));
     }
 
     /**
@@ -320,6 +372,100 @@ class DashboardController extends Controller
     }
 
     /**
+     * Query doctor about delayed consultation (Admin-initiated)
+     */
+    public function queryDoctor($id)
+    {
+        $consultation = Consultation::with('doctor')->findOrFail($id);
+
+        // Validate that consultation has a doctor assigned
+        if (!$consultation->doctor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No doctor assigned to this consultation'
+            ], 400);
+        }
+
+        // Validate that consultation is scheduled but not completed
+        if ($consultation->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Consultation is already completed'
+            ], 400);
+        }
+
+        $doctor = $consultation->doctor;
+
+        // Prepare notification data
+        $notificationData = [
+            'consultation_reference' => $consultation->reference,
+            'first_name' => $consultation->first_name,
+            'last_name' => $consultation->last_name,
+            'email' => $consultation->email,
+            'mobile' => $consultation->mobile,
+            'age' => $consultation->age,
+            'gender' => $consultation->gender,
+            'problem' => $consultation->problem,
+            'severity' => $consultation->severity,
+            'consult_mode' => $consultation->consult_mode,
+            'doctor' => $doctor->full_name,
+            'doctor_fee' => $doctor->effective_consultation_fee ?? 0,
+            'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
+            'has_documents' => !empty($consultation->medical_documents),
+            'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
+        ];
+
+        // Send urgent email notification
+        try {
+            \Mail::to($doctor->email)->send(new \App\Mail\DelayQueryNotification($notificationData));
+            \Log::info('Delay query notification sent to doctor', [
+                'consultation_id' => $consultation->id,
+                'consultation_reference' => $consultation->reference,
+                'doctor_id' => $doctor->id,
+                'doctor_email' => $doctor->email
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send delay query notification to doctor', [
+                'consultation_id' => $consultation->id,
+                'doctor_id' => $doctor->id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send notification: ' . $e->getMessage()
+            ], 500);
+        }
+
+        // Send SMS notification if available
+        if ($doctor->phone) {
+            try {
+                $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+                $smsResult = $smsNotification->sendDelayQuerySms($doctor, $notificationData);
+                
+                if ($smsResult['success']) {
+                    \Log::info('Delay query SMS sent to doctor', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctor->id,
+                        'doctor_phone' => $doctor->phone
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send delay query SMS to doctor', [
+                    'consultation_id' => $consultation->id,
+                    'doctor_id' => $doctor->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the request if SMS fails
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Urgent delay query notification sent to Dr. ' . $doctor->full_name . ' successfully'
+        ]);
+    }
+
+    /**
      * Send payment request to patient
      */
     public function sendPaymentRequest($id)
@@ -378,11 +524,11 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        // Send treatment plan notification email
+        // Send payment request email
         try {
-            Mail::to($consultation->email)->queue(new TreatmentPlanNotification($consultation));
+            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
             
-            \Log::info('Treatment plan manually forwarded by admin', [
+            \Log::info('Payment request manually forwarded by admin', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
                 'email' => $consultation->email
@@ -390,7 +536,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Treatment plan sent successfully to ' . $consultation->email
+                'message' => 'Payment request sent successfully to ' . $consultation->email
             ]);
         } catch (\Exception $e) {
             \Log::error('Failed to manually forward treatment plan', [
@@ -428,10 +574,10 @@ class DashboardController extends Controller
 
         // Send Email
         try {
-            Mail::to($consultation->email)->send(new TreatmentPlanNotification($consultation));
+            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
             $results['email'] = ['sent' => true, 'message' => 'Email sent successfully'];
             
-            \Log::info('Treatment plan email resent by admin', [
+            \Log::info('Payment request email resent by admin', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
                 'email' => $consultation->email,
@@ -550,11 +696,11 @@ class DashboardController extends Controller
                     'treatment_plan_accessible' => true,
                 ]);
 
-                // Send treatment plan notification email
+                // Send payment request email
                 try {
-                    Mail::to($consultation->email)->queue(new TreatmentPlanNotification($consultation));
+                    Mail::to($consultation->email)->send(new PaymentRequest($consultation));
                     
-                    \Log::info('Treatment plan unlocked and sent after manual payment', [
+                    \Log::info('Payment request sent after manual payment', [
                         'consultation_id' => $consultation->id,
                         'reference' => $consultation->reference,
                         'payment_method' => $request->payment_method
@@ -601,14 +747,53 @@ class DashboardController extends Controller
     {
         $query = Payment::with('doctor');
 
+        // Search functionality
+       if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%");
+            });
+        }
+
         // Filter by status
-        if ($request->has('status') && $request->status != '') {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+        
+        // Filter by doctor
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        // Amount range filters
+        if ($request->filled('amount_min')) {
+            $query->where('amount', '>=', $request->amount_min);
+        }
+        if ($request->filled('amount_max')) {
+            $query->where('amount', '<=', $request->amount_max);
+        }
+        
+        // Payment method filter
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
         }
 
         $payments = $query->latest()->paginate(20);
+        
+        // Get all doctors for filter dropdown
+        $doctors = Doctor::approved()->orderBy('name')->get();
 
-        return view('admin.payments', compact('payments'));
+        return view('admin.payments', compact('payments', 'doctors'));
     }
 
     /**
@@ -640,6 +825,19 @@ class DashboardController extends Controller
         // Filter by gender
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
+        }
+        
+        // Filter by specialization (exact match or contains)
+        if ($request->filled('specialization')) {
+            $query->where('specialization', 'like', "%{$request->specialization}%");
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
 
         $doctors = $query->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')->orderBy('order')->paginate(20);
@@ -881,9 +1079,33 @@ class DashboardController extends Controller
     /**
      * Display admin users list
      */
-    public function adminUsers()
+    public function adminUsers(Request $request)
     {
-        $admins = AdminUser::latest()->paginate(10);
+        $query = AdminUser::query();
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        // Role filter
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $admins = $query->latest()->paginate(20);
         
         return view('admin.admin-users', compact('admins'));
     }
@@ -1023,9 +1245,38 @@ class DashboardController extends Controller
     /**
      * Display canvassers list
      */
-    public function canvassers()
+    public function canvassers(Request $request)
     {
-        $canvassers = Canvasser::with('createdBy')->withCount('consultations')->latest()->paginate(10);
+        $query = Canvasser::with('createdBy')->withCount('consultations');
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $canvassers = $query->latest()->paginate(20);
         
         return view('admin.canvassers', compact('canvassers'));
     }
@@ -1160,9 +1411,38 @@ class DashboardController extends Controller
     /**
      * Display nurses list
      */
-    public function nurses()
+    public function nurses(Request $request)
     {
-        $nurses = Nurse::with('createdBy')->withCount('consultations')->latest()->paginate(10);
+        $query = Nurse::with('createdBy')->withCount('consultations');
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $nurses = $query->latest()->paginate(20);
         
         return view('admin.nurses', compact('nurses'));
     }
@@ -1322,8 +1602,26 @@ class DashboardController extends Controller
                   ->orWhere('specialization', 'like', "%{$search}%");
             });
         }
+        
+        // Filter by specialization
+        if ($request->filled('specialization')) {
+            $query->where('specialization', 'like', "%{$request->specialization}%");
+        }
+        
+        // Filter by gender
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
-        $doctors = $query->latest()->paginate(15);
+        $doctors = $query->latest()->paginate(20);
         $defaultFee = Setting::get('default_consultation_fee', 5000);
 
         return view('admin.doctor-registrations', compact('doctors', 'defaultFee'));
@@ -1462,18 +1760,48 @@ class DashboardController extends Controller
     {
         $settings = Setting::where('group', 'pricing')->get();
         $defaultFee = Setting::get('default_consultation_fee', 5000);
+        $multiPatientFee = Setting::get('multi_patient_booking_fee', null);
+        // If multi-patient fee is not set, default to the default consultation fee
+        if ($multiPatientFee === null) {
+            $multiPatientFee = $defaultFee;
+        }
         $useDefaultForAll = Setting::get('use_default_fee_for_all', false);
         $doctorPaymentPercentage = Setting::get('doctor_payment_percentage', 70);
+        
+        // Settings from fullap branch
         $consultationFeePayLater = Setting::get('consultation_fee_pay_later', 5000);
         $consultationFeePayNow = Setting::get('consultation_fee_pay_now', 4500);
+        
+        // Settings from livewire branch
+        $additionalChildDiscount = Setting::get('additional_child_discount_percentage', 60);
+
+        // Security Alert Settings from livewire branch
+        $securityAlertsEnabled = Setting::get('security_alerts_enabled', false);
+        $securityAlertEmails = Setting::get('security_alert_emails', [env('SECURITY_ALERT_EMAIL', 'admin@doctorontap.com')]);
+        if (!is_array($securityAlertEmails)) {
+            $securityAlertEmails = [$securityAlertEmails];
+        }
+        $securityAlertSeverities = Setting::get('security_alert_severities', ['critical', 'high']);
+        if (!is_array($securityAlertSeverities)) {
+            $securityAlertSeverities = ['critical', 'high'];
+        }
+        $securityAlertThresholdCritical = Setting::get('security_alert_threshold_critical', 1);
+        $securityAlertThresholdHigh = Setting::get('security_alert_threshold_high', 5);
 
         return view('admin.settings', compact(
             'settings', 
             'defaultFee', 
+            'multiPatientFee', 
             'useDefaultForAll', 
             'doctorPaymentPercentage',
             'consultationFeePayLater',
-            'consultationFeePayNow'
+            'consultationFeePayNow',
+            'additionalChildDiscount',
+            'securityAlertsEnabled',
+            'securityAlertEmails',
+            'securityAlertSeverities',
+            'securityAlertThresholdCritical',
+            'securityAlertThresholdHigh'
         ));
     }
 
@@ -1483,25 +1811,83 @@ class DashboardController extends Controller
     public function updateSettings(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'default_consultation_fee' => 'nullable|numeric|min:0',
-                'use_default_fee_for_all' => 'nullable|boolean',
-                'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
-                'consultation_fee_pay_later' => 'required|numeric|min:0',
-                'consultation_fee_pay_now' => 'required|numeric|min:0',
-            ]);
-
-            // Use pay_later fee as default if default_consultation_fee is not provided
-            $defaultFee = $validated['default_consultation_fee'] ?? $validated['consultation_fee_pay_later'];
+            $formType = $request->input('form_type', 'both');
             
-            Setting::set('default_consultation_fee', $defaultFee, 'number');
-            Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
-            Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
-            Setting::set('consultation_fee_pay_later', $validated['consultation_fee_pay_later'], 'number');
-            Setting::set('consultation_fee_pay_now', $validated['consultation_fee_pay_now'], 'number');
+            // Build validation rules based on form type
+            $rules = [];
+            
+            // Pricing settings (only validate if pricing form is submitted)
+            if ($formType === 'pricing' || $formType === 'both') {
+                $rules['default_consultation_fee'] = 'nullable|numeric|min:0';
+                $rules['multi_patient_booking_fee'] = 'required|numeric|min:0';
+                $rules['additional_child_discount_percentage'] = 'required|numeric|min:0|max:100';
+                $rules['doctor_payment_percentage'] = 'required|numeric|min:0|max:100';
+                $rules['use_default_fee_for_all'] = 'nullable|boolean';
+                // From fullap branch: consultation fee pay later/now
+                $rules['consultation_fee_pay_later'] = 'required|numeric|min:0';
+                $rules['consultation_fee_pay_now'] = 'required|numeric|min:0';
+            }
+
+            // Security alert settings (only validate if security form is submitted)
+            if ($formType === 'security_alerts' || $formType === 'both') {
+                $rules['security_alerts_enabled'] = 'nullable|boolean';
+                $rules['security_alert_emails'] = 'nullable|array';
+                $rules['security_alert_emails.*'] = 'required|email';
+                $rules['security_alert_severities'] = 'nullable|array';
+                $rules['security_alert_severities.*'] = 'in:critical,high,medium,low';
+                $rules['security_alert_threshold_critical'] = 'nullable|integer|min:1';
+                $rules['security_alert_threshold_high'] = 'nullable|integer|min:1';
+            }
+
+            $validated = $request->validate($rules);
+
+            // Update pricing settings (only if pricing form was submitted)
+            if ($formType === 'pricing' || $formType === 'both') {
+                // Use pay_later fee as default if default_consultation_fee is not provided (from fullap)
+                $defaultFee = $validated['default_consultation_fee'] ?? ($validated['consultation_fee_pay_later'] ?? null);
+                
+                if ($defaultFee !== null) {
+                    Setting::set('default_consultation_fee', $defaultFee, 'number');
+                }
+                
+                Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
+                Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
+                Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
+                Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
+                // From fullap branch: save pay later/now fees
+                Setting::set('consultation_fee_pay_later', $validated['consultation_fee_pay_later'], 'number');
+                Setting::set('consultation_fee_pay_now', $validated['consultation_fee_pay_now'], 'number');
+            }
+
+            // Update security alert settings (only if security form was submitted)
+            if ($formType === 'security_alerts' || $formType === 'both') {
+                Setting::set('security_alerts_enabled', $request->has('security_alerts_enabled') ? 1 : 0, 'boolean');
+                
+                if ($request->has('security_alert_emails')) {
+                    $emails = array_filter($request->input('security_alert_emails', []));
+                    Setting::set('security_alert_emails', $emails, 'json');
+                    \Log::info('Security alert emails updated', [
+                        'emails' => $emails,
+                        'count' => count($emails),
+                        'updated_by' => auth()->guard('admin')->id()
+                    ]);
+                }
+                
+                if ($request->has('security_alert_severities')) {
+                    Setting::set('security_alert_severities', $request->input('security_alert_severities', []), 'json');
+                }
+                
+                if ($request->has('security_alert_threshold_critical')) {
+                    Setting::set('security_alert_threshold_critical', $request->input('security_alert_threshold_critical', 1), 'integer');
+                }
+                
+                if ($request->has('security_alert_threshold_high')) {
+                    Setting::set('security_alert_threshold_high', $request->input('security_alert_threshold_high', 5), 'integer');
+                }
+            }
 
             // If forcing all doctors to use default fee, update all doctors
-            if ($request->has('use_default_fee_for_all')) {
+            if ($request->has('use_default_fee_for_all') && $request->has('default_consultation_fee')) {
                 Doctor::query()->update([
                     'use_default_fee' => true,
                     'consultation_fee' => $defaultFee
@@ -1511,6 +1897,123 @@ class DashboardController extends Controller
             return redirect()->back()->with('success', 'Consultation fees updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send test security alert email
+     */
+    public function testSecurityAlert(Request $request)
+    {
+        try {
+            $alertEmails = Setting::get('security_alert_emails', []);
+            
+            \Log::info('Test security alert requested', [
+                'configured_emails' => $alertEmails,
+                'emails_count' => is_array($alertEmails) ? count($alertEmails) : 0,
+                'ip' => $request->ip(),
+            ]);
+            
+            if (empty($alertEmails) || !is_array($alertEmails)) {
+                \Log::warning('Test security alert failed: No email recipients configured');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No email recipients configured. Please add at least one email address in Security Alerts settings.'
+                ], 400);
+            }
+
+            // Filter valid emails
+            $validEmails = array_filter($alertEmails, function($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL);
+            });
+
+            if (empty($validEmails)) {
+                \Log::warning('Test security alert failed: No valid email addresses', [
+                    'provided_emails' => $alertEmails
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid email addresses found. Please check your email configuration.'
+                ], 400);
+            }
+
+            // Create test alert data
+            $testData = [
+                'ip' => $request->ip(),
+                'url' => $request->fullUrl(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now(),
+                'test' => true,
+            ];
+
+            $sentCount = 0;
+            $failedEmails = [];
+
+            // Send test alert to each valid email
+            foreach ($validEmails as $email) {
+                try {
+                    \Log::info('Sending test security alert email', [
+                        'recipient' => $email,
+                        'event_type' => 'test_alert',
+                        'severity' => 'medium'
+                    ]);
+
+                    \Mail::to($email)->send(new \App\Mail\SecurityAlert('test_alert', $testData, 'medium'));
+                    
+                    $sentCount++;
+                    
+                    \Log::info('Test security alert email sent successfully', [
+                        'recipient' => $email
+                    ]);
+                } catch (\Exception $e) {
+                    $failedEmails[] = $email;
+                    \Log::error('Failed to send test security alert email', [
+                        'recipient' => $email,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+
+            if ($sentCount > 0) {
+                $message = "Test security alert email sent successfully to {$sentCount} recipient(s): " . implode(', ', array_diff($validEmails, $failedEmails));
+                
+                if (!empty($failedEmails)) {
+                    $message .= ". Failed to send to: " . implode(', ', $failedEmails);
+                }
+
+                \Log::info('Test security alert completed', [
+                    'sent_count' => $sentCount,
+                    'failed_count' => count($failedEmails),
+                    'sent_to' => array_diff($validEmails, $failedEmails),
+                    'failed_to' => $failedEmails
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $message
+                ]);
+            } else {
+                \Log::error('Test security alert failed: All emails failed to send', [
+                    'attempted_emails' => $validEmails,
+                    'failed_emails' => $failedEmails
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send test alert to all recipients. Please check your mail configuration and logs.'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send test security alert', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send test alert: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -1640,6 +2143,19 @@ class DashboardController extends Controller
             } elseif ($request->verification_status === 'unverified') {
                 $query->where('is_verified', false);
             }
+        }
+        
+        // Filter by gender
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
         
         $patients = $query->latest()->paginate(20);
@@ -1840,6 +2356,19 @@ class DashboardController extends Controller
     public function doctorPayments(Request $request)
     {
         $query = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhereHas('doctor', function($doctorQ) use ($search) {
+                      $doctorQ->where('name', 'like', "%{$search}%")
+                              ->orWhere('first_name', 'like', "%{$search}%")
+                              ->orWhere('last_name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
         // Filter by status
         if ($request->filled('status')) {
@@ -1857,6 +2386,14 @@ class DashboardController extends Controller
         }
         if ($request->filled('date_to')) {
             $query->where('created_at', '<=', $request->date_to);
+        }
+        
+        // Amount range filters
+        if ($request->filled('amount_min')) {
+            $query->where('doctor_amount', '>=', $request->amount_min);
+        }
+        if ($request->filled('amount_max')) {
+            $query->where('doctor_amount', '<=', $request->amount_max);
         }
 
         $payments = $query->latest()->paginate(20);
@@ -1877,6 +2414,87 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get payment details with consultations
+     */
+    public function getPaymentDetails($id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy'])
+                ->findOrFail($id);
+
+            // Get consultations included in this payment
+            $consultations = [];
+            if (!empty($payment->consultation_ids)) {
+                $consultations = \App\Models\Consultation::whereIn('id', $payment->consultation_ids)
+                    ->with('payment')
+                    ->get()
+                    ->map(function($consultation) use ($payment) {
+                        return [
+                            'id' => $consultation->id,
+                            'reference' => $consultation->reference,
+                            'full_name' => $consultation->full_name,
+                            'created_at' => $consultation->created_at->toISOString(),
+                            'amount' => $payment->doctor->effective_consultation_fee ?? 0,
+                            'payment_status' => $consultation->payment_status,
+                        ];
+                    })
+                    ->toArray();
+            }
+
+            return response()->json([
+                'success' => true,
+                'payment' => [
+                    'id' => $payment->id,
+                    'reference' => $payment->reference,
+                    'status' => $payment->status,
+                    'korapay_status' => $payment->korapay_status,
+                    'korapay_reference' => $payment->korapay_reference,
+                    'korapay_fee' => $payment->korapay_fee,
+                    'total_consultations_count' => $payment->total_consultations_count,
+                    'total_consultations_amount' => $payment->total_consultations_amount,
+                    'doctor_percentage' => $payment->doctor_percentage,
+                    'doctor_amount' => $payment->doctor_amount,
+                    'platform_fee' => $payment->platform_fee,
+                    'payment_method' => $payment->payment_method,
+                    'transaction_reference' => $payment->transaction_reference,
+                    'payment_notes' => $payment->payment_notes,
+                    'admin_notes' => $payment->admin_notes,
+                    'paid_at' => $payment->paid_at ? $payment->paid_at->toISOString() : null,
+                    'payout_initiated_at' => $payment->payout_initiated_at ? $payment->payout_initiated_at->toISOString() : null,
+                    'payout_completed_at' => $payment->payout_completed_at ? $payment->payout_completed_at->toISOString() : null,
+                    'korapay_response' => $payment->korapay_response, // Already decoded by model cast
+                    'created_at' => $payment->created_at->toISOString(),
+                    'doctor' => $payment->doctor ? [
+                        'id' => $payment->doctor->id,
+                        'full_name' => $payment->doctor->full_name,
+                    ] : null,
+                    'bank_account' => $payment->bankAccount ? [
+                        'bank_name' => $payment->bankAccount->bank_name,
+                        'account_name' => $payment->bankAccount->account_name,
+                        'account_number' => $payment->bankAccount->account_number,
+                        'account_type' => $payment->bankAccount->account_type,
+                    ] : null,
+                    'paid_by_user' => $payment->paidBy ? [
+                        'id' => $payment->paidBy->id,
+                        'name' => $payment->paidBy->name,
+                    ] : null,
+                ],
+                'consultations' => $consultations,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to load payment details', [
+                'payment_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load payment details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Create payment for doctor
      */
     public function createDoctorPayment(Request $request)
@@ -1893,8 +2511,18 @@ class DashboardController extends Controller
 
             $doctor = Doctor::with('defaultBankAccount')->findOrFail($validated['doctor_id']);
 
+            // Get verified bank account (prefer default, otherwise get first verified)
+            $bankAccount = $doctor->defaultBankAccount;
+            
+            // If no default account, get the first verified account
+            if (!$bankAccount || !$bankAccount->is_verified) {
+                $bankAccount = $doctor->bankAccounts()
+                    ->where('is_verified', true)
+                    ->first();
+            }
+
             // Check if doctor has a verified bank account
-            if (!$doctor->defaultBankAccount || !$doctor->defaultBankAccount->is_verified) {
+            if (!$bankAccount || !$bankAccount->is_verified) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Doctor does not have a verified bank account.'
@@ -1926,7 +2554,7 @@ class DashboardController extends Controller
             // Create payment record
             $payment = \App\Models\DoctorPayment::create([
                 'doctor_id' => $doctor->id,
-                'bank_account_id' => $doctor->defaultBankAccount->id,
+                'bank_account_id' => $bankAccount->id,
                 'consultation_ids' => $validated['consultation_ids'],
                 'period_from' => $validated['period_from'] ?? null,
                 'period_to' => $validated['period_to'] ?? null,
@@ -1954,7 +2582,211 @@ class DashboardController extends Controller
     }
 
     /**
-     * Mark payment as completed
+     * Initiate KoraPay payout for a doctor payment
+     */
+    public function initiateDoctorPayout(Request $request, $id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::findOrFail($id);
+            $admin = auth()->guard('admin')->user();
+
+            // Check if payment is already processed
+            if ($payment->status === 'completed' && $payment->korapay_status === 'success') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This payment has already been completed.'
+                ], 400);
+            }
+
+            // Allow retrying failed payments - reset status to pending
+            if ($payment->status === 'failed' || $payment->korapay_status === 'failed') {
+                $payment->update([
+                    'status' => 'pending',
+                    'korapay_status' => null,
+                    'korapay_reference' => null,
+                    'korapay_response' => null,
+                    'payout_initiated_at' => null,
+                    'payout_completed_at' => null,
+                ]);
+            }
+
+            // Check if doctor has verified bank account
+            if (!$payment->bankAccount || !$payment->bankAccount->is_verified) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Doctor does not have a verified bank account.'
+                ], 400);
+            }
+
+            // Check if bank code is available
+            if (empty($payment->bankAccount->bank_code)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bank code is missing for this bank account. Please update the bank account with the correct bank code before initiating payout.'
+                ], 400);
+            }
+
+            // Initiate payout via KoraPay
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $result = $payoutService->initiatePayout($payment);
+
+            if ($result['success']) {
+                // Update payment with admin info
+                $payment->update([
+                    'paid_by' => $admin->id,
+                    'payment_method' => 'korapay_bank_transfer',
+                    'admin_notes' => 'Payout initiated via KoraPay by ' . $admin->name,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'],
+                    'payment' => $payment->fresh(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'data' => $result['data'] ?? null,
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to initiate doctor payout', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate payout: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process bulk payouts for multiple doctor payments
+     * Uses KoraPay bulk payout API endpoint
+     */
+    public function processBulkPayouts(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'payment_ids' => 'required|array',
+                'payment_ids.*' => 'exists:doctor_payments,id',
+                'merchant_bears_cost' => 'nullable|boolean', // Optional: whether merchant pays fees
+            ]);
+
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $merchantBearsCost = $validated['merchant_bears_cost'] ?? true;
+            $result = $payoutService->processBulkPayouts($validated['payment_ids'], $merchantBearsCost);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'] ?? 'Bulk payout initiated successfully',
+                    'data' => [
+                        'batch_reference' => $result['batch_reference'],
+                        'payout_count' => $result['data']['payout_count'] ?? count($validated['payment_ids']),
+                        'total_chargeable_amount' => $result['data']['total_chargeable_amount'] ?? null,
+                        'status' => $result['data']['status'] ?? 'pending',
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to initiate bulk payout',
+                'data' => $result['data'] ?? null,
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to process bulk payouts', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process bulk payouts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify payout status
+     */
+    public function verifyPayoutStatus($id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::findOrFail($id);
+
+            if (!$payment->korapay_reference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No KoraPay reference found for this payment.'
+                ], 400);
+            }
+
+            $payoutService = app(\App\Services\KoraPayPayoutService::class);
+            $result = $payoutService->verifyPayoutStatus($payment->korapay_reference);
+
+            if ($result['success'] && !empty($result['data'])) {
+                $data = $result['data'];
+                
+                // Update payment status based on verification
+                $korapayStatus = $data['status'] ?? 'processing';
+                $paymentStatus = $korapayStatus === 'success' ? 'completed' : 
+                                ($korapayStatus === 'failed' ? 'failed' : 'processing');
+
+                $updateData = [
+                    'korapay_status' => $korapayStatus,
+                    'status' => $paymentStatus,
+                    'korapay_response' => json_encode($data),
+                ];
+
+                if ($korapayStatus === 'success') {
+                    $updateData['paid_at'] = now();
+                    $updateData['payout_completed_at'] = now();
+                    $updateData['transaction_reference'] = $payment->korapay_reference;
+                    
+                    if (isset($data['fee'])) {
+                        $updateData['korapay_fee'] = (float) $data['fee'];
+                    }
+                }
+
+                $payment->update($updateData);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payout status verified successfully.',
+                    'data' => $data,
+                    'payment' => $payment->fresh(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to verify payout status.',
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to verify payout status', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify payout: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark payment as completed (manual override - for non-KoraPay payments)
      */
     public function completeDoctorPayment(Request $request, $id)
     {
@@ -1994,20 +2826,42 @@ class DashboardController extends Controller
     public function getDoctorUnpaidConsultations($doctorId)
     {
         try {
-            $consultations = Consultation::where('doctor_id', $doctorId)
-                ->where('status', 'completed')
-                ->where('payment_status', '!=', 'paid')
-                ->whereNotIn('id', function($query) use ($doctorId) {
-                    $query->select(\DB::raw('JSON_EXTRACT(consultation_ids, "$[*]")'))
-                          ->from('doctor_payments')
-                          ->where('doctor_id', $doctorId)
-                          ->whereIn('status', ['pending', 'processing', 'completed']);
+            // Get all consultation IDs that are already included in pending/processing/completed payments
+            $excludedConsultationIds = \App\Models\DoctorPayment::where('doctor_id', $doctorId)
+                ->whereIn('status', ['pending', 'processing', 'completed'])
+                ->whereNotNull('consultation_ids')
+                ->get()
+                ->flatMap(function($payment) {
+                    // Extract consultation IDs from JSON array
+                    $ids = $payment->consultation_ids ?? [];
+                    return is_array($ids) ? $ids : [];
                 })
-                ->with('payment')
-                ->latest()
-                ->get();
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Get consultations that are completed and either:
+            // 1. Not paid yet (payment_status != 'paid'), OR
+            // 2. Paid but not yet included in any doctor payment
+            $query = Consultation::where('doctor_id', $doctorId)
+                ->where('status', 'completed');
+
+            // Exclude consultations already in pending/processing/completed payments
+            if (!empty($excludedConsultationIds)) {
+                $query->whereNotIn('id', $excludedConsultationIds);
+            }
+
+            $consultations = $query->with('payment')->latest()->get();
 
             $doctor = Doctor::findOrFail($doctorId);
+
+            // Log for debugging
+            \Log::info('Loading unpaid consultations', [
+                'doctor_id' => $doctorId,
+                'total_consultations' => $consultations->count(),
+                'excluded_ids_count' => count($excludedConsultationIds),
+                'excluded_ids' => $excludedConsultationIds,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -2025,10 +2879,65 @@ class DashboardController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to load unpaid consultations', [
+                'doctor_id' => $doctorId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load consultations: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Display all multi-patient bookings
+     */
+    public function bookings(Request $request)
+    {
+        $query = Booking::with(['doctor', 'bookingPatients.patient', 'invoice']);
+
+        // Search
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('payer_name', 'like', "%{$search}%")
+                  ->orWhere('payer_email', 'like', "%{$search}%")
+                  ->orWhere('payer_mobile', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by status
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by payment status
+        if ($request->has('payment_status') && $request->payment_status != '') {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        $bookings = $query->latest()->paginate(20);
+
+        return view('admin.bookings', compact('bookings'));
+    }
+
+    /**
+     * Show single booking details
+     */
+    public function showBooking($id)
+    {
+        $booking = Booking::with([
+            'doctor',
+            'bookingPatients.patient',
+            'bookingPatients.consultation',
+            'invoice.items',
+            'feeAdjustmentLogs'
+        ])->findOrFail($id);
+
+        return view('admin.booking-details', compact('booking'));
     }
 }

@@ -126,7 +126,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" class="logo">
             <h1>DoctorOnTap</h1>
             <p>Your Trusted Healthcare Partner</p>
         </div>
@@ -145,7 +145,7 @@
                 Name: {{ $data['first_name'] }} {{ $data['last_name'] }}<br>
                 Email: {{ $data['email'] }}<br>
                 WhatsApp: {{ $data['mobile'] }}<br>
-                Age: {{ $data['age'] }} | Gender: {{ ucfirst($data['gender']) }}<br><br>
+                Age: {{ $data['age'] ?? 'N/A' }} | Gender: {{ isset($data['gender']) ? ucfirst($data['gender']) : 'N/A' }}<br><br>
 
                 <strong>Medical Info:</strong><br>
                 Problem: {{ $data['problem'] }}<br>

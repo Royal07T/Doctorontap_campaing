@@ -160,7 +160,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" class="logo">
             <h1>Welcome to DoctorOnTap!</h1>
             <p>Your Nurse Account Has Been Created</p>
         </div>

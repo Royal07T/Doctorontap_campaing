@@ -6,41 +6,17 @@ use App\Models\Consultation;
 use App\Models\NotificationLog;
 use App\Services\NotificationTrackingService;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\Middleware\ThrottlesExceptions;
 use Illuminate\Mail\SentMessage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class TreatmentPlanNotification extends Mailable implements ShouldQueue
+class TreatmentPlanNotification extends Mailable
 {
-    use Queueable, SerializesModels, InteractsWithQueue;
-    
-    /**
-     * The number of times the job may be attempted.
-     *
-     * @var int
-     */
-    public $tries = 3;
-    
-    /**
-     * The number of seconds to wait before retrying the job.
-     *
-     * @var int
-     */
-    public $backoff = [60, 180, 300]; // 1 min, 3 min, 5 min
-    
-    /**
-     * The maximum number of seconds the job can run.
-     *
-     * @var int
-     */
-    public $timeout = 60; // Longer timeout for PDF generation
+    use Queueable, SerializesModels;
     
     /**
      * The notification log for tracking
@@ -68,17 +44,6 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
         );
     }
     
-    /**
-     * Get the middleware the job should pass through.
-     *
-     * @return array
-     */
-    public function middleware()
-    {
-        return [
-            new ThrottlesExceptions(5, 10), // Allow 5 exceptions per 10 minutes
-        ];
-    }
 
     /**
      * Get the message envelope.

@@ -70,20 +70,6 @@
                     <span>Payment History</span>
                 </a>
 
-                <a href="{{ route('doctor.profile') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span>Profile</span>
-                </a>
-
-                <a href="{{ route('doctor.availability') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Availability</span>
-                </a>
-
                 <div class="border-t border-gray-200 my-2"></div>
 
                 <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
@@ -249,10 +235,10 @@
                                 @endif
                                 
                                 <form method="POST" action="{{ route('doctor.bank-accounts.delete', $account->id) }}" 
-                                      onsubmit="event.preventDefault(); CustomAlert.confirm('Are you sure you want to delete this bank account?', () => { event.target.submit(); }); return false;" class="flex-1">
+                                      id="deleteForm{{ $account->id }}" class="flex-1">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-all text-sm">
+                                    <button type="button" onclick="confirmDeleteBankAccount({{ $account->id }})" class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-all text-sm">
                                         Delete
                                     </button>
                                 </form>
@@ -284,23 +270,67 @@
                             </button>
                         </div>
 
-                        <form method="POST" action="{{ route('doctor.bank-accounts.store') }}">
+                        <form method="POST" action="{{ route('doctor.bank-accounts.store') }}" id="addBankAccountForm" x-data="{ 
+                            selectedBankId: '', 
+                            accountNumber: '', 
+                            verifying: false, 
+                            verified: false, 
+                            verificationMessage: '',
+                            verifiedAccountName: ''
+                        }">
                             @csrf
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name *</label>
-                                    <input type="text" name="bank_name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Account Name *</label>
-                                    <input type="text" name="account_name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                    <p class="text-xs text-gray-500 mt-1">This should match your registered name</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank *</label>
+                                    @if($banks && $banks->count() > 0)
+                                        <select name="bank_id" x-model="selectedBankId" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                            <option value="">Select Bank</option>
+                                            @foreach($banks as $bank)
+                                                <option value="{{ $bank->id }}" data-code="{{ $bank->code }}">{{ $bank->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                                            <p>No banks available. Please contact support or try refreshing the page.</p>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Account Number *</label>
-                                    <input type="text" name="account_number" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <div class="flex space-x-2">
+                                        <input type="text" 
+                                               name="account_number" 
+                                               x-model="accountNumber"
+                                               @blur="if(selectedBankId && accountNumber.length >= 10) { verifyAccount(); }"
+                                               required 
+                                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                               placeholder="Enter your account number">
+                                        <button type="button" 
+                                                @click="verifyAccount()" 
+                                                x-show="selectedBankId && accountNumber.length >= 10"
+                                                :disabled="verifying"
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <span x-show="!verifying">Verify</span>
+                                            <span x-show="verifying">Verifying...</span>
+                                        </button>
+                                    </div>
+                                    <div x-show="verificationMessage" class="mt-2 text-sm" :class="verified ? 'text-green-600' : 'text-red-600'">
+                                        <span x-text="verificationMessage"></span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Account Name *</label>
+                                    <input type="text" 
+                                           name="account_name" 
+                                           :value="verifiedAccountName || ''"
+                                           required 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                           :class="verified ? 'bg-green-50 border-green-300' : ''"
+                                           placeholder="Will be auto-filled after verification">
+                                    <p class="text-xs text-gray-500 mt-1" x-show="!verified">Account name will be auto-filled after verification</p>
+                                    <p class="text-xs text-green-600 mt-1" x-show="verified">✓ Account verified! Name matches bank records.</p>
                                 </div>
 
                                 <div>
@@ -310,11 +340,6 @@
                                         <option value="savings">Savings</option>
                                         <option value="current">Current</option>
                                     </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Code (Optional)</label>
-                                    <input type="text" name="bank_code" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                 </div>
 
                                 <div>
@@ -332,17 +357,93 @@
                                 <button type="button" @click="showAddModal = false" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium">
                                     Cancel
                                 </button>
-                                <button type="submit" class="flex-1 purple-gradient text-white px-6 py-3 rounded-lg hover:opacity-90 transition-all font-medium">
+                                <button type="submit" 
+                                        :disabled="!verified"
+                                        class="flex-1 purple-gradient text-white px-6 py-3 rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                                     Add Bank Account
                                 </button>
                             </div>
                         </form>
+
+                        <script>
+                            // Make verifyAccount function available globally for Alpine.js
+                            window.verifyAccount = function() {
+                                const form = document.getElementById('addBankAccountForm');
+                                if (!form) return;
+                                
+                                const alpineData = Alpine.$data(form);
+                                const bankSelect = form.querySelector('select[name="bank_id"]');
+                                const accountNumberInput = form.querySelector('input[name="account_number"]');
+                                
+                                if (!bankSelect || !accountNumberInput) return;
+                                
+                                const selectedOption = bankSelect.options[bankSelect.selectedIndex];
+                                const bankCode = selectedOption.getAttribute('data-code');
+                                const accountNumber = accountNumberInput.value;
+
+                                if (!bankCode || !accountNumber || accountNumber.length < 10) {
+                                    alpineData.verificationMessage = 'Please select a bank and enter a valid account number (at least 10 digits)';
+                                    return;
+                                }
+
+                                alpineData.verifying = true;
+                                alpineData.verificationMessage = '';
+                                alpineData.verified = false;
+
+                                fetch('{{ route("doctor.banks.verify-account") }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                    },
+                                    body: JSON.stringify({
+                                        bank_code: bankCode,
+                                        account_number: accountNumber
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    alpineData.verifying = false;
+                                    if (data.success) {
+                                        alpineData.verified = true;
+                                        alpineData.verificationMessage = '✓ Account verified successfully!';
+                                        alpineData.verifiedAccountName = data.data?.account_name || '';
+                                        // Auto-fill account name
+                                        const accountNameInput = form.querySelector('input[name="account_name"]');
+                                        if (accountNameInput) {
+                                            accountNameInput.value = data.data?.account_name || '';
+                                        }
+                                    } else {
+                                        alpineData.verified = false;
+                                        alpineData.verificationMessage = '✗ ' + data.message;
+                                    }
+                                })
+                                .catch(error => {
+                                    alpineData.verifying = false;
+                                    alpineData.verified = false;
+                                    alpineData.verificationMessage = '✗ Verification failed. Please try again.';
+                                    console.error('Verification error:', error);
+                                });
+                            };
+                        </script>
                     </div>
                 </div>
             </main>
         </div>
     </div>
-    @include('components.custom-alert-modal')
+
+    @include('components.alert-modal')
+
+    <script>
+        function confirmDeleteBankAccount(accountId) {
+            // Use custom confirm modal
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal('Are you sure you want to delete this bank account? This action cannot be undone.', () => {
+                    document.getElementById('deleteForm' + accountId).submit();
+                });
+            }
+        }
+    </script>
 </body>
 </html>
 

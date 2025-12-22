@@ -182,8 +182,28 @@
 </div>
 
 <script>
-function resendTreatmentPlan(consultationId) {
-    CustomAlert.confirm('Are you sure you want to resend the treatment plan?', () => {
+(function() {
+    'use strict';
+    
+    // Prevent function from being defined multiple times
+    if (window.resendTreatmentPlan) {
+        return;
+    }
+    
+    window.resendTreatmentPlan = function(consultationId) {
+    // Try to find Alpine.js component data
+    let alpineData = null;
+    try {
+        const alpineElement = document.querySelector('[x-data*="consultationPage"]');
+        if (alpineElement && window.Alpine) {
+            alpineData = Alpine.$data(alpineElement);
+        }
+    } catch (e) {
+        console.log('Alpine.js not available or element not found');
+    }
+    
+    const confirmMessage = 'Are you sure you want to resend the treatment plan?';
+    const performResend = function() {
         fetch(`/admin/consultations/${consultationId}/resend-treatment-plan`, {
             method: 'POST',
             headers: {
@@ -194,16 +214,40 @@ function resendTreatmentPlan(consultationId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                CustomAlert.success('Treatment plan resent successfully!');
-                location.reload();
+                if (alpineData && typeof alpineData.showMessage === 'function') {
+                    alpineData.showMessage('success', 'Success', '✓ Treatment plan resent successfully!');
+                } else if (typeof showAlertModal === 'function') {
+                    showAlertModal('✓ Treatment plan resent successfully!', 'success');
+                }
+                setTimeout(() => location.reload(), 1500);
             } else {
-                CustomAlert.error('Failed to resend: ' + data.message);
+                const errorMsg = '✗ Failed to resend: ' + (data.message || 'Unknown error');
+                if (alpineData && typeof alpineData.showMessage === 'function') {
+                    alpineData.showMessage('error', 'Error', errorMsg);
+                } else if (typeof showAlertModal === 'function') {
+                    showAlertModal(errorMsg, 'error');
+                }
             }
         })
         .catch(error => {
-            CustomAlert.error('Error: ' + error.message);
+            const errorMsg = 'Error: ' + error.message;
+            if (alpineData && typeof alpineData.showMessage === 'function') {
+                alpineData.showMessage('error', 'Error', errorMsg);
+            } else if (typeof showAlertModal === 'function') {
+                showAlertModal(errorMsg, 'error');
+            }
         });
-    });
-}
+    };
+    
+    // Try Alpine.js confirm first (doctor page)
+    if (alpineData && typeof alpineData.showConfirm === 'function') {
+        alpineData.showConfirm('Confirm Resend', confirmMessage, performResend);
+    } 
+    // Try global confirm modal (admin page)
+    else if (typeof showConfirmModal === 'function') {
+        showConfirmModal(confirmMessage, performResend);
+    } 
+};
+})();
 </script>
 

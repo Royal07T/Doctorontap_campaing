@@ -76,97 +76,18 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-bold text-gray-800">Consultation Fee Settings</h2>
-                                    <p class="text-sm text-gray-600">Set custom fees for both consultation types (Pay Later & Pay Now)</p>
+                                    <h2 class="text-xl font-bold text-gray-800">Pricing Settings</h2>
+                                    <p class="text-sm text-gray-600">Configure default consultation fees for all doctors</p>
                                 </div>
                             </div>
                         </div>
 
                         <form method="POST" action="{{ route('admin.settings.update') }}" class="p-6 space-y-6">
                             @csrf
+                            <input type="hidden" name="form_type" value="pricing">
 
-                            <!-- Consultation Fee - Pay Later -->
-                            <div class="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-5">
-                                <label for="consultation_fee_pay_later" class="block text-sm font-bold text-gray-800 mb-3 flex items-center">
-                                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Consult Now, Pay Later Fee (₦)
-                                    <span class="ml-2 text-xs font-normal text-gray-500">(Standard Fee)</span>
-                                </label>
-                                <div class="relative">
-                                    <span class="absolute left-4 top-3 text-gray-600 font-semibold">₦</span>
-                                    <input type="number"
-                                           id="consultation_fee_pay_later"
-                                           name="consultation_fee_pay_later"
-                                           value="{{ $consultationFeePayLater ?? $defaultFee }}"
-                                           required
-                                           min="0"
-                                           step="0.01"
-                                           class="w-full pl-10 pr-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-lg font-semibold @error('consultation_fee_pay_later') border-red-500 @enderror">
-                                </div>
-                                <p class="mt-3 text-sm text-gray-700">
-                                    <span class="font-semibold">Description:</span> This is the fee charged to patients who choose to pay <strong>after</strong> their consultation is completed. This is the standard/default pricing option.
-                                </p>
-                                <div class="mt-3 flex items-center text-sm text-purple-700 bg-white rounded p-2 border border-purple-200">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span>This fee will be displayed to patients in the "Consult Now, Pay Later" option.</span>
-                                </div>
-                                @error('consultation_fee_pay_later')
-                                    <p class="mt-2 text-xs text-red-600 font-semibold">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <!-- Consultation Fee - Pay Now -->
-                            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-5 mt-6">
-                                <label for="consultation_fee_pay_now" class="block text-sm font-bold text-gray-800 mb-3 flex items-center">
-                                    <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Pay Before Consultation Fee (₦)
-                                    <span class="ml-2 text-xs font-normal text-gray-500">(Upfront Payment)</span>
-                                </label>
-                                <div class="relative">
-                                    <span class="absolute left-4 top-3 text-gray-600 font-semibold">₦</span>
-                                    <input type="number"
-                                           id="consultation_fee_pay_now"
-                                           name="consultation_fee_pay_now"
-                                           value="{{ $consultationFeePayNow ?? $defaultFee }}"
-                                           required
-                                           min="0"
-                                           step="0.01"
-                                           class="w-full pl-10 pr-4 py-3 border-2 border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-lg font-semibold @error('consultation_fee_pay_now') border-red-500 @enderror">
-                                </div>
-                                <p class="mt-3 text-sm text-gray-700">
-                                    <span class="font-semibold">Description:</span> This is the fee charged to patients who choose to pay <strong>before</strong> their consultation begins. 
-                                    <span class="font-semibold text-emerald-600">💡 Tip:</span> Set this lower than "Pay Later" to incentivize upfront payment.
-                                </p>
-                                <div class="mt-3 bg-white border border-emerald-200 rounded-lg p-3">
-                                    <div class="flex items-center text-sm text-emerald-800">
-                                        <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                        </svg>
-                                        <div>
-                                            <span class="font-semibold">Discount Preview:</span>
-                                            <span id="discount-amount" class="ml-1"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mt-3 flex items-center text-sm text-emerald-700 bg-white rounded p-2 border border-emerald-200">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span>This fee will be displayed to patients in the "Pay Before Consultation" option.</span>
-                                </div>
-                                @error('consultation_fee_pay_now')
-                                    <p class="mt-2 text-xs text-red-600 font-semibold">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <!-- Default Consultation Fee (Legacy) -->
-                            <div class="border-t border-gray-200 pt-6" style="display: none;">
+                            <!-- Default Consultation Fee -->
+                            <div>
                                 <label for="default_consultation_fee" class="block text-sm font-semibold text-gray-700 mb-2">
                                     Default Consultation Fee (₦)
                                 </label>
@@ -187,6 +108,76 @@
                                 @error('default_consultation_fee')
                                     <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                                 @enderror
+                            </div>
+
+                            <!-- Multi-Patient Booking Fee -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Multi-Patient Booking Pricing</h3>
+                                
+                                <div class="mb-4">
+                                <label for="multi_patient_booking_fee" class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Base Fee per Patient (₦) <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-3 text-gray-500">₦</span>
+                                    <input type="number"
+                                           id="multi_patient_booking_fee"
+                                           name="multi_patient_booking_fee"
+                                           value="{{ $multiPatientFee ?? $defaultFee }}"
+                                           required
+                                           min="0"
+                                           step="0.01"
+                                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('multi_patient_booking_fee') border-red-500 @enderror">
+                                </div>
+                                <p class="mt-2 text-sm text-gray-600">
+                                        Base fee for parent/guardian and first child. Example: If set to 4000, parent pays 4000 and first child pays 4000.
+                                </p>
+                                @error('multi_patient_booking_fee')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+                                </div>
+
+                                <div>
+                                    <label for="additional_child_discount_percentage" class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Additional Child Charge Percentage (%) <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number"
+                                               id="additional_child_discount_percentage"
+                                               name="additional_child_discount_percentage"
+                                               value="{{ $additionalChildDiscount ?? 60 }}"
+                                               required
+                                               min="0"
+                                               max="100"
+                                               step="0.01"
+                                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('additional_child_discount_percentage') border-red-500 @enderror">
+                                        <span class="absolute right-4 top-3 text-gray-500">%</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        Additional percentage charge added to base fee for additional children (beyond the first child). 
+                                        <strong>Example:</strong> If base fee is {{ number_format($multiPatientFee ?? $defaultFee, 0) }} and additional charge is {{ $additionalChildDiscount ?? 60 }}%, additional children pay {{ number_format($multiPatientFee ?? $defaultFee, 0) }} + ({{ number_format($multiPatientFee ?? $defaultFee, 0) }} × {{ $additionalChildDiscount ?? 60 }}%) = ₦{{ number_format(($multiPatientFee ?? $defaultFee) + (($multiPatientFee ?? $defaultFee) * (($additionalChildDiscount ?? 60) / 100)), 2) }} each.
+                                    </p>
+                                    @php
+                                        $baseFee = $multiPatientFee ?? $defaultFee;
+                                        $discountPercent = $additionalChildDiscount ?? 60;
+                                        $additionalAmount = $baseFee * ($discountPercent / 100);
+                                        $additionalChildFee = $baseFee + $additionalAmount;
+                                        $totalForExample = $baseFee + $baseFee + $additionalChildFee + $additionalChildFee; // Parent + First Child + Second Child + Third Child
+                                    @endphp
+                                    <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <p class="text-sm text-blue-800">
+                                            <strong>Pricing Example:</strong> Base fee = ₦{{ number_format($baseFee, 2) }}, Additional charge = {{ $discountPercent }}%<br>
+                                            • Parent/Guardian: ₦{{ number_format($baseFee, 2) }}<br>
+                                            • First Child: ₦{{ number_format($baseFee, 2) }}<br>
+                                            • Second Child: ₦{{ number_format($additionalChildFee, 2) }} ({{ number_format($baseFee, 2) }} + {{ $discountPercent }}% = {{ number_format($baseFee, 2) }} + {{ number_format($additionalAmount, 2) }})<br>
+                                            • Third Child: ₦{{ number_format($additionalChildFee, 2) }} ({{ number_format($baseFee, 2) }} + {{ $discountPercent }}% = {{ number_format($baseFee, 2) }} + {{ number_format($additionalAmount, 2) }})<br>
+                                            <strong>Total for 1 parent + 3 children: ₦{{ number_format($totalForExample, 2) }}</strong>
+                                        </p>
+                                    </div>
+                                    @error('additional_child_discount_percentage')
+                                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    @enderror
+                                </div>
                             </div>
 
                             <!-- Doctor Payment Percentage -->
@@ -276,6 +267,204 @@
                         </form>
                     </div>
 
+                    <!-- Security Alerts Settings Card -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="border-b border-gray-200 p-6">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-red-100 p-3 rounded-lg">
+                                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-800">Security Alerts</h2>
+                                    <p class="text-sm text-gray-600">Configure email notifications for security events</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{{ route('admin.settings.update') }}" class="p-6 space-y-6">
+                            @csrf
+                            <input type="hidden" name="form_type" value="security_alerts">
+
+                            <!-- Enable/Disable Alerts -->
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="security_alerts_enabled"
+                                           name="security_alerts_enabled"
+                                           type="checkbox"
+                                           value="1"
+                                           {{ $securityAlertsEnabled ? 'checked' : '' }}
+                                           class="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                                </div>
+                                <div class="ml-3">
+                                    <label for="security_alerts_enabled" class="font-semibold text-gray-900">
+                                        Enable Security Alert Emails
+                                    </label>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        When enabled, security alerts will be sent via email to configured recipients.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Alert Email Recipients -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Alert Email Recipients
+                                </label>
+                                <div id="emailRecipientsContainer" class="space-y-2">
+                                    @if(!empty($securityAlertEmails) && is_array($securityAlertEmails))
+                                        @foreach($securityAlertEmails as $index => $email)
+                                            <div class="flex items-center gap-2 email-recipient-row">
+                                                <input type="email"
+                                                       name="security_alert_emails[]"
+                                                       value="{{ $email }}"
+                                                       required
+                                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                                       placeholder="security@doctorontap.com">
+                                                <button type="button" onclick="removeEmailRecipient(this)" class="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="flex items-center gap-2 email-recipient-row">
+                                            <input type="email"
+                                                   name="security_alert_emails[]"
+                                                   value="{{ env('SECURITY_ALERT_EMAIL', 'admin@doctorontap.com') }}"
+                                                   required
+                                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                                   placeholder="security@doctorontap.com">
+                                            <button type="button" onclick="removeEmailRecipient(this)" class="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+                                <button type="button" onclick="addEmailRecipient()" class="mt-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Email Recipient
+                                </button>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    Add email addresses that should receive security alerts. Multiple recipients are supported.
+                                </p>
+                            </div>
+
+                            <!-- Alert Severities -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Alert Severities
+                                </label>
+                                <p class="text-sm text-gray-600 mb-3">Select which severity levels should trigger email alerts:</p>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="security_alert_severities[]" value="critical" 
+                                               {{ in_array('critical', $securityAlertSeverities ?? ['critical', 'high']) ? 'checked' : '' }}
+                                               class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                                        <span class="ml-2 text-sm text-gray-700">
+                                            <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold mr-2">CRITICAL</span>
+                                            SQL injection attempts, severe security breaches
+                                        </span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="security_alert_severities[]" value="high"
+                                               {{ in_array('high', $securityAlertSeverities ?? ['critical', 'high']) ? 'checked' : '' }}
+                                               class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                        <span class="ml-2 text-sm text-gray-700">
+                                            <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold mr-2">HIGH</span>
+                                            XSS attempts, sensitive file access, rapid requests
+                                        </span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="security_alert_severities[]" value="medium"
+                                               {{ in_array('medium', $securityAlertSeverities ?? []) ? 'checked' : '' }}
+                                               class="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500">
+                                        <span class="ml-2 text-sm text-gray-700">
+                                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold mr-2">MEDIUM</span>
+                                            Suspicious user agents, moderate security events
+                                        </span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="security_alert_severities[]" value="low"
+                                               {{ in_array('low', $securityAlertSeverities ?? []) ? 'checked' : '' }}
+                                               class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                                        <span class="ml-2 text-sm text-gray-700">
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold mr-2">LOW</span>
+                                            General security events (not recommended for email alerts)
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Alert Thresholds -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Alert Thresholds</h3>
+                                <p class="text-sm text-gray-600 mb-4">Configure how many alerts per hour trigger email notifications (prevents email spam):</p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="security_alert_threshold_critical" class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Critical Events per Hour
+                                        </label>
+                                        <input type="number"
+                                               id="security_alert_threshold_critical"
+                                               name="security_alert_threshold_critical"
+                                               value="{{ $securityAlertThresholdCritical ?? 1 }}"
+                                               required
+                                               min="1"
+                                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                                        <p class="mt-1 text-xs text-gray-500">Maximum critical alerts to send per hour</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="security_alert_threshold_high" class="block text-sm font-semibold text-gray-700 mb-2">
+                                            High Severity Events per Hour
+                                        </label>
+                                        <input type="number"
+                                               id="security_alert_threshold_high"
+                                               name="security_alert_threshold_high"
+                                               value="{{ $securityAlertThresholdHigh ?? 5 }}"
+                                               required
+                                               min="1"
+                                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                                        <p class="mt-1 text-xs text-gray-500">Maximum high severity alerts to send per hour</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Test Alert Button -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <button type="button" onclick="testSecurityAlert()" 
+                                        class="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Send Test Alert Email
+                                </button>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    Send a test security alert email to verify your configuration.
+                                </p>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="border-t border-gray-200 pt-6 flex justify-end">
+                                <button type="submit"
+                                        class="px-8 py-3 purple-gradient text-white font-semibold rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Save Security Alert Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
                     <!-- Info Card -->
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
                         <div class="flex items-start space-x-3">
@@ -298,6 +487,9 @@
         </div>
     </div>
 
+    <!-- Include Alert Modal Component -->
+    @include('components.alert-modal')
+
     <script>
         // Update payment percentage preview
         document.getElementById('doctor_payment_percentage').addEventListener('input', function() {
@@ -308,44 +500,71 @@
             document.getElementById('platform-fee-preview').textContent = platformFee.toFixed(2) + '%';
         });
 
-        // Calculate discount preview
-        function updateDiscountPreview() {
-            const payLaterFee = parseFloat(document.getElementById('consultation_fee_pay_later').value) || 0;
-            const payNowFee = parseFloat(document.getElementById('consultation_fee_pay_now').value) || 0;
-            
-            const discount = payLaterFee - payNowFee;
-            const discountPercent = payLaterFee > 0 ? ((discount / payLaterFee) * 100) : 0;
-            
-            const discountDisplay = document.getElementById('discount-amount');
-            const discountContainer = discountDisplay.parentElement.parentElement;
-            
-            if (discount > 0) {
-                discountDisplay.innerHTML = `Customers save <strong class="text-emerald-700">₦${discount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> <strong class="text-emerald-700">(${discountPercent.toFixed(1)}%)</strong> when paying upfront`;
-                discountContainer.classList.remove('bg-white', 'border-emerald-200');
-                discountContainer.classList.add('bg-emerald-50', 'border-emerald-300');
-                discountDisplay.parentElement.classList.remove('text-emerald-800');
-                discountDisplay.parentElement.classList.add('text-emerald-900');
-            } else if (discount < 0) {
-                discountDisplay.innerHTML = `<span class="text-red-600 font-semibold">⚠️ Pay Now fee is ₦${Math.abs(discount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} higher than Pay Later! Consider reversing this.</span>`;
-                discountContainer.classList.remove('bg-white', 'border-emerald-200', 'bg-emerald-50', 'border-emerald-300');
-                discountContainer.classList.add('bg-red-50', 'border-red-300');
-                discountDisplay.parentElement.classList.remove('text-emerald-800', 'text-emerald-900');
-                discountDisplay.parentElement.classList.add('text-red-800');
+        // Add email recipient
+        function addEmailRecipient() {
+            const container = document.getElementById('emailRecipientsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'flex items-center gap-2 email-recipient-row';
+            newRow.innerHTML = `
+                <input type="email"
+                       name="security_alert_emails[]"
+                       value=""
+                       required
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                       placeholder="security@doctorontap.com">
+                <button type="button" onclick="removeEmailRecipient(this)" class="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+            container.appendChild(newRow);
+        }
+
+        // Remove email recipient
+        function removeEmailRecipient(button) {
+            const container = document.getElementById('emailRecipientsContainer');
+            if (container.children.length > 1) {
+                button.closest('.email-recipient-row').remove();
             } else {
-                discountDisplay.innerHTML = '<span class="text-gray-600">Both prices are the same. No discount applied.</span>';
-                discountContainer.classList.remove('bg-emerald-50', 'border-emerald-300', 'bg-red-50', 'border-red-300');
-                discountContainer.classList.add('bg-white', 'border-emerald-200');
-                discountDisplay.parentElement.classList.remove('text-red-800', 'text-emerald-800', 'text-emerald-900');
-                discountDisplay.parentElement.classList.add('text-gray-700');
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal('You must have at least one email recipient.', 'error', 'Cannot Remove');
+                }
             }
         }
 
-        // Add event listeners
-        document.getElementById('consultation_fee_pay_later').addEventListener('input', updateDiscountPreview);
-        document.getElementById('consultation_fee_pay_now').addEventListener('input', updateDiscountPreview);
-
-        // Initial calculation
-        updateDiscountPreview();
+        // Test security alert
+        function testSecurityAlert() {
+            showConfirmModal(
+                'This will send a test security alert email to all configured recipients. Continue?',
+                function() {
+                    fetch('/admin/settings/test-security-alert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal('Test alert email sent successfully!', 'success', 'Test Alert Sent');
+                            }
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal('Error: ' + (data.message || 'Failed to send test alert'), 'error', 'Test Alert Failed');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Error: ' + error.message, 'error', 'Network Error');
+                        }
+                    });
+                }
+            );
+        }
     </script>
 </body>
 </html>

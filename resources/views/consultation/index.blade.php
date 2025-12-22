@@ -464,7 +464,7 @@
                 </div>
             </div>
 
-            <!-- CTA Button -->
+            <!-- CTA Buttons -->
             <div class="mt-8 sm:mt-10 md:mt-12 text-center">
                 <button @click="window.dispatchEvent(new CustomEvent('open-consultation-modal'))"
                         class="group inline-flex items-center justify-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-base sm:text-lg font-bold rounded-xl hover:from-purple-700 hover:to-blue-700 hover:shadow-2xl hover:scale-105 transition-all duration-300">
@@ -508,16 +508,51 @@
                     <!-- Form Header -->
                     <div class="text-center mb-8">
                         <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl mb-4 shadow-lg">
-                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg x-show="!isMultiPatient" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <svg x-show="isMultiPatient" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                         </div>
                         <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                            Book Your Consultation
+                            <span x-show="!isMultiPatient">Book Your Consultation</span>
+                            <span x-show="isMultiPatient">Multi-Patient Consultation Booking</span>
                         </h2>
-                        <p class="text-gray-600 max-w-2xl mx-auto">
-                            Complete the form below to connect with a qualified healthcare professional
+                        <p class="text-gray-600 max-w-2xl mx-auto mb-4">
+                            <span x-show="!isMultiPatient">Complete the form below to connect with a qualified healthcare professional</span>
+                            <span x-show="isMultiPatient">Book consultations for yourself and multiple family members in one go</span>
                         </p>
+                        
+                        <!-- Booking Mode Toggle -->
+                        <div class="flex items-center justify-center gap-4 mb-4">
+                            <button type="button" 
+                                    @click="isMultiPatient = false; multiPatientData.patients = []; patientCount = 0;"
+                                    :class="!isMultiPatient ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'"
+                                    class="px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                Single Patient
+                            </button>
+                            <button type="button" 
+                                    @click="isMultiPatient = true; if(multiPatientData.patients.length === 0) { addMultiPatient(); }"
+                                    :class="isMultiPatient ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                                    class="px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                Multiple Patients
+                            </button>
+                        </div>
+                        
+                        <!-- Multi-Patient Notice -->
+                        <div x-show="isMultiPatient" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg mb-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-sm font-semibold text-blue-800">Multi-Patient Mode: You can add multiple people to this booking</span>
+                        </div>
                     </div>
 
                     <!-- Progress Steps -->
@@ -542,7 +577,10 @@
 
                     <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-6 md:p-8">
             <!-- Form -->
-            <form @submit.prevent="submitForm" class="space-y-6">
+            <form @submit.prevent="submitForm($event)" class="space-y-6" id="consultation-form" novalidate>
+                
+                <!-- SINGLE PATIENT FORM (shown when isMultiPatient is false) -->
+                <div x-show="!isMultiPatient">
                 
                 <!-- PERSONAL DETAILS BLOCK -->
                 <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-5">
@@ -1122,7 +1160,7 @@
                                     <option value="">Any Available Doctor</option>
                                     @foreach($doctors as $doctor)
                                         <option value="{{ $doctor->id }}">
-                                            {{ $doctor->name }}@if($doctor->gender) ({{ ucfirst($doctor->gender) }})@endif @if($doctor->specialization) - {{ $doctor->specialization }}@endif - NGN {{ number_format($doctor->consultation_fee, 2) }}
+                                            {{ $doctor->name }}@if($doctor->gender) ({{ ucfirst($doctor->gender) }})@endif @if($doctor->specialization) - {{ $doctor->specialization }}@endif - NGN {{ number_format($doctor->effective_consultation_fee, 2) }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -1302,6 +1340,355 @@
                         </ol>
                     </div>
                 </div>
+                </div>
+                <!-- END SINGLE PATIENT FORM -->
+
+                <!-- MULTI-PATIENT FORM (shown when isMultiPatient is true) -->
+                <div x-show="isMultiPatient" x-cloak>
+                    <!-- Payer Information -->
+                    <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-5 mb-6">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Payer Information</h3>
+                                <p class="text-xs text-gray-600">Your details (who will pay for all consultations)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                                    Full Name *
+                                </label>
+                                <input type="text" x-model="multiPatientData.payer_name" required
+                                    class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    placeholder="Your full name">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                                    Email *
+                                </label>
+                                <input type="email" x-model="multiPatientData.payer_email" required
+                                    class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    placeholder="your.email@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                                    Phone Number *
+                                </label>
+                                <input type="tel" x-model="multiPatientData.payer_mobile" required
+                                    class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    placeholder="+234 XXX XXX XXXX">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                                    Consultation Mode *
+                                </label>
+                                <select x-model="multiPatientData.consult_mode" required
+                                    class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white">
+                                    <option value="">Select mode</option>
+                                    <option value="chat">Chat</option>
+                                    <option value="voice">Voice Call</option>
+                                    <option value="video">Video Call</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                                    Doctor Preference (Optional)
+                                </label>
+                                <div class="relative">
+                                    <select x-model="multiPatientData.doctor_id"
+                                        class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white transition-colors pr-10">
+                                        <option value="">Any Available Doctor</option>
+                                        @foreach($doctors as $doctor)
+                                            <option value="{{ $doctor->id }}">
+                                                {{ $doctor->name }}@if($doctor->gender) ({{ ucfirst($doctor->gender) }})@endif @if($doctor->specialization) - {{ $doctor->specialization }}@endif - NGN {{ number_format($doctor->effective_consultation_fee, 2) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" 
+                                            @click="showDoctorDetails(multiPatientData.doctor_id)"
+                                            x-show="multiPatientData.doctor_id"
+                                            class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-emerald-600 transition-colors"
+                                            title="View doctor details">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patients List -->
+                    <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-5 mb-6">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">Patients</h3>
+                                    <p class="text-xs text-gray-600">Add all people who need consultation</p>
+                                </div>
+                            </div>
+                            <button type="button" @click="addMultiPatient()"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Add Patient
+                            </button>
+                        </div>
+
+                        <div class="space-y-6">
+                            <template x-for="(patient, index) in multiPatientData.patients" :key="index">
+                                <div class="bg-white border-2 border-slate-100 rounded-2xl p-6 relative hover:border-purple-200 transition-all shadow-sm">
+                                    <div class="flex items-center justify-between mb-6">
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs" x-text="index + 1"></span>
+                                            <h4 class="font-bold text-gray-900" x-text="'Person ' + (index + 1)"></h4>
+                                        </div>
+                                        <button type="button" @click="removeMultiPatient(index)" 
+                                            x-show="multiPatientData.patients.length > 1"
+                                            class="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded-lg transition-all">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Relationship *</label>
+                                            <select x-model="patient.relationship" required
+                                                class="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50/50">
+                                                <option value="">Select</option>
+                                                <option value="self">Myself</option>
+                                                <option value="child">My Child</option>
+                                                <option value="spouse">My Spouse</option>
+                                                <option value="parent">My Parent</option>
+                                                <option value="sibling">My Sibling</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">First Name *</label>
+                                            <input type="text" x-model="patient.first_name" required
+                                                class="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50/50"
+                                                placeholder="First name">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Last Name *</label>
+                                            <input type="text" x-model="patient.last_name" required
+                                                class="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50/50"
+                                                placeholder="Last name">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Age *</label>
+                                            <input type="number" x-model="patient.age" required min="0" max="150"
+                                                class="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50/50"
+                                                placeholder="Age">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Gender *</label>
+                                            <select x-model="patient.gender" required
+                                                class="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50/50">
+                                                <option value="">Select</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Phone (Optional)</label>
+                                            <input type="tel" x-model="patient.mobile"
+                                                class="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50/50"
+                                                placeholder="Phone number">
+                                        </div>
+                                    </div>
+
+                                    <!-- Medical Detail Section -->
+                                    <div class="space-y-6 pt-6 border-t border-slate-100">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">What's the problem right now? *</label>
+                                            <textarea x-model="patient.problem" required minlength="10" rows="3"
+                                                class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/10 focus:border-purple-500 outline-none text-sm transition-all"
+                                                placeholder="Brief description of the main concern (at least 10 characters)"></textarea>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                Upload Medical Documents (Optional)
+                                            </label>
+                                            <p class="text-[10px] text-gray-500 mb-3 uppercase tracking-wide">
+                                                Test results, lab reports, or prescriptions (PDF, JPG, PNG - Max 5MB)
+                                            </p>
+                                            
+                                            <div class="relative group">
+                                                <input 
+                                                    type="file" 
+                                                    multiple
+                                                    @change="handleMultiPatientFileUpload($event, index)"
+                                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                >
+                                                <div class="w-full px-4 py-5 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 group-hover:bg-purple-50/50 group-hover:border-purple-300 transition-all text-center">
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        <svg class="w-8 h-8 text-slate-300 group-hover:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        </svg>
+                                                        <span class="text-xs font-medium text-slate-500 group-hover:text-purple-600 transition-colors">Click or drag to upload files</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Patient Files List -->
+                                            <div x-show="patient.medical_documents.length > 0" class="mt-4 space-y-2">
+                                                <template x-for="(file, fileIdx) in patient.medical_documents" :key="fileIdx">
+                                                    <div class="flex items-center justify-between p-2.5 bg-white border border-slate-100 rounded-lg text-[10px] shadow-sm">
+                                                        <div class="flex items-center gap-2 truncate pr-4">
+                                                            <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                            <span x-text="file.name" class="font-medium text-slate-700 truncate"></span>
+                                                        </div>
+                                                        <button type="button" @click="removeMultiPatientFile(index, fileIdx)" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">How bad is it? *</label>
+                                            <div class="grid grid-cols-3 gap-3">
+                                                <template x-for="option in [
+                                                    {val: 'mild', label: 'Mild', color: 'green'},
+                                                    {val: 'moderate', label: 'Moderate', color: 'orange'},
+                                                    {val: 'severe', label: 'Severe', color: 'red'}
+                                                ]" :key="option.val">
+                                                    <button type="button" @click="patient.severity = option.val"
+                                                        :class="patient.severity === option.val ? 
+                                                            `border-${option.color}-500 bg-${option.color}-50 text-${option.color}-700 ring-2 ring-${option.color}-200` : 
+                                                            'border-gray-200 bg-white text-gray-600 hover:border-gray-300'"
+                                                        class="py-2.5 px-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all flex flex-col items-center gap-1.5"
+                                                    >
+                                                        <span x-show="option.val === 'mild'">🟢</span>
+                                                        <span x-show="option.val === 'moderate'">🟡</span>
+                                                        <span x-show="option.val === 'severe'">🔴</span>
+                                                        <span x-text="option.label"></span>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-4">Are they experiencing any of these? (Optional)</label>
+                                            
+                                            <!-- Mobile Dropdown View -->
+                                            <div class="block md:hidden relative" x-data="{ searchQuery: '' }" @click.away="patient.showSymptomDropdown = false">
+                                                <button type="button" 
+                                                    @click="patient.showSymptomDropdown = !patient.showSymptomDropdown"
+                                                    class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl flex items-center justify-between text-sm text-gray-600 group hover:border-purple-300 transition-all"
+                                                >
+                                                    <span x-text="patient.emergency_symptoms.length > 0 ? patient.emergency_symptoms.length + ' symptoms selected' : 'Select symptoms...'"></span>
+                                                    <svg class="w-4 h-4 transition-transform duration-200" :class="patient.showSymptomDropdown ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                                
+                                                <div x-show="patient.showSymptomDropdown" 
+                                                    x-transition:enter="transition ease-out duration-100"
+                                                    x-transition:enter-start="opacity-0 scale-95"
+                                                    x-transition:enter-end="opacity-100 scale-100"
+                                                    class="absolute z-40 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col"
+                                                >
+                                                    <div class="p-2 border-b border-slate-100">
+                                                        <input type="text" x-model="searchQuery" placeholder="Search symptoms..." 
+                                                            class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-purple-500">
+                                                    </div>
+                                                    <div class="overflow-y-auto p-2">
+                                                        <div class="grid grid-cols-1 gap-1">
+                                                            <template x-for="symptom in getAllSymptomsFlat().filter(s => s.label.toLowerCase().includes(searchQuery.toLowerCase()))" :key="symptom.value">
+                                                                <label class="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                                                                    :class="patient.emergency_symptoms.includes(symptom.value) ? 'bg-purple-50' : ''">
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        :value="symptom.value"
+                                                                        x-model="patient.emergency_symptoms"
+                                                                        class="w-4 h-4 rounded text-purple-600 border-gray-300 focus:ring-purple-500"
+                                                                    >
+                                                                    <span class="text-xs text-gray-700" x-text="symptom.label"></span>
+                                                                </label>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Desktop Grid View -->
+                                            <div class="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                                <template x-for="symptom in getAllSymptomsFlat()" :key="symptom.value">
+                                                    <label class="flex items-center gap-3 p-3 bg-slate-50/50 border border-slate-200 rounded-xl cursor-pointer hover:bg-white hover:border-purple-300 transition-all group">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :value="symptom.value"
+                                                            x-model="patient.emergency_symptoms"
+                                                            class="w-4 h-4 rounded text-purple-600 border-gray-300 focus:ring-purple-500"
+                                                        >
+                                                        <span class="text-[10px] font-medium text-gray-600 group-hover:text-gray-900" x-text="symptom.label"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <div x-show="multiPatientData.patients.length === 0" class="text-center py-12 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl">
+                                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                </div>
+                                <p class="text-slate-500 font-medium">Click "Add Patient" to add the first person</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button for Multi-Patient -->
+                    <div class="pt-6 border-t border-gray-200">
+                        <button 
+                            type="submit" 
+                            :disabled="isSubmitting || multiPatientData.patients.length === 0"
+                            class="w-full py-4 px-6 text-base font-semibold text-white rounded-xl transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-xl hover:scale-[1.02] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center justify-center gap-2"
+                        >
+                            <svg x-show="isSubmitting" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <svg x-show="!isSubmitting" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span x-text="isSubmitting ? 'Submitting Multi-Patient Booking...' : 'Submit Multi-Patient Consultation'"></span>
+                        </button>
+                        
+                        <!-- Privacy Assurance -->
+                        <p class="text-[10px] text-gray-500 text-center mt-4">
+                            🔒 Your information is secure and confidential. We follow HIPAA guidelines.
+                        </p>
+                    </div>
+                </div>
+                <!-- END MULTI-PATIENT FORM -->
             </form>
         </div>
 
@@ -1461,7 +1848,7 @@
                                         <span class="font-medium">Place of Work:</span> <span x-text="selectedDoctor?.place_of_work"></span>
                                     </div>
                                     <div class="text-sm text-gray-500 mb-2">
-                                        <span class="font-medium">Consultation Fee:</span> <span class="text-emerald-600 font-semibold">NGN <span x-text="selectedDoctor?.consultation_fee ? new Intl.NumberFormat().format(selectedDoctor.consultation_fee) : 'N/A'"></span></span>
+                                        <span class="font-medium">Consultation Fee:</span> <span class="text-emerald-600 font-semibold">NGN <span x-text="selectedDoctor?.effective_consultation_fee ? new Intl.NumberFormat().format(selectedDoctor.effective_consultation_fee) : 'N/A'"></span></span>
                                     </div>
                                     <div x-show="selectedDoctor?.average_rating > 0" class="text-sm text-gray-500 mb-2">
                                         <span class="font-medium">Rating:</span> 
@@ -2112,6 +2499,8 @@
     
         function consultationForm() {
             return {
+                isMultiPatient: false,
+                // Single patient form data
                 formData: {
                     first_name: '',
                     last_name: '',
@@ -2128,6 +2517,55 @@
                     informed_consent: false,
                     data_privacy: false
                 },
+                // Multi-patient form data
+                multiPatientData: {
+                    payer_name: '',
+                    payer_email: '',
+                    payer_mobile: '',
+                    consult_mode: '',
+                    doctor_id: '',
+                    patients: []
+                },
+                allSymptoms: {
+                    critical: [
+                        { value: 'chest_pain', label: 'Chest pain or pressure', category: 'critical' },
+                        { value: 'breathing', label: 'Severe difficulty breathing', category: 'critical' },
+                        { value: 'consciousness', label: 'Loss of consciousness / fainting', category: 'critical' },
+                        { value: 'bleeding', label: 'Uncontrolled heavy bleeding', category: 'critical' },
+                        { value: 'seizure', label: 'Seizure now or ongoing', category: 'critical' },
+                        { value: 'pregnancy_bleeding', label: 'Heavy vaginal bleeding in pregnancy', category: 'critical' }
+                    ],
+                    respiratory: [
+                        { value: 'cough', label: 'Persistent cough', category: 'respiratory' },
+                        { value: 'shortness_breath', label: 'Shortness of breath', category: 'respiratory' },
+                        { value: 'wheezing', label: 'Wheezing', category: 'respiratory' }
+                    ],
+                    neurological: [
+                        { value: 'weakness', label: 'Sudden weakness, numbness', category: 'neurological' },
+                        { value: 'speech', label: 'Slurred speech', category: 'neurological' },
+                        { value: 'headache', label: 'Severe headache', category: 'neurological' },
+                        { value: 'dizziness', label: 'Dizziness or vertigo', category: 'neurological' }
+                    ],
+                    pain: [
+                        { value: 'abdominal', label: 'Severe abdominal pain', category: 'pain' },
+                        { value: 'back_pain', label: 'Severe back pain', category: 'pain' },
+                        { value: 'joint_pain', label: 'Joint pain', category: 'pain' }
+                    ],
+                    general: [
+                        { value: 'fever', label: 'Very high fever', category: 'general' },
+                        { value: 'fatigue', label: 'Extreme fatigue', category: 'general' },
+                        { value: 'nausea', label: 'Nausea or vomiting', category: 'general' },
+                        { value: 'dehydration', label: 'Signs of dehydration', category: 'general' }
+                    ]
+                },
+                getAllSymptomsFlat() {
+                    const allFlat = [];
+                    Object.keys(this.allSymptoms).forEach(category => {
+                        allFlat.push(...this.allSymptoms[category]);
+                    });
+                    return allFlat;
+                },
+                patientCount: 0,
                 uploadedFiles: [],
                 errors: {},
                 successMessage: '',
@@ -2161,14 +2599,140 @@
                     this.showDoctorModal = true;
                 },
 
-                async submitForm() {
+                addMultiPatient() {
+                    this.multiPatientData.patients.push({
+                        first_name: '',
+                        last_name: '',
+                        age: '',
+                        gender: '',
+                        relationship: '',
+                        email: '',
+                        mobile: '',
+                        symptoms: '',
+                        problem: '',
+                        severity: 'moderate',
+                        emergency_symptoms: [],
+                        medical_documents: [],
+                        showSymptomDropdown: false
+                    });
+                    this.patientCount++;
+                },
+
+                removeMultiPatient(index) {
+                    this.multiPatientData.patients.splice(index, 1);
+                    this.patientCount--;
+                },
+
+                handleMultiPatientFileUpload(event, patientIndex) {
+                    const files = Array.from(event.target.files);
+                    const patient = this.multiPatientData.patients[patientIndex];
+                    files.forEach(file => {
+                        if (!patient.medical_documents.some(f => f.name === file.name && f.size === file.size)) {
+                            patient.medical_documents.push(file);
+                        }
+                    });
+                    event.target.value = '';
+                },
+
+                removeMultiPatientFile(patientIndex, fileIndex) {
+                    this.multiPatientData.patients[patientIndex].medical_documents.splice(fileIndex, 1);
+                },
+
+                async submitForm(event) {
+                    if (event) event.preventDefault();
+                    
                     this.isSubmitting = true;
                     this.errors = {};
                     this.successMessage = '';
 
                     try {
-                        // Use FormData to support file uploads
                         const formData = new FormData();
+
+                        if (this.isMultiPatient) {
+                            // Validate multi-patient data
+                            if (!this.multiPatientData.payer_name || !this.multiPatientData.payer_email || !this.multiPatientData.payer_mobile || !this.multiPatientData.consult_mode) {
+                                this.displayErrorModal('Validation Error', 'Please fill in all payer information fields.');
+                                this.isSubmitting = false;
+                                return;
+                            }
+
+                            if (this.multiPatientData.patients.length === 0) {
+                                this.displayErrorModal('Validation Error', 'Please add at least one patient.');
+                                this.isSubmitting = false;
+                                return;
+                            }
+
+                            // Add payer info
+                            formData.append('payer_name', this.multiPatientData.payer_name);
+                            formData.append('payer_email', this.multiPatientData.payer_email);
+                            formData.append('payer_mobile', this.multiPatientData.payer_mobile);
+                            formData.append('consult_mode', this.multiPatientData.consult_mode);
+                            formData.append('doctor_id', this.multiPatientData.doctor_id || '');
+
+                            // Add patients info
+                            this.multiPatientData.patients.forEach((patient, index) => {
+                                if (!patient.first_name || !patient.last_name || !patient.age || !patient.gender || !patient.relationship || !patient.problem) {
+                                    throw new Error(`Please fill in all required fields for Person ${index + 1}.`);
+                                }
+                                if (patient.problem.length < 10) {
+                                    throw new Error(`Medical problem for Person ${index + 1} must be at least 10 characters.`);
+                                }
+
+                                formData.append(`patients[${index}][relationship]`, patient.relationship);
+                                formData.append(`patients[${index}][first_name]`, patient.first_name);
+                                formData.append(`patients[${index}][last_name]`, patient.last_name);
+                                formData.append(`patients[${index}][gender]`, patient.gender);
+                                formData.append(`patients[${index}][age]`, patient.age);
+                                formData.append(`patients[${index}][mobile]`, patient.mobile || '');
+                                formData.append(`patients[${index}][email]`, patient.email || '');
+                                formData.append(`patients[${index}][problem]`, patient.problem);
+                                formData.append(`patients[${index}][symptoms]`, patient.symptoms || '');
+                                formData.append(`patients[${index}][severity]`, patient.severity);
+                                
+                                patient.emergency_symptoms.forEach(sym => {
+                                    formData.append(`patients[${index}][emergency_symptoms][]`, sym);
+                                });
+
+                                patient.medical_documents.forEach(file => {
+                                    formData.append(`patients[${index}][medical_documents][]`, file);
+                                });
+                            });
+
+                            const response = await fetch('/booking/multi-patient', {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json'
+                                },
+                                body: formData
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok && data.success) {
+                                window.location.href = data.redirect_url || `/booking/confirmation/${data.booking?.reference}`;
+                            } else {
+                                if (data.errors) {
+                                    this.errors = data.errors;
+                                } else {
+                                    this.displayErrorModal('Booking Failed', data.message || 'Failed to create booking.');
+                                }
+                                this.isSubmitting = false;
+                            }
+                            return;
+                        }
+
+                        // Single patient form submission
+                        console.log('Single patient mode detected');
+                        console.log('Form data:', this.formData);
+                        
+                        // Use the existing formData object to support file uploads
+                        formData.delete('payer_name'); // Clear multi-patient specific fields if it was a single patient attempt
+                        formData.delete('payer_email');
+                        formData.delete('payer_mobile');
+                        formData.delete('consult_mode');
+                        formData.delete('doctor_id');
+
                         
                         // Append all form fields
                         for (const key in this.formData) {
@@ -2176,8 +2740,13 @@
                                 this.formData[key].forEach(value => {
                                     formData.append(`${key}[]`, value);
                                 });
+                            } else if (key === 'informed_consent' || key === 'data_privacy') {
+                                // Checkboxes need to send '1' if checked, or omit if false
+                                if (this.formData[key]) {
+                                    formData.append(key, '1');
+                                }
                             } else {
-                                formData.append(key, this.formData[key]);
+                                formData.append(key, this.formData[key] || '');
                             }
                         }
                         
@@ -2186,6 +2755,9 @@
                             formData.append('medical_documents[]', file);
                         });
 
+                        // Debug: Log form data (remove in production)
+                        console.log('Submitting form data:', Object.fromEntries(formData));
+
                         const response = await fetch('/submit', {
                             method: 'POST',
                             headers: {
@@ -2193,6 +2765,8 @@
                             },
                             body: formData
                         });
+                        
+                        console.log('Single patient response status:', response.status);
 
                         // Handle CSRF token expiration (419 error)
                         if (response.status === 419) {
@@ -2203,15 +2777,31 @@
                             return;
                         }
 
-                        // Check if response is JSON
-                        const contentType = response.headers.get('content-type');
-                        if (!contentType || !contentType.includes('application/json')) {
+                        // Try to parse response as JSON
+                        let data;
+                        try {
+                            const contentType = response.headers.get('content-type') || '';
+                            const text = await response.text();
+                            
+                            // Debug: Log raw response
+                            console.log('Response content-type:', contentType);
+                            console.log('Response text:', text);
+                            
+                            // Try to parse as JSON
+                            if (contentType.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+                                data = JSON.parse(text);
+                            } else {
+                                throw new Error('Response is not JSON format');
+                            }
+                        } catch (parseError) {
+                            console.error('Failed to parse response:', parseError);
                             throw new Error('Server returned an invalid response. Please try again.');
                         }
 
-                        const data = await response.json();
+                        // Debug: Log parsed response
+                        console.log('Response status:', response.status, 'Response data:', data);
 
-                        if (response.ok) {
+                        if (response.ok && (data.success === true || data.success === undefined)) {
                             // Show success modal
                             this.modalTitle = 'Booking Confirmed! 🎉';
                             this.modalMessage = data.message || 'Your consultation has been booked successfully. We will contact you shortly via WhatsApp.';
@@ -2227,9 +2817,9 @@
                             }
                         }
                     } catch (error) {
-                        console.error('Error:', error);
+                        console.error('Form submission error:', error);
+                        console.error('Error stack:', error.stack);
                         this.displayErrorModal('Connection Error', error.message || 'An error occurred while submitting your booking. Please check your internet connection and try again.');
-                    } finally {
                         this.isSubmitting = false;
                     }
                 },
@@ -2284,6 +2874,15 @@
                         informed_consent: false,
                         data_privacy: false
                     };
+                    this.multiPatientData = {
+                        payer_name: '',
+                        payer_email: '',
+                        payer_mobile: '',
+                        consult_mode: '',
+                        doctor_id: '',
+                        patients: []
+                    };
+                    this.patientCount = 0;
                     this.uploadedFiles = [];
                     // Clear file input
                     const fileInput = document.getElementById('medical_documents');
@@ -2296,5 +2895,6 @@
     </script>
 
 
+    <x-system-preloader x-show="isSubmitting" message="Submitting Consultation..." subtext="Please wait while we secure your booking." />
 </body>
 </html>

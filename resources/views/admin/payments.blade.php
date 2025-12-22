@@ -39,22 +39,88 @@
                 </div>
             </header>
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-        <!-- Filter -->
+        <!-- Filters -->
         <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <form method="GET" action="{{ route('admin.payments') }}" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Payment Status</label>
-                    <select name="status" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
-                        <option value="">All Statuses</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="success" {{ request('status') == 'success' ? 'selected' : '' }}>Success</option>
-                        <option value="failed" {{ request('status') == 'failed' ? 'selected' : '' }}>Failed</option>
-                    </select>
+            <form method="GET" action="{{ route('admin.payments') }}" class="space-y-3">
+                <!-- Row 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Search</label>
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Reference, name, email..."
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Status</label>
+                        <select name="status" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
+                            <option value="">All</option>
+                            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="success" {{ request('status') == 'success' ? 'selected' : '' }}>Success</option>
+                            <option value="failed" {{ request('status') == 'failed' ? 'selected' : '' }}>Failed</option>
+                        </select>
+                    </div>
+
+                    <!-- Doctor -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Doctor</label>
+                        <select name="doctor_id" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
+                            <option value="">All Doctors</option>
+                            @foreach($doctors as $doctor)
+                            <option value="{{ $doctor->id }}" {{ request('doctor_id') == $doctor->id ? 'selected' : '' }}>{{ $doctor->full_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Method</label>
+                        <select name="payment_method" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white">
+                            <option value="">All Methods</option>
+                            <option value="card" {{ request('payment_method') == 'card' ? 'selected' : '' }}>Card</option>
+                            <option value="bank_transfer" {{ request('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                            <option value="mobile_money" {{ request('payment_method') == 'mobile_money' ? 'selected' : '' }}>Mobile Money</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="flex items-end">
-                    <button type="submit" class="w-full px-5 py-2 purple-gradient text-white text-sm font-semibold rounded-lg hover:shadow-md transition-all">
-                        Apply Filters
-                    </button>
+
+                <!-- Row 2 -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <!-- Date From -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">From Date</label>
+                        <input type="date" name="date_from" value="{{ request('date_from') }}"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <!-- Date To -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">To Date</label>
+                        <input type="date" name="date_to" value="{{ request('date_to') }}"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <!-- Min Amount -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Min Amount</label>
+                        <input type="number" name="amount_min" value="{{ request('amount_min') }}" placeholder="0"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <!-- Max Amount -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Max Amount</label>
+                        <input type="number" name="amount_max" value="{{ request('amount_max') }}" placeholder="100000"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full px-5 py-2 purple-gradient text-white text-sm font-semibold rounded-lg hover:shadow-md transition-all">
+                            Apply Filters
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
