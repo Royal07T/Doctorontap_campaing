@@ -135,6 +135,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
     Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
     Route::post('/consultation/{id}/reassign-doctor', [DashboardController::class, 'reassignDoctor'])->name('consultation.reassign-doctor');
+    Route::post('/consultation/{id}/query-doctor', [DashboardController::class, 'queryDoctor'])->name('consultation.query-doctor');
     Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
     Route::post('/consultation/{id}/mark-payment-paid', [DashboardController::class, 'markPaymentAsPaid'])->name('consultation.mark-payment-paid');
     Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
@@ -143,7 +144,6 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
     
     // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
-    Route::get('/bookings/{id}', [DashboardController::class, 'showBooking'])->name('bookings.show');
     Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
     Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
     Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');

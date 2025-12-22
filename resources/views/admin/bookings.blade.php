@@ -135,11 +135,8 @@
                                         {{ $booking->created_at->format('M d, Y') }}
                                         <div class="text-xs text-gray-500">{{ $booking->created_at->format('h:i A') }}</div>
                                     </td>
-                                    <td class="px-4 py-3 text-sm">
-                                        <a href="{{ route('admin.bookings.show', $booking->id) }}" 
-                                           class="text-purple-600 hover:text-purple-800 font-medium">
-                                            View Details →
-                                        </a>
+                                    <td class="px-4 py-3 text-sm text-gray-400">
+                                        —
                                     </td>
                                 </tr>
                                 @empty

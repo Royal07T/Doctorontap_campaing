@@ -465,7 +465,7 @@
             </div>
 
             <!-- CTA Buttons -->
-            <div class="mt-8 sm:mt-10 md:mt-12 text-center space-y-4">
+            <div class="mt-8 sm:mt-10 md:mt-12 text-center">
                 <button @click="window.dispatchEvent(new CustomEvent('open-consultation-modal'))"
                         class="group inline-flex items-center justify-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-base sm:text-lg font-bold rounded-xl hover:from-purple-700 hover:to-blue-700 hover:shadow-2xl hover:scale-105 transition-all duration-300">
                     <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -476,17 +476,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
                 </button>
-                <div class="text-sm text-gray-600">or</div>
-                <a href="{{ route('booking.create') }}"
-                        class="group inline-flex items-center justify-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-white border-2 border-purple-600 text-purple-600 text-base sm:text-lg font-bold rounded-xl hover:bg-purple-50 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span>Book for Multiple People</span>
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                </a>
             </div>
         </div>
     </section>

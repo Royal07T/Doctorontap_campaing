@@ -68,10 +68,6 @@
             </p>
         </div>
         
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="{{ url('/admin/bookings/' . $booking->id) }}" style="display: inline-block; background: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Booking Details</a>
-        </div>
-        
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
         <p style="font-size: 12px; color: #666; text-align: center;">

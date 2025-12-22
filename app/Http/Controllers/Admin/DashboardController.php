@@ -231,7 +231,12 @@ class DashboardController extends Controller
         // Log viewing for HIPAA compliance
         $consultation->logViewed();
         
-        return view('admin.consultation-details', compact('consultation'));
+        // Get available doctors for reassignment
+        $doctors = Doctor::where('is_available', true)
+            ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
+            ->get();
+        
+        return view('admin.consultation-details', compact('consultation', 'doctors'));
     }
 
     /**
@@ -363,6 +368,100 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => $message
+        ]);
+    }
+
+    /**
+     * Query doctor about delayed consultation (Admin-initiated)
+     */
+    public function queryDoctor($id)
+    {
+        $consultation = Consultation::with('doctor')->findOrFail($id);
+
+        // Validate that consultation has a doctor assigned
+        if (!$consultation->doctor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No doctor assigned to this consultation'
+            ], 400);
+        }
+
+        // Validate that consultation is scheduled but not completed
+        if ($consultation->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Consultation is already completed'
+            ], 400);
+        }
+
+        $doctor = $consultation->doctor;
+
+        // Prepare notification data
+        $notificationData = [
+            'consultation_reference' => $consultation->reference,
+            'first_name' => $consultation->first_name,
+            'last_name' => $consultation->last_name,
+            'email' => $consultation->email,
+            'mobile' => $consultation->mobile,
+            'age' => $consultation->age,
+            'gender' => $consultation->gender,
+            'problem' => $consultation->problem,
+            'severity' => $consultation->severity,
+            'consult_mode' => $consultation->consult_mode,
+            'doctor' => $doctor->full_name,
+            'doctor_fee' => $doctor->effective_consultation_fee ?? 0,
+            'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
+            'has_documents' => !empty($consultation->medical_documents),
+            'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
+        ];
+
+        // Send urgent email notification
+        try {
+            \Mail::to($doctor->email)->send(new \App\Mail\DelayQueryNotification($notificationData));
+            \Log::info('Delay query notification sent to doctor', [
+                'consultation_id' => $consultation->id,
+                'consultation_reference' => $consultation->reference,
+                'doctor_id' => $doctor->id,
+                'doctor_email' => $doctor->email
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send delay query notification to doctor', [
+                'consultation_id' => $consultation->id,
+                'doctor_id' => $doctor->id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send notification: ' . $e->getMessage()
+            ], 500);
+        }
+
+        // Send SMS notification if available
+        if ($doctor->phone) {
+            try {
+                $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+                $smsResult = $smsNotification->sendDelayQuerySms($doctor, $notificationData);
+                
+                if ($smsResult['success']) {
+                    \Log::info('Delay query SMS sent to doctor', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctor->id,
+                        'doctor_phone' => $doctor->phone
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send delay query SMS to doctor', [
+                    'consultation_id' => $consultation->id,
+                    'doctor_id' => $doctor->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the request if SMS fails
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Urgent delay query notification sent to Dr. ' . $doctor->full_name . ' successfully'
         ]);
     }
 
