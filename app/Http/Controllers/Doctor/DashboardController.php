@@ -7,6 +7,7 @@ use App\Models\Consultation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Database\QueryException;
 use App\Mail\ConsultationStatusChange;
 
 class DashboardController extends Controller
@@ -668,6 +669,25 @@ class DashboardController extends Controller
             // Get bank details
             $bank = \App\Models\Bank::findOrFail($validated['bank_id']);
 
+            // Check if this bank account already exists for this doctor (including soft-deleted)
+            $existingAccount = \App\Models\DoctorBankAccount::withTrashed()
+                ->where('doctor_id', $doctor->id)
+                ->where('account_number', $validated['account_number'])
+                ->where('bank_code', $bank->code)
+                ->first();
+
+            if ($existingAccount) {
+                if ($existingAccount->trashed()) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'This bank account was previously added and deleted. Please contact support if you need to restore it.');
+                }
+                
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'This bank account has already been added to your account. Please use a different account number or edit the existing account.');
+            }
+
             // Verify account with KoraPay before saving
             $payoutService = app(\App\Services\KoraPayPayoutService::class);
             $verification = $payoutService->verifyBankAccount(
@@ -711,6 +731,35 @@ class DashboardController extends Controller
                 ]);
 
                 \DB::commit();
+            } catch (QueryException $e) {
+                \DB::rollBack();
+                
+                // Handle specific database constraint violations
+                if ($e->getCode() === '23000') {
+                    $errorMessage = $e->getMessage();
+                    
+                    // Check for unique constraint violations
+                    if (str_contains($errorMessage, 'unique_default_bank_per_doctor')) {
+                        \Log::error('Bank account unique constraint violation', [
+                            'doctor_id' => $doctor->id,
+                            'error' => $errorMessage
+                        ]);
+                        
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Unable to add bank account. There was a conflict with your existing accounts. Please try again or contact support if the issue persists.');
+                    }
+                    
+                    // Generic duplicate entry error
+                    if (str_contains($errorMessage, 'Duplicate entry')) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'This bank account already exists in your account. Please use a different account number or edit the existing account.');
+                    }
+                }
+                
+                // Re-throw if it's not a constraint violation we can handle
+                throw $e;
             } catch (\Exception $e) {
                 \DB::rollBack();
                 throw $e;
@@ -718,15 +767,44 @@ class DashboardController extends Controller
 
             return redirect()->back()->with('success', 'Bank account added and verified successfully! You can now receive payments.');
 
+        } catch (QueryException $e) {
+            \Log::error('Failed to add bank account - Database error', [
+                'doctor_id' => Auth::guard('doctor')->id(),
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+
+            // Handle database constraint violations with friendly messages
+            if ($e->getCode() === '23000') {
+                $errorMessage = $e->getMessage();
+                
+                if (str_contains($errorMessage, 'unique_default_bank_per_doctor')) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Unable to add bank account. There was a conflict with your existing accounts. Please try again or contact support if the issue persists.');
+                }
+                
+                if (str_contains($errorMessage, 'Duplicate entry')) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'This bank account already exists in your account. Please use a different account number or edit the existing account.');
+                }
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Unable to add bank account at this time. Please try again later or contact support if the problem continues.');
+                
         } catch (\Exception $e) {
             \Log::error('Failed to add bank account', [
                 'doctor_id' => Auth::guard('doctor')->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Failed to add bank account: ' . $e->getMessage());
+                ->with('error', 'Unable to add bank account at this time. Please try again later or contact support if the problem continues.');
         }
     }
 
