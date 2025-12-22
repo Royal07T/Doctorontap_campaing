@@ -6,6 +6,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SecurityAlert;
+use App\Models\Setting;
 use Symfony\Component\HttpFoundation\Response;
 
 class SecurityMonitoring
@@ -369,15 +372,91 @@ class SecurityMonitoring
      */
     protected function sendSecurityAlert(string $eventType, array $data): void
     {
-        // In a real implementation, you would send emails, SMS, or webhooks
-        // For now, we'll just log it
+        // Always log the alert
         Log::alert("SECURITY ALERT: {$eventType}", $data);
         
-        // You could implement:
-        // - Email notifications to security team
-        // - SMS alerts for critical events
-        // - Webhook notifications to security monitoring systems
-        // - Slack/Discord notifications
+        // Check if email alerts are enabled
+        $alertsEnabled = Setting::get('security_alerts_enabled', false);
+        
+        if (!$alertsEnabled) {
+            return;
+        }
+        
+        // Get alert email recipients
+        $alertEmails = Setting::get('security_alert_emails', []);
+        
+        if (empty($alertEmails) || !is_array($alertEmails)) {
+            return;
+        }
+        
+        // Get configured severities that should trigger emails
+        $alertSeverities = Setting::get('security_alert_severities', ['critical', 'high']);
+        
+        if (!is_array($alertSeverities)) {
+            $alertSeverities = ['critical', 'high'];
+        }
+        
+        $severity = $data['severity'] ?? 'medium';
+        
+        // Only send email if severity is in the configured list
+        if (!in_array($severity, $alertSeverities)) {
+            return;
+        }
+        
+        // Check thresholds to avoid email spam
+        if (!$this->shouldSendAlert($severity, $eventType)) {
+            return;
+        }
+        
+        // Send email to all configured recipients
+        try {
+            foreach ($alertEmails as $email) {
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    Mail::to($email)->send(new SecurityAlert($eventType, $data, $severity));
+                }
+            }
+            
+            Log::info('Security alert emails sent', [
+                'event_type' => $eventType,
+                'severity' => $severity,
+                'recipients' => $alertEmails,
+                'count' => count($alertEmails)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send security alert emails', [
+                'event_type' => $eventType,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+    
+    /**
+     * Check if alert should be sent based on thresholds
+     */
+    protected function shouldSendAlert(string $severity, string $eventType): bool
+    {
+        // Get threshold settings
+        $criticalThreshold = Setting::get('security_alert_threshold_critical', 1);
+        $highThreshold = Setting::get('security_alert_threshold_high', 5);
+        
+        // For critical and high severity, check hourly thresholds
+        if ($severity === 'critical' || $severity === 'high') {
+            $hour = now()->format('Y-m-d-H');
+            $key = "security_alert_sent:{$severity}:{$hour}";
+            $sentCount = Cache::get($key, 0);
+            
+            $threshold = $severity === 'critical' ? $criticalThreshold : $highThreshold;
+            
+            if ($sentCount >= $threshold) {
+                return false; // Already sent threshold number of alerts this hour
+            }
+            
+            // Increment counter
+            Cache::put($key, $sentCount + 1, 3600); // 1 hour cache
+        }
+        
+        return true;
     }
     
     /**

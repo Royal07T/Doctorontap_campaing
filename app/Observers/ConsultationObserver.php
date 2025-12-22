@@ -6,6 +6,7 @@ use App\Models\Consultation;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TreatmentPlanNotification;
+use App\Mail\ReviewRequest;
 
 class ConsultationObserver
 {
@@ -72,6 +73,21 @@ class ConsultationObserver
                             'is_payer_email' => empty($consultation->email),
                             'treatment_plan_unlocked' => $consultation->treatment_plan_unlocked
                         ]);
+
+                        // Send Review Request email immediately after
+                        try {
+                            Mail::to($recipientEmail)->send(new ReviewRequest($consultation));
+                            Log::info('Review request email sent automatically after treatment plan', [
+                                'consultation_id' => $consultation->id,
+                                'email' => $recipientEmail
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to send automatic review request email', [
+                                'consultation_id' => $consultation->id,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+
                     } catch (\Exception $e) {
                         Log::error('Failed to send automatic treatment plan email', [
                             'consultation_id' => $consultation->id,

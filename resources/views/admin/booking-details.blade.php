@@ -233,11 +233,17 @@
             // Apply Pricing Rules Button
             const applyPricingRulesBtn = document.getElementById('applyPricingRulesBtn');
             if (applyPricingRulesBtn) {
-                applyPricingRulesBtn.addEventListener('click', async function() {
-                    if (!confirm('This will automatically calculate and apply fees based on the configured pricing rules. Continue?')) {
-                        return;
-                    }
+                applyPricingRulesBtn.addEventListener('click', function() {
+                    const confirmMessage = 'This will automatically calculate and apply fees based on the configured pricing rules. Continue?';
                     
+                    if (typeof showConfirmModal === 'function') {
+                        showConfirmModal(confirmMessage, () => {
+                            this.performApplyPricingRules();
+                        });
+                    }
+                });
+
+                applyPricingRulesBtn.performApplyPricingRules = async function() {
                     const bookingId = {{ $booking->id }};
                     this.disabled = true;
                     this.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Applying...';
@@ -259,14 +265,11 @@
                                 showAlertModal('Pricing rules applied successfully! Fees have been calculated and set for all patients.', 'success');
                                 setTimeout(() => window.location.reload(), 2000);
                             } else {
-                                alert('Pricing rules applied successfully! Fees have been calculated and set for all patients.');
                                 window.location.reload();
                             }
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message || 'Failed to apply pricing rules. Please try again.', 'error');
-                            } else {
-                                alert(data.message || 'Failed to apply pricing rules. Please try again.');
                             }
                             this.disabled = false;
                             this.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Apply Pricing Rules';
@@ -275,13 +278,11 @@
                         console.error('Error:', error);
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred. Please try again.', 'error');
-                        } else {
-                            alert('An error occurred. Please try again.');
                         }
                         this.disabled = false;
                         this.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Apply Pricing Rules';
                     }
-                });
+                };
             }
             
             const forms = document.querySelectorAll('.adjust-fee-form');
@@ -298,8 +299,6 @@
                     if (!reason) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Please provide a reason for the fee adjustment', 'error');
-                        } else {
-                            alert('Please provide a reason for the fee adjustment');
                         }
                         return;
                     }
@@ -307,8 +306,6 @@
                     if (isNaN(newFee) || newFee < 0) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Please enter a valid fee amount', 'error');
-                        } else {
-                            alert('Please enter a valid fee amount');
                         }
                         return;
                     }
@@ -339,14 +336,11 @@
                                 showAlertModal('Fee adjusted successfully! Notifications sent to payer and admin.', 'success');
                                 setTimeout(() => window.location.reload(), 1500);
                             } else {
-                                alert('Fee adjusted successfully! Notifications sent to payer and admin.');
                                 window.location.reload();
                             }
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message || 'Failed to adjust fee. Please try again.', 'error');
-                            } else {
-                                alert(data.message || 'Failed to adjust fee. Please try again.');
                             }
                             button.disabled = false;
                             button.textContent = 'Adjust Fee';
@@ -355,8 +349,6 @@
                         console.error('Error:', error);
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred. Please try again.', 'error');
-                        } else {
-                            alert('An error occurred. Please try again.');
                         }
                         button.disabled = false;
                         button.textContent = 'Adjust Fee';

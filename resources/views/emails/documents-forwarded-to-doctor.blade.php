@@ -152,7 +152,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
+            <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" class="logo">
             <h1>📎 Patient Medical Documents</h1>
             <p>Consultation Reference: {{ $consultation->reference }}</p>
         </div>

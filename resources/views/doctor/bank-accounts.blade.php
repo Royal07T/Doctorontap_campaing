@@ -441,11 +441,6 @@
                 showConfirmModal('Are you sure you want to delete this bank account? This action cannot be undone.', () => {
                     document.getElementById('deleteForm' + accountId).submit();
                 });
-            } else {
-                // Fallback to browser confirm if custom modal not available
-                if (confirm('Are you sure you want to delete this bank account?')) {
-                    document.getElementById('deleteForm' + accountId).submit();
-                }
             }
         }
     </script>

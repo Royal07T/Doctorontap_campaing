@@ -218,8 +218,6 @@
                     alpineData.showMessage('success', 'Success', '✓ Treatment plan resent successfully!');
                 } else if (typeof showAlertModal === 'function') {
                     showAlertModal('✓ Treatment plan resent successfully!', 'success');
-                } else {
-                    alert('✓ Treatment plan resent successfully!');
                 }
                 setTimeout(() => location.reload(), 1500);
             } else {
@@ -228,8 +226,6 @@
                     alpineData.showMessage('error', 'Error', errorMsg);
                 } else if (typeof showAlertModal === 'function') {
                     showAlertModal(errorMsg, 'error');
-                } else {
-                    alert(errorMsg);
                 }
             }
         })
@@ -239,8 +235,6 @@
                 alpineData.showMessage('error', 'Error', errorMsg);
             } else if (typeof showAlertModal === 'function') {
                 showAlertModal(errorMsg, 'error');
-            } else {
-                alert(errorMsg);
             }
         });
     };
@@ -253,12 +247,7 @@
     else if (typeof showConfirmModal === 'function') {
         showConfirmModal(confirmMessage, performResend);
     } 
-    // Fallback to browser confirm
-    else {
-        if (confirm(confirmMessage)) {
-            performResend();
-        }
-    };
+};
 })();
 </script>
 

@@ -350,13 +350,26 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Doctor Preference</label>
-                            <select x-model="bookingData.doctor_id"
-                                class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-200 focus:bg-white transition-all">
-                                <option value="">Any Available Doctor</option>
-                                @foreach($doctors as $doctor)
-                                    <option value="{{ $doctor->id }}">Dr. {{ $doctor->first_name }} {{ $doctor->last_name }}</option>
-                                @endforeach
-                            </select>
+                            <div class="relative">
+                                <select x-model="bookingData.doctor_id"
+                                    class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-200 focus:bg-white transition-all pr-10">
+                                    <option value="">Any Available Doctor</option>
+                                    @foreach($doctors as $doctor)
+                                        <option value="{{ $doctor->id }}">
+                                            {{ $doctor->name }}@if($doctor->gender) ({{ ucfirst($doctor->gender) }})@endif @if($doctor->specialization) - {{ $doctor->specialization }}@endif - NGN {{ number_format($doctor->effective_consultation_fee, 2) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <button type="button" 
+                                        @click="showDoctorDetails(bookingData.doctor_id)"
+                                        x-show="bookingData.doctor_id"
+                                        class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-purple-600 transition-colors"
+                                        title="View doctor details">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Consultation Mode *</label>
@@ -448,9 +461,73 @@
         </div>
     </main>
 
-    <footer class="py-12 border-t border-slate-200 text-center">
-        <p class="text-slate-400 text-sm">© 2025 <span class="font-bold text-purple-600">DoctorOnTap</span>. All rights reserved.</p>
     </footer>
+    
+    <!-- Doctor Details Modal -->
+    <div x-show="showDoctorModal" 
+         class="fixed inset-0 z-[60] overflow-y-auto" 
+         x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="showDoctorModal = false"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-100">
+                <div class="bg-white px-6 pt-6 pb-4 sm:p-8 sm:pb-6">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-2xl bg-purple-50 sm:mx-0 sm:h-14 sm:w-14">
+                            <svg class="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <div class="mt-4 text-center sm:mt-0 sm:ml-6 sm:text-left w-full">
+                            <h3 class="text-xl leading-6 font-bold font-heading text-slate-900" x-text="selectedDoctor?.name || 'Doctor Details'"></h3>
+                            
+                            <div class="mt-6 space-y-4">
+                                <div x-show="selectedDoctor?.gender" class="flex items-center gap-3 text-sm text-slate-600">
+                                    <span class="font-bold text-slate-400 w-24 uppercase tracking-wider text-[10px]">Gender</span>
+                                    <span x-text="selectedDoctor?.gender ? selectedDoctor.gender.charAt(0).toUpperCase() + selectedDoctor.gender.slice(1) : ''"></span>
+                                </div>
+                                <div x-show="selectedDoctor?.specialization" class="flex items-center gap-3 text-sm text-slate-600">
+                                    <span class="font-bold text-slate-400 w-24 uppercase tracking-wider text-[10px]">Specialization</span>
+                                    <span x-text="selectedDoctor?.specialization"></span>
+                                </div>
+                                <div x-show="selectedDoctor?.experience" class="flex items-center gap-3 text-sm text-slate-600">
+                                    <span class="font-bold text-slate-400 w-24 uppercase tracking-wider text-[10px]">Experience</span>
+                                    <span x-text="selectedDoctor?.experience + ' years'"></span>
+                                </div>
+                                <div x-show="selectedDoctor?.location" class="flex items-center gap-3 text-sm text-slate-600">
+                                    <span class="font-bold text-slate-400 w-24 uppercase tracking-wider text-[10px]">Location</span>
+                                    <span x-text="selectedDoctor?.location"></span>
+                                </div>
+                                <div x-show="selectedDoctor?.languages" class="flex items-center gap-3 text-sm text-slate-600">
+                                    <span class="font-bold text-slate-400 w-24 uppercase tracking-wider text-[10px]">Languages</span>
+                                    <span x-text="selectedDoctor?.languages"></span>
+                                </div>
+                                <div class="flex items-center gap-3 text-sm border-t border-slate-50 pt-4">
+                                    <span class="font-bold text-slate-400 w-24 uppercase tracking-wider text-[10px]">Consult Fee</span>
+                                    <span class="text-emerald-600 font-bold text-lg">NGN <span x-text="selectedDoctor?.effective_consultation_fee ? new Intl.NumberFormat().format(selectedDoctor.effective_consultation_fee) : 'N/A'"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-6 py-4 sm:px-8 sm:flex sm:flex-row-reverse">
+                    <button type="button" 
+                            @click="showDoctorModal = false"
+                            class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-3 bg-purple-600 text-base font-bold text-white hover:bg-purple-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-all shadow-purple-100">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         function multiPatientBooking() {
@@ -458,6 +535,8 @@
                 currentStep: 1,
                 isSubmitting: false,
                 errorMessage: '',
+                showDoctorModal: false,
+                selectedDoctor: null,
                 baseFee: {{ $baseFee }},
                 additionalPatientDiscount: {{ $additionalPatientDiscount }},
                 bookingData: {
@@ -504,6 +583,12 @@
                 init() {
                     // Start with one patient
                     this.addPatient();
+                },
+
+                showDoctorDetails(doctorId) {
+                    const doctors = @json($doctors);
+                    this.selectedDoctor = doctors.find(doctor => doctor.id == doctorId);
+                    this.showDoctorModal = true;
                 },
 
                 getAllSymptomsFlat() {
@@ -676,5 +761,6 @@
             };
         }
     </script>
+    <x-system-preloader x-show="isSubmitting" message="Processing Multi-Booking..." subtext="This may take a moment as we process multiple patients." />
 </body>
 </html>

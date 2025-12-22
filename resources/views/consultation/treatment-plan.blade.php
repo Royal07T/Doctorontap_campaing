@@ -14,8 +14,15 @@
 <!-- HEADER -->
 <header class="bg-white border-b sticky top-0 z-10 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-        <img src="{{ asset('img/logo-text.png') }}" class="h-6 sm:h-8" alt="DoctorOnTap">
-        <span class="text-xs sm:text-sm text-gray-500 hidden sm:inline">Treatment Plan</span>
+        <a href="{{ url('/') }}" class="flex items-center hover:opacity-80 transition-opacity">
+            <img src="{{ asset('img/logo-text.png') }}" class="h-6 sm:h-8" alt="DoctorOnTap">
+        </a>
+        <div class="flex items-center gap-4">
+            <span class="text-xs sm:text-sm text-gray-500 hidden sm:inline">Treatment Plan</span>
+            <a href="{{ url('/') }}" class="text-sm sm:text-base font-semibold text-purple-600 hover:text-purple-700 transition-colors">
+                Home
+            </a>
+        </div>
     </div>
 </header>
 

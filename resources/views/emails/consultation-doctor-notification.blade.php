@@ -164,7 +164,7 @@
 <div class="container">
   <!-- HEADER -->
   <div class="header">
-    <img src="{{ app_url('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="logo">
+    <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" class="logo">
     <h1>🩺 New Patient Consultation</h1>
     <p>A new patient has just requested your consultation</p>
   </div>

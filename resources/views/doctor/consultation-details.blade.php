@@ -476,5 +476,6 @@
         </div>
     </div>
 
+    <x-system-preloader x-show="isUpdating" message="Updating Status..." subtext="Please wait while we finalize the change." />
 </body>
 </html>

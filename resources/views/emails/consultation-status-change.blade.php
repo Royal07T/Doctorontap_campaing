@@ -74,7 +74,7 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" style="height: 50px; width: auto; margin: 0 auto 15px auto; display: block;">
+        <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" style="height: 50px; width: auto; margin: 0 auto 15px auto; display: block;">
         <h1>Consultation Status Update</h1>
         <p>DoctorOnTap Admin Notification</p>
     </div>

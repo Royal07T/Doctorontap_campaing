@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, isGlobalUpdating: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
@@ -226,12 +226,15 @@
                                                 if (typeof showAlertModal === 'function') {
                                                     showAlertModal('Error: Consultation ID is missing. Please refresh the page.', 'error');
                                                 } else {
-                                                    alert('Error: Consultation ID is missing. Please refresh the page.');
+                                                    if (typeof showAlertModal === 'function') {
+                                                        showAlertModal('Error: Consultation ID is missing. Please refresh the page.', 'error');
+                                                    }
                                                 }
                                                 return;
                                             }
                                             
                                             this.isUpdating = true;
+                                            this.isGlobalUpdating = true;
                                             try {
                                                 const url = `/doctor/consultations/${consultationId}/update-status`;
                                                 console.log('Updating status:', { consultationId, newStatus, url });
@@ -256,14 +259,18 @@
                                                     if (typeof showAlertModal === 'function') {
                                                         showAlertModal('Status updated successfully! Admin has been notified.', 'success');
                                                     } else {
-                                                        alert('Status updated successfully! Admin has been notified.');
+                                                        if (typeof showAlertModal === 'function') {
+                                                            showAlertModal('Status updated successfully! Admin has been notified.', 'success');
+                                                        }
                                                     }
                                                     setTimeout(() => window.location.reload(), 1500);
                                                 } else {
                                                     if (typeof showAlertModal === 'function') {
                                                         showAlertModal(data.message || 'Failed to update status', 'error');
                                                     } else {
-                                                        alert(data.message || 'Failed to update status');
+                                                        if (typeof showAlertModal === 'function') {
+                                                            showAlertModal(data.message || 'Failed to update status', 'error');
+                                                        }
                                                     }
                                                 }
                                             } catch (error) {
@@ -271,10 +278,13 @@
                                                 if (typeof showAlertModal === 'function') {
                                                     showAlertModal('Error updating status: ' + error.message, 'error');
                                                 } else {
-                                                    alert('Error updating status: ' + error.message);
+                                                    if (typeof showAlertModal === 'function') {
+                                                        showAlertModal('Error updating status: ' + error.message, 'error');
+                                                    }
                                                 }
                                             } finally {
                                                 this.isUpdating = false;
+                                                this.isGlobalUpdating = false;
                                             }
                                         }
                                     }">
@@ -385,6 +395,6 @@
         </div>
     </div>
 
-    @include('components.alert-modal')
+    <x-system-preloader x-show="isGlobalUpdating" message="Updating Consultation Status..." subtext="Notifying patient and admin of the change." />
 </body>
 </html>

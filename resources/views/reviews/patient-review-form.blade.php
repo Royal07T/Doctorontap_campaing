@@ -179,8 +179,6 @@
             if (!selectedRating) {
                 if (typeof showAlertModal === 'function') {
                     showAlertModal('Please select a rating', 'error');
-                } else {
-                    alert('Please select a rating');
                 }
                 return;
             }
@@ -214,8 +212,6 @@
                 } else {
                     if (typeof showAlertModal === 'function') {
                         showAlertModal(data.message || 'Failed to submit review', 'error');
-                    } else {
-                        alert(data.message || 'Failed to submit review');
                     }
                     submitBtn.disabled = false;
                     btnText.classList.remove('hidden');
@@ -226,8 +222,6 @@
                 console.error('Error:', error);
                 if (typeof showAlertModal === 'function') {
                     showAlertModal('An error occurred. Please try again.', 'error');
-                } else {
-                    alert('An error occurred. Please try again.');
                 }
                 submitBtn.disabled = false;
                 btnText.classList.remove('hidden');

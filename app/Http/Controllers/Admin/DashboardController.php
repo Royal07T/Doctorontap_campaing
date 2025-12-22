@@ -82,6 +82,29 @@ class DashboardController extends Controller
         if ($request->has('payment_status') && $request->payment_status != '') {
             $query->where('payment_status', $request->payment_status);
         }
+        
+        // Filter by doctor
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+        
+        // Filter by canvasser
+        if ($request->filled('canvasser_id')) {
+            $query->where('canvasser_id', $request->canvasser_id);
+        }
+        
+        // Filter by nurse
+        if ($request->filled('nurse_id')) {
+            $query->where('nurse_id', $request->nurse_id);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
         // Search
         if ($request->has('search') && $request->search != '') {
@@ -116,12 +139,15 @@ class DashboardController extends Controller
         // Get all nurses for assignment dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
         
-        // Get all available doctors for reassignment dropdown
+        // Get all available doctors for reassignment dropdown  
         $doctors = Doctor::where('is_available', true)
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
+        
+        // Get all canvassers for filter dropdown
+        $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.consultations', compact('consultations', 'nurses', 'doctors'));
+        return view('admin.consultations', compact('consultations', 'nurses', 'doctors', 'canvassers'));
     }
 
     /**
@@ -166,11 +192,32 @@ class DashboardController extends Controller
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
         }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        // Filter by canvasser
+        if ($request->filled('canvasser_id')) {
+            $query->where('canvasser_id', $request->canvasser_id);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
         // Get all patients, grouped by email to avoid duplicates in view
         $patients = $query->latest()->paginate(20);
+        
+        // Get canvassers for filter dropdown
+        $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.patients', compact('patients'));
+        return view('admin.patients', compact('patients', 'canvassers'));
     }
 
     /**
@@ -601,14 +648,53 @@ class DashboardController extends Controller
     {
         $query = Payment::with('doctor');
 
+        // Search functionality
+       if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%");
+            });
+        }
+
         // Filter by status
-        if ($request->has('status') && $request->status != '') {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+        
+        // Filter by doctor
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        // Amount range filters
+        if ($request->filled('amount_min')) {
+            $query->where('amount', '>=', $request->amount_min);
+        }
+        if ($request->filled('amount_max')) {
+            $query->where('amount', '<=', $request->amount_max);
+        }
+        
+        // Payment method filter
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
         }
 
         $payments = $query->latest()->paginate(20);
+        
+        // Get all doctors for filter dropdown
+        $doctors = Doctor::approved()->orderBy('name')->get();
 
-        return view('admin.payments', compact('payments'));
+        return view('admin.payments', compact('payments', 'doctors'));
     }
 
     /**
@@ -640,6 +726,19 @@ class DashboardController extends Controller
         // Filter by gender
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
+        }
+        
+        // Filter by specialization (exact match or contains)
+        if ($request->filled('specialization')) {
+            $query->where('specialization', 'like', "%{$request->specialization}%");
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
 
         $doctors = $query->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')->orderBy('order')->paginate(20);
@@ -881,9 +980,33 @@ class DashboardController extends Controller
     /**
      * Display admin users list
      */
-    public function adminUsers()
+    public function adminUsers(Request $request)
     {
-        $admins = AdminUser::latest()->paginate(10);
+        $query = AdminUser::query();
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        // Role filter
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $admins = $query->latest()->paginate(20);
         
         return view('admin.admin-users', compact('admins'));
     }
@@ -1023,9 +1146,38 @@ class DashboardController extends Controller
     /**
      * Display canvassers list
      */
-    public function canvassers()
+    public function canvassers(Request $request)
     {
-        $canvassers = Canvasser::with('createdBy')->withCount('consultations')->latest()->paginate(10);
+        $query = Canvasser::with('createdBy')->withCount('consultations');
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $canvassers = $query->latest()->paginate(20);
         
         return view('admin.canvassers', compact('canvassers'));
     }
@@ -1160,9 +1312,38 @@ class DashboardController extends Controller
     /**
      * Display nurses list
      */
-    public function nurses()
+    public function nurses(Request $request)
     {
-        $nurses = Nurse::with('createdBy')->withCount('consultations')->latest()->paginate(10);
+        $query = Nurse::with('createdBy')->withCount('consultations');
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $nurses = $query->latest()->paginate(20);
         
         return view('admin.nurses', compact('nurses'));
     }
@@ -1322,8 +1503,26 @@ class DashboardController extends Controller
                   ->orWhere('specialization', 'like', "%{$search}%");
             });
         }
+        
+        // Filter by specialization
+        if ($request->filled('specialization')) {
+            $query->where('specialization', 'like', "%{$request->specialization}%");
+        }
+        
+        // Filter by gender
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
-        $doctors = $query->latest()->paginate(15);
+        $doctors = $query->latest()->paginate(20);
         $defaultFee = Setting::get('default_consultation_fee', 5000);
 
         return view('admin.doctor-registrations', compact('doctors', 'defaultFee'));
@@ -1471,7 +1670,32 @@ class DashboardController extends Controller
         $doctorPaymentPercentage = Setting::get('doctor_payment_percentage', 70);
         $additionalChildDiscount = Setting::get('additional_child_discount_percentage', 60);
 
-        return view('admin.settings', compact('settings', 'defaultFee', 'multiPatientFee', 'useDefaultForAll', 'doctorPaymentPercentage', 'additionalChildDiscount'));
+        // Security Alert Settings
+        $securityAlertsEnabled = Setting::get('security_alerts_enabled', false);
+        $securityAlertEmails = Setting::get('security_alert_emails', [env('SECURITY_ALERT_EMAIL', 'admin@doctorontap.com')]);
+        if (!is_array($securityAlertEmails)) {
+            $securityAlertEmails = [$securityAlertEmails];
+        }
+        $securityAlertSeverities = Setting::get('security_alert_severities', ['critical', 'high']);
+        if (!is_array($securityAlertSeverities)) {
+            $securityAlertSeverities = ['critical', 'high'];
+        }
+        $securityAlertThresholdCritical = Setting::get('security_alert_threshold_critical', 1);
+        $securityAlertThresholdHigh = Setting::get('security_alert_threshold_high', 5);
+
+        return view('admin.settings', compact(
+            'settings', 
+            'defaultFee', 
+            'multiPatientFee', 
+            'useDefaultForAll', 
+            'doctorPaymentPercentage', 
+            'additionalChildDiscount',
+            'securityAlertsEnabled',
+            'securityAlertEmails',
+            'securityAlertSeverities',
+            'securityAlertThresholdCritical',
+            'securityAlertThresholdHigh'
+        ));
     }
 
     /**
@@ -1480,24 +1704,49 @@ class DashboardController extends Controller
     public function updateSettings(Request $request)
     {
         try {
+            // Validate pricing settings
             $validated = $request->validate([
                 'default_consultation_fee' => 'required|numeric|min:0',
                 'multi_patient_booking_fee' => 'required|numeric|min:0',
                 'additional_child_discount_percentage' => 'required|numeric|min:0|max:100',
                 'use_default_fee_for_all' => 'nullable|boolean',
                 'doctor_payment_percentage' => 'required|numeric|min:0|max:100',
+                // Security alert settings
+                'security_alerts_enabled' => 'nullable|boolean',
+                'security_alert_emails' => 'nullable|array',
+                'security_alert_emails.*' => 'required|email',
+                'security_alert_severities' => 'nullable|array',
+                'security_alert_severities.*' => 'in:critical,high,medium,low',
+                'security_alert_threshold_critical' => 'nullable|integer|min:1',
+                'security_alert_threshold_high' => 'nullable|integer|min:1',
             ]);
 
+            // Update pricing settings
             Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
-            
-            // Multi-patient booking fee (required setting)
             Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
-            
-            // Additional child discount percentage
             Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
-            
             Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
             Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
+
+            // Update security alert settings
+            Setting::set('security_alerts_enabled', $request->has('security_alerts_enabled') ? 1 : 0, 'boolean');
+            
+            if ($request->has('security_alert_emails')) {
+                $emails = array_filter($request->input('security_alert_emails', []));
+                Setting::set('security_alert_emails', $emails, 'json');
+            }
+            
+            if ($request->has('security_alert_severities')) {
+                Setting::set('security_alert_severities', $request->input('security_alert_severities', []), 'json');
+            }
+            
+            if ($request->has('security_alert_threshold_critical')) {
+                Setting::set('security_alert_threshold_critical', $request->input('security_alert_threshold_critical', 1), 'integer');
+            }
+            
+            if ($request->has('security_alert_threshold_high')) {
+                Setting::set('security_alert_threshold_high', $request->input('security_alert_threshold_high', 5), 'integer');
+            }
 
             // If forcing all doctors to use default fee, update all doctors
             if ($request->has('use_default_fee_for_all')) {
@@ -1510,6 +1759,54 @@ class DashboardController extends Controller
             return redirect()->back()->with('success', 'Settings updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send test security alert email
+     */
+    public function testSecurityAlert(Request $request)
+    {
+        try {
+            $alertEmails = Setting::get('security_alert_emails', []);
+            
+            if (empty($alertEmails) || !is_array($alertEmails)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No email recipients configured. Please add at least one email address in Security Alerts settings.'
+                ], 400);
+            }
+
+            // Create test alert data
+            $testData = [
+                'ip' => $request->ip(),
+                'url' => $request->fullUrl(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now(),
+                'test' => true,
+            ];
+
+            // Send test alert
+            foreach ($alertEmails as $email) {
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    \Mail::to($email)->send(new \App\Mail\SecurityAlert('test_alert', $testData, 'medium'));
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test security alert email sent successfully to ' . count($alertEmails) . ' recipient(s).'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send test security alert', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send test alert: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -1639,6 +1936,19 @@ class DashboardController extends Controller
             } elseif ($request->verification_status === 'unverified') {
                 $query->where('is_verified', false);
             }
+        }
+        
+        // Filter by gender
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
         
         $patients = $query->latest()->paginate(20);
@@ -1839,6 +2149,19 @@ class DashboardController extends Controller
     public function doctorPayments(Request $request)
     {
         $query = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhereHas('doctor', function($doctorQ) use ($search) {
+                      $doctorQ->where('name', 'like', "%{$search}%")
+                              ->orWhere('first_name', 'like', "%{$search}%")
+                              ->orWhere('last_name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
         // Filter by status
         if ($request->filled('status')) {
@@ -1856,6 +2179,14 @@ class DashboardController extends Controller
         }
         if ($request->filled('date_to')) {
             $query->where('created_at', '<=', $request->date_to);
+        }
+        
+        // Amount range filters
+        if ($request->filled('amount_min')) {
+            $query->where('doctor_amount', '>=', $request->amount_min);
+        }
+        if ($request->filled('amount_max')) {
+            $query->where('doctor_amount', '<=', $request->amount_max);
         }
 
         $payments = $query->latest()->paginate(20);

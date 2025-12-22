@@ -7,6 +7,7 @@
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo" style="max-width: 150px; height: auto; margin: 0 auto 15px auto; display: block;">
         <h1 style="color: white; margin: 0; font-size: 24px;">Consultation Fee Update</h1>
     </div>
     

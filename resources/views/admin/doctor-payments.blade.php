@@ -17,7 +17,7 @@
 <body class="bg-gray-100 min-h-screen" x-data="paymentManager()">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
-        @include('admin.shared.sidebar', ['active' => 'payments'])
+        @include('admin.shared.sidebar', ['active' => 'doctor-payments'])
 
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
@@ -751,16 +751,12 @@
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal('Failed to load consultations: ' + (data.message || 'Unknown error'), 'error');
-                            } else {
-                                alert('Failed to load consultations: ' + (data.message || 'Unknown error'));
                             }
                             this.consultations = [];
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Failed to load consultations. Please try again.', 'error');
-                        } else {
-                            alert('Failed to load consultations. Please try again.');
                         }
                         console.error(error);
                         this.consultations = [];
@@ -774,8 +770,6 @@
                     if (!this.selectedDoctor) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Please select a doctor', 'error');
-                        } else {
-                            alert('Please select a doctor');
                         }
                         return;
                     }
@@ -783,8 +777,6 @@
                     if (this.selectedConsultations.length === 0) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Please select at least one consultation', 'error');
-                        } else {
-                            alert('Please select at least one consultation');
                         }
                         return;
                     }
@@ -792,8 +784,6 @@
                     if (!this.doctorPercentage || this.doctorPercentage <= 0 || this.doctorPercentage > 100) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Please enter a valid doctor percentage (0-100)', 'error');
-                        } else {
-                            alert('Please enter a valid doctor percentage (0-100)');
                         }
                         return;
                     }
@@ -817,22 +807,16 @@
                         if (data.success) {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'success', 'Payment Created Successfully');
-                            } else {
-                                alert('✅ ' + data.message);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message || 'Failed to create payment', 'error');
-                            } else {
-                                alert('❌ Error: ' + (data.message || 'Failed to create payment'));
                             }
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred while creating payment. Please check the console for details.', 'error');
-                        } else {
-                            alert('❌ An error occurred while creating payment. Please check the console for details.');
                         }
                         console.error('Payment creation error:', error);
                     }
@@ -859,22 +843,16 @@
                         if (data.success) {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'success');
-                            } else {
-                                alert(data.message);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal('Error: ' + data.message, 'error');
-                            } else {
-                                alert('Error: ' + data.message);
                             }
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred', 'error');
-                        } else {
-                            alert('An error occurred');
                         }
                         console.error(error);
                     }
@@ -896,16 +874,12 @@
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message || 'Failed to load payment details', 'error');
-                            } else {
-                                alert('Failed to load payment details');
                             }
                             this.showDetailsModal = false;
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred while loading payment details', 'error');
-                        } else {
-                            alert('An error occurred while loading payment details');
                         }
                         this.showDetailsModal = false;
                         console.error(error);
@@ -946,8 +920,6 @@
                         showConfirmModal(confirmMessage, () => {
                             this.performInitiatePayout(paymentId);
                         });
-                    } else if (confirm(confirmMessage)) {
-                        this.performInitiatePayout(paymentId);
                     }
                 },
 
@@ -967,22 +939,16 @@
                         if (data.success) {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'success', 'Payout Initiated');
-                            } else {
-                                alert('✅ ' + data.message);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'error');
-                            } else {
-                                alert('❌ Error: ' + data.message);
                             }
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred while initiating payout', 'error');
-                        } else {
-                            alert('An error occurred while initiating payout');
                         }
                         console.error(error);
                     }
@@ -1003,22 +969,16 @@
                         if (data.success) {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'success', 'Payout Status');
-                            } else {
-                                alert('✅ ' + data.message);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message || 'Failed to verify payout status', 'error');
-                            } else {
-                                alert('❌ ' + (data.message || 'Failed to verify payout status'));
                             }
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred while verifying payout', 'error');
-                        } else {
-                            alert('An error occurred while verifying payout');
                         }
                         console.error(error);
                     }
@@ -1028,8 +988,6 @@
                     if (this.selectedPayments.length === 0) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('Please select at least one payment', 'error');
-                        } else {
-                            alert('Please select at least one payment');
                         }
                         return;
                     }
@@ -1039,8 +997,6 @@
                         showConfirmModal(confirmMessage, () => {
                             this.performBulkPayout();
                         });
-                    } else if (confirm(confirmMessage)) {
-                        this.performBulkPayout();
                     }
                 },
 
@@ -1063,23 +1019,17 @@
                         if (data.success) {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'success', 'Bulk Payout Initiated');
-                            } else {
-                                alert('✅ ' + data.message);
                             }
                             this.selectedPayments = [];
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof showAlertModal === 'function') {
                                 showAlertModal(data.message, 'error');
-                            } else {
-                                alert('❌ Error: ' + data.message);
                             }
                         }
                     } catch (error) {
                         if (typeof showAlertModal === 'function') {
                             showAlertModal('An error occurred while processing bulk payout', 'error');
-                        } else {
-                            alert('An error occurred while processing bulk payout');
                         }
                         console.error(error);
                     }

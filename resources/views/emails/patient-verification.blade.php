@@ -55,7 +55,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ asset('img/logo-text.png') }}" alt="DoctorOnTap Logo">
+            <img src="{{ email_logo_inline() }}" alt="DoctorOnTap Logo">
             <h2>Verify Your Email Address</h2>
         </div>
         

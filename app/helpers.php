@@ -43,3 +43,22 @@ if (!function_exists('app_url')) {
     }
 }
 
+if (!function_exists('email_logo_inline')) {
+    /**
+     * Get inline base64-encoded logo for email embedding
+     * This allows the logo to display in emails without requiring external URL access
+     * 
+     * @return string Data URI with base64-encoded PNG logo
+     */
+    function email_logo_inline() {
+        $logoPath = public_path('img/whitelogo.png');
+        
+        if (!file_exists($logoPath)) {
+            return '';
+        }
+        
+        $imageData = base64_encode(file_get_contents($logoPath));
+        return 'data:image/png;base64,' . $imageData;
+    }
+}
+

@@ -35,10 +35,19 @@ class LoginRateLimit
                 'timestamp' => now()
             ]);
             
-            return response()->json([
-                'message' => 'Too many login attempts. Please try again in ' . $seconds . ' seconds.',
-                'retry_after' => $seconds
-            ], 429);
+            // Format time in a user-friendly way
+            $minutes = ceil($seconds / 60);
+            
+            if ($minutes > 1) {
+                $message = "Too many failed login attempts. Please wait {$minutes} minutes before trying again for security reasons.";
+            } else {
+                $message = "Too many failed login attempts. Please wait {$seconds} seconds before trying again for security reasons.";
+            }
+            
+            // Return redirect with flash message for form submissions
+            return back()->withErrors([
+                'email' => $message
+            ])->withInput($request->only('email'));
         }
         
         RateLimiter::hit($key, $decayMinutes * 60);

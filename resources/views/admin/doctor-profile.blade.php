@@ -297,11 +297,6 @@
                 showConfirmModal('Are you sure you want to verify this bank account?', () => {
                     performVerification(accountId);
                 });
-            } else {
-                // Fallback to browser confirm if custom modal not available
-                if (confirm('Are you sure you want to verify this bank account?')) {
-                    performVerification(accountId);
-                }
             }
         }
 
@@ -323,16 +318,11 @@
                         setTimeout(() => {
                             location.reload();
                         }, 1500);
-                    } else {
-                        alert(data.message);
-                        location.reload();
                     }
                 } else {
                     // Use custom alert modal for errors
                     if (typeof showAlertModal === 'function') {
                         showAlertModal('Error: ' + data.message, 'error', 'Error');
-                    } else {
-                        alert('Error: ' + data.message);
                     }
                 }
             })
@@ -340,8 +330,6 @@
                 // Use custom alert modal for errors
                 if (typeof showAlertModal === 'function') {
                     showAlertModal('An error occurred. Please try again.', 'error', 'Error');
-                } else {
-                    alert('An error occurred. Please try again.');
                 }
                 console.error(error);
             });
