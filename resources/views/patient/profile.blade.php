@@ -71,6 +71,19 @@
                             <option value="male" {{ old('gender', $patient->gender) === 'male' ? 'selected' : '' }}>Male</option>
                             <option value="female" {{ old('gender', $patient->gender) === 'female' ? 'selected' : '' }}>Female</option>
                         </select>
+                        @if(strtolower($patient->gender) === 'female' || old('gender') === 'female')
+                        <div class="mt-2 p-3 bg-pink-50 border-l-4 border-pink-500 rounded">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-pink-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-pink-900">Menstrual Cycle Tracker Available</p>
+                                    <p class="text-xs text-pink-700 mt-1">As a female patient, you can track your menstrual cycle on your <a href="{{ route('patient.dashboard') }}" class="underline font-semibold">Dashboard</a>. You can log your periods and get predictions for your next cycle.</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                     </div>
 
                     <!-- Date of Birth -->

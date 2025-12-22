@@ -96,7 +96,7 @@ class DashboardController extends Controller
         ];
 
         // Get menstrual cycle data for female patients
-        $menstrualCycles = [];
+        $menstrualCycles = collect([]);
         $currentCycle = null;
         $nextPeriodPrediction = null;
         $averageCycleLength = null;

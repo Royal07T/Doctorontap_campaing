@@ -707,15 +707,15 @@
 
                 <!-- Menstrual Cycle Tracker (Female Patients Only) -->
                 @if(strtolower($patient->gender) === 'female')
-                <div class="mb-8">
+                <div id="menstrual-cycle" class="mb-8">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-lg font-bold text-gray-800">Menstrual Cycle Tracker</h2>
                         <button onclick="document.getElementById('cycleModal').classList.remove('hidden')" 
-                                class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="px-6 py-3 purple-gradient hover:opacity-90 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            <span>Log Period</span>
+                            <span>Log Your Period</span>
                         </button>
                     </div>
                     
@@ -787,8 +787,11 @@
                                 <h3 class="text-lg font-medium text-gray-900 mb-2">Start Tracking Your Cycle</h3>
                                 <p class="text-sm text-gray-500 mb-4">Log your period to track your menstrual cycle and predict your next period.</p>
                                 <button onclick="document.getElementById('cycleModal').classList.remove('hidden')" 
-                                        class="inline-block bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-lg font-medium transition">
-                                    Log Your Period
+                                        class="inline-block purple-gradient hover:opacity-90 text-white px-8 py-3 rounded-lg font-semibold transition shadow-md hover:shadow-lg flex items-center space-x-2 mx-auto">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Log Your Period</span>
                                 </button>
                             </div>
                         @endif
@@ -824,133 +827,11 @@
                 </div>
                 @endif
 
-                <!-- Quick Actions & Account Status -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Account Status & Dependents -->
+                <div class="grid grid-cols-1 gap-6">
 
-                    <!-- Quick Actions & Account Status -->
+                    <!-- Account Status & Dependents -->
                     <div class="space-y-6">
-                        <!-- Quick Actions -->
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <!-- New Consultation Dropdown -->
-                                <div x-data="{ consultationMenuOpen: false }" class="relative" style="z-index: 100;">
-                                    <button type="button" @click="consultationMenuOpen = !consultationMenuOpen" 
-                                            class="w-full bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full">
-                                        <div class="flex flex-col items-center text-center space-y-3">
-                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                            </svg>
-                                        </div>
-                                            <div class="flex-1 w-full">
-                                                <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">New Consultation</h3>
-                                                <p class="text-xs text-gray-600">Book with a doctor</p>
-                                            </div>
-                                            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': consultationMenuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </div>
-                                    </button>
-                                    
-                                    <!-- Dropdown Menu -->
-                                    <div x-show="consultationMenuOpen" 
-                                         x-cloak
-                                         @click.away="consultationMenuOpen = false"
-                                         x-transition:enter="transition ease-out duration-100"
-                                         x-transition:enter-start="opacity-0 transform scale-95"
-                                         x-transition:enter-end="opacity-100 transform scale-100"
-                                         x-transition:leave="transition ease-in duration-75"
-                                         x-transition:leave-start="opacity-100 transform scale-100"
-                                         x-transition:leave-end="opacity-0 transform scale-95"
-                                         class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
-                                         style="z-index: 9999;">
-                                        <a href="/patient/consultations/new/create?type=pay_later" 
-                                           class="block px-4 py-4 hover:bg-purple-50 transition-colors border-b border-gray-100">
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex-1">
-                                                    <div class="flex items-center space-x-2 mb-1">
-                                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                        </svg>
-                                                        <h4 class="font-semibold text-gray-800">Consult Now, Pay Later</h4>
-                                                    </div>
-                                                    <p class="text-xs text-gray-600 mb-2">Consult first, pay after service</p>
-                                                    <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000)), 2) }}</p>
-                                                </div>
-                                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </div>
-                                        </a>
-                                        <a href="/patient/consultations/new/create?type=pay_now" 
-                                           class="block px-4 py-4 hover:bg-purple-50 transition-colors">
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex-1">
-                                                    <div class="flex items-center space-x-2 mb-1">
-                                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <h4 class="font-semibold text-gray-800">Pay Before Consultation</h4>
-                                                    </div>
-                                                    <p class="text-xs text-gray-600 mb-2">Pay upfront to secure consultation</p>
-                                                    <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500)), 2) }}</p>
-                                                </div>
-                                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <!-- View Consultations -->
-                                <a href="{{ route('patient.consultations') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full flex flex-col">
-                                    <div class="flex flex-col items-center text-center space-y-3 flex-1">
-                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="flex-1 w-full">
-                                            <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">My Consultations</h3>
-                                            <p class="text-xs text-gray-600">View all consultations</p>
-                                        </div>
-                                    </div>
-                                </a>
-
-                                <!-- Medical Records -->
-                                <a href="{{ route('patient.medical-records') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full flex flex-col">
-                                    <div class="flex flex-col items-center text-center space-y-3 flex-1">
-                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="flex-1 w-full">
-                                            <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">Medical Records</h3>
-                                            <p class="text-xs text-gray-600">View health history</p>
-                                        </div>
-                                    </div>
-                                </a>
-
-                                <!-- Payments -->
-                                <a href="{{ route('patient.payments') }}" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-purple-400 group h-full flex flex-col">
-                                    <div class="flex flex-col items-center text-center space-y-3 flex-1">
-                                        <div class="purple-gradient p-3 rounded-lg group-hover:scale-110 transition-transform">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="flex-1 w-full">
-                                            <h3 class="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors mb-1">Payments</h3>
-                                            <p class="text-xs text-gray-600">View payment history</p>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-
                         <!-- Account Status -->
                         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                             <h3 class="text-base font-bold text-gray-800 mb-4">Account Information</h3>
