@@ -200,6 +200,8 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
+                        <!-- Notification Icon -->
+                        <x-notification-icon />
                         <span class="text-sm text-white">{{ now()->format('l, F j, Y') }}</span>
                     </div>
                 </div>

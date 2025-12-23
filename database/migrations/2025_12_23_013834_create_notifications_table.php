@@ -13,7 +13,18 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
+            $table->string('user_type'); // patient, doctor, admin, nurse, canvasser
+            $table->unsignedBigInteger('user_id');
+            $table->string('title');
+            $table->text('message');
+            $table->string('type')->default('info'); // info, success, warning, error
+            $table->string('action_url')->nullable();
+            $table->timestamp('read_at')->nullable();
+            $table->json('data')->nullable(); // Additional data
             $table->timestamps();
+            
+            $table->index(['user_type', 'user_id']);
+            $table->index('read_at');
         });
     }
 

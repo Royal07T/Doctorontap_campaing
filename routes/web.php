@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\VerificationController as AdminVerificationContro
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
+use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\File;
 
 // Service Worker Route - Handle both /sw.js and /service-worker.js
@@ -136,6 +137,13 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     // Admin Email Verification Routes
     Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
     Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations-livewire', function() {
@@ -258,6 +266,13 @@ Route::get('/canvasser/email/verify/{id}/{hash}', [CanvasserVerificationControll
 // Protected Canvasser Routes (Authentication required)
 Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'canvasser.verified'])->group(function () {
     Route::post('/logout', [CanvasserAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [CanvasserDashboardController::class, 'index'])->name('dashboard');
     
     // Patient Management
@@ -296,6 +311,13 @@ Route::get('/nurse/email/verify/{id}/{hash}', [NurseVerificationController::clas
 // Protected Nurse Routes (Authentication required)
 Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verified'])->group(function () {
     Route::post('/logout', [NurseAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [NurseDashboardController::class, 'index'])->name('dashboard');
     
     // Patient Management & Vital Signs
@@ -334,6 +356,13 @@ Route::get('/doctor/email/verify/{id}/{hash}', [DoctorVerificationController::cl
 // Protected Doctor Routes (Authentication required)
 Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.verified'])->group(function () {
     Route::post('/logout', [DoctorAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
     
     // Consultations
@@ -416,6 +445,12 @@ Route::prefix('patient')->name('patient.')->group(function () {
 // Protected Patient Routes (Authentication required)
 Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient.verified'])->group(function () {
     Route::post('/logout', [PatientAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');
