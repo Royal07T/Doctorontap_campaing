@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen" x-data="{ pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         @include('admin.shared.sidebar', ['active' => 'consultations'])
 
@@ -156,5 +156,6 @@
             </main>
         </div>
     </div>
+    @include('admin.shared.preloader')
 </body>
 </html>

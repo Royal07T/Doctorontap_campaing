@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100" x-data="{ sidebarOpen: false, pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         @include('admin.shared.sidebar', ['active' => 'reviews'])
 
@@ -368,6 +368,7 @@
     </script>
 
     @include('components.alert-modal')
+    @include('admin.shared.preloader')
 </body>
 </html>
 

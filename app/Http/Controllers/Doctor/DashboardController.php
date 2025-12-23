@@ -193,46 +193,59 @@ class DashboardController extends Controller
             
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
-                                       ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking'])
+                                       ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking', 'patient'])
                                        ->firstOrFail();
             
-            return response()->json([
-                'success' => true,
-                'consultation' => [
-                    'id' => $consultation->id,
-                    'reference' => $consultation->reference,
-                    'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
-                    'email' => $consultation->email,
-                    'mobile' => $consultation->mobile,
-                    'age' => $consultation->age,
-                    'gender' => ucfirst($consultation->gender),
-                    'symptoms' => $consultation->problem,
-                    'status' => ucfirst($consultation->status),
-                    'payment_status' => $consultation->payment ? ucfirst($consultation->payment->status) : 'Pending',
-                    'created_at' => $consultation->created_at->format('M d, Y h:i A'),
-                    'medical_documents' => $consultation->medical_documents,
-                    'doctor_notes' => $consultation->doctor_notes,
-                    'diagnosis' => $consultation->diagnosis,
-                    'treatment_plan' => $consultation->treatment_plan,
-                    'prescribed_medications' => $consultation->prescribed_medications,
-                    'follow_up_instructions' => $consultation->follow_up_instructions,
-                    'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
-                    'referrals' => $consultation->referrals,
-                    'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
-                    'additional_notes' => $consultation->additional_notes,
-                    'has_treatment_plan' => $consultation->hasTreatmentPlan(),
-                    'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
-                    'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
-                    'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
-                    'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
-                ]
-            ]);
+            // Return JSON for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'consultation' => [
+                        'id' => $consultation->id,
+                        'reference' => $consultation->reference,
+                        'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
+                        'email' => $consultation->email,
+                        'mobile' => $consultation->mobile,
+                        'age' => $consultation->age,
+                        'gender' => ucfirst($consultation->gender),
+                        'symptoms' => $consultation->problem,
+                        'status' => ucfirst($consultation->status),
+                        'payment_status' => $consultation->payment ? ucfirst($consultation->payment->status) : 'Pending',
+                        'created_at' => $consultation->created_at->format('M d, Y h:i A'),
+                        'medical_documents' => $consultation->medical_documents,
+                        'doctor_notes' => $consultation->doctor_notes,
+                        'diagnosis' => $consultation->diagnosis,
+                        'treatment_plan' => $consultation->treatment_plan,
+                        'prescribed_medications' => $consultation->prescribed_medications,
+                        'follow_up_instructions' => $consultation->follow_up_instructions,
+                        'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
+                        'referrals' => $consultation->referrals,
+                        'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
+                        'additional_notes' => $consultation->additional_notes,
+                        'has_treatment_plan' => $consultation->hasTreatmentPlan(),
+                        'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
+                        'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
+                        'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
+                        'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
+                    ]
+                ]);
+            }
+            
+            // Return view for regular HTTP requests
+            return view('doctor.consultation-details', compact('consultation'));
             
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load consultation: ' . $e->getMessage()
-            ], 500);
+            // For AJAX requests, return JSON error
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load consultation: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            // For regular requests, redirect with error
+            return redirect()->route('doctor.consultations')
+                ->with('error', 'Failed to load consultation: ' . $e->getMessage());
         }
     }
 
@@ -270,6 +283,15 @@ class DashboardController extends Controller
             
             // Check if it's an update or create
             $isUpdate = $consultation->treatment_plan_created;
+            
+            // Prevent editing if treatment plan has already been created/saved
+            // Once saved, treatment plan becomes a permanent medical record and cannot be edited
+            if ($isUpdate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Treatment plan cannot be edited once it has been saved. The treatment plan has been finalized and cannot be modified.'
+                ], 403);
+            }
             
             $validated = $request->validate([
                 // Medical Format Fields
@@ -481,6 +503,15 @@ class DashboardController extends Controller
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
+            
+            // Prevent editing if treatment plan has already been created/saved
+            // Once saved, treatment plan becomes a permanent medical record and cannot be edited
+            if ($consultation->treatment_plan_created) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Treatment plan cannot be edited once it has been saved. The treatment plan has been finalized and cannot be modified.'
+                ], 403);
+            }
             
             // Save whatever data is provided (no validation for drafts)
             $data = $request->only([

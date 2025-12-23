@@ -21,7 +21,7 @@
         
         @keyframes scroll-symptoms {
             0% { transform: translateX(0); }
-            100% { transform: translateX(calc(-250px * 12)); }
+            100% { transform: translateX(calc(-216px * var(--symptom-count, 13))); }
         }
         
         .animate-scroll {
@@ -29,7 +29,7 @@
         }
         
         .animate-scroll-symptoms {
-            animation: scroll-symptoms 35s linear infinite;
+            animation: scroll-symptoms calc(var(--symptom-count, 13) * 2s) linear infinite;
         }
         
         .animate-scroll:hover,
@@ -129,6 +129,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <span>Dependents</span>
+                </a>
+                @endif
+
+                @if(strtolower($patient->gender) === 'female')
+                <a href="#menstrual-cycle" onclick="document.getElementById('menstrual-cycle').scrollIntoView({behavior: 'smooth'}); return false;" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span>Cycle Tracker</span>
                 </a>
                 @endif
 
@@ -372,141 +381,169 @@
                 </div>
                 @endif
 
-                <!-- Find Doctor by Symptoms Carousel -->
+                <!-- Consult Doctor by Symptoms Section -->
                 @if(isset($symptoms) && count($symptoms) > 0)
                 <div class="mb-8">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">Find a Doctor by Symptoms</h3>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Consult top doctors online for any health concern</h3>
+                            <p class="text-sm text-gray-600 mt-1">Private online consultations with verified doctors in all specialists</p>
+                        </div>
                     </div>
                     
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-hidden">
                         <div class="relative">
-                            <div class="flex space-x-4 animate-scroll-symptoms">
+                            <div class="flex space-x-4 animate-scroll-symptoms" style="--symptom-count: {{ count($symptoms) }};">
                                 @foreach($symptoms as $symptom)
                                     @php
                                         $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
                                         $symptomName = $symptom['name'];
-                                        
-                                        // Map symptom names to CSS class names
-                                        $classMap = [
-                                            'Menstruation Flow' => 'menstruation',
-                                            'Rashes' => 'rashes',
-                                            'Skin Issues' => 'skin-issues',
-                                            'Headache' => 'headache',
-                                            'Cough' => 'cough',
-                                            'Fever' => 'fever',
-                                            'Stomach Pain' => 'stomach-pain',
-                                            'Back Pain' => 'back-pain',
-                                            'Eye Problems' => 'eye-problems',
-                                            'Ear Pain' => 'ear-pain',
-                                            'Joint Pain' => 'joint-pain',
-                                            'Chest Pain' => 'chest-pain',
-                                        ];
-                                        $iconClass = 'symptom-icon-' . ($classMap[$symptomName] ?? 'default');
-                                        
-                                        // Map symptom names to colors for background
-                                        $colorMap = [
-                                            'Menstruation Flow' => '#D72638',
-                                            'Rashes' => '#F4A261',
-                                            'Skin Issues' => '#F4A261',
-                                            'Headache' => '#6D597A',
-                                            'Cough' => '#457B9D',
-                                            'Fever' => '#E63946',
-                                            'Stomach Pain' => '#2A9D8F',
-                                            'Back Pain' => '#264653',
-                                            'Eye Problems' => '#1D3557',
-                                            'Ear Pain' => '#8D99AE',
-                                            'Joint Pain' => '#588157',
-                                            'Chest Pain' => '#C1121F',
-                                        ];
-                                        $symptomColor = $colorMap[$symptomName] ?? '#6B7280';
+                                        $symptomColor = $symptom['color'] ?? '#9333EA';
+                                        $iconName = $symptom['icon'] ?? 'default';
                                     @endphp
                                     <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
-                                       class="flex-shrink-0 w-[240px] bg-white hover:bg-gray-50 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
+                                       class="flex-shrink-0 w-[200px] bg-white hover:bg-gray-50 rounded-lg p-4 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
                                         <div class="flex flex-col items-center text-center space-y-3">
-                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}20;">
-                                                @if($symptomName === 'Menstruation Flow')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C12 2 6 10 6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-4-6-11.31-6-11.31z"/>
+                                            <!-- Icon Container -->
+                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}15;">
+                                        @if($iconName === 'menstruation-pregnancy')
+                                            <!-- Period/Pregnancy Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Uterus shape -->
+                                                <path d="M50 20 C35 20, 25 30, 25 45 C25 55, 30 65, 40 70 L40 80 C40 85, 45 90, 50 90 C55 90, 60 85, 60 80 L60 70 C70 65, 75 55, 75 45 C75 30, 65 20, 50 20 Z" fill="{{ $symptomColor }}" opacity="0.3"/>
+                                                <path d="M50 20 C35 20, 25 30, 25 45 C25 55, 30 65, 40 70 L40 80 C40 85, 45 90, 50 90 C55 90, 60 85, 60 80 L60 70 C70 65, 75 55, 75 45 C75 30, 65 20, 50 20 Z" stroke="{{ $symptomColor }}" stroke-width="3" fill="none"/>
+                                                <!-- Ovaries -->
+                                                <circle cx="35" cy="40" r="5" fill="{{ $symptomColor }}"/>
+                                                <circle cx="65" cy="40" r="5" fill="{{ $symptomColor }}"/>
+                                                <!-- Drop at bottom -->
+                                                <ellipse cx="50" cy="85" rx="8" ry="10" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Rashes' || $symptomName === 'Skin Issues')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
-                                                        <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-                                                        <circle cx="16" cy="8" r="1.5" fill="currentColor"/>
-                                                        <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="8" cy="16" r="1.5" fill="currentColor"/>
-                                                        <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
-                                                        <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
-                                                        <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
+                                        @elseif($iconName === 'acne-skin')
+                                            <!-- Acne/Skin Issues Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Face profile -->
+                                                <path d="M30 30 Q30 20, 40 20 L60 20 Q70 20, 70 30 L70 50 Q70 60, 60 60 L50 70 L40 60 Q30 60, 30 50 Z" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                <!-- Acne spots -->
+                                                <circle cx="45" cy="35" r="3" fill="{{ $symptomColor }}"/>
+                                                <circle cx="55" cy="38" r="2.5" fill="{{ $symptomColor }}"/>
+                                                <circle cx="50" cy="42" r="2" fill="{{ $symptomColor }}"/>
+                                                <circle cx="48" cy="48" r="2.5" fill="{{ $symptomColor }}"/>
+                                                <circle cx="52" cy="50" r="2" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Headache')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8h8M8 12h8M8 16h4"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l2 2M3 10l2-2M21 6l-2 2M21 10l-2-2"/>
+                                        @elseif($iconName === 'performance')
+                                            <!-- Performance Issues Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Female symbol -->
+                                                <circle cx="40" cy="40" r="15" fill="none" stroke="{{ $symptomColor }}" stroke-width="4"/>
+                                                <path d="M40 55 L40 75" stroke="{{ $symptomColor }}" stroke-width="4" stroke-linecap="round"/>
+                                                <path d="M30 65 L50 65" stroke="{{ $symptomColor }}" stroke-width="4" stroke-linecap="round"/>
+                                                <!-- Male symbol -->
+                                                <circle cx="60" cy="40" r="15" fill="none" stroke="#9333EA" stroke-width="4"/>
+                                                <path d="M60 55 L60 75" stroke="#9333EA" stroke-width="4" stroke-linecap="round"/>
+                                                <path d="M60 55 L70 45" stroke="#9333EA" stroke-width="4" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Cough')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8h-1.5M21 12h-1.5M21 16h-1.5"/>
+                                        @elseif($iconName === 'cold-cough')
+                                            <!-- Cold/Cough/Fever Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Person profile -->
+                                                <circle cx="50" cy="35" r="12" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                <path d="M50 47 L50 70 Q50 75, 45 75 L35 75 Q30 75, 30 70 L30 60" fill="#87CEEB" stroke="#333" stroke-width="2"/>
+                                                <!-- Hand to mouth -->
+                                                <circle cx="60" cy="45" r="8" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                <!-- Cough lines -->
+                                                <path d="M70 40 Q75 35, 80 40" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                                <path d="M72 45 Q77 40, 82 45" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                                <path d="M74 50 Q79 45, 84 50" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Fever')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2"/>
+                                        @elseif($iconName === 'child-sick')
+                                            <!-- Child Not Feeling Well Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Baby head -->
+                                                <circle cx="50" cy="40" r="20" fill="#FFA500" stroke="#333" stroke-width="2"/>
+                                                <!-- Smile -->
+                                                <path d="M40 45 Q50 50, 60 45" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                                <!-- Eyes -->
+                                                <circle cx="45" cy="38" r="2" fill="#333"/>
+                                                <circle cx="55" cy="38" r="2" fill="#333"/>
+                                                <!-- Body -->
+                                                <ellipse cx="50" cy="70" rx="18" ry="20" fill="#9333EA" stroke="#333" stroke-width="2"/>
+                                                <!-- Bib -->
+                                                <path d="M40 65 L60 65 L58 75 L42 75 Z" fill="#FFA500" stroke="#333" stroke-width="1"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Stomach Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8"/>
-                                                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                                        @elseif($iconName === 'depression-anxiety')
+                                            <!-- Depression/Anxiety Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Person profile -->
+                                                <circle cx="50" cy="35" r="12" fill="#FFA500" stroke="#333" stroke-width="2"/>
+                                                <path d="M50 47 L50 70 Q50 75, 45 75 L35 75 Q30 75, 30 70 L30 60" fill="#9333EA" stroke="#333" stroke-width="2"/>
+                                                <!-- Thought bubble -->
+                                                <path d="M50 25 Q60 15, 70 20 Q75 25, 70 30 Q65 35, 60 30 Q55 25, 50 25" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="2"/>
+                                                <circle cx="65" cy="25" r="8" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="2"/>
+                                                <!-- Cross in bubble -->
+                                                <path d="M62 22 L68 28 M68 22 L62 28" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Back Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8h12M6 12h12M6 16h12"/>
-                                                        <circle cx="12" cy="8" r="1" fill="currentColor"/>
-                                                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                                                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                                        @elseif($iconName === 'headache')
+                                            <!-- Headache Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="50" cy="50" r="25" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                <path d="M35 45 Q50 40, 65 45" stroke="#333" stroke-width="2" fill="none"/>
+                                                <circle cx="45" cy="48" r="2" fill="#333"/>
+                                                <circle cx="55" cy="48" r="2" fill="#333"/>
+                                                <path d="M30 35 Q25 30, 20 35" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                                <path d="M80 35 Q85 30, 90 35" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Eye Problems')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        @elseif($iconName === 'stomach-pain')
+                                            <!-- Stomach Pain Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M50 30 Q40 35, 35 45 Q30 55, 35 65 Q40 75, 50 80 Q60 75, 65 65 Q70 55, 65 45 Q60 35, 50 30 Z" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="3"/>
+                                                <circle cx="50" cy="55" r="3" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Ear Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5c-1.5 0-3 1-3.5 2.5C4 8.5 4.5 10 5.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C11 6 9.5 5 8 5z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 5c-1.5 0-3 1-3.5 2.5C12 8.5 12.5 10 13.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C19 6 17.5 5 16 5z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
+                                        @elseif($iconName === 'back-pain')
+                                            <!-- Back Pain Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <rect x="45" y="20" width="10" height="60" fill="#333" rx="2"/>
+                                                <circle cx="50" cy="30" r="3" fill="{{ $symptomColor }}"/>
+                                                <circle cx="50" cy="45" r="3" fill="{{ $symptomColor }}"/>
+                                                <circle cx="50" cy="60" r="3" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Joint Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 12h8M8 17h8"/>
-                                                        <circle cx="6" cy="7" r="1.5" fill="currentColor"/>
-                                                        <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="6" cy="17" r="1.5" fill="currentColor"/>
-                                                        <circle cx="18" cy="7" r="1.5" fill="currentColor"/>
-                                                        <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="18" cy="17" r="1.5" fill="currentColor"/>
-                                                        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                                        @elseif($iconName === 'eye-problems')
+                                            <!-- Eye Problems Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <ellipse cx="50" cy="50" rx="30" ry="20" fill="none" stroke="#333" stroke-width="3"/>
+                                                <circle cx="50" cy="50" r="8" fill="#333"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Chest Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                        @elseif($iconName === 'ear-pain')
+                                            <!-- Ear Pain Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M30 30 Q25 40, 30 50 Q35 60, 30 70 Q25 75, 30 80 Q35 85, 40 80 Q45 75, 40 70 Q35 60, 40 50 Q45 40, 40 30 Q35 25, 30 30" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                <circle cx="35" cy="50" r="5" fill="{{ $symptomColor }}"/>
+                                            </svg>
+                                        @elseif($iconName === 'joint-pain')
+                                            <!-- Joint Pain Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="30" cy="30" r="5" fill="{{ $symptomColor }}"/>
+                                                <circle cx="50" cy="50" r="8" fill="{{ $symptomColor }}"/>
+                                                <circle cx="70" cy="30" r="5" fill="{{ $symptomColor }}"/>
+                                                <path d="M30 30 L50 50 L70 30" stroke="#333" stroke-width="3"/>
+                                            </svg>
+                                        @elseif($iconName === 'chest-pain')
+                                            <!-- Chest Pain Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M50 30 Q40 40, 35 50 Q30 60, 35 70 Q40 80, 50 85 Q60 80, 65 70 Q70 60, 65 50 Q60 40, 50 30 Z" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="3"/>
                                                     </svg>
                                                 @else
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            <!-- Default Icon -->
+                                            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="50" cy="50" r="30" fill="{{ $symptomColor }}" opacity="0.2" stroke="{{ $symptomColor }}" stroke-width="3"/>
+                                                <path d="M50 40 L50 60 M40 50 L60 50" stroke="{{ $symptomColor }}" stroke-width="4" stroke-linecap="round"/>
                                                     </svg>
                                                 @endif
                                             </div>
+                                    
+                                    <!-- Symptom Name -->
                                             <div class="flex-1 w-full">
-                                                <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ $symptomName }}</h4>
-                                                <p class="text-xs font-medium {{ $iconClass }}">Find Doctors →</p>
+                                        <h4 class="font-semibold text-gray-900 text-xs mb-1">{{ $symptomName }}</h4>
+                                        <p class="text-xs font-medium" style="color: {{ $symptomColor }};">Find Doctors →</p>
                                             </div>
                                         </div>
                                     </a>
@@ -516,127 +553,120 @@
                                     @php
                                         $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
                                         $symptomName = $symptom['name'];
-                                        
-                                        // Map symptom names to CSS class names
-                                        $classMap = [
-                                            'Menstruation Flow' => 'menstruation',
-                                            'Rashes' => 'rashes',
-                                            'Skin Issues' => 'skin-issues',
-                                            'Headache' => 'headache',
-                                            'Cough' => 'cough',
-                                            'Fever' => 'fever',
-                                            'Stomach Pain' => 'stomach-pain',
-                                            'Back Pain' => 'back-pain',
-                                            'Eye Problems' => 'eye-problems',
-                                            'Ear Pain' => 'ear-pain',
-                                            'Joint Pain' => 'joint-pain',
-                                            'Chest Pain' => 'chest-pain',
-                                        ];
-                                        $iconClass = 'symptom-icon-' . ($classMap[$symptomName] ?? 'default');
-                                        
-                                        // Map symptom names to colors for background
-                                        $colorMap = [
-                                            'Menstruation Flow' => '#D72638',
-                                            'Rashes' => '#F4A261',
-                                            'Skin Issues' => '#F4A261',
-                                            'Headache' => '#6D597A',
-                                            'Cough' => '#457B9D',
-                                            'Fever' => '#E63946',
-                                            'Stomach Pain' => '#2A9D8F',
-                                            'Back Pain' => '#264653',
-                                            'Eye Problems' => '#1D3557',
-                                            'Ear Pain' => '#8D99AE',
-                                            'Joint Pain' => '#588157',
-                                            'Chest Pain' => '#C1121F',
-                                        ];
-                                        $symptomColor = $colorMap[$symptomName] ?? '#6B7280';
+                                        $symptomColor = $symptom['color'] ?? '#9333EA';
+                                        $iconName = $symptom['icon'] ?? 'default';
                                     @endphp
                                     <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
-                                       class="flex-shrink-0 w-[240px] bg-white hover:bg-gray-50 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
+                                       class="flex-shrink-0 w-[200px] bg-white hover:bg-gray-50 rounded-lg p-4 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
                                         <div class="flex flex-col items-center text-center space-y-3">
-                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}20;">
-                                                @if($symptomName === 'Menstruation Flow')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C12 2 6 10 6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-4-6-11.31-6-11.31z"/>
+                                            <!-- Icon Container -->
+                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}15;">
+                                                @if($iconName === 'menstruation-pregnancy')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M50 20 C35 20, 25 30, 25 45 C25 55, 30 65, 40 70 L40 80 C40 85, 45 90, 50 90 C55 90, 60 85, 60 80 L60 70 C70 65, 75 55, 75 45 C75 30, 65 20, 50 20 Z" fill="{{ $symptomColor }}" opacity="0.3"/>
+                                                        <path d="M50 20 C35 20, 25 30, 25 45 C25 55, 30 65, 40 70 L40 80 C40 85, 45 90, 50 90 C55 90, 60 85, 60 80 L60 70 C70 65, 75 55, 75 45 C75 30, 65 20, 50 20 Z" stroke="{{ $symptomColor }}" stroke-width="3" fill="none"/>
+                                                        <circle cx="35" cy="40" r="5" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="65" cy="40" r="5" fill="{{ $symptomColor }}"/>
+                                                        <ellipse cx="50" cy="85" rx="8" ry="10" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Rashes' || $symptomName === 'Skin Issues')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
-                                                        <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-                                                        <circle cx="16" cy="8" r="1.5" fill="currentColor"/>
-                                                        <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="8" cy="16" r="1.5" fill="currentColor"/>
-                                                        <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
-                                                        <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
-                                                        <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
+                                                @elseif($iconName === 'acne-skin')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M30 30 Q30 20, 40 20 L60 20 Q70 20, 70 30 L70 50 Q70 60, 60 60 L50 70 L40 60 Q30 60, 30 50 Z" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                        <circle cx="45" cy="35" r="3" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="55" cy="38" r="2.5" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="50" cy="42" r="2" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="48" cy="48" r="2.5" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="52" cy="50" r="2" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Headache')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8h8M8 12h8M8 16h4"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l2 2M3 10l2-2M21 6l-2 2M21 10l-2-2"/>
+                                                @elseif($iconName === 'performance')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="40" cy="40" r="15" fill="none" stroke="{{ $symptomColor }}" stroke-width="4"/>
+                                                        <path d="M40 55 L40 75" stroke="{{ $symptomColor }}" stroke-width="4" stroke-linecap="round"/>
+                                                        <path d="M30 65 L50 65" stroke="{{ $symptomColor }}" stroke-width="4" stroke-linecap="round"/>
+                                                        <circle cx="60" cy="40" r="15" fill="none" stroke="#9333EA" stroke-width="4"/>
+                                                        <path d="M60 55 L60 75" stroke="#9333EA" stroke-width="4" stroke-linecap="round"/>
+                                                        <path d="M60 55 L70 45" stroke="#9333EA" stroke-width="4" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Cough')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8h-1.5M21 12h-1.5M21 16h-1.5"/>
+                                                @elseif($iconName === 'cold-cough')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="50" cy="35" r="12" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                        <path d="M50 47 L50 70 Q50 75, 45 75 L35 75 Q30 75, 30 70 L30 60" fill="#87CEEB" stroke="#333" stroke-width="2"/>
+                                                        <circle cx="60" cy="45" r="8" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                        <path d="M70 40 Q75 35, 80 40" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                                        <path d="M72 45 Q77 40, 82 45" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                                        <path d="M74 50 Q79 45, 84 50" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Fever')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2"/>
+                                                @elseif($iconName === 'child-sick')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="50" cy="40" r="20" fill="#FFA500" stroke="#333" stroke-width="2"/>
+                                                        <path d="M40 45 Q50 50, 60 45" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                                        <circle cx="45" cy="38" r="2" fill="#333"/>
+                                                        <circle cx="55" cy="38" r="2" fill="#333"/>
+                                                        <ellipse cx="50" cy="70" rx="18" ry="20" fill="#9333EA" stroke="#333" stroke-width="2"/>
+                                                        <path d="M40 65 L60 65 L58 75 L42 75 Z" fill="#FFA500" stroke="#333" stroke-width="1"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Stomach Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8"/>
-                                                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                                                @elseif($iconName === 'depression-anxiety')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="50" cy="35" r="12" fill="#FFA500" stroke="#333" stroke-width="2"/>
+                                                        <path d="M50 47 L50 70 Q50 75, 45 75 L35 75 Q30 75, 30 70 L30 60" fill="#9333EA" stroke="#333" stroke-width="2"/>
+                                                        <path d="M50 25 Q60 15, 70 20 Q75 25, 70 30 Q65 35, 60 30 Q55 25, 50 25" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="2"/>
+                                                        <circle cx="65" cy="25" r="8" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="2"/>
+                                                        <path d="M62 22 L68 28 M68 22 L62 28" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Back Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M8 6l4-4 4 4M8 18l4 4 4-4"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8h12M6 12h12M6 16h12"/>
-                                                        <circle cx="12" cy="8" r="1" fill="currentColor"/>
-                                                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                                                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                                                @elseif($iconName === 'headache')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="50" cy="50" r="25" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                        <path d="M35 45 Q50 40, 65 45" stroke="#333" stroke-width="2" fill="none"/>
+                                                        <circle cx="45" cy="48" r="2" fill="#333"/>
+                                                        <circle cx="55" cy="48" r="2" fill="#333"/>
+                                                        <path d="M30 35 Q25 30, 20 35" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                                        <path d="M80 35 Q85 30, 90 35" stroke="{{ $symptomColor }}" stroke-width="3" fill="none" stroke-linecap="round"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Eye Problems')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                @elseif($iconName === 'stomach-pain')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M50 30 Q40 35, 35 45 Q30 55, 35 65 Q40 75, 50 80 Q60 75, 65 65 Q70 55, 65 45 Q60 35, 50 30 Z" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="3"/>
+                                                        <circle cx="50" cy="55" r="3" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Ear Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5c-1.5 0-3 1-3.5 2.5C4 8.5 4.5 10 5.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C11 6 9.5 5 8 5z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 5c-1.5 0-3 1-3.5 2.5C12 8.5 12.5 10 13.5 11v7c0 1.1.9 2 2 2s2-.9 2-2v-7c1-.5 1.5-2 1.5-3.5C19 6 17.5 5 16 5z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7c-.6 0-1 .4-1 1s.4 1 1 1 1-.4 1-1-.4-1-1-1z"/>
+                                                @elseif($iconName === 'back-pain')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <rect x="45" y="20" width="10" height="60" fill="#333" rx="2"/>
+                                                        <circle cx="50" cy="30" r="3" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="50" cy="45" r="3" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="50" cy="60" r="3" fill="{{ $symptomColor }}"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Joint Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 12h8M8 17h8"/>
-                                                        <circle cx="6" cy="7" r="1.5" fill="currentColor"/>
-                                                        <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="6" cy="17" r="1.5" fill="currentColor"/>
-                                                        <circle cx="18" cy="7" r="1.5" fill="currentColor"/>
-                                                        <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-                                                        <circle cx="18" cy="17" r="1.5" fill="currentColor"/>
-                                                        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                                                @elseif($iconName === 'eye-problems')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <ellipse cx="50" cy="50" rx="30" ry="20" fill="none" stroke="#333" stroke-width="3"/>
+                                                        <circle cx="50" cy="50" r="8" fill="#333"/>
                                                     </svg>
-                                                @elseif($symptomName === 'Chest Pain')
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                                @elseif($iconName === 'ear-pain')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M30 30 Q25 40, 30 50 Q35 60, 30 70 Q25 75, 30 80 Q35 85, 40 80 Q45 75, 40 70 Q35 60, 40 50 Q45 40, 40 30 Q35 25, 30 30" fill="#FFE5B4" stroke="#333" stroke-width="2"/>
+                                                        <circle cx="35" cy="50" r="5" fill="{{ $symptomColor }}"/>
+                                                    </svg>
+                                                @elseif($iconName === 'joint-pain')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="30" cy="30" r="5" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="50" cy="50" r="8" fill="{{ $symptomColor }}"/>
+                                                        <circle cx="70" cy="30" r="5" fill="{{ $symptomColor }}"/>
+                                                        <path d="M30 30 L50 50 L70 30" stroke="#333" stroke-width="3"/>
+                                                    </svg>
+                                                @elseif($iconName === 'chest-pain')
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M50 30 Q40 40, 35 50 Q30 60, 35 70 Q40 80, 50 85 Q60 80, 65 70 Q70 60, 65 50 Q60 40, 50 30 Z" fill="{{ $symptomColor }}" opacity="0.3" stroke="{{ $symptomColor }}" stroke-width="3"/>
                                                     </svg>
                                                 @else
-                                                    <svg class="w-6 h-6 {{ $iconClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                    <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="50" cy="50" r="30" fill="{{ $symptomColor }}" opacity="0.2" stroke="{{ $symptomColor }}" stroke-width="3"/>
+                                                        <path d="M50 40 L50 60 M40 50 L60 50" stroke="{{ $symptomColor }}" stroke-width="4" stroke-linecap="round"/>
                                                     </svg>
                                                 @endif
                                             </div>
+                                            
+                                            <!-- Symptom Name -->
                                             <div class="flex-1 w-full">
-                                                <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ $symptomName }}</h4>
-                                                <p class="text-xs font-medium {{ $iconClass }}">Find Doctors →</p>
+                                                <h4 class="font-semibold text-gray-900 text-xs mb-1">{{ $symptomName }}</h4>
+                                                <p class="text-xs font-medium" style="color: {{ $symptomColor }};">Find Doctors →</p>
                                             </div>
                                         </div>
                                     </a>
@@ -650,55 +680,81 @@
 
                 <!-- Recent Consultations -->
                 <div class="mb-8">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-gray-800">Recent Consultations</h2>
-                        <a href="{{ route('patient.consultations') }}" class="text-sm text-purple-600 hover:text-purple-800 font-semibold">View All →</a>
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Recent Consultations</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Your latest medical consultations</p>
+                        </div>
+                        <a href="{{ route('patient.consultations') }}" class="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors">View All →</a>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         @if($recentConsultations->count() > 0)
-                            <div class="divide-y divide-gray-200">
+                            <div class="divide-y divide-gray-50">
                                 @foreach($recentConsultations as $consultation)
-                                    <div class="p-5 hover:bg-gray-50 transition-colors">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center space-x-4">
-                                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                    </svg>
+                                    <a href="{{ route('patient.consultation.view', $consultation->id) }}" class="block p-3.5 hover:bg-gray-50/50 transition-all duration-200 group">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                                <!-- Status Indicator -->
+                                                <div class="flex-shrink-0">
+                                                    <div class="w-2 h-2 rounded-full 
+                                                        @if($consultation->status === 'completed') bg-emerald-500
+                                                        @elseif($consultation->status === 'pending') bg-amber-500
+                                                        @elseif($consultation->status === 'scheduled') bg-blue-500
+                                                        @elseif($consultation->status === 'cancelled') bg-red-500
+                                                        @else bg-gray-400 @endif">
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 class="text-base font-bold text-gray-900">{{ $consultation->reference }}</h3>
-                                                    <p class="text-sm text-gray-600 mt-0.5">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</p>
-                                                    <p class="text-xs text-gray-500 mt-1">{{ $consultation->created_at->format('M d, Y') }}</p>
+                                                
+                                                <!-- Consultation Info -->
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2 mb-0.5">
+                                                        <h3 class="text-xs font-semibold text-gray-900 truncate group-hover:text-purple-600 transition-colors">
+                                                            {{ $consultation->reference }}
+                                                        </h3>
+                                                        @if($consultation->payment_status === 'paid')
+                                                            <svg class="w-3 h-3 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                        @endif
+                                                </div>
+                                                    <div class="flex items-center gap-2 text-xs text-gray-600">
+                                                        <span class="truncate">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</span>
+                                                        <span class="text-gray-400">•</span>
+                                                        <span class="text-gray-500 whitespace-nowrap">{{ $consultation->created_at->format('M d, Y') }}</span>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center space-x-3">
-                                                <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                                                    @if($consultation->status === 'completed') bg-emerald-100 text-emerald-800
-                                                    @elseif($consultation->status === 'pending') bg-amber-100 text-amber-800
-                                                    @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-800
-                                                    @elseif($consultation->status === 'cancelled') bg-red-100 text-red-800
-                                                    @else bg-gray-100 text-gray-800 @endif">
+                                            </div>
+                                            
+                                            <!-- Status Badge -->
+                                            <div class="flex items-center gap-2 flex-shrink-0">
+                                                <span class="px-2 py-0.5 text-[10px] font-medium rounded-md 
+                                                    @if($consultation->status === 'completed') bg-emerald-50 text-emerald-700 border border-emerald-200
+                                                    @elseif($consultation->status === 'pending') bg-amber-50 text-amber-700 border border-amber-200
+                                                    @elseif($consultation->status === 'scheduled') bg-blue-50 text-blue-700 border border-blue-200
+                                                    @elseif($consultation->status === 'cancelled') bg-red-50 text-red-700 border border-red-200
+                                                    @else bg-gray-50 text-gray-700 border border-gray-200 @endif uppercase tracking-wide">
                                                     {{ ucfirst($consultation->status) }}
                                                 </span>
-                                                @if($consultation->payment_status === 'paid')
-                                                    <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">✓ Paid</span>
-                                                @endif
+                                                <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
                                             </div>
                                         </div>
-                                    </div>
+                                    </a>
                                 @endforeach
                             </div>
                         @else
-                            <div class="text-center py-12">
-                                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="text-center py-10 px-4">
+                                <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Consultations Yet</h3>
-                                <p class="text-sm text-gray-500 mb-4">You haven't had any consultations yet.</p>
-                                <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">
-                                    Start Your First Consultation
+                                </div>
+                                <h3 class="text-xs font-semibold text-gray-700 mb-1">No Consultations Yet</h3>
+                                <p class="text-[10px] text-gray-500 mb-3">Start your first consultation to get medical advice</p>
+                                <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
+                                    Start Consultation
                                 </a>
                             </div>
                         @endif
@@ -708,120 +764,155 @@
                 <!-- Menstrual Cycle Tracker (Female Patients Only) -->
                 @if(strtolower($patient->gender) === 'female')
                 <div id="menstrual-cycle" class="mb-8">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-gray-800">Menstrual Cycle Tracker</h2>
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Menstrual Cycle Tracker</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Track your cycle and predictions</p>
+                        </div>
                         <button onclick="document.getElementById('cycleModal').classList.remove('hidden')" 
-                                class="px-6 py-3 purple-gradient hover:opacity-90 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                class="px-4 py-2 purple-gradient hover:opacity-90 text-white rounded-lg text-xs font-semibold transition-all duration-200 flex items-center space-x-1.5 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                             </svg>
-                            <span>Log Your Period</span>
+                            <span>Log Period</span>
                         </button>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         @if($currentCycle)
-                            <div class="mb-6">
-                                <div class="flex items-center justify-between mb-4">
+                            <div class="p-4">
+                                <!-- Current Cycle Status -->
+                                <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 rounded-full @if($currentCycle->end_date) bg-emerald-500 @else bg-pink-500 @endif"></div>
                                     <div>
-                                        <h3 class="text-base font-bold text-gray-900">Current Cycle</h3>
-                                        <p class="text-sm text-gray-600">Started: {{ $currentCycle->start_date->format('M d, Y') }}</p>
+                                            <h3 class="text-xs font-semibold text-gray-900">Current Cycle</h3>
+                                            <p class="text-[10px] text-gray-500">{{ $currentCycle->start_date->format('M d, Y') }}</p>
                                     </div>
-                                    @if($currentCycle->end_date)
-                                        <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">
-                                            Completed
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 text-[10px] font-medium rounded-md @if($currentCycle->end_date) bg-emerald-50 text-emerald-700 border border-emerald-200 @else bg-pink-50 text-pink-700 border border-pink-200 @endif uppercase">
+                                            @if($currentCycle->end_date) Completed @else Active @endif
                                         </span>
-                                    @else
-                                        <span class="px-3 py-1 bg-pink-100 text-pink-800 text-xs font-semibold rounded-full">
-                                            Active
-                                        </span>
-                                    @endif
+                                        <button onclick="deleteCycle({{ $currentCycle->id }})" 
+                                                class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors" 
+                                                title="Delete cycle">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                    <div class="bg-pink-50 rounded-lg p-4">
-                                        <p class="text-xs text-gray-600 mb-1">Start Date</p>
-                                        <p class="text-lg font-bold text-pink-600">{{ $currentCycle->start_date->format('M d') }}</p>
+                                <!-- Cycle Stats Grid -->
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    <div class="bg-pink-50/50 rounded-lg p-2.5 border border-pink-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Start Date</p>
+                                        <p class="text-xs font-semibold text-pink-700">{{ $currentCycle->start_date->format('M d') }}</p>
                                     </div>
                                     @if($currentCycle->end_date)
-                                    <div class="bg-pink-50 rounded-lg p-4">
-                                        <p class="text-xs text-gray-600 mb-1">End Date</p>
-                                        <p class="text-lg font-bold text-pink-600">{{ $currentCycle->end_date->format('M d') }}</p>
+                                    <div class="bg-pink-50/50 rounded-lg p-2.5 border border-pink-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">End Date</p>
+                                        <p class="text-xs font-semibold text-pink-700">{{ $currentCycle->end_date->format('M d') }}</p>
                                     </div>
                                     @endif
                                     @if($currentCycle->period_length)
-                                    <div class="bg-pink-50 rounded-lg p-4">
-                                        <p class="text-xs text-gray-600 mb-1">Duration</p>
-                                        <p class="text-lg font-bold text-pink-600">{{ $currentCycle->period_length }} days</p>
+                                    <div class="bg-pink-50/50 rounded-lg p-2.5 border border-pink-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Duration</p>
+                                        <p class="text-xs font-semibold text-pink-700">{{ $currentCycle->period_length }} days</p>
                                     </div>
                                     @endif
                                     @if($currentCycle->flow_intensity)
-                                    <div class="bg-pink-50 rounded-lg p-4">
-                                        <p class="text-xs text-gray-600 mb-1">Flow</p>
-                                        <p class="text-lg font-bold text-pink-600 capitalize">{{ $currentCycle->flow_intensity }}</p>
+                                    <div class="bg-pink-50/50 rounded-lg p-2.5 border border-pink-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Flow</p>
+                                        <p class="text-xs font-semibold text-pink-700 capitalize">{{ $currentCycle->flow_intensity }}</p>
                                     </div>
                                     @endif
                                 </div>
                                 
+                                <!-- Predictions -->
+                                <div class="space-y-2">
                                 @if($nextPeriodPrediction)
-                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <div class="flex items-center space-x-2">
-                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="bg-blue-50/50 border border-blue-200 rounded-lg p-2.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-2 h-2 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
-                                        <div>
-                                            <p class="text-sm font-semibold text-blue-900">Next Period Prediction</p>
-                                            <p class="text-sm text-blue-700">{{ $nextPeriodPrediction->format('l, F d, Y') }}</p>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-[10px] font-medium text-blue-900">Next Period</p>
+                                                <p class="text-xs text-blue-700 truncate">{{ $nextPeriodPrediction->format('M d, Y') }}</p>
                                         </div>
                                     </div>
                                 </div>
                                 @endif
-                            </div>
-                        @else
-                            <div class="text-center py-8">
-                                <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    
+                                    @if($nextOvulationPrediction)
+                                    <div class="bg-purple-50/50 border border-purple-200 rounded-lg p-2.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-2 h-2 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-[10px] font-medium text-purple-900">Ovulation</p>
+                                                <p class="text-xs text-purple-700 truncate">{{ $nextOvulationPrediction->format('M d, Y') }}</p>
                                 </div>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">Start Tracking Your Cycle</h3>
-                                <p class="text-sm text-gray-500 mb-4">Log your period to track your menstrual cycle and predict your next period.</p>
-                                <button onclick="document.getElementById('cycleModal').classList.remove('hidden')" 
-                                        class="inline-block purple-gradient hover:opacity-90 text-white px-8 py-3 rounded-lg font-semibold transition shadow-md hover:shadow-lg flex items-center space-x-2 mx-auto">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($fertileWindowStart && $fertileWindowEnd)
+                                    <div class="bg-amber-50/50 border border-amber-200 rounded-lg p-2.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-2 h-2 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    <span>Log Your Period</span>
-                                </button>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-[10px] font-medium text-amber-900">Fertile Window</p>
+                                                <p class="text-xs text-amber-700 truncate">{{ $fertileWindowStart->format('M d') }} - {{ $fertileWindowEnd->format('M d') }}</p>
+                                            </div>
+                                        </div>
                             </div>
                         @endif
-                        
-                        @if($menstrualCycles->count() > 0)
-                        <div class="border-t border-gray-200 pt-6 mt-6">
-                            <h4 class="text-sm font-semibold text-gray-800 mb-4">Recent Cycles</h4>
-                            <div class="space-y-3">
+                                </div>
+                            </div>
+                            
+                            @if($menstrualCycles->count() > 1)
+                            <div class="border-t border-gray-100 px-4 py-3 bg-gray-50/50">
+                                <h4 class="text-[10px] font-semibold text-gray-700 uppercase tracking-wide mb-2">Recent Cycles</h4>
+                                <div class="space-y-1.5">
                                 @foreach($menstrualCycles->take(3) as $cycle)
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900">{{ $cycle->start_date->format('M d, Y') }}</p>
-                                            @if($cycle->end_date)
-                                                <p class="text-xs text-gray-600">Ended: {{ $cycle->end_date->format('M d, Y') }}</p>
-                                            @else
-                                                <p class="text-xs text-pink-600">Active</p>
-                                            @endif
+                                        <div class="flex items-center justify-between text-xs">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-1 h-1 rounded-full bg-pink-400"></div>
+                                                <span class="text-gray-700">{{ $cycle->start_date->format('M d, Y') }}</span>
                                         </div>
                                         <div class="text-right">
                                             @if($cycle->period_length)
-                                                <p class="text-sm font-semibold text-gray-900">{{ $cycle->period_length }} days</p>
-                                            @endif
-                                            @if($cycle->cycle_length)
-                                                <p class="text-xs text-gray-600">{{ $cycle->cycle_length }} day cycle</p>
+                                                    <span class="text-gray-600">{{ $cycle->period_length }}d</span>
                                             @endif
                                         </div>
                                     </div>
                                 @endforeach
                             </div>
                         </div>
+                        @endif
+                        @else
+                            <div class="text-center py-8 px-4">
+                                <div class="w-6 h-6 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-2.5">
+                                    <svg class="w-3 h-3 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-xs font-semibold text-gray-700 mb-1">Start Tracking Your Cycle</h3>
+                                <p class="text-[10px] text-gray-500 mb-3">Log your period to track your menstrual cycle and get predictions</p>
+                                <button onclick="document.getElementById('cycleModal').classList.remove('hidden')" 
+                                        class="inline-flex items-center space-x-2 purple-gradient hover:opacity-90 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Log Your Period</span>
+                                </button>
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -881,46 +972,68 @@
 
     <!-- Menstrual Cycle Logging Modal -->
     @if(strtolower($patient->gender) === 'female')
-    <div id="cycleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="if(event.target === this) this.classList.add('hidden')">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold text-gray-900">Log Menstrual Period</h3>
-                    <button onclick="document.getElementById('cycleModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div id="cycleModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target === this) this.classList.add('hidden')">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header with Gradient -->
+            <div class="purple-gradient p-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-white">Log Menstrual Period</h3>
+                            <p class="text-xs text-white/90 mt-0.5">Track your cycle for better prediction</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('cycleModal').classList.add('hidden')" class="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
+                </div>
                 
+            <!-- Form Content -->
+            <div class="flex-1 overflow-y-auto p-6">
                 <form id="cycleForm" onsubmit="submitCycle(event)">
                     @csrf
                     <div class="space-y-4">
+                        <!-- Start Date -->
                         <div>
-                            <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label for="start_date" class="block text-xs font-semibold text-gray-700 mb-2">
                                 Start Date <span class="text-red-500">*</span>
                             </label>
                             <input type="date" name="start_date" id="start_date" 
                                    value="{{ old('start_date', now()->format('Y-m-d')) }}"
                                    max="{{ now()->format('Y-m-d') }}"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-pink-500 focus:ring focus:ring-pink-200" required>
+                                   class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 transition-all" required>
                         </div>
                         
+                        <!-- End Date -->
                         <div>
-                            <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">
-                                End Date (Optional)
+                            <label for="end_date" class="block text-xs font-semibold text-gray-700 mb-2">
+                                End Date <span class="text-gray-400 text-[10px] font-normal">(Optional)</span>
                             </label>
                             <input type="date" name="end_date" id="end_date" 
-                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-pink-500 focus:ring focus:ring-pink-200">
-                            <p class="text-xs text-gray-500 mt-1">Leave blank if period is still ongoing</p>
+                                   class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 transition-all">
+                            <p class="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Leave blank if period is still ongoing
+                            </p>
                         </div>
                         
+                        <!-- Flow Intensity -->
                         <div>
-                            <label for="flow_intensity" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label for="flow_intensity" class="block text-xs font-semibold text-gray-700 mb-2">
                                 Flow Intensity
                             </label>
                             <select name="flow_intensity" id="flow_intensity" 
-                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-pink-500 focus:ring focus:ring-pink-200">
+                                    class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 transition-all bg-white">
                                 <option value="">Select intensity</option>
                                 <option value="light">Light</option>
                                 <option value="moderate">Moderate</option>
@@ -928,37 +1041,43 @@
                             </select>
                         </div>
                         
+                        <!-- Symptoms -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Symptoms (Optional)</label>
-                            <div class="grid grid-cols-2 gap-2">
+                            <label class="block text-xs font-semibold text-gray-700 mb-3">Symptoms <span class="text-gray-400 text-[10px] font-normal">(Optional)</span></label>
+                            <div class="grid grid-cols-2 gap-2.5">
                                 @foreach(['Cramps', 'Bloating', 'Headache', 'Mood changes', 'Fatigue', 'Back pain'] as $symptom)
-                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all group">
                                         <input type="checkbox" name="symptoms[]" value="{{ strtolower(str_replace(' ', '_', $symptom)) }}" 
-                                               class="rounded border-gray-300 text-pink-600 focus:ring-pink-500">
-                                        <span class="text-sm text-gray-700">{{ $symptom }}</span>
+                                               class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                                        <span class="text-xs font-medium text-gray-700 group-hover:text-purple-700">{{ $symptom }}</span>
                                     </label>
                                 @endforeach
                             </div>
                         </div>
                         
+                        <!-- Notes -->
                         <div>
-                            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
-                                Notes (Optional)
+                            <label for="notes" class="block text-xs font-semibold text-gray-700 mb-2">
+                                Notes <span class="text-gray-400 text-[10px] font-normal">(Optional)</span>
                             </label>
                             <textarea name="notes" id="notes" rows="3" 
-                                      class="w-full rounded-lg border-gray-300 shadow-sm focus:border-pink-500 focus:ring focus:ring-pink-200"
-                                      placeholder="Add any additional notes..."></textarea>
+                                      class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 resize-none transition-all"
+                                      placeholder="Add any additional notes about your cycle..."></textarea>
                         </div>
                     </div>
                     
-                    <div class="flex items-center justify-end space-x-3 mt-6">
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-gray-200">
                         <button type="button" onclick="document.getElementById('cycleModal').classList.add('hidden')" 
-                                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                                class="px-5 py-2.5 border-2 border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all">
                             Cancel
                         </button>
                         <button type="submit" 
-                                class="px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-colors">
-                            Save
+                                class="px-6 py-2.5 purple-gradient hover:opacity-90 text-white rounded-lg text-xs font-semibold transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Save Period</span>
                         </button>
                     </div>
                 </form>
@@ -988,6 +1107,34 @@
                     location.reload();
                 } else {
                     CustomAlert.error(data.error || 'Failed to save cycle');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                CustomAlert.error('An error occurred. Please try again.');
+            });
+        }
+
+        function deleteCycle(cycleId) {
+            if (!confirm('Are you sure you want to delete this menstrual cycle? This action cannot be undone.')) {
+                return;
+            }
+
+            const url = '{{ route("patient.menstrual-cycle.delete", ":id") }}'.replace(':id', cycleId);
+            
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    CustomAlert.error(data.error || 'Failed to delete cycle');
                 }
             })
             .catch(error => {

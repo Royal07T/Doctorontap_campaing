@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, showPaymentModal: false, selectedConsultations: [] }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, showPaymentModal: false, selectedConsultations: [], pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'doctors'])
@@ -337,6 +337,8 @@
     </script>
 
     @include('components.alert-modal')
+    
+    @include('admin.shared.preloader')
 </body>
 </html>
 

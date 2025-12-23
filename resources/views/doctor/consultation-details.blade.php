@@ -111,17 +111,10 @@ consultationPage()
             }
         }
     </script>
+@endpush
 
 @section('content')
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                        {{ substr(Auth::guard('doctor')->user()->name, 0, 1) }}
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-gray-800 text-sm">Dr. {{ Auth::guard('doctor')->user()->name }}</p>
-                        <p class="text-xs text-gray-500">{{ Auth::guard('doctor')->user()->specialization ?? 'Doctor' }}</p>
-                    </div>
-                <!-- Back Button -->
+    <!-- Back Button -->
                 <div class="mb-6">
                     <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 font-semibold">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,19 +242,41 @@ consultationPage()
                         <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                             Back to Consultations
                         </a>
-                        <button onclick="document.getElementById('treatment-plan').scrollIntoView({ behavior: 'smooth' });" 
-                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                            Edit Treatment Plan
-                        </button>
+                        @if($consultation->treatment_plan_created)
+                            <div class="inline-flex items-center px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed" title="Treatment plan cannot be edited once saved">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Treatment Plan Locked (Already Saved)
+                            </div>
+                        @else
+                            <button onclick="document.getElementById('treatment-plan').scrollIntoView({ behavior: 'smooth' });" 
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Edit Treatment Plan
+                            </button>
+                        @endif
                     </div>
                     
-                    <!-- Show form for editing -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        @include('doctor.partials.treatment-plan-form', ['consultation' => $consultation])
-                    </div>
+                    <!-- Show form for editing only if not created/saved -->
+                    @if(!$consultation->treatment_plan_created)
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            @include('doctor.partials.treatment-plan-form', ['consultation' => $consultation])
+                        </div>
+                    @else
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <p class="text-sm text-yellow-800 flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <strong>Treatment Plan Locked:</strong> This treatment plan has already been saved and cannot be edited. Once a treatment plan is saved, it becomes a permanent medical record and will be sent to the patient once payment is made.
+                                </p>
+                            </div>
+                        </div>
+                    @endif
                 @else
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Treatment Plan</h2>
                     @if($consultation->status === 'completed')
@@ -283,9 +298,6 @@ consultationPage()
                     @endif
                 @endif
                 </div>
-            </main>
-        </div>
-    </div>
 
     <!-- Message Modal -->
     <div x-show="showMessageModal" 

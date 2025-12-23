@@ -81,33 +81,38 @@ class DashboardController extends Controller
 
         // Symptoms with their related specializations and icons
         $symptoms = [
-            ['name' => 'Menstruation Flow', 'specialization' => 'Obstetrics & Gynecology (OB/GYN)', 'icon' => 'menstruation'],
-            ['name' => 'Rashes', 'specialization' => 'Dermatology', 'icon' => 'rash'],
-            ['name' => 'Headache', 'specialization' => 'Neurology', 'icon' => 'headache'],
-            ['name' => 'Cough', 'specialization' => 'Internal Medicine', 'icon' => 'cough'],
-            ['name' => 'Fever', 'specialization' => 'General Practice (Family Medicine)', 'icon' => 'fever'],
-            ['name' => 'Stomach Pain', 'specialization' => 'Gastroenterology', 'icon' => 'stomach'],
-            ['name' => 'Back Pain', 'specialization' => 'Orthopaedics', 'icon' => 'back'],
-            ['name' => 'Eye Problems', 'specialization' => 'Ophthalmology', 'icon' => 'eye'],
-            ['name' => 'Ear Pain', 'specialization' => 'ENT (Otolaryngology)', 'icon' => 'ear'],
-            ['name' => 'Joint Pain', 'specialization' => 'Orthopaedics', 'icon' => 'joint'],
-            ['name' => 'Skin Issues', 'specialization' => 'Dermatology', 'icon' => 'skin'],
-            ['name' => 'Chest Pain', 'specialization' => 'Cardiology', 'icon' => 'chest'],
+            ['name' => 'Period Doubts or Pregnancy', 'specialization' => 'Obstetrician & Gynecologist (OB-GYN)', 'icon' => 'menstruation-pregnancy', 'color' => '#FF6B9D'],
+            ['name' => 'Acne, Pimple or Skin Issues', 'specialization' => 'Dermatologist', 'icon' => 'acne-skin', 'color' => '#FF9F66'],
+            ['name' => 'Performance Issues in Bed', 'specialization' => 'Urologist', 'icon' => 'performance', 'color' => '#9333EA'],
+            ['name' => 'Cold, Cough or Fever', 'specialization' => 'General Practitioner (GP)', 'icon' => 'cold-cough', 'color' => '#3B82F6'],
+            ['name' => 'Child Not Feeling Well', 'specialization' => 'Pediatrician', 'icon' => 'child-sick', 'color' => '#F59E0B'],
+            ['name' => 'Depression or Anxiety', 'specialization' => 'Psychiatrist', 'icon' => 'depression-anxiety', 'color' => '#EF4444'],
+            ['name' => 'Headache', 'specialization' => 'Neurologist', 'icon' => 'headache', 'color' => '#6D597A'],
+            ['name' => 'Stomach Pain', 'specialization' => 'Gastroenterologist', 'icon' => 'stomach-pain', 'color' => '#2A9D8F'],
+            ['name' => 'Back Pain', 'specialization' => 'Orthopedic Specialist', 'icon' => 'back-pain', 'color' => '#264653'],
+            ['name' => 'Eye Problems', 'specialization' => 'Ophthalmologist', 'icon' => 'eye-problems', 'color' => '#1D3557'],
+            ['name' => 'Ear Pain', 'specialization' => 'ENT Specialist (Otolaryngologist)', 'icon' => 'ear-pain', 'color' => '#8D99AE'],
+            ['name' => 'Joint Pain', 'specialization' => 'Rheumatologist', 'icon' => 'joint-pain', 'color' => '#588157'],
+            ['name' => 'Chest Pain', 'specialization' => 'Cardiologist', 'icon' => 'chest-pain', 'color' => '#C1121F'],
         ];
 
         // Get menstrual cycle data for female patients
         $menstrualCycles = collect([]);
         $currentCycle = null;
         $nextPeriodPrediction = null;
+        $nextOvulationPrediction = null;
+        $fertileWindowStart = null;
+        $fertileWindowEnd = null;
         $averageCycleLength = null;
+        $averagePeriodLength = null;
         
         if (strtolower($patient->gender) === 'female') {
             $menstrualCycles = \App\Models\MenstrualCycle::where('patient_id', $patient->id)
                 ->orderBy('start_date', 'desc')
-                ->limit(6)
+                ->limit(12)
                 ->get();
             
-            // Get current/active cycle
+            // Get current/active cycle (period that hasn't ended or ended within last 7 days)
             $currentCycle = \App\Models\MenstrualCycle::where('patient_id', $patient->id)
                 ->where(function($query) {
                     $query->whereNull('end_date')
@@ -116,34 +121,81 @@ class DashboardController extends Controller
                 ->orderBy('start_date', 'desc')
                 ->first();
             
-            // Calculate average cycle length
+            // Calculate average cycle length (from start of one period to start of next)
             if ($menstrualCycles->count() >= 2) {
                 $cycleLengths = [];
+                $periodLengths = [];
+                
                 for ($i = 0; $i < $menstrualCycles->count() - 1; $i++) {
                     $current = $menstrualCycles[$i];
                     $previous = $menstrualCycles[$i + 1];
+                    
                     if ($current->start_date && $previous->start_date) {
                         $cycleLengths[] = $current->start_date->diffInDays($previous->start_date);
                     }
+                    
+                    if ($current->period_length) {
+                        $periodLengths[] = $current->period_length;
+                    } elseif ($current->start_date && $current->end_date) {
+                        $periodLengths[] = $current->start_date->diffInDays($current->end_date) + 1;
+                    }
                 }
+                
                 if (!empty($cycleLengths)) {
                     $averageCycleLength = round(array_sum($cycleLengths) / count($cycleLengths));
                 }
+                
+                if (!empty($periodLengths)) {
+                    $averagePeriodLength = round(array_sum($periodLengths) / count($periodLengths));
+                }
             }
             
-            // Predict next period
-            if ($currentCycle && $currentCycle->end_date) {
-                $lastPeriodEnd = $currentCycle->end_date;
-                $cycleLength = $averageCycleLength ?? 28; // Default 28 days
-                $nextPeriodPrediction = $lastPeriodEnd->copy()->addDays($cycleLength);
-            } elseif ($menstrualCycles->isNotEmpty() && $menstrualCycles->first()->end_date) {
-                $lastPeriodEnd = $menstrualCycles->first()->end_date;
-                $cycleLength = $averageCycleLength ?? 28;
-                $nextPeriodPrediction = $lastPeriodEnd->copy()->addDays($cycleLength);
+            // Default values if no history
+            $averageCycleLength = $averageCycleLength ?? 28; // Average cycle is 28 days
+            $averagePeriodLength = $averagePeriodLength ?? 5; // Average period is 5 days
+            
+            // Ensure averageCycleLength is never zero to prevent division by zero
+            if ($averageCycleLength <= 0) {
+                $averageCycleLength = 28;
+            }
+            
+            // Predict next period (based on last period START date + average cycle length)
+            // Cycle length is from start of one period to start of next period
+            $lastPeriodStart = null;
+            
+            if ($menstrualCycles->isNotEmpty()) {
+                // Use the most recent period's start date
+                $lastPeriodStart = $menstrualCycles->first()->start_date;
+            }
+            
+            if ($lastPeriodStart && $averageCycleLength > 0) {
+                // Next period starts after average cycle length from last period start
+                $nextPeriodPrediction = $lastPeriodStart->copy()->addDays($averageCycleLength);
+                
+                // Only show prediction if it's in the future
+                if ($nextPeriodPrediction->isPast()) {
+                    // If prediction is in the past, calculate from today or next cycle
+                    $daysSinceLastPeriod = now()->diffInDays($lastPeriodStart);
+                    if ($averageCycleLength > 0) {
+                        $cyclesSinceLastPeriod = floor($daysSinceLastPeriod / $averageCycleLength);
+                        $nextPeriodPrediction = $lastPeriodStart->copy()->addDays($averageCycleLength * ($cyclesSinceLastPeriod + 1));
+                    } else {
+                        // Fallback: just add one cycle length
+                        $nextPeriodPrediction = $lastPeriodStart->copy()->addDays(28);
+                    }
+                }
+                
+                // Calculate ovulation (typically 14 days before next period)
+                // Ovulation occurs approximately 14 days before the next period starts
+                $nextOvulationPrediction = $nextPeriodPrediction->copy()->subDays(14);
+                
+                // Fertile window: 5 days before ovulation to 1 day after (sperm can live up to 5 days)
+                $fertileWindowStart = $nextOvulationPrediction->copy()->subDays(5);
+                $fertileWindowEnd = $nextOvulationPrediction->copy()->addDay();
             }
         }
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'averageCycleLength'));
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength'));
     }
 
     /**
@@ -249,34 +301,53 @@ class DashboardController extends Controller
     {
         // Map symptoms to specializations (using database specialty names)
         $symptomMap = [
-            'menstruation-flow' => 'Obstetrics & Gynecology (OB/GYN)',
-            'rashes' => 'Dermatology',
-            'headache' => 'Neurology',
-            'cough' => 'Internal Medicine',
-            'fever' => 'General Practice (Family Medicine)',
-            'stomach-pain' => 'Gastroenterology',
-            'back-pain' => 'Orthopaedics',
-            'eye-problems' => 'Ophthalmology',
-            'ear-pain' => 'ENT (Otolaryngology)',
-            'joint-pain' => 'Orthopaedics',
-            'skin-issues' => 'Dermatology',
-            'chest-pain' => 'Cardiology',
+            'period-doubts-or-pregnancy' => ['Obstetrician & Gynecologist (OB-GYN)', 'Obstetrics & Gynecology (OB/GYN)', 'Reproductive Health Specialist'],
+            'acne-pimple-or-skin-issues' => ['Dermatologist', 'Dermatology', 'Cosmetic Dermatologist'],
+            'performance-issues-in-bed' => ['Urologist', 'Urology'],
+            'cold-cough-or-fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)', 'Internal Medicine Physician', 'Family Medicine Physician'],
+            'child-not-feeling-well' => ['Pediatrician', 'Pediatrics'],
+            'depression-or-anxiety' => ['Psychiatrist', 'Psychiatry', 'Clinical Psychologist'],
+            'headache' => ['Neurologist', 'Neurology'],
+            'stomach-pain' => ['Gastroenterologist', 'Gastroenterology'],
+            'back-pain' => ['Orthopedic Specialist', 'Orthopaedics'],
+            'eye-problems' => ['Ophthalmologist', 'Ophthalmology', 'Optometrist'],
+            'ear-pain' => ['ENT Specialist (Otolaryngologist)', 'ENT (Otolaryngology)'],
+            'joint-pain' => ['Rheumatologist', 'Orthopedic Specialist', 'Orthopaedics'],
+            'chest-pain' => ['Cardiologist', 'Cardiology'],
+            // Legacy mappings for backward compatibility
+            'menstruation-flow' => ['Obstetrician & Gynecologist (OB-GYN)', 'Obstetrics & Gynecology (OB/GYN)'],
+            'rashes' => ['Dermatologist', 'Dermatology'],
+            'cough' => ['General Practitioner (GP)', 'Internal Medicine'],
+            'fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)'],
+            'skin-issues' => ['Dermatologist', 'Dermatology'],
         ];
         
         // Normalize the symptom slug
         $symptom = strtolower(str_replace(' ', '-', $symptom));
 
-        $specialization = $symptomMap[$symptom] ?? null;
+        $specializations = $symptomMap[$symptom] ?? null;
         
-        if (!$specialization) {
+        if (!$specializations) {
             abort(404, 'Symptom not found');
         }
 
-        $doctors = \App\Models\Doctor::where('specialization', $specialization)
+        // Query doctors with any of the mapped specializations
+        $doctors = \App\Models\Doctor::where(function($query) use ($specializations) {
+                foreach ($specializations as $index => $specialization) {
+                    if ($index === 0) {
+                        $query->where('specialization', $specialization);
+                    } else {
+                        $query->orWhere('specialization', $specialization);
+                    }
+                }
+            })
             ->where('is_approved', true)
             ->where('is_available', true)
             ->orderBy('name')
             ->get();
+            
+        // Use the first specialization for display
+        $specialization = $specializations[0];
 
         $symptomName = ucwords(str_replace('-', ' ', $symptom));
 
@@ -1116,6 +1187,29 @@ class DashboardController extends Controller
             'success' => true,
             'message' => 'Menstrual cycle updated successfully.',
             'cycle' => $cycle->load('patient'),
+        ]);
+    }
+
+    /**
+     * Delete menstrual cycle
+     */
+    public function deleteMenstrualCycle($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for female patients
+        if (strtolower($patient->gender) !== 'female') {
+            return response()->json(['error' => 'This feature is only available for female patients.'], 403);
+        }
+        
+        $cycle = MenstrualCycle::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $cycle->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Menstrual cycle deleted successfully.',
         ]);
     }
 }

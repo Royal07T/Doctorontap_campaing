@@ -349,6 +349,7 @@
     <script>
         function doctorRegistrationsPage() {
             return {
+                pageLoading: false,
                 showViewModal: false,
                 showApproveModal: false,
                 modalContent: '',
@@ -641,6 +642,7 @@
             </button>
         </div>
     </div>
+    @include('admin.shared.preloader')
 </body>
 </html>
 

@@ -64,6 +64,9 @@ class Consultation extends Model
         'payment_required_for_treatment',
         'treatment_plan_unlocked',
         'treatment_plan_unlocked_at',
+        'treatment_plan_email_sent',
+        'treatment_plan_email_sent_at',
+        'treatment_plan_email_status',
     ];
 
     protected $casts = [
@@ -84,6 +87,8 @@ class Consultation extends Model
         'payment_required_for_treatment' => 'boolean',
         'treatment_plan_unlocked' => 'boolean',
         'treatment_plan_unlocked_at' => 'datetime',
+        'treatment_plan_email_sent' => 'boolean',
+        'treatment_plan_email_sent_at' => 'datetime',
     ];
 
     /**

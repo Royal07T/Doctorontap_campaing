@@ -668,6 +668,7 @@
     <script>
         function paymentManager() {
             return {
+                pageLoading: false,
                 sidebarOpen: false,
                 showCreateModal: false,
                 showCompleteModal: false,
@@ -1040,6 +1041,7 @@
 
     <!-- Include Alert Modal Component -->
     @include('components.alert-modal')
+    @include('admin.shared.preloader')
 </body>
 </html>
 

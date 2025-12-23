@@ -1,6 +1,21 @@
 {{-- Treatment Plan Form --}}
 @props(['consultation'])
 
+@php
+    $isLocked = $consultation->treatment_plan_created;
+@endphp
+
+@if($isLocked)
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+        <p class="text-sm text-yellow-800 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            <strong>Treatment Plan Locked:</strong> This treatment plan has already been saved and cannot be edited. Once saved, it becomes a permanent medical record.
+        </p>
+    </div>
+@endif
+
 <form id="treatmentPlanForm" method="POST" action="{{ route('doctor.consultations.treatment-plan', $consultation->id) }}" class="space-y-6" onsubmit="return false;">
     @csrf
     
@@ -11,8 +26,8 @@
                 Presenting Complaint <span class="text-red-500">*</span>
             </label>
             <textarea id="presenting_complaint" name="presenting_complaint" rows="3" required
-                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Describe the main complaint or reason for consultation">{{ old('presenting_complaint', $consultation->presenting_complaint ?? '') }}</textarea>
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @if($isLocked) bg-gray-100 cursor-not-allowed @endif"
+                      placeholder="Describe the main complaint or reason for consultation" @if($isLocked) disabled @endif>{{ old('presenting_complaint', $consultation->presenting_complaint ?? '') }}</textarea>
             @error('presenting_complaint')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
@@ -175,7 +190,7 @@
         <a href="{{ route('doctor.consultations') }}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
             Cancel
         </a>
-        <button type="submit" id="submitTreatmentPlan" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+        <button type="submit" id="submitTreatmentPlan" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed" @if($isLocked) disabled @endif>
             <span id="submitText">{{ $consultation->hasTreatmentPlan() ? 'Update Treatment Plan' : 'Create Treatment Plan' }}</span>
             <span id="submitLoading" class="hidden">Saving...</span>
         </button>
@@ -187,6 +202,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    @if($isLocked)
+    // Disable all form fields when treatment plan is locked
+    const form = document.getElementById('treatmentPlanForm');
+    if (form) {
+        const allInputs = form.querySelectorAll('input, textarea, select, button[type="submit"]');
+        allInputs.forEach(input => {
+            input.disabled = true;
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        });
+    }
+    @endif
+    
     let medicationIndex = {{ count(old('prescribed_medications', $consultation->prescribed_medications ?? [])) }};
     
     // Add medication

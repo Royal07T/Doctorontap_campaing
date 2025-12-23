@@ -789,6 +789,7 @@
     <script>
         function consultationPage() {
             return {
+                pageLoading: false,
                 sidebarOpen: false,
                 showMessageModal: false,
                 messageType: 'success',
@@ -1048,6 +1049,7 @@
         </div>
     </div>
     @include('components.custom-alert-modal')
+    @include('admin.shared.preloader')
 </body>
 </html>
 
