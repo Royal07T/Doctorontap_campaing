@@ -116,8 +116,8 @@ consultationPage()
 @section('content')
     <!-- Back Button -->
                 <div class="mb-6">
-                    <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 font-semibold">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
                         Back to Consultations
@@ -125,68 +125,80 @@ consultationPage()
                 </div>
 
                 <!-- Patient Information -->
-                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-2xl font-bold text-gray-900">Patient Information</h2>
-                        <span class="px-4 py-2 bg-purple-100 text-purple-800 rounded-lg font-mono text-sm font-bold">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                    <div class="mb-4 pb-4 border-b border-gray-200 flex items-center justify-between">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Patient Information
+                        </h2>
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg font-mono text-xs font-semibold">
                             {{ $consultation->reference }}
                         </span>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Full Name</label>
-                            <p class="text-lg text-gray-900">{{ $consultation->first_name }} {{ $consultation->last_name }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Full Name</label>
+                            <p class="text-sm text-gray-900 font-semibold">{{ $consultation->first_name }} {{ $consultation->last_name }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Email</label>
-                            <p class="text-lg text-gray-900">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
+                            <p class="text-sm text-gray-900">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Mobile</label>
-                            <p class="text-lg text-gray-900">{{ $consultation->mobile }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Mobile</label>
+                            <p class="text-sm text-gray-900">{{ $consultation->mobile }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Age</label>
-                            <p class="text-lg text-gray-900">{{ $consultation->age }} years</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Age</label>
+                            <p class="text-sm text-gray-900">{{ $consultation->age }} years</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Gender</label>
-                            <p class="text-lg text-gray-900 capitalize">{{ $consultation->gender }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
+                            <p class="text-sm text-gray-900 capitalize">{{ $consultation->gender }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Consultation Mode</label>
-                            <p class="text-lg text-gray-900 capitalize">{{ str_replace('_', ' ', $consultation->consult_mode) }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultation Mode</label>
+                            <p class="text-sm text-gray-900 capitalize">{{ str_replace('_', ' ', $consultation->consult_mode) }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Medical Details -->
-                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Medical Details</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                    <div class="mb-4 pb-4 border-b border-gray-200">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Medical Details
+                        </h2>
+                    </div>
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Problem Description</label>
-                            <p class="text-base text-gray-900 leading-relaxed">{{ $consultation->problem }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Problem Description</label>
+                            <p class="text-xs text-gray-700 leading-relaxed">{{ $consultation->problem }}</p>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-1">Severity</label>
-                            <span class="inline-flex px-4 py-2 rounded-full text-sm font-semibold
-                                {{ $consultation->severity === 'mild' ? 'bg-green-100 text-green-800' : '' }}
-                                {{ $consultation->severity === 'moderate' ? 'bg-yellow-100 text-yellow-800' : '' }}
-                                {{ $consultation->severity === 'severe' ? 'bg-red-100 text-red-800' : '' }}">
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Severity</label>
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                                {{ $consultation->severity === 'mild' ? 'bg-emerald-100 text-emerald-700' : '' }}
+                                {{ $consultation->severity === 'moderate' ? 'bg-amber-100 text-amber-700' : '' }}
+                                {{ $consultation->severity === 'severe' ? 'bg-red-100 text-red-700' : '' }}">
                                 {{ ucfirst($consultation->severity) }}
                             </span>
                         </div>
 
                         @if($consultation->emergency_symptoms && count($consultation->emergency_symptoms) > 0)
                         <div>
-                            <label class="block text-sm font-semibold text-gray-600 mb-2">Emergency Symptoms</label>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Emergency Symptoms</label>
                             <div class="flex flex-wrap gap-2">
                                 @foreach($consultation->emergency_symptoms as $symptom)
-                                <span class="px-3 py-1 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
+                                <span class="px-2.5 py-1 bg-red-50 text-red-700 rounded-lg text-xs border border-red-200">
                                     {{ $symptom }}
                                 </span>
                                 @endforeach
@@ -197,13 +209,20 @@ consultationPage()
                 </div>
 
                 <!-- Treatment Plan Section -->
-                <div id="treatment-plan" class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div id="treatment-plan" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
                 @if($consultation->hasTreatmentPlan())
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Treatment Plan</h2>
+                    <div class="mb-4 pb-4 border-b border-gray-200">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Treatment Plan
+                        </h2>
+                    </div>
                     
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                        <p class="text-sm text-green-800 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4">
+                        <p class="text-xs text-emerald-800 flex items-center">
+                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <strong>Treatment Plan Created</strong> on {{ $consultation->treatment_plan_created_at->format('M d, Y h:i A') }}
@@ -212,26 +231,26 @@ consultationPage()
 
                     @if($consultation->diagnosis)
                     <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Diagnosis</label>
-                        <p class="text-base text-gray-900">{{ $consultation->diagnosis }}</p>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Diagnosis</label>
+                        <p class="text-xs text-gray-700 leading-relaxed">{{ $consultation->diagnosis }}</p>
                     </div>
                     @endif
 
                     @if($consultation->treatment_plan)
                     <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Treatment Plan</label>
-                        <p class="text-base text-gray-900 whitespace-pre-line">{{ $consultation->treatment_plan }}</p>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Treatment Plan</label>
+                        <p class="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{{ $consultation->treatment_plan }}</p>
                     </div>
                     @endif
 
                     @if($consultation->prescribed_medications && count($consultation->prescribed_medications) > 0)
                     <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-600 mb-2">Prescribed Medications</label>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Prescribed Medications</label>
                         <div class="space-y-2">
                             @foreach($consultation->prescribed_medications as $medication)
                             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <p class="font-semibold text-gray-900">{{ $medication['name'] }}</p>
-                                <p class="text-sm text-gray-600">Dosage: {{ $medication['dosage'] }} | Frequency: {{ $medication['frequency'] }} | Duration: {{ $medication['duration'] }}</p>
+                                <p class="text-xs font-semibold text-gray-900 mb-1">{{ $medication['name'] }}</p>
+                                <p class="text-xs text-gray-600">Dosage: {{ $medication['dosage'] }} | Frequency: {{ $medication['frequency'] }} | Duration: {{ $medication['duration'] }}</p>
                             </div>
                             @endforeach
                         </div>
@@ -239,20 +258,23 @@ consultationPage()
                     @endif
 
                     <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
                             Back to Consultations
                         </a>
                         @if($consultation->treatment_plan_created)
-                            <div class="inline-flex items-center px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed" title="Treatment plan cannot be edited once saved">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-gray-400 text-white rounded-lg cursor-not-allowed" title="Treatment plan cannot be edited once saved">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                 </svg>
-                                Treatment Plan Locked (Already Saved)
+                                Treatment Plan Locked
                             </div>
                         @else
                             <button onclick="document.getElementById('treatment-plan').scrollIntoView({ behavior: 'smooth' });" 
-                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                                 Edit Treatment Plan
@@ -266,23 +288,30 @@ consultationPage()
                             @include('doctor.partials.treatment-plan-form', ['consultation' => $consultation])
                         </div>
                     @else
-                        <div class="mt-6 pt-6 border-t border-gray-200">
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                <p class="text-sm text-yellow-800 flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="mt-6 pt-4 border-t border-gray-200">
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                <p class="text-xs text-amber-800 flex items-center leading-relaxed">
+                                    <svg class="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                     </svg>
-                                    <strong>Treatment Plan Locked:</strong> This treatment plan has already been saved and cannot be edited. Once a treatment plan is saved, it becomes a permanent medical record and will be sent to the patient once payment is made.
+                                    <span><strong>Treatment Plan Locked:</strong> This treatment plan has already been saved and cannot be edited. Once a treatment plan is saved, it becomes a permanent medical record and will be sent to the patient once payment is made.</span>
                                 </p>
                             </div>
                         </div>
                     @endif
                 @else
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Treatment Plan</h2>
+                    <div class="mb-4 pb-4 border-b border-gray-200">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Treatment Plan
+                        </h2>
+                    </div>
                     @if($consultation->status === 'completed')
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                            <p class="text-sm text-blue-800 flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                            <p class="text-xs text-blue-800 flex items-center">
+                                <svg class="w-2 h-2 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <strong>Create Treatment Plan</strong> - Please fill out the treatment plan form below.
@@ -291,8 +320,11 @@ consultationPage()
                         
                         @include('doctor.partials.treatment-plan-form', ['consultation' => $consultation])
                     @else
-                        <p class="text-gray-600 mb-4">Treatment plan can only be created when the consultation status is set to "Completed".</p>
-                        <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        <p class="text-xs text-gray-600 mb-4">Treatment plan can only be created when the consultation status is set to "Completed".</p>
+                        <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
                             Back to Consultations
                         </a>
                     @endif
@@ -307,7 +339,7 @@ consultationPage()
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="modal-backdrop fixed inset-0" @click="showMessageModal = false"></div>
             
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all"
+            <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-5 transform transition-all"
                  x-transition:enter="ease-out duration-300"
                  x-transition:enter-start="opacity-0 scale-90"
                  x-transition:enter-end="opacity-100 scale-100"
@@ -316,32 +348,32 @@ consultationPage()
                  x-transition:leave-end="opacity-0 scale-90">
                 
                 <!-- Icon -->
-                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full"
+                <div class="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full"
                      :class="{
-                         'bg-green-100': messageType === 'success',
+                         'bg-emerald-100': messageType === 'success',
                          'bg-red-100': messageType === 'error',
                          'bg-blue-100': messageType === 'info'
                      }">
-                    <svg x-show="messageType === 'success'" class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg x-show="messageType === 'success'" class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    <svg x-show="messageType === 'error'" class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg x-show="messageType === 'error'" class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
-                    <svg x-show="messageType === 'info'" class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg x-show="messageType === 'info'" class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
 
                 <!-- Content -->
                 <div class="text-center">
-                    <h3 class="text-xl font-bold text-gray-900 mb-2" x-text="messageTitle"></h3>
-                    <p class="text-gray-600 mb-6" x-text="messageText"></p>
+                    <h3 class="text-sm font-bold text-gray-900 mb-1.5" x-text="messageTitle"></h3>
+                    <p class="text-xs text-gray-600 mb-4 leading-relaxed" x-text="messageText"></p>
                 </div>
 
                 <!-- Button -->
                 <button @click="showMessageModal = false"
-                        class="w-full px-6 py-3 purple-gradient text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                        class="w-full px-4 py-2 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                     OK
                 </button>
             </div>
@@ -356,7 +388,7 @@ consultationPage()
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="modal-backdrop fixed inset-0" @click="showConfirmModal = false"></div>
             
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all"
+            <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-5 transform transition-all"
                  x-transition:enter="ease-out duration-300"
                  x-transition:enter-start="opacity-0 scale-90"
                  x-transition:enter-end="opacity-100 scale-100"
@@ -365,26 +397,26 @@ consultationPage()
                  x-transition:leave-end="opacity-0 scale-90">
                 
                 <!-- Icon -->
-                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-100">
-                    <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-amber-100">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
                 </div>
 
                 <!-- Content -->
-                <div class="text-center mb-6">
-                    <h3 class="text-xl font-bold text-gray-900 mb-2" x-text="confirmTitle"></h3>
-                    <p class="text-gray-600" x-text="confirmText"></p>
+                <div class="text-center mb-4">
+                    <h3 class="text-sm font-bold text-gray-900 mb-1.5" x-text="confirmTitle"></h3>
+                    <p class="text-xs text-gray-600 leading-relaxed" x-text="confirmText"></p>
                 </div>
 
                 <!-- Buttons -->
-                <div class="flex space-x-3">
+                <div class="flex space-x-2">
                     <button @click="showConfirmModal = false"
-                            class="flex-1 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-all">
+                            class="flex-1 px-4 py-2 text-xs font-semibold bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
                         Cancel
                     </button>
                     <button @click="executeConfirm()"
-                            class="flex-1 px-6 py-3 purple-gradient text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                            class="flex-1 px-4 py-2 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                         Confirm
                     </button>
                 </div>

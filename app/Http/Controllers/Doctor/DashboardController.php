@@ -45,6 +45,14 @@ class DashboardController extends Controller
             'pending_payments' => Consultation::where('doctor_id', $doctor->id)
                                               ->where('payment_status', 'pending')->count(),
             'total_earnings' => $totalEarnings, // Current earnings from paid consultations
+            // Stats for consultations page style cards
+            'total' => Consultation::where('doctor_id', $doctor->id)->count(),
+            'paid' => Consultation::where('doctor_id', $doctor->id)->where('payment_status', 'paid')->count(),
+            'unpaid' => Consultation::where('doctor_id', $doctor->id)
+                ->where('status', 'completed')
+                ->where('payment_status', '!=', 'paid')->count(),
+            'pending' => Consultation::where('doctor_id', $doctor->id)->where('status', 'pending')->count(),
+            'completed' => Consultation::where('doctor_id', $doctor->id)->where('status', 'completed')->count(),
         ];
 
         // Get recent consultations with payment information
