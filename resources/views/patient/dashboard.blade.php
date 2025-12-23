@@ -215,29 +215,23 @@
                     <div class="absolute top-0 right-0 w-64 h-64 bg-purple-200/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
                     <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-200/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
                     
-                    <!-- Patient Image - Top Right Corner -->
+                    <!-- CTA Button - Top Right Corner -->
                     <div class="absolute top-4 right-4 lg:top-6 lg:right-6 z-10">
-                        <div class="relative">
-                            @if($patient->photo_url)
-                                <img src="{{ $patient->photo_url }}" 
-                                     alt="{{ $patient->name }}" 
-                                     class="w-20 h-20 lg:w-28 lg:h-28 rounded-xl object-cover border-3 border-white shadow-xl ring-2 ring-purple-100">
-                            @else
-                                <div class="w-20 h-20 lg:w-28 lg:h-28 rounded-xl purple-gradient flex items-center justify-center text-white font-bold text-2xl lg:text-3xl border-3 border-white shadow-xl ring-2 ring-purple-100">
-                                    {{ substr($patient->name, 0, 1) }}
-                            </div>
-                            @endif
-                            <!-- Status Indicator -->
-                            <div class="absolute -bottom-1 -right-1 w-6 h-6 lg:w-7 lg:h-7 bg-emerald-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
-                                <svg class="w-3 h-3 lg:w-4 lg:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        </div>
+                        <a href="{{ route('consultation.index') }}" 
+                           class="inline-flex items-center gap-2 px-5 py-3 lg:px-6 lg:py-3.5 purple-gradient hover:opacity-90 text-white rounded-xl font-bold text-sm lg:text-base transition-all shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-100">
+                            <svg class="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <span class="hidden sm:inline">Talk to a Doctor</span>
+                            <span class="sm:hidden">Consult</span>
+                            <svg class="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </a>
                     </div>
 
                     <!-- Content -->
-                    <div class="relative pr-28 lg:pr-36">
+                    <div class="relative pr-0 lg:pr-0">
                         <!-- Greeting -->
                         <div class="mb-6">
                             <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
@@ -313,44 +307,83 @@
                             </div>
                         @endif
                         
-                        <!-- CTA Button -->
-                        <div class="flex justify-center">
-                            <a href="{{ route('consultation.index') }}" 
-                               class="inline-flex items-center gap-3 px-8 py-4 purple-gradient hover:opacity-90 text-white rounded-xl font-bold text-base transition-all shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-100">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                </svg>
-                                <span>Talk to a Doctor Now</span>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                            </a>
+                        <!-- Health Tips Section -->
+                        <div class="mt-6 p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 rounded-xl border border-emerald-100/50 shadow-sm">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-2">Health Tip</p>
+                                    <p class="text-sm font-medium text-gray-800" id="healthTip">
+                                        @php
+                                            $healthTips = [
+                                                "Staying hydrated can reduce your headaches.",
+                                                "A 10-minute walk can boost your mood instantly.",
+                                                "Deep breathing helps lower stress in minutes.",
+                                                "Getting 7-8 hours of sleep improves your immune system.",
+                                                "Eating slowly helps with better digestion.",
+                                                "Regular handwashing prevents most infections.",
+                                                "Stretching for 5 minutes reduces muscle tension.",
+                                                "Drinking water before meals aids weight management.",
+                                                "Taking breaks from screens reduces eye strain.",
+                                                "A short walk after meals improves blood sugar.",
+                                                "Laughing releases endorphins that reduce pain.",
+                                                "Sunlight exposure helps regulate your sleep cycle.",
+                                                "Chewing gum can help reduce stress and improve focus.",
+                                                "Standing up every hour improves circulation.",
+                                                "Green tea contains antioxidants that support heart health.",
+                                                "Regular exercise can improve sexual health and performance.",
+                                                "Open communication with your partner enhances intimacy.",
+                                                "Stress management positively impacts sexual wellness.",
+                                                "Adequate sleep is essential for healthy libido.",
+                                                "Staying active improves blood flow and sexual function.",
+                                                "Regular check-ups help maintain sexual health.",
+                                                "Healthy eating supports overall sexual wellness.",
+                                                "Reducing alcohol intake can improve sexual performance.",
+                                                "Quitting smoking benefits sexual health significantly."
+                                            ];
+                                            echo $healthTips[array_rand($healthTips)];
+                                        @endphp
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Doctor Specializations Carousel -->
                 @if($specializations->count() > 0)
-                <div class="mb-8">
+                <div class="mb-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">Find Doctors by Specialization</h3>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                Find Doctors by Specialization
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-1">Browse doctors by their area of expertise</p>
+                        </div>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow-sm p-6 overflow-hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-hidden">
                         <div class="relative">
-                            <div class="flex space-x-4 animate-scroll" style="--specialization-count: {{ $specializations->count() }};">
+                            <div class="flex space-x-3 animate-scroll" style="--specialization-count: {{ $specializations->count() }};">
                                 @foreach($specializations as $specialization)
                                     <a href="{{ route('patient.doctors-by-specialization', urlencode($specialization)) }}" 
-                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl p-4 transition-all duration-300 hover:shadow-md group cursor-pointer border border-purple-100">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                 </svg>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-gray-900 truncate">{{ $specialization }}</p>
-                                                <p class="text-xs text-purple-600 font-medium">View Doctors →</p>
+                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $specialization }}</p>
+                                                <p class="text-xs text-purple-600 font-medium mt-0.5">View Doctors →</p>
                                             </div>
                                         </div>
                                     </a>
@@ -358,16 +391,16 @@
                                 <!-- Duplicate items for seamless loop -->
                                 @foreach($specializations as $specialization)
                                     <a href="{{ route('patient.doctors-by-specialization', urlencode($specialization)) }}" 
-                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-lg p-5 transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       class="flex-shrink-0 w-[240px] bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl p-4 transition-all duration-300 hover:shadow-md group cursor-pointer border border-purple-100">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                 </svg>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-gray-900 truncate">{{ $specialization }}</p>
-                                                <p class="text-xs text-purple-600 font-medium">View Doctors →</p>
+                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $specialization }}</p>
+                                                <p class="text-xs text-purple-600 font-medium mt-0.5">View Doctors →</p>
                                             </div>
                                         </div>
                                     </a>
@@ -381,17 +414,22 @@
 
                 <!-- Consult Doctor by Symptoms Section -->
                 @if(isset($symptoms) && count($symptoms) > 0)
-                <div class="mb-8">
+                <div class="mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-800">Consult top doctors online for any health concern</h3>
-                            <p class="text-sm text-gray-600 mt-1">Private online consultations with verified doctors in all specialists</p>
+                            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Consult Top Doctors Online
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-1">Private online consultations with verified doctors in all specialists</p>
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-hidden">
                         <div class="relative">
-                            <div class="flex space-x-4 animate-scroll-symptoms" style="--symptom-count: {{ count($symptoms) }};">
+                            <div class="flex space-x-3 animate-scroll-symptoms" style="--symptom-count: {{ count($symptoms) }};">
                                 @foreach($symptoms as $symptom)
                                     @php
                                         $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
@@ -400,10 +438,10 @@
                                         $iconName = $symptom['icon'] ?? 'default';
                                     @endphp
                                     <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
-                                       class="flex-shrink-0 w-[200px] bg-white hover:bg-gray-50 rounded-lg p-4 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
+                                       class="flex-shrink-0 w-[200px] bg-white hover:bg-gray-50 rounded-xl p-4 transition-all duration-300 hover:shadow-md group cursor-pointer border border-gray-200">
                                         <div class="flex flex-col items-center text-center space-y-3">
                                             <!-- Icon Container -->
-                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}15;">
+                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm" style="background-color: {{ $symptomColor }}15;">
                                         @if($iconName === 'menstruation-pregnancy')
                                             <!-- Period/Pregnancy Icon -->
                                             <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -555,10 +593,10 @@
                                         $iconName = $symptom['icon'] ?? 'default';
                                     @endphp
                                     <a href="{{ route('patient.doctors-by-symptom', $symptomSlug) }}" 
-                                       class="flex-shrink-0 w-[200px] bg-white hover:bg-gray-50 rounded-lg p-4 transition-all duration-300 hover:shadow-lg group cursor-pointer border border-gray-200">
+                                       class="flex-shrink-0 w-[200px] bg-white hover:bg-gray-50 rounded-xl p-4 transition-all duration-300 hover:shadow-md group cursor-pointer border border-gray-200">
                                         <div class="flex flex-col items-center text-center space-y-3">
                                             <!-- Icon Container -->
-                                            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style="background-color: {{ $symptomColor }}15;">
+                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm" style="background-color: {{ $symptomColor }}15;">
                                                 @if($iconName === 'menstruation-pregnancy')
                                                     <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M50 20 C35 20, 25 30, 25 45 C25 55, 30 65, 40 70 L40 80 C40 85, 45 90, 50 90 C55 90, 60 85, 60 80 L60 70 C70 65, 75 55, 75 45 C75 30, 65 20, 50 20 Z" fill="{{ $symptomColor }}" opacity="0.3"/>
@@ -1496,6 +1534,71 @@
                 CustomAlert.error('An error occurred. Please try again.');
             });
         }
+
+        // Health Tips Rotation
+        document.addEventListener('DOMContentLoaded', function() {
+            const healthTips = [
+                "Staying hydrated can reduce your headaches.",
+                "A 10-minute walk can boost your mood instantly.",
+                "Deep breathing helps lower stress in minutes.",
+                "Getting 7-8 hours of sleep improves your immune system.",
+                "Eating slowly helps with better digestion.",
+                "Regular handwashing prevents most infections.",
+                "Stretching for 5 minutes reduces muscle tension.",
+                "Drinking water before meals aids weight management.",
+                "Taking breaks from screens reduces eye strain.",
+                "A short walk after meals improves blood sugar.",
+                "Laughing releases endorphins that reduce pain.",
+                "Sunlight exposure helps regulate your sleep cycle.",
+                "Chewing gum can help reduce stress and improve focus.",
+                "Standing up every hour improves circulation.",
+                "Green tea contains antioxidants that support heart health.",
+                "Regular exercise can improve sexual health and performance.",
+                "Open communication with your partner enhances intimacy.",
+                "Stress management positively impacts sexual wellness.",
+                "Adequate sleep is essential for healthy libido.",
+                "Staying active improves blood flow and sexual function.",
+                "Regular check-ups help maintain sexual health.",
+                "Healthy eating supports overall sexual wellness.",
+                "Reducing alcohol intake can improve sexual performance.",
+                "Quitting smoking benefits sexual health significantly."
+            ];
+            
+            const healthTipElement = document.getElementById('healthTip');
+            if (healthTipElement) {
+                let currentIndex = 0;
+                
+                // Add smooth transition styles
+                healthTipElement.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
+                healthTipElement.style.willChange = 'opacity, transform';
+                
+                // Rotate tips every 20 seconds
+                setInterval(function() {
+                    currentIndex = (currentIndex + 1) % healthTips.length;
+                    
+                    // Fade out and slide up
+                    healthTipElement.style.opacity = '0';
+                    healthTipElement.style.transform = 'translateY(-10px)';
+                    
+                    setTimeout(function() {
+                        // Update content
+                        healthTipElement.textContent = healthTips[currentIndex];
+                        
+                        // Reset position for slide in
+                        healthTipElement.style.transform = 'translateY(10px)';
+                        
+                        // Force reflow to ensure transform reset
+                        healthTipElement.offsetHeight;
+                        
+                        // Fade in and slide to position
+                        setTimeout(function() {
+                            healthTipElement.style.opacity = '1';
+                            healthTipElement.style.transform = 'translateY(0)';
+                        }, 50);
+                    }, 500);
+                }, 20000);
+            }
+        });
 
         // Show/hide ejaculation notes textarea
         document.addEventListener('DOMContentLoaded', function() {

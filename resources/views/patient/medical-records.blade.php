@@ -53,168 +53,187 @@
 
 <!-- Latest Vital Signs -->
 @if($latestVitals)
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Latest Vital Signs</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                @if($latestVitals->blood_pressure)
-                    <div class="text-center p-4 bg-blue-50 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Blood Pressure</p>
-                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->blood_pressure }}</p>
-                    </div>
-                @endif
-                @if($latestVitals->heart_rate)
-                    <div class="text-center p-4 bg-red-50 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Heart Rate</p>
-                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->heart_rate }} bpm</p>
-                    </div>
-                @endif
-                @if($latestVitals->temperature)
-                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Temperature</p>
-                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->temperature }}°C</p>
-                    </div>
-                @endif
-                @if($latestVitals->weight)
-                    <div class="text-center p-4 bg-green-50 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Weight</p>
-                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->weight }} kg</p>
-                    </div>
-                @endif
-                @if($latestVitals->height)
-                    <div class="text-center p-4 bg-purple-50 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Height</p>
-                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->height }} cm</p>
-                    </div>
-                @endif
-                @if($latestVitals->oxygen_saturation)
-                    <div class="text-center p-4 bg-indigo-50 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Oxygen Sat.</p>
-                        <p class="text-lg font-bold text-gray-800">{{ $latestVitals->oxygen_saturation }}%</p>
-                    </div>
-                @endif
-            </div>
-            <p class="text-xs text-gray-500 mt-4">Recorded: {{ $latestVitals->created_at->format('M d, Y H:i A') }}</p>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+        <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Latest Vital Signs</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            @if($latestVitals->blood_pressure)
+                <div class="text-center p-3 bg-blue-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Blood Pressure</p>
+                    <p class="text-sm font-bold text-gray-800">{{ $latestVitals->blood_pressure }}</p>
+                </div>
+            @endif
+            @if($latestVitals->heart_rate)
+                <div class="text-center p-3 bg-red-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Heart Rate</p>
+                    <p class="text-sm font-bold text-gray-800">{{ $latestVitals->heart_rate }} bpm</p>
+                </div>
+            @endif
+            @if($latestVitals->temperature)
+                <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Temperature</p>
+                    <p class="text-sm font-bold text-gray-800">{{ $latestVitals->temperature }}°C</p>
+                </div>
+            @endif
+            @if($latestVitals->weight)
+                <div class="text-center p-3 bg-green-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Weight</p>
+                    <p class="text-sm font-bold text-gray-800">{{ $latestVitals->weight }} kg</p>
+                </div>
+            @endif
+            @if($latestVitals->height)
+                <div class="text-center p-3 bg-purple-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Height</p>
+                    <p class="text-sm font-bold text-gray-800">{{ $latestVitals->height }} cm</p>
+                </div>
+            @endif
+            @if($latestVitals->oxygen_saturation)
+                <div class="text-center p-3 bg-indigo-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Oxygen Sat.</p>
+                    <p class="text-sm font-bold text-gray-800">{{ $latestVitals->oxygen_saturation }}%</p>
+                </div>
+            @endif
         </div>
-    @endif
+        <p class="text-xs text-gray-500 mt-3">Recorded: {{ $latestVitals->created_at->format('M d, Y H:i A') }}</p>
+    </div>
+@endif
 
 <!-- Medical History Records -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <div class="p-6 border-b border-gray-200">
-        <h2 class="text-xl font-bold text-gray-800">Medical History</h2>
-    </div>
-
-        @if($medicalHistories->count() > 0)
-            <div class="divide-y divide-gray-200">
-                @foreach($medicalHistories as $history)
-                    <div class="p-6 hover:bg-gray-50 transition">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-800">{{ $history->consultation->reference ?? 'N/A' }}</h3>
-                                <p class="text-sm text-gray-600">Dr. {{ $history->consultation->doctor->name ?? 'N/A' }}</p>
-                                <p class="text-xs text-gray-500 mt-1">{{ $history->consultation_date->format('M d, Y') }}</p>
+<div class="space-y-4">
+    @if($medicalHistories->count() > 0)
+        @foreach($medicalHistories as $history)
+            <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
+                <!-- Card Header -->
+                <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                    <div class="p-5 flex items-center justify-between">
+                        <div class="flex-1 flex items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="w-3 h-3 rounded-full bg-purple-500"></div>
                             </div>
-                            @if($history->is_latest)
-                                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Latest</span>
-                            @endif
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h3 class="text-sm font-semibold text-gray-900">{{ $history->consultation->reference ?? 'N/A' }}</h3>
+                                    @if($history->is_latest)
+                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">Latest</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-gray-600">Dr. {{ $history->consultation->doctor->name ?? 'N/A' }} • {{ $history->consultation_date->format('M d, Y') }}</p>
+                            </div>
                         </div>
+                        <div class="flex-shrink-0 ml-4">
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" 
+                                 :class="{ 'rotate-180': open }" 
+                                 fill="none" 
+                                 stroke="currentColor" 
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </button>
 
-                        <!-- Medical History Section -->
-                        <div class="mb-6">
-                            <h4 class="text-md font-semibold text-gray-800 mb-3 flex items-center">
-                                <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Dropdown Content -->
+                <div x-show="open" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 transform translate-y-0"
+                     x-transition:leave-end="opacity-0 transform -translate-y-2"
+                     x-cloak
+                     class="border-t border-gray-100 bg-gray-50"
+                     style="display: none;">
+                    <div class="p-5 space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center">
+                                <svg class="w-4 h-4 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                                 Medical History
                             </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                                <!-- Presenting Complaint -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 @if($history->presenting_complaint)
                                     <div class="md:col-span-2">
-                                        <p class="text-sm font-medium text-gray-700 mb-1">Presenting Complaint</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->presenting_complaint }}</p>
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Presenting Complaint</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->presenting_complaint }}</p>
                                     </div>
                                 @endif
 
-                                <!-- History of Complaint -->
                                 @if($history->history_of_complaint)
                                     <div class="md:col-span-2">
-                                        <p class="text-sm font-medium text-gray-700 mb-1">History of Complaint</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->history_of_complaint }}</p>
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">History of Complaint</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->history_of_complaint }}</p>
                                     </div>
                                 @endif
 
-                                <!-- Past Medical History -->
                                 @if($history->past_medical_history)
-                                <div>
-                                        <p class="text-sm font-medium text-gray-700 mb-1">Past Medical History</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->past_medical_history }}</p>
-                                </div>
-                            @endif
+                                    <div>
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Past Medical History</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->past_medical_history }}</p>
+                                    </div>
+                                @endif
 
-                                <!-- Family History -->
                                 @if($history->family_history)
-                                <div>
-                                        <p class="text-sm font-medium text-gray-700 mb-1">Family History</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->family_history }}</p>
-                                </div>
-                            @endif
+                                    <div>
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Family History</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->family_history }}</p>
+                                    </div>
+                                @endif
 
-                                <!-- Drug History -->
                                 @if($history->drug_history)
                                     <div>
-                                        <p class="text-sm font-medium text-gray-700 mb-1">Drug History</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->drug_history }}</p>
-                                </div>
-                            @endif
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Drug History</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->drug_history }}</p>
+                                    </div>
+                                @endif
 
-                                <!-- Social History -->
                                 @if($history->social_history)
                                     <div>
-                                        <p class="text-sm font-medium text-gray-700 mb-1">Social History</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->social_history }}</p>
-                                </div>
-                            @endif
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Social History</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->social_history }}</p>
+                                    </div>
+                                @endif
 
-                            <!-- Allergies -->
-                            @if($history->allergies)
+                                @if($history->allergies)
                                     <div class="md:col-span-2">
-                                    <p class="text-sm font-medium text-gray-700 mb-1">Allergies</p>
-                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ $history->allergies }}</p>
-                                </div>
-                            @endif
-                                </div>
+                                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Allergies</p>
+                                        <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $history->allergies }}</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                @endforeach
+                </div>
             </div>
+        @endforeach
 
         <!-- Pagination -->
-        <div class="px-6 py-4 border-t border-gray-200">
+        <div class="mt-6">
             {{ $medicalHistories->links() }}
         </div>
     @else
-        <div class="text-center py-12">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No Medical Records Yet</h3>
-            <p class="text-sm text-gray-500 mb-4">Your medical history will appear here after your consultations.</p>
+            <h3 class="text-sm font-semibold text-gray-900 mb-2">No Medical Records Yet</h3>
+            <p class="text-xs text-gray-500 mb-4">Your medical history will appear here after your consultations.</p>
         </div>
     @endif
 </div>
 
 <!-- Privacy Notice -->
-<div class="mt-6 bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-            </div>
-    <div class="ml-3">
-        <p class="text-sm text-purple-700">
-            <strong>Privacy Notice:</strong> Your medical records are secure and confidential. Only you and authorized healthcare providers can access this information.
-        </p>
+<div class="mt-6 bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-4 w-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+        <div class="ml-3">
+            <p class="text-xs text-purple-700">
+                <strong>Privacy Notice:</strong> Your medical records are secure and confidential. Only you and authorized healthcare providers can access this information.
+            </p>
+        </div>
     </div>
 </div>
 @endsection
