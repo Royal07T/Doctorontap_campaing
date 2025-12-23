@@ -80,25 +80,41 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            // Get or create patient record (including soft-deleted)
-            $patient = Patient::withTrashed()->where('email', $consultation->email)->first();
-            if ($patient) {
-                // If patient is soft-deleted, restore it
-                if ($patient->trashed()) {
-                    $patient->restore();
-                    \Log::info('Restored soft-deleted patient for review', [
-                        'patient_id' => $patient->id,
-                        'email' => $consultation->email
-                    ]);
+            // Get patient - prefer authenticated patient, otherwise lookup by email
+            $patient = null;
+            
+            // Check if patient is authenticated
+            if (Auth::guard('patient')->check()) {
+                $patient = Auth::guard('patient')->user();
+                
+                // Verify the consultation belongs to this patient
+                if ($consultation->email !== $patient->email) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This consultation does not belong to you'
+                    ], 403);
                 }
             } else {
-                // Create new patient
-                $patient = Patient::create([
-                    'name' => $consultation->full_name,
-                    'email' => $consultation->email,
-                    'phone' => $consultation->mobile,
-                    'gender' => $consultation->gender,
-                ]);
+                // Get or create patient record (including soft-deleted)
+                $patient = Patient::withTrashed()->where('email', $consultation->email)->first();
+                if ($patient) {
+                    // If patient is soft-deleted, restore it
+                    if ($patient->trashed()) {
+                        $patient->restore();
+                        \Log::info('Restored soft-deleted patient for review', [
+                            'patient_id' => $patient->id,
+                            'email' => $consultation->email
+                        ]);
+                    }
+                } else {
+                    // Create new patient
+                    $patient = Patient::create([
+                        'name' => $consultation->full_name,
+                        'email' => $consultation->email,
+                        'phone' => $consultation->mobile,
+                        'gender' => $consultation->gender,
+                    ]);
+                }
             }
 
             // Create review

@@ -1,0 +1,1044 @@
+<?php
+
+namespace App\Http\Controllers\Patient;
+
+use App\Http\Controllers\Controller;
+use App\Models\Consultation;
+use App\Models\PatientMedicalHistory;
+use App\Models\Specialty;
+use App\Models\Doctor;
+use App\Models\Setting;
+use App\Models\MenstrualCycle;
+use App\Models\SexualHealthRecord;
+use App\Models\Payment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Mail\ConsultationConfirmation;
+use App\Mail\ConsultationAdminAlert;
+use App\Mail\ConsultationDoctorNotification;
+use App\Notifications\ConsultationSmsNotification;
+
+class DashboardController extends Controller
+{
+    /**
+     * Display patient dashboard
+     */
+    public function index()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Statistics
+        $stats = [
+            'total_consultations' => $patient->consultations()->count(),
+            'completed_consultations' => $patient->consultations()->where('status', 'completed')->count(),
+            'pending_consultations' => $patient->consultations()->where('status', 'pending')->count(),
+            'total_paid' => $patient->consultations()
+                ->where('payment_status', 'paid')
+                ->with('payment')
+                ->get()
+                ->sum(function($consultation) {
+                    return $consultation->payment ? $consultation->payment->amount : 0;
+                }),
+            'unpaid_consultations' => $patient->consultations()
+                ->where('status', 'completed')
+                ->where('payment_status', '!=', 'paid')
+                ->count(),
+        ];
+
+        // Recent consultations
+        $recentConsultations = $patient->consultations()
+            ->with(['doctor', 'payment'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Dependents (if patient is a guardian)
+        $dependents = $patient->dependents()->get();
+
+        // Upcoming/pending consultations
+        $upcomingConsultations = $patient->consultations()
+            ->whereIn('status', ['pending', 'scheduled'])
+            ->latest()
+            ->limit(3)
+            ->get();
+
+        // Get all active specialties from database for carousel
+        $specializations = Specialty::active()
+            ->orderBy('name')
+            ->pluck('name');
+        
+        // If no specialties found in database, fallback to doctor specializations
+        if ($specializations->isEmpty()) {
+            $specializations = \App\Models\Doctor::whereNotNull('specialization')
+                ->where('specialization', '!=', '')
+                ->where('is_approved', true)
+                ->distinct()
+                ->orderBy('specialization')
+                ->pluck('specialization');
+        }
+
+        // Symptoms with their related specializations and icons
+        $symptoms = [
+            ['name' => 'Period Doubts or Pregnancy', 'specialization' => 'Obstetrician & Gynecologist (OB-GYN)', 'icon' => 'menstruation-pregnancy', 'color' => '#FF6B9D'],
+            ['name' => 'Acne, Pimple or Skin Issues', 'specialization' => 'Dermatologist', 'icon' => 'acne-skin', 'color' => '#FF9F66'],
+            ['name' => 'Performance Issues in Bed', 'specialization' => 'Urologist', 'icon' => 'performance', 'color' => '#9333EA'],
+            ['name' => 'Cold, Cough or Fever', 'specialization' => 'General Practitioner (GP)', 'icon' => 'cold-cough', 'color' => '#3B82F6'],
+            ['name' => 'Child Not Feeling Well', 'specialization' => 'Pediatrician', 'icon' => 'child-sick', 'color' => '#F59E0B'],
+            ['name' => 'Depression or Anxiety', 'specialization' => 'Psychiatrist', 'icon' => 'depression-anxiety', 'color' => '#EF4444'],
+            ['name' => 'Headache', 'specialization' => 'Neurologist', 'icon' => 'headache', 'color' => '#6D597A'],
+            ['name' => 'Stomach Pain', 'specialization' => 'Gastroenterologist', 'icon' => 'stomach-pain', 'color' => '#2A9D8F'],
+            ['name' => 'Back Pain', 'specialization' => 'Orthopedic Specialist', 'icon' => 'back-pain', 'color' => '#264653'],
+            ['name' => 'Eye Problems', 'specialization' => 'Ophthalmologist', 'icon' => 'eye-problems', 'color' => '#1D3557'],
+            ['name' => 'Ear Pain', 'specialization' => 'ENT Specialist (Otolaryngologist)', 'icon' => 'ear-pain', 'color' => '#8D99AE'],
+            ['name' => 'Joint Pain', 'specialization' => 'Rheumatologist', 'icon' => 'joint-pain', 'color' => '#588157'],
+            ['name' => 'Chest Pain', 'specialization' => 'Cardiologist', 'icon' => 'chest-pain', 'color' => '#C1121F'],
+        ];
+
+        // Get menstrual cycle data for female patients
+        $menstrualCycles = collect([]);
+        $currentCycle = null;
+        $nextPeriodPrediction = null;
+        $nextOvulationPrediction = null;
+        $fertileWindowStart = null;
+        $fertileWindowEnd = null;
+        $averageCycleLength = null;
+        $averagePeriodLength = null;
+        
+        if (strtolower($patient->gender) === 'female') {
+            $menstrualCycles = \App\Models\MenstrualCycle::where('patient_id', $patient->id)
+                ->orderBy('start_date', 'desc')
+                ->limit(12)
+                ->get();
+            
+            // Get current/active cycle (period that hasn't ended or ended within last 7 days)
+            $currentCycle = \App\Models\MenstrualCycle::where('patient_id', $patient->id)
+                ->where(function($query) {
+                    $query->whereNull('end_date')
+                        ->orWhere('end_date', '>=', now()->subDays(7));
+                })
+                ->orderBy('start_date', 'desc')
+                ->first();
+            
+            // Calculate average cycle length (from start of one period to start of next)
+            if ($menstrualCycles->count() >= 2) {
+                $cycleLengths = [];
+                $periodLengths = [];
+                
+                for ($i = 0; $i < $menstrualCycles->count() - 1; $i++) {
+                    $current = $menstrualCycles[$i];
+                    $previous = $menstrualCycles[$i + 1];
+                    
+                    if ($current->start_date && $previous->start_date) {
+                        $cycleLengths[] = $current->start_date->diffInDays($previous->start_date);
+                    }
+                    
+                    if ($current->period_length) {
+                        $periodLengths[] = $current->period_length;
+                    } elseif ($current->start_date && $current->end_date) {
+                        $periodLengths[] = $current->start_date->diffInDays($current->end_date) + 1;
+                    }
+                }
+                
+                if (!empty($cycleLengths)) {
+                    $averageCycleLength = round(array_sum($cycleLengths) / count($cycleLengths));
+                }
+                
+                if (!empty($periodLengths)) {
+                    $averagePeriodLength = round(array_sum($periodLengths) / count($periodLengths));
+                }
+            }
+            
+            // Default values if no history
+            $averageCycleLength = $averageCycleLength ?? 28; // Average cycle is 28 days
+            $averagePeriodLength = $averagePeriodLength ?? 5; // Average period is 5 days
+            
+            // Ensure averageCycleLength is never zero to prevent division by zero
+            if ($averageCycleLength <= 0) {
+                $averageCycleLength = 28;
+            }
+            
+            // Predict next period (based on last period START date + average cycle length)
+            // Cycle length is from start of one period to start of next period
+            $lastPeriodStart = null;
+            
+            if ($menstrualCycles->isNotEmpty()) {
+                // Use the most recent period's start date
+                $lastPeriodStart = $menstrualCycles->first()->start_date;
+            }
+            
+            if ($lastPeriodStart && $averageCycleLength > 0) {
+                // Next period starts after average cycle length from last period start
+                $nextPeriodPrediction = $lastPeriodStart->copy()->addDays($averageCycleLength);
+                
+                // Only show prediction if it's in the future
+                if ($nextPeriodPrediction->isPast()) {
+                    // If prediction is in the past, calculate from today or next cycle
+                    $daysSinceLastPeriod = now()->diffInDays($lastPeriodStart);
+                    if ($averageCycleLength > 0) {
+                        $cyclesSinceLastPeriod = floor($daysSinceLastPeriod / $averageCycleLength);
+                        $nextPeriodPrediction = $lastPeriodStart->copy()->addDays($averageCycleLength * ($cyclesSinceLastPeriod + 1));
+                    } else {
+                        // Fallback: just add one cycle length
+                        $nextPeriodPrediction = $lastPeriodStart->copy()->addDays(28);
+                    }
+                }
+                
+                // Calculate ovulation (typically 14 days before next period)
+                // Ovulation occurs approximately 14 days before the next period starts
+                $nextOvulationPrediction = $nextPeriodPrediction->copy()->subDays(14);
+                
+                // Fertile window: 5 days before ovulation to 1 day after (sperm can live up to 5 days)
+                $fertileWindowStart = $nextOvulationPrediction->copy()->subDays(5);
+                $fertileWindowEnd = $nextOvulationPrediction->copy()->addDay();
+            }
+        }
+
+        // Get sexual health data for male patients
+        $sexualHealthRecords = collect([]);
+        $latestSexualHealthRecord = null;
+        $stiTestDue = false;
+        $nextStiTestDate = null;
+        $daysUntilStiTest = null;
+        
+        if (strtolower($patient->gender) === 'male') {
+            $sexualHealthRecords = SexualHealthRecord::where('patient_id', $patient->id)
+                ->orderBy('record_date', 'desc')
+                ->limit(6)
+                ->get();
+            
+            $latestSexualHealthRecord = SexualHealthRecord::where('patient_id', $patient->id)
+                ->orderBy('record_date', 'desc')
+                ->first();
+            
+            // Check if STI test is due (recommended every 6 months)
+            if ($latestSexualHealthRecord && $latestSexualHealthRecord->last_sti_test_date) {
+                $nextStiTestDate = $latestSexualHealthRecord->last_sti_test_date->copy()->addMonths(6);
+                $stiTestDue = $nextStiTestDate->isPast();
+                // Calculate days as integer (rounded)
+                $daysUntilStiTest = (int) round(now()->diffInDays($nextStiTestDate, false));
+            } elseif (!$latestSexualHealthRecord || !$latestSexualHealthRecord->last_sti_test_date) {
+                // Never tested or no test date recorded
+                $stiTestDue = true;
+            }
+        }
+
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest'));
+    }
+
+    /**
+     * Display all available doctors
+     */
+    public function doctors(Request $request)
+    {
+        $query = \App\Models\Doctor::where('is_approved', true)
+            ->where('is_available', true);
+
+        // Filter by specialization if provided
+        if ($request->filled('specialization')) {
+            $specialization = urldecode($request->specialization);
+            $specializationMap = [
+                'General Practice (Family Medicine)' => ['General Practice', 'General Practitioner', 'General Practitional'],
+                'General Practitioner' => ['General Practitioner', 'General Practice', 'General Practitional'],
+                'General Practice' => ['General Practice', 'General Practitioner', 'General Practitional'],
+            ];
+            
+            $searchTerms = $specializationMap[$specialization] ?? [$specialization];
+            
+            $query->where(function($q) use ($specialization, $searchTerms) {
+                $q->where('specialization', $specialization)
+                  ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($specialization))]);
+                
+                if (count($searchTerms) > 1 || $searchTerms[0] !== $specialization) {
+                    foreach ($searchTerms as $term) {
+                        $q->orWhere('specialization', $term)
+                          ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($term))]);
+                    }
+                }
+            });
+        }
+
+        // Search by name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('specialization', 'like', "%{$search}%");
+            });
+        }
+
+        $doctors = $query->orderBy('name')->paginate(12);
+        $specializations = \App\Models\Doctor::where('is_approved', true)
+            ->where('is_available', true)
+            ->whereNotNull('specialization')
+            ->distinct()
+            ->orderBy('specialization')
+            ->pluck('specialization');
+
+        return view('patient.doctors', compact('doctors', 'specializations'));
+    }
+
+    /**
+     * Display doctors by specialization
+     */
+    public function doctorsBySpecialization($specialization)
+    {
+        // Decode URL-encoded specialization (e.g., "General+Practice+%28Family+Medicine%29" -> "General Practice (Family Medicine)")
+        $specialization = urldecode($specialization);
+        
+        // Map common variations to database values
+        $specializationMap = [
+            'General Practice (Family Medicine)' => ['General Practice', 'General Practitioner', 'General Practitional'],
+            'General Practitioner' => ['General Practitioner', 'General Practice', 'General Practitional'],
+            'General Practice' => ['General Practice', 'General Practitioner', 'General Practitional'],
+        ];
+        
+        // Check if we have a mapping for this specialization
+        $searchTerms = $specializationMap[$specialization] ?? [$specialization];
+        
+        // Query doctors with this specialization (case-insensitive, trimmed)
+        // Try exact match first, then case-insensitive match, then mapped variations
+        $doctors = \App\Models\Doctor::where(function($query) use ($specialization, $searchTerms) {
+                // Exact match
+                $query->where('specialization', $specialization)
+                      // Case-insensitive match
+                      ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($specialization))]);
+                
+                // If we have mapped terms, also search for those
+                if (count($searchTerms) > 1 || $searchTerms[0] !== $specialization) {
+                    foreach ($searchTerms as $term) {
+                        $query->orWhere('specialization', $term)
+                              ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($term))]);
+                    }
+                }
+            })
+            ->where('is_approved', true)
+            ->where('is_available', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('patient.doctors-by-specialization', compact('doctors', 'specialization'));
+    }
+
+    /**
+     * Display doctors by symptom
+     */
+    public function doctorsBySymptom($symptom)
+    {
+        // Map symptoms to specializations (using database specialty names)
+        $symptomMap = [
+            'period-doubts-or-pregnancy' => ['Obstetrician & Gynecologist (OB-GYN)', 'Obstetrics & Gynecology (OB/GYN)', 'Reproductive Health Specialist'],
+            'acne-pimple-or-skin-issues' => ['Dermatologist', 'Dermatology', 'Cosmetic Dermatologist'],
+            'performance-issues-in-bed' => ['Urologist', 'Urology'],
+            'cold-cough-or-fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)', 'Internal Medicine Physician', 'Family Medicine Physician'],
+            'child-not-feeling-well' => ['Pediatrician', 'Pediatrics'],
+            'depression-or-anxiety' => ['Psychiatrist', 'Psychiatry', 'Clinical Psychologist'],
+            'headache' => ['Neurologist', 'Neurology'],
+            'stomach-pain' => ['Gastroenterologist', 'Gastroenterology'],
+            'back-pain' => ['Orthopedic Specialist', 'Orthopaedics'],
+            'eye-problems' => ['Ophthalmologist', 'Ophthalmology', 'Optometrist'],
+            'ear-pain' => ['ENT Specialist (Otolaryngologist)', 'ENT (Otolaryngology)'],
+            'joint-pain' => ['Rheumatologist', 'Orthopedic Specialist', 'Orthopaedics'],
+            'chest-pain' => ['Cardiologist', 'Cardiology'],
+            // Legacy mappings for backward compatibility
+            'menstruation-flow' => ['Obstetrician & Gynecologist (OB-GYN)', 'Obstetrics & Gynecology (OB/GYN)'],
+            'rashes' => ['Dermatologist', 'Dermatology'],
+            'cough' => ['General Practitioner (GP)', 'Internal Medicine'],
+            'fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)'],
+            'skin-issues' => ['Dermatologist', 'Dermatology'],
+        ];
+        
+        // Normalize the symptom slug
+        $symptom = strtolower(str_replace(' ', '-', $symptom));
+
+        $specializations = $symptomMap[$symptom] ?? null;
+        
+        if (!$specializations) {
+            abort(404, 'Symptom not found');
+        }
+
+        // Query doctors with any of the mapped specializations
+        $doctors = \App\Models\Doctor::where(function($query) use ($specializations) {
+                foreach ($specializations as $index => $specialization) {
+                    if ($index === 0) {
+                        $query->where('specialization', $specialization);
+                    } else {
+                        $query->orWhere('specialization', $specialization);
+                    }
+                }
+            })
+            ->where('is_approved', true)
+            ->where('is_available', true)
+            ->orderBy('name')
+            ->get();
+            
+        // Use the first specialization for display
+        $specialization = $specializations[0];
+
+        $symptomName = ucwords(str_replace('-', ' ', $symptom));
+
+        return view('patient.doctors-by-specialization', compact('doctors', 'specialization', 'symptomName'));
+    }
+
+    /**
+     * Display all consultations
+     */
+    public function consultations(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $query = $patient->consultations()->with(['doctor', 'payment', 'reviews']);
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by payment status
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        // Search by reference or doctor name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhereHas('doctor', function($dq) use ($search) {
+                      $dq->where('name', 'like', "%{$search}%")
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $consultations = $query->latest()->paginate(15);
+
+        // Statistics
+        $stats = [
+            'total' => $patient->consultations()->count(),
+            'completed' => $patient->consultations()->where('status', 'completed')->count(),
+            'pending' => $patient->consultations()->where('status', 'pending')->count(),
+            'paid' => $patient->consultations()->where('payment_status', 'paid')->count(),
+            'unpaid' => $patient->consultations()
+                ->where('status', 'completed')
+                ->where('payment_status', '!=', 'paid')
+                ->count(),
+            'total_paid' => $patient->consultations()
+                ->where('payment_status', 'paid')
+                ->with('payment')
+                ->get()
+                ->sum(function($consultation) {
+                    return $consultation->payment ? $consultation->payment->amount : 0;
+                }),
+        ];
+
+        return view('patient.consultations', compact('consultations', 'stats', 'patient'));
+    }
+
+    /**
+     * View single consultation
+     */
+    public function viewConsultation($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $consultation = $patient->consultations()
+            ->with(['doctor', 'payment'])
+            ->findOrFail($id);
+
+        // Mark treatment plan as accessed if it's accessible
+        if ($consultation->isTreatmentPlanAccessible()) {
+            $consultation->markTreatmentPlanAccessed();
+        }
+
+        return view('patient.consultation-details', compact('consultation'));
+    }
+
+    /**
+     * Display medical records
+     */
+    public function medicalRecords()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Backfill medical history for existing consultations that haven't been synced yet
+        // This ensures all treatment plans are reflected in medical records
+        $historyService = app(\App\Services\PatientMedicalHistoryService::class);
+        
+        // Backfill by patient_id
+        $syncedByPatientId = $historyService->backfillPatientMedicalHistory($patient);
+        
+        // Also backfill by email in case some consultations don't have patient_id set
+        $syncedByEmail = $historyService->backfillMedicalHistoryByEmail($patient->email);
+        
+        if ($syncedByPatientId > 0 || $syncedByEmail > 0) {
+            \Illuminate\Support\Facades\Log::info('Backfilled medical history for patient', [
+                'patient_id' => $patient->id,
+                'synced_by_patient_id' => $syncedByPatientId,
+                'synced_by_email' => $syncedByEmail
+            ]);
+        }
+        
+        $medicalHistories = $patient->medicalHistories()
+            ->with('consultation.doctor')
+            ->latest('consultation_date')
+            ->paginate(10);
+
+        $latestVitals = $patient->latestVitalSigns;
+
+        $stats = [
+            'total_records' => $patient->medicalHistories()->count(),
+            'total_vital_signs' => $patient->vitalSigns()->count(),
+            'last_consultation' => $patient->last_consultation_at,
+        ];
+
+        return view('patient.medical-records', compact('medicalHistories', 'latestVitals', 'stats'));
+    }
+
+    /**
+     * Display profile/settings
+     */
+    public function profile()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        return view('patient.profile', compact('patient'));
+    }
+
+    /**
+     * Update profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'gender' => 'nullable|in:male,female',
+            'date_of_birth' => 'nullable|date|before:today',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            try {
+                // Delete old photo if exists
+                if ($patient->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($patient->photo)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($patient->photo);
+                }
+
+                // Store new photo
+                $photo = $request->file('photo');
+                $fileName = \Illuminate\Support\Str::slug($patient->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+                
+                // Use putFileAs which properly handles the file stream
+                // This stores the file at storage/app/public/patients/filename.jpg
+                // and returns the path 'patients/filename.jpg'
+                $path = \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('patients', $photo, $fileName);
+                
+                // Verify the file was stored
+                if ($path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                    $validated['photo'] = $path;
+                    
+                    \Log::info('Patient photo uploaded successfully', [
+                        'patient_id' => $patient->id,
+                        'photo_path' => $path,
+                        'url' => \Illuminate\Support\Facades\Storage::url($path)
+                    ]);
+                } else {
+                    \Log::error('Patient photo upload failed - file not found after storage', [
+                        'patient_id' => $patient->id,
+                        'photo_name' => $fileName,
+                        'path' => $path
+                    ]);
+                    
+                    return redirect()->back()->with('error', 'Failed to upload photo. Please try again.');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Patient photo upload exception', [
+                    'patient_id' => $patient->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+            }
+        }
+
+        $patient->update($validated);
+
+        return redirect()->back()->with('success', 'Profile updated successfully!');
+    }
+
+    /**
+     * Display dependents (children/family members)
+     */
+    public function dependents()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $dependents = $patient->dependents()->with('consultations')->get();
+
+        return view('patient.dependents', compact('dependents'));
+    }
+
+    /**
+     * Display payments history
+     */
+    public function payments()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Get all consultations (both paid and unpaid)
+        $consultations = $patient->consultations()
+            ->with(['doctor', 'payment'])
+            ->latest()
+            ->paginate(15);
+
+        // Calculate total paid from actual payments in database
+        // Query payments table directly by joining with consultations for accurate amount
+        $totalPaid = DB::table('payments')
+            ->join('consultations', 'payments.id', '=', 'consultations.payment_id')
+            ->where('consultations.patient_id', $patient->id)
+            ->where('consultations.payment_status', 'paid')
+            ->sum('payments.amount');
+
+        // Get pending payments (unpaid consultations)
+        $pendingConsultations = $patient->consultations()
+            ->with('doctor')
+            ->where(function($query) {
+                $query->where('payment_status', '!=', 'paid')
+                      ->orWhereNull('payment_status');
+            })
+            ->where(function($query) {
+                $query->where('status', 'completed')
+                      ->orWhere('status', 'pending_payment');
+            })
+            ->latest()
+            ->get();
+
+        $stats = [
+            'total_paid' => $totalPaid,
+            'paid_consultations' => $patient->consultations()->where('payment_status', 'paid')->count(),
+            'pending_payments' => $pendingConsultations->count(),
+        ];
+
+        return view('patient.payments', compact('consultations', 'pendingConsultations', 'stats'));
+    }
+
+    /**
+     * Initiate payment for a consultation
+     */
+    public function initiatePayment($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $consultation = $patient->consultations()
+            ->with('doctor')
+            ->findOrFail($id);
+
+        // Check if already paid
+        if ($consultation->isPaid()) {
+            return redirect()->route('patient.payments')
+                ->with('error', 'This consultation has already been paid for.');
+        }
+
+        // Check if doctor is assigned
+        if (!$consultation->doctor) {
+            return redirect()->route('patient.payments')
+                ->with('error', 'No doctor assigned to this consultation yet.');
+        }
+
+        // Determine fee based on consultation type
+        $fee = 0;
+        if ($consultation->consultation_type === 'pay_now') {
+            $fee = \App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500));
+        } elseif ($consultation->consultation_type === 'pay_later') {
+            $fee = \App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000));
+        } else {
+            // Fallback to doctor's effective fee
+            $fee = $consultation->doctor->effective_consultation_fee ?? 0;
+        }
+
+        if ($fee <= 0) {
+            return redirect()->route('patient.payments')
+                ->with('error', 'No payment is required for this consultation.');
+        }
+
+        // Redirect to payment request page with source parameter to track where payment was initiated
+        return redirect()->route('payment.request', [
+            'reference' => $consultation->reference,
+            'source' => 'dashboard'
+        ]);
+    }
+
+    /**
+     * View receipt for a paid consultation
+     */
+    public function viewReceipt($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $consultation = $patient->consultations()
+            ->with(['doctor', 'payment'])
+            ->findOrFail($id);
+
+        // Check if consultation has been paid
+        if (!$consultation->payment || $consultation->payment_status !== 'paid') {
+            return redirect()->route('patient.payments')
+                ->with('error', 'Receipt is only available for paid consultations.');
+        }
+
+        return view('patient.receipt', compact('consultation'));
+    }
+
+    /**
+     * Sanitize all input data
+     */
+    private function sanitizeInputs(array $inputs): array
+    {
+        $sanitized = [];
+        
+        foreach ($inputs as $key => $value) {
+            if (is_string($value)) {
+                $sanitized[$key] = $this->sanitizeText($value);
+            } elseif (is_array($value)) {
+                $sanitized[$key] = $this->sanitizeArray($value);
+            } else {
+                $sanitized[$key] = $value;
+            }
+        }
+        
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize text input - removes HTML tags, XSS attempts, and normalizes whitespace
+     */
+    private function sanitizeText(?string $text): ?string
+    {
+        if (empty($text)) {
+            return $text;
+        }
+        
+        // Remove HTML tags and PHP tags
+        $text = strip_tags($text);
+        
+        // Remove null bytes and other control characters (except newlines and tabs)
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
+        
+        // Normalize whitespace (multiple spaces to single space)
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        // Trim whitespace
+        $text = trim($text);
+        
+        // Escape special characters for database storage
+        $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8', false);
+        
+        return $text;
+    }
+
+    /**
+     * Sanitize array input
+     */
+    private function sanitizeArray(array $array): array
+    {
+        $sanitized = [];
+        
+        foreach ($array as $key => $value) {
+            if (is_string($value)) {
+                $sanitized[$key] = $this->sanitizeText($value);
+            } elseif (is_array($value)) {
+                $sanitized[$key] = $this->sanitizeArray($value);
+            } else {
+                $sanitized[$key] = $value;
+            }
+        }
+        
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize file name to prevent directory traversal and other attacks
+     */
+    private function sanitizeFileName(string $fileName): string
+    {
+        // Remove path components
+        $fileName = basename($fileName);
+        
+        // Remove any remaining directory separators
+        $fileName = str_replace(['/', '\\', '..'], '', $fileName);
+        
+        // Remove special characters except alphanumeric, dots, hyphens, and underscores
+        $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName);
+        
+        // Limit length
+        $fileName = substr($fileName, 0, 255);
+        
+        return $fileName;
+    }
+
+    /**
+     * Store or update menstrual cycle
+     */
+    public function storeMenstrualCycle(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for female patients
+        if (strtolower($patient->gender) !== 'female') {
+            return response()->json(['error' => 'This feature is only available for female patients.'], 403);
+        }
+        
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'period_length' => 'nullable|integer|min:1|max:10',
+            'flow_intensity' => 'nullable|in:light,moderate,heavy',
+            'symptoms' => 'nullable|array',
+            'notes' => 'nullable|string|max:500',
+        ]);
+        
+        // Sanitize inputs
+        $validated['notes'] = isset($validated['notes']) ? $this->sanitizeText($validated['notes']) : null;
+        
+        // Calculate period length if not provided
+        if (!isset($validated['period_length']) && isset($validated['start_date']) && isset($validated['end_date'])) {
+            $start = \Carbon\Carbon::parse($validated['start_date']);
+            $end = \Carbon\Carbon::parse($validated['end_date']);
+            $validated['period_length'] = $start->diffInDays($end) + 1;
+        }
+        
+        // Check if there's an active cycle that should be ended
+        $activeCycle = MenstrualCycle::where('patient_id', $patient->id)
+            ->whereNull('end_date')
+            ->where('start_date', '<', $validated['start_date'])
+            ->first();
+        
+        if ($activeCycle) {
+            // End the previous cycle
+            $activeCycle->update([
+                'end_date' => \Carbon\Carbon::parse($validated['start_date'])->subDay(),
+                'period_length' => $activeCycle->calculatePeriodLength(),
+                'cycle_length' => $activeCycle->calculateCycleLength(),
+            ]);
+        }
+        
+        // Create new cycle
+        $cycle = MenstrualCycle::create([
+            'patient_id' => $patient->id,
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'] ?? null,
+            'period_length' => $validated['period_length'] ?? null,
+            'flow_intensity' => $validated['flow_intensity'] ?? null,
+            'symptoms' => $validated['symptoms'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+        
+        // Calculate cycle length
+        $cycle->cycle_length = $cycle->calculateCycleLength();
+        $cycle->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Menstrual cycle recorded successfully.',
+            'cycle' => $cycle->load('patient'),
+        ]);
+    }
+
+    /**
+     * Update menstrual cycle
+     */
+    public function updateMenstrualCycle(Request $request, $id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $cycle = MenstrualCycle::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $validated = $request->validate([
+            'start_date' => 'sometimes|required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'period_length' => 'nullable|integer|min:1|max:10',
+            'flow_intensity' => 'nullable|in:light,moderate,heavy',
+            'symptoms' => 'nullable|array',
+            'notes' => 'nullable|string|max:500',
+        ]);
+        
+        // Sanitize inputs
+        if (isset($validated['notes'])) {
+            $validated['notes'] = $this->sanitizeText($validated['notes']);
+        }
+        
+        // Calculate period length if not provided
+        if (!isset($validated['period_length']) && isset($validated['start_date']) && isset($validated['end_date'])) {
+            $start = \Carbon\Carbon::parse($validated['start_date']);
+            $end = \Carbon\Carbon::parse($validated['end_date']);
+            $validated['period_length'] = $start->diffInDays($end) + 1;
+        }
+        
+        $cycle->update($validated);
+        
+        // Recalculate cycle length
+        $cycle->cycle_length = $cycle->calculateCycleLength();
+        $cycle->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Menstrual cycle updated successfully.',
+            'cycle' => $cycle->load('patient'),
+        ]);
+    }
+
+    /**
+     * Delete menstrual cycle
+     */
+    public function deleteMenstrualCycle($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for female patients
+        if (strtolower($patient->gender) !== 'female') {
+            return response()->json(['error' => 'This feature is only available for female patients.'], 403);
+        }
+        
+        $cycle = MenstrualCycle::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $cycle->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Menstrual cycle deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Store sexual health record
+     */
+    public function storeSexualHealthRecord(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for male patients
+        if (strtolower($patient->gender) !== 'male') {
+            return response()->json(['error' => 'This feature is only available for male patients.'], 403);
+        }
+        
+        $validated = $request->validate([
+            'record_date' => 'required|date',
+            'libido_level' => 'nullable|in:low,normal,high',
+            'erectile_health_score' => 'nullable|integer|min:1|max:10',
+            'ejaculation_issues' => 'nullable|boolean',
+            'ejaculation_notes' => 'nullable|string|max:500',
+            'last_sti_test_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+        
+        // Sanitize inputs
+        if (isset($validated['ejaculation_notes'])) {
+            $validated['ejaculation_notes'] = $this->sanitizeText($validated['ejaculation_notes']);
+        }
+        if (isset($validated['notes'])) {
+            $validated['notes'] = $this->sanitizeText($validated['notes']);
+        }
+        
+        // Calculate next STI test reminder (6 months from last test)
+        if (isset($validated['last_sti_test_date'])) {
+            $validated['next_sti_test_reminder'] = \Carbon\Carbon::parse($validated['last_sti_test_date'])->addMonths(6);
+            $validated['sti_test_due'] = $validated['next_sti_test_reminder']->isPast();
+        }
+        
+        $record = SexualHealthRecord::create([
+            'patient_id' => $patient->id,
+            'record_date' => $validated['record_date'],
+            'libido_level' => $validated['libido_level'] ?? null,
+            'erectile_health_score' => $validated['erectile_health_score'] ?? null,
+            'ejaculation_issues' => $validated['ejaculation_issues'] ?? false,
+            'ejaculation_notes' => $validated['ejaculation_notes'] ?? null,
+            'last_sti_test_date' => $validated['last_sti_test_date'] ?? null,
+            'next_sti_test_reminder' => $validated['next_sti_test_reminder'] ?? null,
+            'sti_test_due' => $validated['sti_test_due'] ?? false,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sexual health record saved successfully.',
+            'record' => $record->load('patient'),
+        ]);
+    }
+
+    /**
+     * Update sexual health record
+     */
+    public function updateSexualHealthRecord(Request $request, $id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $record = SexualHealthRecord::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $validated = $request->validate([
+            'record_date' => 'sometimes|required|date',
+            'libido_level' => 'nullable|in:low,normal,high',
+            'erectile_health_score' => 'nullable|integer|min:1|max:10',
+            'ejaculation_issues' => 'nullable|boolean',
+            'ejaculation_notes' => 'nullable|string|max:500',
+            'last_sti_test_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+        
+        // Sanitize inputs
+        if (isset($validated['ejaculation_notes'])) {
+            $validated['ejaculation_notes'] = $this->sanitizeText($validated['ejaculation_notes']);
+        }
+        if (isset($validated['notes'])) {
+            $validated['notes'] = $this->sanitizeText($validated['notes']);
+        }
+        
+        // Recalculate STI test reminder if date changed
+        if (isset($validated['last_sti_test_date'])) {
+            $validated['next_sti_test_reminder'] = \Carbon\Carbon::parse($validated['last_sti_test_date'])->addMonths(6);
+            $validated['sti_test_due'] = $validated['next_sti_test_reminder']->isPast();
+        }
+        
+        $record->update($validated);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sexual health record updated successfully.',
+            'record' => $record->load('patient'),
+        ]);
+    }
+
+    /**
+     * Delete sexual health record
+     */
+    public function deleteSexualHealthRecord($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for male patients
+        if (strtolower($patient->gender) !== 'male') {
+            return response()->json(['error' => 'This feature is only available for male patients.'], 403);
+        }
+        
+        $record = SexualHealthRecord::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $record->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sexual health record deleted successfully.',
+        ]);
+    }
+}

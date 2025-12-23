@@ -107,9 +107,15 @@
                 </div>
 
                 <!-- Action Button -->
-                <a href="{{ url('/') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
-                    Back to Home
-                </a>
+                @if(isset($source) && $source === 'dashboard' && Auth::guard('patient')->check())
+                    <a href="{{ route('patient.dashboard') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
+                        Back to Dashboard
+                    </a>
+                @else
+                    <a href="{{ url('/') }}" class="inline-block px-8 py-4 text-lg font-bold text-white rounded-xl purple-gradient hover:shadow-2xl hover:scale-105 transition-all">
+                        Back to Home
+                    </a>
+                @endif
             </div>
         </div>
     </div>

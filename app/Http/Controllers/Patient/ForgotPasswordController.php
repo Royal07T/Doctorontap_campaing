@@ -25,11 +25,29 @@ class ForgotPasswordController extends Controller
     public function sendResetLink(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:patients,email',
+            'email' => 'required|email',
         ]);
 
-        // Create a custom password reset token and send email manually
+        // Check if patient exists
         $patient = Patient::where('email', $request->email)->first();
+        
+        if (!$patient) {
+            // Don't reveal if email exists or not for security
+            return back()->with(['status' => 'If that email address exists in our system, we have sent you a password reset link.']);
+        }
+
+        // Check if email is verified
+        if (!$patient->hasVerifiedEmail()) {
+            // Send verification email instead of password reset
+            $patient->sendEmailVerificationNotification();
+            
+            return back()->with([
+                'status' => 'Your email address is not verified. We have sent you a verification email. Please verify your email first, then you can reset your password.',
+                'verification_sent' => true
+            ]);
+        }
+
+        // Email is verified, proceed with password reset
         $token = Str::random(64);
         
         // Store the token in the password reset tokens table

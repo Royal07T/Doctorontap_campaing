@@ -62,3 +62,29 @@ if (!function_exists('email_logo_inline')) {
     }
 }
 
+if (!function_exists('create_notification')) {
+    /**
+     * Create a notification for a user
+     * 
+     * @param string $userType The type of user (patient, doctor, admin, nurse, canvasser)
+     * @param int $userId The ID of the user
+     * @param string $title The notification title
+     * @param string $message The notification message
+     * @param string $type The notification type (info, success, warning, error)
+     * @param string|null $actionUrl Optional URL to navigate to when clicked
+     * @param array|null $data Optional additional data
+     * @return \App\Models\Notification
+     */
+    function create_notification($userType, $userId, $title, $message, $type = 'info', $actionUrl = null, $data = null) {
+        return \App\Models\Notification::create([
+            'user_type' => $userType,
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'type' => $type,
+            'action_url' => $actionUrl,
+            'data' => $data,
+        ]);
+    }
+}
+

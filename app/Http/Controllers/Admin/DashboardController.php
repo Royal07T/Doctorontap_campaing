@@ -1770,6 +1770,8 @@ class DashboardController extends Controller
         }
         $useDefaultForAll = Setting::get('use_default_fee_for_all', false);
         $doctorPaymentPercentage = Setting::get('doctor_payment_percentage', 70);
+        $consultationFeePayLater = Setting::get('consultation_fee_pay_later', 5000);
+        $consultationFeePayNow = Setting::get('consultation_fee_pay_now', 4500);
         $additionalChildDiscount = Setting::get('additional_child_discount_percentage', 60);
 
         // Security Alert Settings
@@ -1790,7 +1792,9 @@ class DashboardController extends Controller
             'defaultFee', 
             'multiPatientFee', 
             'useDefaultForAll', 
-            'doctorPaymentPercentage', 
+            'doctorPaymentPercentage',
+            'consultationFeePayLater',
+            'consultationFeePayNow',
             'additionalChildDiscount',
             'securityAlertsEnabled',
             'securityAlertEmails',
@@ -1813,11 +1817,13 @@ class DashboardController extends Controller
             
             // Pricing settings (only validate if pricing form is submitted)
             if ($formType === 'pricing' || $formType === 'both') {
-                $rules['default_consultation_fee'] = 'required|numeric|min:0';
-                $rules['multi_patient_booking_fee'] = 'required|numeric|min:0';
-                $rules['additional_child_discount_percentage'] = 'required|numeric|min:0|max:100';
+                $rules['default_consultation_fee'] = 'nullable|numeric|min:0';
+                $rules['multi_patient_booking_fee'] = 'nullable|numeric|min:0';
+                $rules['additional_child_discount_percentage'] = 'nullable|numeric|min:0|max:100';
                 $rules['doctor_payment_percentage'] = 'required|numeric|min:0|max:100';
                 $rules['use_default_fee_for_all'] = 'nullable|boolean';
+                $rules['consultation_fee_pay_later'] = 'nullable|numeric|min:0';
+                $rules['consultation_fee_pay_now'] = 'nullable|numeric|min:0';
             }
 
             // Security alert settings (only validate if security form is submitted)
@@ -1833,13 +1839,35 @@ class DashboardController extends Controller
 
             $validated = $request->validate($rules);
 
+            $defaultFee = null;
+
             // Update pricing settings (only if pricing form was submitted)
             if ($formType === 'pricing' || $formType === 'both') {
-                Setting::set('default_consultation_fee', $validated['default_consultation_fee'], 'number');
-                Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
-                Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
+                // Use pay_later fee as default if default_consultation_fee is not provided
+                $defaultFee = $validated['default_consultation_fee'] ?? ($validated['consultation_fee_pay_later'] ?? null);
+                
+                if ($defaultFee !== null) {
+                    Setting::set('default_consultation_fee', $defaultFee, 'number');
+                }
+                
+                if (isset($validated['multi_patient_booking_fee'])) {
+                    Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
+                }
+                
+                if (isset($validated['additional_child_discount_percentage'])) {
+                    Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
+                }
+                
                 Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
                 Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
+                
+                if (isset($validated['consultation_fee_pay_later'])) {
+                    Setting::set('consultation_fee_pay_later', $validated['consultation_fee_pay_later'], 'number');
+                }
+                
+                if (isset($validated['consultation_fee_pay_now'])) {
+                    Setting::set('consultation_fee_pay_now', $validated['consultation_fee_pay_now'], 'number');
+                }
             }
 
             // Update security alert settings (only if security form was submitted)
@@ -1870,14 +1898,14 @@ class DashboardController extends Controller
             }
 
             // If forcing all doctors to use default fee, update all doctors
-            if ($request->has('use_default_fee_for_all') && $request->has('default_consultation_fee')) {
+            if ($request->has('use_default_fee_for_all') && $defaultFee !== null) {
                 Doctor::query()->update([
                     'use_default_fee' => true,
-                    'consultation_fee' => $validated['default_consultation_fee']
+                    'consultation_fee' => $defaultFee
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Settings updated successfully!');
+            return redirect()->back()->with('success', 'Consultation fees updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
         }

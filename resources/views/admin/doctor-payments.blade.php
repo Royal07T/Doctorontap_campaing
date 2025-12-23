@@ -32,8 +32,8 @@
                         </button>
                         <h1 class="text-xl font-bold text-white">Doctor Payments</h1>
                     </div>
-                    <button @click="showCreateModal = true" class="bg-white text-purple-600 px-6 py-2 rounded-lg hover:bg-purple-50 transition-all font-medium flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button @click="showCreateModal = true" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                         <span>Create Payment</span>
@@ -45,30 +45,42 @@
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500">
-                        <p class="text-gray-600 text-xs font-medium uppercase">Total Payments</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $stats['total_payments'] }}</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Payments</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total_payments'] }}</p>
+                        <p class="text-xs text-gray-500">All time</p>
                     </div>
-                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-yellow-500">
-                        <p class="text-gray-600 text-xs font-medium uppercase">Pending</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $stats['pending_payments'] }}</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['pending_payments'] }}</p>
+                        <p class="text-xs text-gray-500">Pending</p>
                     </div>
-                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
-                        <p class="text-gray-600 text-xs font-medium uppercase">Completed</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $stats['completed_payments'] }}</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Completed</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['completed_payments'] }}</p>
+                        <p class="text-xs text-gray-500">Completed</p>
                     </div>
-                    <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-500">
-                        <p class="text-gray-600 text-xs font-medium uppercase">Total Paid</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">₦{{ number_format($stats['total_paid_amount'], 2) }}</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_paid_amount'], 2) }}</p>
+                        <p class="text-xs text-gray-500">Earnings</p>
                     </div>
                 </div>
 
                 <!-- Filters -->
-                <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                    <div class="mb-4 pb-4 border-b border-gray-200">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            Search & Filter
+                        </h2>
+                    </div>
+                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Status</label>
+                            <select name="status" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
                                 <option value="">All Statuses</option>
                                 <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="processing" {{ request('status') === 'processing' ? 'selected' : '' }}>Processing</option>
@@ -77,8 +89,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Doctor</label>
-                            <select name="doctor_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Doctor</label>
+                            <select name="doctor_id" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
                                 <option value="">All Doctors</option>
                                 @foreach($doctors as $doc)
                                     <option value="{{ $doc->id }}" {{ request('doctor_id') == $doc->id ? 'selected' : '' }}>
@@ -88,150 +100,212 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
-                            <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Date From</label>
+                            <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
-                            <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Date To</label>
+                            <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
                         </div>
-                        <div class="md:col-span-4 flex justify-end">
-                            <button type="submit" class="purple-gradient text-white px-6 py-2 rounded-lg hover:opacity-90 transition-all">
-                                Apply Filters
+                        <div class="md:col-span-4 flex justify-end gap-2">
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                </svg>
+                                Filter
                             </button>
+                            <a href="{{ route('admin.doctor-payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Reset
+                            </a>
                         </div>
                     </form>
                 </div>
 
-                <!-- Payments Table -->
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <input type="checkbox" @change="toggleSelectAll" class="rounded text-purple-600 focus:ring-purple-500">
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultations</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KoraPay</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse($payments as $payment)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <input type="checkbox" value="{{ $payment->id }}" x-model="selectedPayments" class="rounded text-purple-600 focus:ring-purple-500">
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ $payment->reference }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        <a href="{{ route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800">
+                <!-- Bulk Actions -->
+                <div x-show="selectedPayments.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600 font-semibold" x-text="`${selectedPayments.length} payment(s) selected`"></span>
+                        <button @click="processBulkPayout" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Initiate Bulk Payout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Payments Cards -->
+                <div class="space-y-4">
+                    @forelse($payments as $payment)
+                    <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
+                        <!-- Card Header - Clickable to toggle dropdown -->
+                        <div @click="open = !open" class="flex items-center justify-between p-5 cursor-pointer bg-white hover:bg-gray-50 transition-colors duration-200">
+                            <div class="flex items-center space-x-4 flex-1">
+                                <!-- Checkbox -->
+                                <input type="checkbox" 
+                                       value="{{ $payment->id }}" 
+                                       x-model="selectedPayments" 
+                                       @click.stop
+                                       class="rounded text-purple-600 focus:ring-purple-500">
+                                
+                                <!-- Status Indicator Dot -->
+                                <span class="w-3 h-3 rounded-full 
+                                    @if($payment->status === 'completed') bg-emerald-500
+                                    @elseif($payment->status === 'pending') bg-amber-500
+                                    @elseif($payment->status === 'processing') bg-blue-500
+                                    @elseif($payment->status === 'failed') bg-red-500
+                                    @else bg-gray-400 @endif"></span>
+                                
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-gray-900">Payment #{{ $payment->reference }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        <a href="{{ route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
                                             {{ $payment->doctor->full_name }}
                                         </a>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $payment->total_consultations_count }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                        ₦{{ number_format($payment->doctor_amount, 2) }}
-                                        @if($payment->korapay_fee)
-                                            <span class="block text-xs text-gray-500 font-normal">
-                                                Fee: ₦{{ number_format($payment->korapay_fee, 2) }}
+                                        • {{ $payment->total_consultations_count }} consultation(s)
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <!-- Amount -->
+                                <div class="text-right">
+                                    <p class="text-sm font-bold text-gray-900">₦{{ number_format($payment->doctor_amount, 2) }}</p>
+                                    @if($payment->korapay_fee)
+                                        <p class="text-[10px] text-gray-500">Fee: ₦{{ number_format($payment->korapay_fee, 2) }}</p>
+                                    @endif
+                                </div>
+                                
+                                <!-- Status Badge -->
+                                <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    @if($payment->status === 'completed') bg-emerald-100 text-emerald-800
+                                    @elseif($payment->status === 'pending') bg-amber-100 text-amber-800
+                                    @elseif($payment->status === 'failed') bg-red-100 text-red-800
+                                    @else bg-blue-100 text-blue-800
+                                    @endif">
+                                    {{ ucfirst($payment->status) }}
+                                </span>
+
+                                <!-- Chevron Icon -->
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" 
+                                     :class="{ 'rotate-180': open }" 
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Content -->
+                        <div x-show="open" 
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 transform -translate-y-2"
+                             x-transition:enter-end="opacity-100 transform translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 transform translate-y-0"
+                             x-transition:leave-end="opacity-0 transform -translate-y-2"
+                             x-cloak
+                             class="border-t border-gray-100 bg-gray-50">
+                            <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
+                                <div>
+                                    <p class="font-medium text-gray-800 mb-1">Payment Details:</p>
+                                    <p><strong>Reference:</strong> {{ $payment->reference }}</p>
+                                    <p><strong>Amount:</strong> ₦{{ number_format($payment->doctor_amount, 2) }}</p>
+                                    @if($payment->korapay_fee)
+                                        <p><strong>KoraPay Fee:</strong> ₦{{ number_format($payment->korapay_fee, 2) }}</p>
+                                    @endif
+                                    <p><strong>Consultations:</strong> {{ $payment->total_consultations_count }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800 mb-1">Doctor Information:</p>
+                                    <p><strong>Name:</strong> 
+                                        <a href="{{ route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-semibold">
+                                            {{ $payment->doctor->full_name }}
+                                        </a>
+                                    </p>
+                                    <p><strong>Created:</strong> {{ $payment->created_at->format('M d, Y H:i A') }}</p>
+                                    @if($payment->payout_completed_at)
+                                        <p><strong>Paid:</strong> <span class="text-emerald-600 font-semibold">{{ $payment->payout_completed_at->format('M d, Y H:i A') }}</span></p>
+                                    @endif
+                                </div>
+                                <div class="md:col-span-2">
+                                    <p class="font-medium text-gray-800 mb-1">KoraPay Status:</p>
+                                    @if($payment->korapay_reference)
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-800
+                                                @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-800
+                                                @else bg-blue-100 text-blue-800
+                                                @endif">
+                                                {{ ucfirst($payment->korapay_status ?? 'processing') }}
                                             </span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            @if($payment->status === 'completed') bg-green-100 text-green-800
-                                            @elseif($payment->status === 'pending') bg-yellow-100 text-yellow-800
-                                            @elseif($payment->status === 'failed') bg-red-100 text-red-800
-                                            @else bg-blue-100 text-blue-800
-                                            @endif">
-                                            {{ ucfirst($payment->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($payment->korapay_reference)
-                                            <div class="text-xs">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    @if($payment->korapay_status === 'success') bg-green-100 text-green-800
-                                                    @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-800
-                                                    @else bg-blue-100 text-blue-800
-                                                    @endif">
-                                                    {{ ucfirst($payment->korapay_status ?? 'processing') }}
-                                                </span>
-                                                <div class="text-gray-500 mt-1 font-mono text-xs">
-                                                    {{ substr($payment->korapay_reference, 0, 12) }}...
-                                                </div>
-                                            </div>
-                                        @else
-                                            <span class="text-xs text-gray-400">Not initiated</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $payment->created_at->format('M d, Y') }}
-                                        @if($payment->payout_completed_at)
-                                            <div class="text-xs text-green-600">
-                                                Paid: {{ $payment->payout_completed_at->format('M d') }}
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div class="flex items-center space-x-2">
-                                            @if($payment->status === 'pending' && !$payment->korapay_reference)
-                                                <button @click="initiatePayout({{ $payment->id }})" class="text-blue-600 hover:text-blue-900 text-xs" title="Initiate KoraPay Payout">
-                                                    💳 Payout
-                                                </button>
-                                            @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
-                                                <button @click="initiatePayout({{ $payment->id }})" class="text-green-600 hover:text-green-900 text-xs" title="Retry Failed Payout">
-                                                    🔄 Retry
-                                                </button>
-                                            @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
-                                                <button @click="verifyPayout({{ $payment->id }})" class="text-indigo-600 hover:text-indigo-900 text-xs" title="Verify Status">
-                                                    🔍 Verify
-                                                </button>
-                                            @endif
-                                            @if($payment->status === 'pending' && !$payment->korapay_reference)
-                                                <button @click="completePayment({{ $payment->id }})" class="text-green-600 hover:text-green-900 text-xs" title="Manual Completion">
-                                                    ✓ Complete
-                                                </button>
-                                            @endif
-                                            <button @click="viewPayment({{ $payment->id }})" class="text-purple-600 hover:text-purple-900 text-xs">
-                                                👁️ View
-                                            </button>
+                                            <p class="text-xs text-gray-600 font-mono">{{ $payment->korapay_reference }}</p>
                                         </div>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="9" class="px-6 py-4 text-center text-gray-500">
-                                        No payments found
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Bulk Actions & Pagination -->
-                    <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
-                        <div x-show="selectedPayments.length > 0" class="flex items-center space-x-3">
-                            <span class="text-sm text-gray-600" x-text="`${selectedPayments.length} selected`"></span>
-                            <button @click="processBulkPayout" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all text-sm font-medium">
-                                💳 Initiate Bulk Payout
-                            </button>
+                                    @else
+                                        <p class="text-xs text-gray-500">Not initiated</p>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="px-5 py-3 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-2">
+                                @if($payment->status === 'pending' && !$payment->korapay_reference)
+                                    <button @click="initiatePayout({{ $payment->id }})" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                        </svg>
+                                        Initiate Payout
+                                    </button>
+                                    <button @click="completePayment({{ $payment->id }})" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        Complete
+                                    </button>
+                                @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
+                                    <button @click="initiatePayout({{ $payment->id }})" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        Retry
+                                    </button>
+                                @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
+                                    <button @click="verifyPayout({{ $payment->id }})" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                        Verify
+                                    </button>
+                                @endif
+                                <button @click="viewPayment({{ $payment->id }})" 
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    View Details
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            {{ $payments->links() }}
-                        </div>
                     </div>
+                    @empty
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-2">No Payments Found</h3>
+                        <p class="text-xs text-gray-500">Try adjusting your filters or search terms.</p>
+                    </div>
+                    @endforelse
+                </div>
+
+                <!-- Pagination -->
+                <div class="mt-6">
+                    {{ $payments->links() }}
                 </div>
 
                 <!-- Create Payment Modal -->
@@ -251,21 +325,26 @@
                          x-transition:leave="transition ease-in duration-200"
                          x-transition:leave-start="opacity-100 transform scale-100"
                          x-transition:leave-end="opacity-0 transform scale-95"
-                         class="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">Create Doctor Payment</h2>
-                            <button @click="showCreateModal = false" class="text-gray-500 hover:text-gray-700">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         class="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Create Doctor Payment
+                            </h2>
+                            <button @click="showCreateModal = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
                         <form @submit.prevent="submitPayment">
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Doctor *</label>
-                                    <select x-model="selectedDoctor" @change="loadConsultations" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Select Doctor *</label>
+                                    <select x-model="selectedDoctor" @change="loadConsultations" required class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                                         <option value="">Choose a doctor</option>
                                         @foreach($doctors as $doc)
                                             <option value="{{ $doc->id }}">{{ $doc->full_name }}</option>
@@ -273,50 +352,50 @@
                                     </select>
                                 </div>
 
-                                <div x-show="selectedDoctor && consultations.length === 0 && !loadingConsultations" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                    <p class="text-sm text-yellow-800">No unpaid consultations found for this doctor.</p>
+                                <div x-show="selectedDoctor && consultations.length === 0 && !loadingConsultations" class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                    <p class="text-xs text-amber-800">No unpaid consultations found for this doctor.</p>
                                 </div>
                                 
-                                <div x-show="selectedDoctor && loadingConsultations" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <p class="text-sm text-blue-800">Loading consultations...</p>
+                                <div x-show="selectedDoctor && loadingConsultations" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p class="text-xs text-blue-800">Loading consultations...</p>
                                 </div>
 
                                 <div x-show="consultations.length > 0">
                                     <div class="flex items-center justify-between mb-2">
-                                        <label class="block text-sm font-medium text-gray-700">Select Consultations *</label>
-                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Select Consultations *</label>
+                                        <label class="flex items-center space-x-1.5 cursor-pointer">
                                             <input type="checkbox" 
                                                    @change="toggleSelectAllConsultations" 
                                                    :checked="selectedConsultations.length === consultations.length && consultations.length > 0"
                                                    class="rounded text-purple-600 focus:ring-purple-500">
-                                            <span class="text-sm text-purple-600 font-medium">Select All</span>
+                                            <span class="text-xs text-purple-600 font-semibold">Select All</span>
                                         </label>
                                     </div>
-                                    <div class="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-4">
+                                    <div class="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
                                         <template x-for="consultation in consultations" :key="consultation.id">
-                                            <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                            <label class="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
                                                 <input type="checkbox" :value="consultation.id" x-model="selectedConsultations" class="rounded text-purple-600 focus:ring-purple-500">
                                                 <div class="flex-1">
-                                                    <p class="text-sm font-medium" x-text="consultation.reference"></p>
-                                                    <p class="text-xs text-gray-500" x-text="`${consultation.patient_name} - ${consultation.date}`"></p>
+                                                    <p class="text-xs font-semibold" x-text="consultation.reference"></p>
+                                                    <p class="text-[10px] text-gray-500" x-text="`${consultation.patient_name} - ${consultation.date}`"></p>
                                                 </div>
-                                                <p class="text-sm font-semibold" x-text="`₦${consultation.amount.toLocaleString()}`"></p>
+                                                <p class="text-xs font-semibold" x-text="`₦${consultation.amount.toLocaleString()}`"></p>
                                             </label>
                                         </template>
                                     </div>
-                                    <p x-show="selectedConsultations.length === 0" class="text-xs text-red-600 mt-2">Please select at least one consultation</p>
-                                    <p x-show="selectedConsultations.length > 0" class="text-xs text-green-600 mt-2" x-text="`${selectedConsultations.length} consultation(s) selected`"></p>
+                                    <p x-show="selectedConsultations.length === 0" class="text-[10px] text-red-600 mt-2">Please select at least one consultation</p>
+                                    <p x-show="selectedConsultations.length > 0" class="text-[10px] text-emerald-600 mt-2" x-text="`${selectedConsultations.length} consultation(s) selected`"></p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Doctor Percentage *</label>
-                                    <input type="number" x-model="doctorPercentage" min="0" max="100" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                    <p class="text-xs text-gray-500 mt-1">Platform will receive the remaining percentage. Default: {{ \App\Models\Setting::get('doctor_payment_percentage', 70) }}%</p>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Doctor Percentage *</label>
+                                    <input type="number" x-model="doctorPercentage" min="0" max="100" step="0.01" required class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    <p class="text-[10px] text-gray-500 mt-1">Platform will receive the remaining percentage. Default: {{ \App\Models\Setting::get('doctor_payment_percentage', 70) }}%</p>
                                 </div>
 
-                                <div x-show="selectedConsultations.length > 0" class="bg-purple-50 p-4 rounded-lg">
-                                    <h3 class="font-semibold text-gray-800 mb-2">Payment Summary</h3>
-                                    <div class="space-y-1 text-sm">
+                                <div x-show="selectedConsultations.length > 0" class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                    <h3 class="text-xs font-semibold text-gray-800 mb-2 uppercase tracking-wide">Payment Summary</h3>
+                                    <div class="space-y-1 text-xs">
                                         <div class="flex justify-between">
                                             <span>Selected Consultations:</span>
                                             <span class="font-semibold" x-text="selectedConsultations.length"></span>
@@ -337,13 +416,13 @@
                                 </div>
                             </div>
 
-                            <div class="mt-6 flex space-x-4">
-                                <button type="button" @click="showCreateModal = false" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium">
+                            <div class="mt-4 flex space-x-2">
+                                <button type="button" @click="showCreateModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all">
                                     Cancel
                                 </button>
                                 <button type="submit" 
                                         @click.prevent="submitPayment()"
-                                        class="flex-1 purple-gradient text-white px-6 py-3 rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
+                                        class="flex-1 purple-gradient text-white px-4 py-2 text-xs font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
                                         :disabled="selectedConsultations.length === 0 || !selectedDoctor || consultations.length === 0">
                                     Create Payment
                                 </button>
@@ -369,21 +448,26 @@
                          x-transition:leave="transition ease-in duration-200"
                          x-transition:leave-start="opacity-100 transform scale-100"
                          x-transition:leave-end="opacity-0 transform scale-95"
-                         class="bg-white rounded-lg p-8 max-w-lg w-full">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">Complete Payment</h2>
-                            <button @click="showCompleteModal = false" class="text-gray-500 hover:text-gray-700">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         class="bg-white rounded-xl p-6 max-w-lg w-full">
+                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Complete Payment
+                            </h2>
+                            <button @click="showCompleteModal = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
                         <form @submit.prevent="submitComplete">
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label>
-                                    <select x-model="completeForm.payment_method" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Payment Method *</label>
+                                    <select x-model="completeForm.payment_method" required class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                                         <option value="">Select method</option>
                                         <option value="bank_transfer">Bank Transfer</option>
                                         <option value="cash">Cash</option>
@@ -393,21 +477,21 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Transaction Reference</label>
-                                    <input type="text" x-model="completeForm.transaction_reference" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Transaction Reference</label>
+                                    <input type="text" x-model="completeForm.transaction_reference" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Notes</label>
-                                    <textarea x-model="completeForm.payment_notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Payment Notes</label>
+                                    <textarea x-model="completeForm.payment_notes" rows="3" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
                                 </div>
                             </div>
 
-                            <div class="mt-6 flex space-x-4">
-                                <button type="button" @click="showCompleteModal = false" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium">
+                            <div class="mt-4 flex space-x-2">
+                                <button type="button" @click="showCompleteModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all">
                                     Cancel
                                 </button>
-                                <button type="submit" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-all font-medium">
+                                <button type="submit" class="flex-1 bg-emerald-600 text-white px-4 py-2 text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-all">
                                     Mark as Completed
                                 </button>
                             </div>
@@ -417,11 +501,17 @@
 
                 <!-- Payment Details Modal -->
                 <div x-show="showDetailsModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;" @keydown.escape.window="showDetailsModal = false">
-                    <div @click.away="showDetailsModal = false" class="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">Payment Details</h2>
-                            <button @click="showDetailsModal = false" class="text-gray-500 hover:text-gray-700">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div @click.away="showDetailsModal = false" class="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Payment Details
+                            </h2>
+                            <button @click="showDetailsModal = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -429,8 +519,8 @@
 
                         <!-- Loading State -->
                         <div x-show="loadingPaymentDetails" class="text-center py-8">
-                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                            <p class="mt-2 text-gray-600">Loading payment details...</p>
+                            <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                            <p class="mt-2 text-xs text-gray-600">Loading payment details...</p>
                         </div>
 
                         <!-- Payment Details -->
@@ -668,6 +758,7 @@
     <script>
         function paymentManager() {
             return {
+                pageLoading: false,
                 sidebarOpen: false,
                 showCreateModal: false,
                 showCompleteModal: false,
@@ -1040,6 +1131,7 @@
 
     <!-- Include Alert Modal Component -->
     @include('components.alert-modal')
+    @include('admin.shared.preloader')
 </body>
 </html>
 

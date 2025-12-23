@@ -7,7 +7,6 @@ use App\Models\Consultation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Database\QueryException;
 use App\Mail\ConsultationStatusChange;
 
 class DashboardController extends Controller
@@ -46,6 +45,14 @@ class DashboardController extends Controller
             'pending_payments' => Consultation::where('doctor_id', $doctor->id)
                                               ->where('payment_status', 'pending')->count(),
             'total_earnings' => $totalEarnings, // Current earnings from paid consultations
+            // Stats for consultations page style cards
+            'total' => Consultation::where('doctor_id', $doctor->id)->count(),
+            'paid' => Consultation::where('doctor_id', $doctor->id)->where('payment_status', 'paid')->count(),
+            'unpaid' => Consultation::where('doctor_id', $doctor->id)
+                ->where('status', 'completed')
+                ->where('payment_status', '!=', 'paid')->count(),
+            'pending' => Consultation::where('doctor_id', $doctor->id)->where('status', 'pending')->count(),
+            'completed' => Consultation::where('doctor_id', $doctor->id)->where('status', 'completed')->count(),
         ];
 
         // Get recent consultations with payment information
@@ -156,8 +163,6 @@ class DashboardController extends Controller
             
             \Log::info('Validation passed', ['validated_data' => $validated]);
             
-            // Store old status for notification
-            $oldStatus = $consultation->status;
             $newStatus = $validated['status'];
             
             $consultation->update([
@@ -166,21 +171,9 @@ class DashboardController extends Controller
                 'consultation_completed_at' => $newStatus === 'completed' ? now() : $consultation->consultation_completed_at,
             ]);
             
-            // Send notification to admin if status changed
-            if ($oldStatus !== $newStatus) {
-                $adminEmail = config('mail.admin_email');
-                
-                Mail::to($adminEmail)->send(new ConsultationStatusChange(
-                    $consultation,
-                    $doctor,
-                    $oldStatus,
-                    $newStatus
-                ));
-            }
-            
             return response()->json([
                 'success' => true,
-                'message' => 'Consultation status updated successfully! Admin has been notified.',
+                'message' => 'Consultation status updated successfully!',
                 'status' => $newStatus
             ]);
             
@@ -208,57 +201,59 @@ class DashboardController extends Controller
             
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
-                                       ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking'])
+                                       ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking', 'patient'])
                                        ->firstOrFail();
             
-            // If request wants JSON (AJAX), return JSON
-            if ($request->wantsJson() || $request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'consultation' => [
-                    'id' => $consultation->id,
-                    'reference' => $consultation->reference,
-                    'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
-                    'email' => $consultation->email,
-                    'mobile' => $consultation->mobile,
-                    'age' => $consultation->age,
-                    'gender' => ucfirst($consultation->gender),
-                    'symptoms' => $consultation->problem,
-                    'status' => ucfirst($consultation->status),
-                        'payment_status' => ucfirst($consultation->payment_status ?? 'unpaid'),
-                    'created_at' => $consultation->created_at->format('M d, Y h:i A'),
-                    'medical_documents' => $consultation->medical_documents,
-                    'doctor_notes' => $consultation->doctor_notes,
-                    'diagnosis' => $consultation->diagnosis,
-                    'treatment_plan' => $consultation->treatment_plan,
-                    'prescribed_medications' => $consultation->prescribed_medications,
-                    'follow_up_instructions' => $consultation->follow_up_instructions,
-                    'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
-                    'referrals' => $consultation->referrals,
-                    'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
-                    'additional_notes' => $consultation->additional_notes,
-                    'has_treatment_plan' => $consultation->hasTreatmentPlan(),
-                    'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
-                    'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
-                    'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
-                    'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
-                ]
-            ]);
+            // Return JSON for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'consultation' => [
+                        'id' => $consultation->id,
+                        'reference' => $consultation->reference,
+                        'patient_name' => $consultation->first_name . ' ' . $consultation->last_name,
+                        'email' => $consultation->email,
+                        'mobile' => $consultation->mobile,
+                        'age' => $consultation->age,
+                        'gender' => ucfirst($consultation->gender),
+                        'symptoms' => $consultation->problem,
+                        'status' => ucfirst($consultation->status),
+                        'payment_status' => $consultation->payment ? ucfirst($consultation->payment->status) : 'Pending',
+                        'created_at' => $consultation->created_at->format('M d, Y h:i A'),
+                        'medical_documents' => $consultation->medical_documents,
+                        'doctor_notes' => $consultation->doctor_notes,
+                        'diagnosis' => $consultation->diagnosis,
+                        'treatment_plan' => $consultation->treatment_plan,
+                        'prescribed_medications' => $consultation->prescribed_medications,
+                        'follow_up_instructions' => $consultation->follow_up_instructions,
+                        'lifestyle_recommendations' => $consultation->lifestyle_recommendations,
+                        'referrals' => $consultation->referrals,
+                        'next_appointment_date' => $consultation->next_appointment_date ? $consultation->next_appointment_date->format('Y-m-d') : null,
+                        'additional_notes' => $consultation->additional_notes,
+                        'has_treatment_plan' => $consultation->hasTreatmentPlan(),
+                        'treatment_plan_accessible' => $consultation->isTreatmentPlanAccessible(),
+                        'requires_payment' => $consultation->requiresPaymentForTreatmentPlan(),
+                        'canvasser' => $consultation->canvasser ? $consultation->canvasser->name : 'N/A',
+                        'nurse' => $consultation->nurse ? $consultation->nurse->name : 'Not Assigned',
+                    ]
+                ]);
             }
             
-            // Otherwise return HTML view
+            // Return view for regular HTTP requests
             return view('doctor.consultation-details', compact('consultation'));
             
         } catch (\Exception $e) {
-            if ($request->wantsJson() || $request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load consultation: ' . $e->getMessage()
-            ], 500);
+            // For AJAX requests, return JSON error
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load consultation: ' . $e->getMessage()
+                ], 500);
             }
             
+            // For regular requests, redirect with error
             return redirect()->route('doctor.consultations')
-                ->with('error', 'Consultation not found or you do not have access to it.');
+                ->with('error', 'Failed to load consultation: ' . $e->getMessage());
         }
     }
 
@@ -296,6 +291,15 @@ class DashboardController extends Controller
             
             // Check if it's an update or create
             $isUpdate = $consultation->treatment_plan_created;
+            
+            // Prevent editing if treatment plan has already been created/saved
+            // Once saved, treatment plan becomes a permanent medical record and cannot be edited
+            if ($isUpdate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Treatment plan cannot be edited once it has been saved. The treatment plan has been finalized and cannot be modified.'
+                ], 403);
+            }
             
             $validated = $request->validate([
                 // Medical Format Fields
@@ -508,6 +512,15 @@ class DashboardController extends Controller
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
             
+            // Prevent editing if treatment plan has already been created/saved
+            // Once saved, treatment plan becomes a permanent medical record and cannot be edited
+            if ($consultation->treatment_plan_created) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Treatment plan cannot be edited once it has been saved. The treatment plan has been finalized and cannot be modified.'
+                ], 403);
+            }
+            
             // Save whatever data is provided (no validation for drafts)
             $data = $request->only([
                 'presenting_complaint',
@@ -528,6 +541,19 @@ class DashboardController extends Controller
             ]);
             
             $consultation->update($data);
+            
+            // Sync medical information to patient medical history (even for drafts)
+            // This ensures family history, social history, etc. are always up-to-date
+            try {
+                $historyService = app(\App\Services\PatientMedicalHistoryService::class);
+                $historyService->syncConsultationToHistory($consultation);
+            } catch (\Exception $e) {
+                // Log but don't fail the auto-save if history sync fails
+                \Illuminate\Support\Facades\Log::warning('Failed to sync medical history during auto-save', [
+                    'consultation_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
+            }
             
             return response()->json([
                 'success' => true,
@@ -903,6 +929,163 @@ class DashboardController extends Controller
         ];
 
         return view('doctor.payment-history', compact('payments', 'stats'));
+    }
+
+    /**
+     * Display doctor profile page
+     */
+    public function profile()
+    {
+        $doctor = Auth::guard('doctor')->user();
+        return view('doctor.profile', compact('doctor'));
+    }
+
+    /**
+     * Update doctor profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $doctor = Auth::guard('doctor')->user();
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'required|email|unique:doctors,email,' . $doctor->id,
+            'gender' => 'nullable|in:Male,Female,male,female',
+            'specialization' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'experience' => 'nullable|string|max:255',
+            'languages' => 'nullable|string|max:255',
+            'place_of_work' => 'nullable|string|max:255',
+            'bio' => 'nullable|string|max:2000',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            try {
+                // Delete old photo if exists
+                if ($doctor->photo && Storage::disk('public')->exists($doctor->photo)) {
+                    Storage::disk('public')->delete($doctor->photo);
+                }
+
+                // Store new photo
+                $photo = $request->file('photo');
+                $fileName = Str::slug($doctor->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+                
+                // Use putFileAs which properly handles the file stream
+                // This stores the file at storage/app/public/doctors/filename.jpg
+                // and returns the path 'doctors/filename.jpg'
+                $path = Storage::disk('public')->putFileAs('doctors', $photo, $fileName);
+                
+                // Verify the file was stored
+                if ($path && Storage::disk('public')->exists($path)) {
+                    $validated['photo'] = $path;
+                    
+                    \Log::info('Photo uploaded successfully', [
+                        'doctor_id' => $doctor->id,
+                        'photo_path' => $path,
+                        'url' => Storage::url($path)
+                    ]);
+                } else {
+                    \Log::error('Photo upload failed - file not found after storage', [
+                        'doctor_id' => $doctor->id,
+                        'photo_name' => $photoName,
+                        'path' => $path
+                    ]);
+                    
+                    return redirect()->back()->with('error', 'Failed to upload photo. Please try again.');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Photo upload exception', [
+                    'doctor_id' => $doctor->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+            }
+        }
+
+        // Update doctor
+        $doctor->update($validated);
+
+        return redirect()->back()->with('success', 'Profile updated successfully!');
+    }
+
+    /**
+     * Display availability settings page
+     */
+    public function availability()
+    {
+        $doctor = Auth::guard('doctor')->user();
+        
+        // Parse availability schedule if exists
+        $schedule = $doctor->availability_schedule ?? [];
+        $defaultSchedule = [
+            'monday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'tuesday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'wednesday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'thursday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'friday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'saturday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+            'sunday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
+        ];
+        
+        // Merge with existing schedule
+        $schedule = array_merge($defaultSchedule, $schedule);
+        
+        return view('doctor.availability', compact('doctor', 'schedule'));
+    }
+
+    /**
+     * Update availability settings
+     */
+    public function updateAvailability(Request $request)
+    {
+        $doctor = Auth::guard('doctor')->user();
+
+        // Handle is_available checkbox
+        $isAvailable = $request->has('is_available') ? true : false;
+
+        // Process availability schedule
+        $schedule = [];
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        
+        foreach ($days as $day) {
+            $enabled = $request->has("availability_schedule.{$day}.enabled");
+            $start = $request->input("availability_schedule.{$day}.start", '09:00');
+            $end = $request->input("availability_schedule.{$day}.end", '17:00');
+            
+            // Validate time format
+            if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $start)) {
+                $start = '09:00';
+            }
+            if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $end)) {
+                $end = '17:00';
+            }
+            
+            // Ensure end time is after start time
+            if (strtotime($end) <= strtotime($start)) {
+                $end = date('H:i', strtotime($start . ' +8 hours'));
+            }
+            
+            $schedule[$day] = [
+                'enabled' => $enabled,
+                'start' => $start,
+                'end' => $end,
+            ];
+        }
+
+        // Update doctor
+        $doctor->update([
+            'is_available' => $isAvailable,
+            'availability_schedule' => $schedule,
+        ]);
+
+        return redirect()->back()->with('success', 'Availability settings updated successfully!');
     }
 }
 

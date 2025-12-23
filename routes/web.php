@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\VerificationController as AdminVerificationContro
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
+use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\File;
 
 // Service Worker Route - Handle both /sw.js and /service-worker.js
@@ -136,6 +137,13 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     // Admin Email Verification Routes
     Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
     Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations-livewire', function() {
@@ -258,6 +266,13 @@ Route::get('/canvasser/email/verify/{id}/{hash}', [CanvasserVerificationControll
 // Protected Canvasser Routes (Authentication required)
 Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'canvasser.verified'])->group(function () {
     Route::post('/logout', [CanvasserAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [CanvasserDashboardController::class, 'index'])->name('dashboard');
     
     // Patient Management
@@ -296,6 +311,13 @@ Route::get('/nurse/email/verify/{id}/{hash}', [NurseVerificationController::clas
 // Protected Nurse Routes (Authentication required)
 Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verified'])->group(function () {
     Route::post('/logout', [NurseAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [NurseDashboardController::class, 'index'])->name('dashboard');
     
     // Patient Management & Vital Signs
@@ -334,6 +356,13 @@ Route::get('/doctor/email/verify/{id}/{hash}', [DoctorVerificationController::cl
 // Protected Doctor Routes (Authentication required)
 Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.verified'])->group(function () {
     Route::post('/logout', [DoctorAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
     
     // Consultations
@@ -363,6 +392,14 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     
     // Payment History
     Route::get('/payment-history', [DoctorDashboardController::class, 'paymentHistory'])->name('payment-history');
+    
+    // Profile
+    Route::get('/profile', [DoctorDashboardController::class, 'profile'])->name('profile');
+    Route::post('/profile', [DoctorDashboardController::class, 'updateProfile'])->name('profile.update');
+    
+    // Availability
+    Route::get('/availability', [DoctorDashboardController::class, 'availability'])->name('availability');
+    Route::post('/availability', [DoctorDashboardController::class, 'updateAvailability'])->name('availability.update');
 });
 
 // ==================== PATIENT ROUTES ====================
@@ -383,18 +420,23 @@ Route::prefix('patient')->name('patient.')->group(function () {
     Route::post('/login', [PatientAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
 });
 
-// Patient Email Verification Routes
-Route::prefix('patient')->name('patient.')->middleware('patient.auth')->group(function () {
-    Route::get('/email/verify', [PatientVerificationController::class, 'notice'])->name('verification.notice');
-    Route::post('/email/verification-notification', [PatientVerificationController::class, 'resend'])->name('verification.resend');
+// Patient Email Verification Routes (Public - No authentication required)
+Route::prefix('patient')->name('patient.')->group(function () {
+    Route::post('/email/verification-resend', [PatientVerificationController::class, 'resendPublic'])->name('verification.resend.public');
 });
 
 Route::get('/patient/email/verify/{id}/{hash}', [PatientVerificationController::class, 'verify'])
     ->name('patient.verification.verify');
 
+// Patient Email Verification Routes (Protected - Requires authentication)
+Route::prefix('patient')->name('patient.')->middleware('patient.auth')->group(function () {
+    Route::get('/email/verify', [PatientVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [PatientVerificationController::class, 'resend'])->name('verification.resend');
+});
+
 // Patient Password Reset Routes
 Route::prefix('patient')->name('patient.')->group(function () {
-    Route::get('/forgot-password', [PatientForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::get('/forgot-password', [PatientForgotPasswordController::class, 'showForgotPassword'])->name('forgot-password');
     Route::post('/forgot-password', [PatientForgotPasswordController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [PatientForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
     Route::post('/reset-password', [PatientForgotPasswordController::class, 'resetPassword'])->name('password.update');
@@ -403,5 +445,51 @@ Route::prefix('patient')->name('patient.')->group(function () {
 // Protected Patient Routes (Authentication required)
 Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient.verified'])->group(function () {
     Route::post('/logout', [PatientAuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', [PatientAuthController::class, 'dashboard'])->name('dashboard');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Consultations
+    Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
+    Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
+    
+    // Medical Records
+    Route::get('/medical-records', [\App\Http\Controllers\Patient\DashboardController::class, 'medicalRecords'])->name('medical-records');
+    
+    // Profile
+    Route::get('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'profile'])->name('profile');
+    Route::put('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'updateProfile'])->name('profile.update');
+    
+    // Dependents
+    Route::get('/dependents', [\App\Http\Controllers\Patient\DashboardController::class, 'dependents'])->name('dependents');
+    
+    // Payments
+    Route::get('/payments', [\App\Http\Controllers\Patient\DashboardController::class, 'payments'])->name('payments');
+    Route::post('/consultations/{id}/pay', [\App\Http\Controllers\Patient\DashboardController::class, 'initiatePayment'])->name('consultation.pay');
+    Route::get('/consultations/{id}/receipt', [\App\Http\Controllers\Patient\DashboardController::class, 'viewReceipt'])->name('consultation.receipt');
+    
+    // Doctors
+    Route::get('/doctors', [\App\Http\Controllers\Patient\DashboardController::class, 'doctors'])->name('doctors');
+    
+    // Doctors by Specialization
+    Route::get('/doctors/specialization/{specialization}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySpecialization'])->name('doctors-by-specialization');
+    
+    // Doctors by Symptom
+    Route::get('/doctors/symptom/{symptom}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySymptom'])->name('doctors-by-symptom');
+    
+    // Menstrual Cycle Tracking (for female patients)
+    Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
+    Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
+    Route::delete('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteMenstrualCycle'])->name('menstrual-cycle.delete');
+    
+    // Sexual Health & Performance Tracking (for male patients)
+    Route::post('/sexual-health', [\App\Http\Controllers\Patient\DashboardController::class, 'storeSexualHealthRecord'])->name('sexual-health.store');
+    Route::put('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateSexualHealthRecord'])->name('sexual-health.update');
+    Route::delete('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteSexualHealthRecord'])->name('sexual-health.delete');
 });

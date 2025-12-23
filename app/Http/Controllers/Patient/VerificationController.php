@@ -63,4 +63,30 @@ class VerificationController extends Controller
 
         return back()->with('success', 'Verification link sent! Please check your email.');
     }
+
+    /**
+     * Resend verification email (public route - no authentication required)
+     */
+    public function resendPublic(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $patient = \App\Models\Patient::where('email', $request->email)->first();
+
+        if (!$patient) {
+            return back()->withErrors([
+                'email' => 'No account found with this email address.',
+            ])->withInput($request->only('email'));
+        }
+
+        if ($patient->hasVerifiedEmail()) {
+            return back()->with('success', 'Your email is already verified. You can login now.');
+        }
+
+        $patient->sendEmailVerificationNotification();
+
+        return back()->with('success', 'Verification link sent! Please check your email inbox (and spam folder).');
+    }
 }

@@ -41,7 +41,7 @@ class AuthController extends Controller
         if ($patient && !$patient->email_verified_at) {
             return back()->withErrors([
                 'email' => 'Please verify your email address before logging in.',
-            ])->withInput($request->only('email'));
+            ])->withInput($request->only('email'))->with('verification_required', true)->with('verification_email', $credentials['email']);
         }
 
         if (Auth::guard('patient')->attempt($credentials, $remember)) {

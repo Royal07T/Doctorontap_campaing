@@ -30,7 +30,12 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'location',
         'experience',
         'languages',
+        'bio',
+        'photo',
         'days_of_availability',
+        'availability_schedule',
+        'availability_start_time',
+        'availability_end_time',
         'place_of_work',
         'role',
         'mdcn_license_current',
@@ -62,6 +67,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'approved_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'availability_schedule' => 'array',
     ];
 
     /**
@@ -121,6 +127,28 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the specialty model for this doctor
+     */
+    public function specialtyModel()
+    {
+        if (!$this->specialization) {
+            return null;
+        }
+        
+        return Specialty::where('name', $this->specialization)
+            ->orWhere('slug', $this->specialization)
+            ->first();
+    }
+
+    /**
+     * Get specialty relationship (using name matching since we use string field)
+     */
+    public function specialty()
+    {
+        return $this->belongsTo(Specialty::class, 'specialization', 'name');
+    }
+
+    /**
      * Get average rating
      */
     public function getAverageRatingAttribute()
@@ -134,6 +162,23 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     public function getTotalReviewsAttribute()
     {
         return $this->reviews()->published()->count();
+    }
+
+    /**
+     * Get the photo URL
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if (!$this->photo) {
+            return null;
+        }
+
+        // Check if file exists in public storage
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->photo)) {
+            return \Illuminate\Support\Facades\Storage::url($this->photo);
+        }
+
+        return null;
     }
 
     /**
