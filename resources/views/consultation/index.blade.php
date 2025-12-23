@@ -181,7 +181,7 @@
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased" 
-      x-data="{ showConsultationModal: false }" 
+      x-data="{ showConsultationModal: false, isSubmitting: false }" 
       @open-consultation-modal.window="showConsultationModal = true"
       @close-consultation-modal.window="showConsultationModal = false"
       :class="{ 'modal-open': showConsultationModal }">
@@ -2457,6 +2457,17 @@
         function consultationForm() {
             return {
                 isMultiPatient: false,
+                // Access isSubmitting from parent body scope
+                get isSubmitting() {
+                    const bodyData = Alpine.$data(document.body);
+                    return bodyData ? bodyData.isSubmitting : false;
+                },
+                set isSubmitting(value) {
+                    const bodyData = Alpine.$data(document.body);
+                    if (bodyData) {
+                        bodyData.isSubmitting = value;
+                    }
+                },
                 // Single patient form data
                 formData: {
                     first_name: '',
@@ -2525,7 +2536,6 @@
                 uploadedFiles: [],
                 errors: {},
                 successMessage: '',
-                isSubmitting: false,
                 showSuccessModal: false,
                 showErrorModal: false,
                 modalTitle: '',
@@ -2597,7 +2607,10 @@
                 async submitForm(event) {
                     if (event) event.preventDefault();
                     
-                    this.isSubmitting = true;
+                    // Access isSubmitting from parent body scope
+                    const bodyData = Alpine.$data(document.body);
+                    if (bodyData) bodyData.isSubmitting = true;
+                    
                     this.errors = {};
                     this.successMessage = '';
 
@@ -2608,13 +2621,15 @@
                             // Validate multi-patient data
                             if (!this.multiPatientData.payer_name || !this.multiPatientData.payer_email || !this.multiPatientData.payer_mobile || !this.multiPatientData.consult_mode) {
                                 this.displayErrorModal('Validation Error', 'Please fill in all payer information fields.');
-                                this.isSubmitting = false;
+                                const bodyData = Alpine.$data(document.body);
+                                if (bodyData) bodyData.isSubmitting = false;
                                 return;
                             }
 
                             if (this.multiPatientData.patients.length === 0) {
                                 this.displayErrorModal('Validation Error', 'Please add at least one patient.');
-                                this.isSubmitting = false;
+                                const bodyData = Alpine.$data(document.body);
+                                if (bodyData) bodyData.isSubmitting = false;
                                 return;
                             }
 
@@ -2673,7 +2688,8 @@
                                 } else {
                                     this.displayErrorModal('Booking Failed', data.message || 'Failed to create booking.');
                                 }
-                                this.isSubmitting = false;
+                                const bodyData = Alpine.$data(document.body);
+                                if (bodyData) bodyData.isSubmitting = false;
                             }
                             return;
                         }
@@ -2717,7 +2733,9 @@
                         const response = await fetch('/submit', {
                             method: 'POST',
                             headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: formData
                         });
@@ -2764,19 +2782,26 @@
                             this.consultationReference = data.consultation_reference || '';
                             this.showSuccessModal = true;
                             this.resetForm();
+                            const bodyData = Alpine.$data(document.body);
+                            if (bodyData) bodyData.isSubmitting = false;
                         } else {
                             if (data.errors) {
                                 this.errors = data.errors;
                                 window.scrollTo({ top: document.getElementById('consultation-form').offsetTop - 100, behavior: 'smooth' });
+                                const bodyData = Alpine.$data(document.body);
+                                if (bodyData) bodyData.isSubmitting = false;
                             } else {
                                 this.displayErrorModal('Submission Failed', data.message || 'Please check your information and try again.');
+                                const bodyData = Alpine.$data(document.body);
+                                if (bodyData) bodyData.isSubmitting = false;
                             }
                         }
                     } catch (error) {
                         console.error('Form submission error:', error);
                         console.error('Error stack:', error.stack);
                         this.displayErrorModal('Connection Error', error.message || 'An error occurred while submitting your booking. Please check your internet connection and try again.');
-                        this.isSubmitting = false;
+                        const bodyData = Alpine.$data(document.body);
+                        if (bodyData) bodyData.isSubmitting = false;
                     }
                 },
 
