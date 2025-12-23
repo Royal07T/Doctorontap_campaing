@@ -222,7 +222,7 @@ consultationPage()
                     
                     <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4">
                         <p class="text-xs text-emerald-800 flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-2 h-2 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <strong>Treatment Plan Created</strong> on {{ $consultation->treatment_plan_created_at->format('M d, Y h:i A') }}
@@ -266,7 +266,7 @@ consultationPage()
                         </a>
                         @if($consultation->treatment_plan_created)
                             <div class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-gray-400 text-white rounded-lg cursor-not-allowed" title="Treatment plan cannot be edited once saved">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                 </svg>
                                 Treatment Plan Locked
@@ -291,7 +291,7 @@ consultationPage()
                         <div class="mt-6 pt-4 border-t border-gray-200">
                             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
                                 <p class="text-xs text-amber-800 flex items-center leading-relaxed">
-                                    <svg class="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-2 h-2 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                     </svg>
                                     <span><strong>Treatment Plan Locked:</strong> This treatment plan has already been saved and cannot be edited. Once a treatment plan is saved, it becomes a permanent medical record and will be sent to the patient once payment is made.</span>
