@@ -186,19 +186,54 @@ class Patient extends Authenticatable
     }
 
     /**
+     * Check if email is verified (Laravel standard method)
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at) && $this->is_verified;
+    }
+
+    /**
+     * Mark email as verified (Laravel standard method)
+     */
+    public function markEmailAsVerified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => now(),
+            'is_verified' => true,
+            'email_verification_token' => null,
+        ])->save();
+    }
+
+    /**
+     * Get the email address that should be used for verification
+     */
+    public function getEmailForVerification()
+    {
+        return $this->email;
+    }
+
+    /**
      * Send email verification notification
+     * Supports both old token-based and new Laravel standard verification
      */
     public function sendEmailVerificationNotification()
     {
-        $token = $this->generateEmailVerificationToken();
-        
-        \Illuminate\Support\Facades\Mail::send('emails.patient-verification', [
-            'patient' => $this,
-            'verificationUrl' => route('patient.verify', ['token' => $token, 'email' => $this->email]),
-        ], function ($message) {
-            $message->to($this->email)
-                   ->subject('Verify Your Email - DoctorOnTap');
-        });
+        // Use Laravel's standard notification system if PatientVerifyEmail notification exists
+        if (class_exists(\App\Notifications\PatientVerifyEmail::class)) {
+            $this->notify(new \App\Notifications\PatientVerifyEmail);
+        } else {
+            // Fallback to old token-based system
+            $token = $this->generateEmailVerificationToken();
+            
+            \Illuminate\Support\Facades\Mail::send('emails.patient-verification', [
+                'patient' => $this,
+                'verificationUrl' => route('patient.verify', ['token' => $token, 'email' => $this->email]),
+            ], function ($message) {
+                $message->to($this->email)
+                       ->subject('Verify Your Email - DoctorOnTap');
+            });
+        }
     }
 
     // ============================================
@@ -260,6 +295,22 @@ class Patient extends Authenticatable
     public function latestMenstrualCycle()
     {
         return $this->hasOne(MenstrualCycle::class)->latestOfMany();
+    }
+
+    /**
+     * Get all sexual health records for this patient
+     */
+    public function sexualHealthRecords(): HasMany
+    {
+        return $this->hasMany(SexualHealthRecord::class);
+    }
+
+    /**
+     * Get the latest sexual health record
+     */
+    public function latestSexualHealthRecord()
+    {
+        return $this->hasOne(SexualHealthRecord::class)->latestOfMany();
     }
 
     /**

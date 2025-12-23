@@ -391,14 +391,19 @@ Route::prefix('patient')->name('patient.')->group(function () {
     Route::post('/login', [PatientAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
 });
 
-// Patient Email Verification Routes
-Route::prefix('patient')->name('patient.')->middleware('patient.auth')->group(function () {
-    Route::get('/email/verify', [PatientVerificationController::class, 'notice'])->name('verification.notice');
-    Route::post('/email/verification-notification', [PatientVerificationController::class, 'resend'])->name('verification.resend');
+// Patient Email Verification Routes (Public - No authentication required)
+Route::prefix('patient')->name('patient.')->group(function () {
+    Route::post('/email/verification-resend', [PatientVerificationController::class, 'resendPublic'])->name('verification.resend.public');
 });
 
 Route::get('/patient/email/verify/{id}/{hash}', [PatientVerificationController::class, 'verify'])
     ->name('patient.verification.verify');
+
+// Patient Email Verification Routes (Protected - Requires authentication)
+Route::prefix('patient')->name('patient.')->middleware('patient.auth')->group(function () {
+    Route::get('/email/verify', [PatientVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [PatientVerificationController::class, 'resend'])->name('verification.resend');
+});
 
 // Patient Password Reset Routes
 Route::prefix('patient')->name('patient.')->group(function () {
@@ -418,8 +423,6 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     // Consultations
     Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
-    Route::get('/consultations/new/create', [\App\Http\Controllers\Patient\DashboardController::class, 'newConsultation'])->name('consultation.new');
-    Route::post('/consultations/new/create', [\App\Http\Controllers\Patient\DashboardController::class, 'storeConsultation'])->name('consultation.store');
     
     // Medical Records
     Route::get('/medical-records', [\App\Http\Controllers\Patient\DashboardController::class, 'medicalRecords'])->name('medical-records');
@@ -449,4 +452,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
     Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
     Route::delete('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteMenstrualCycle'])->name('menstrual-cycle.delete');
+    
+    // Sexual Health & Performance Tracking (for male patients)
+    Route::post('/sexual-health', [\App\Http\Controllers\Patient\DashboardController::class, 'storeSexualHealthRecord'])->name('sexual-health.store');
+    Route::put('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateSexualHealthRecord'])->name('sexual-health.update');
+    Route::delete('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteSexualHealthRecord'])->name('sexual-health.delete');
 });

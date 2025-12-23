@@ -141,80 +141,23 @@
                 </a>
                 @endif
 
+                @if(strtolower($patient->gender) === 'male')
+                <a href="#sexual-health" onclick="document.getElementById('sexual-health').scrollIntoView({behavior: 'smooth'}); return false;" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>Health Tracker</span>
+                </a>
+                @endif
+
                 <a href="{{ route('patient.profile') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                                        </svg>
                     <span>Profile</span>
                 </a>
 
                 <div class="border-t border-gray-200 my-2"></div>
-
-                <!-- New Consultation Dropdown -->
-                <div x-data="{ consultationMenuOpen: false }" class="relative" style="z-index: 100;">
-                    <button type="button" @click="consultationMenuOpen = !consultationMenuOpen" 
-                            class="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all {{ request()->routeIs('patient.consultation.new') ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
-                        <div class="flex items-center space-x-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>New Consultation</span>
-                        </div>
-                        <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': consultationMenuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                    
-                    <!-- Dropdown Menu -->
-                    <div x-show="consultationMenuOpen" 
-                         x-cloak
-                         @click.away="consultationMenuOpen = false"
-                         x-transition:enter="transition ease-out duration-100"
-                         x-transition:enter-start="opacity-0 transform scale-95"
-                         x-transition:enter-end="opacity-100 transform scale-100"
-                         x-transition:leave="transition ease-in duration-75"
-                         x-transition:leave-start="opacity-100 transform scale-100"
-                         x-transition:leave-end="opacity-0 transform scale-95"
-                         class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
-                         style="z-index: 9999;">
-                        <a href="/patient/consultations/new/create?type=pay_later" 
-                           class="block px-4 py-4 hover:bg-purple-50 transition-colors border-b border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <h4 class="font-semibold text-gray-800">Consult Now, Pay Later</h4>
-                                    </div>
-                                    <p class="text-xs text-gray-600 mb-2">Consult first, pay after service</p>
-                                    <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000)), 2) }}</p>
-                                </div>
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </a>
-                        <a href="/patient/consultations/new/create?type=pay_now" 
-                           class="block px-4 py-4 hover:bg-purple-50 transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <h4 class="font-semibold text-gray-800">Pay Before Consultation</h4>
-                                    </div>
-                                    <p class="text-xs text-gray-600 mb-2">Pay upfront to secure consultation</p>
-                                    <p class="text-sm font-bold text-purple-600">₦{{ number_format(\App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500)), 2) }}</p>
-                                </div>
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </a>
-                    </div>
-                </div>
 
                 <form method="POST" action="{{ route('patient.logout') }}">
                     @csrf
@@ -264,69 +207,122 @@
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-                    <!-- Total Consultations -->
-                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-blue-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Total</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['total_consultations'] }}</p>
-                                <p class="text-xs text-gray-500 mt-1">Consultations</p>
+                <!-- Warm, Personal Welcome Section -->
+                <div class="bg-gradient-to-br from-white via-purple-50/30 to-white rounded-2xl shadow-lg border border-purple-100/50 p-8 mb-8 relative overflow-hidden">
+                    <!-- Decorative Background Elements -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-purple-200/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                    <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-200/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
+                    
+                    <!-- Patient Image - Top Right Corner -->
+                    <div class="absolute top-4 right-4 lg:top-6 lg:right-6 z-10">
+                        <div class="relative">
+                            @if($patient->photo_url)
+                                <img src="{{ $patient->photo_url }}" 
+                                     alt="{{ $patient->name }}" 
+                                     class="w-20 h-20 lg:w-28 lg:h-28 rounded-xl object-cover border-3 border-white shadow-xl ring-2 ring-purple-100">
+                            @else
+                                <div class="w-20 h-20 lg:w-28 lg:h-28 rounded-xl purple-gradient flex items-center justify-center text-white font-bold text-2xl lg:text-3xl border-3 border-white shadow-xl ring-2 ring-purple-100">
+                                    {{ substr($patient->name, 0, 1) }}
                             </div>
-                            <div class="bg-blue-50 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            @endif
+                            <!-- Status Indicator -->
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 lg:w-7 lg:h-7 bg-emerald-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
+                                <svg class="w-3 h-3 lg:w-4 lg:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Completed -->
-                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-emerald-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Completed</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['completed_consultations'] }}</p>
-                                <p class="text-xs text-gray-500 mt-1">Successful</p>
+                    <!-- Content -->
+                    <div class="relative pr-28 lg:pr-36">
+                        <!-- Greeting -->
+                        <div class="mb-6">
+                            <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+                                Hello, {{ explode(' ', $patient->name)[0] }}! 
+                                <span class="inline-block animate-bounce">👋</span>
+                            </h1>
+                            <p class="text-gray-600 text-base">How are you feeling today?</p>
                             </div>
-                            <div class="bg-emerald-50 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        
+                        <!-- Mood Selector -->
+                        <div class="mb-6" x-data="{ selectedMood: null }">
+                            <p class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Select Your Mood</p>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <button @click="selectedMood = 'good'" 
+                                        :class="selectedMood === 'good' ? 'bg-emerald-500 text-white shadow-lg scale-105 border-2 border-emerald-600' : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50'"
+                                        class="flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:shadow-md">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clip-rule="evenodd"/>
                                 </svg>
-                            </div>
+                                    <span>Good</span>
+                                </button>
+                                <button @click="selectedMood = 'okay'" 
+                                        :class="selectedMood === 'okay' ? 'bg-amber-500 text-white shadow-lg scale-105 border-2 border-amber-600' : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50'"
+                                        class="flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:shadow-md">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-1 4a1 1 0 10-2 0 1 1 0 002 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Okay</span>
+                                </button>
+                                <button @click="selectedMood = 'not_great'" 
+                                        :class="selectedMood === 'not_great' ? 'bg-red-500 text-white shadow-lg scale-105 border-2 border-red-600' : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50'"
+                                        class="flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:shadow-md">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-1 4a1 1 0 10-2 0 1 1 0 002 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Not great</span>
+                                </button>
                         </div>
                     </div>
 
-                    <!-- Pending -->
-                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-amber-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Pending</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['pending_consultations'] }}</p>
-                                <p class="text-xs text-gray-500 mt-1">Awaiting</p>
-                            </div>
-                            <div class="bg-amber-50 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <!-- Quick Note -->
+                        @php
+                            $lastCheckup = $patient->consultations()
+                                ->where('status', 'completed')
+                                ->latest('consultation_completed_at')
+                                ->first();
+                            
+                            $lastCheckupDate = $lastCheckup ? ($lastCheckup->consultation_completed_at ?? $lastCheckup->updated_at) : null;
+                            $daysSinceCheckup = $lastCheckupDate ? now()->diffInDays($lastCheckupDate) : null;
+                        @endphp
+                        @if($lastCheckupDate)
+                        <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg shadow-sm">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-gray-900 mb-1">Quick Note</p>
+                                    <p class="text-sm text-gray-700">
+                                        Your last checkup was on 
+                                        <span class="font-semibold text-gray-900">{{ $lastCheckupDate->format('M d, Y') }}</span>
+                                        @if($lastCheckupDate->format('H:i') !== '00:00')
+                                            at <span class="font-semibold text-gray-900">{{ $lastCheckupDate->format('g:i A') }}</span>
+                                        @endif
+                                        @if($daysSinceCheckup !== null && $daysSinceCheckup >= 0)
+                                            <span class="text-gray-600">({{ $daysSinceCheckup }} {{ $daysSinceCheckup === 1 ? 'day' : 'days' }} ago)</span>
+                                        @endif
+                                    </p>
                         </div>
                     </div>
-
-                    <!-- Total Paid -->
-                    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border-l-4 border-purple-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Total Paid</p>
-                                <p class="text-2xl font-bold text-gray-900">₦{{ number_format($stats['total_paid'], 0) }}</p>
-                                <p class="text-xs text-gray-500 mt-1">All Time</p>
                             </div>
-                            <div class="bg-purple-50 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        @endif
+                        
+                        <!-- CTA Button -->
+                        <div class="flex justify-center">
+                            <a href="{{ route('consultation.index') }}" 
+                               class="inline-flex items-center gap-3 px-8 py-4 purple-gradient hover:opacity-90 text-white rounded-xl font-bold text-base transition-all shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
-                            </div>
+                                <span>Talk to a Doctor Now</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -679,85 +675,120 @@
                 @endif
 
                 <!-- Recent Consultations -->
-                <div class="mb-8">
-                    <div class="flex items-center justify-between mb-3">
-                        <div>
-                            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Recent Consultations</h2>
-                            <p class="text-xs text-gray-500 mt-0.5">Your latest medical consultations</p>
-                        </div>
-                        <a href="{{ route('patient.consultations') }}" class="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors">View All →</a>
-                    </div>
-                    
+                <div class="mb-8" x-data="{ consultationsOpen: false }">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <!-- Header (Clickable to toggle) -->
+                        <button @click="consultationsOpen = !consultationsOpen" 
+                                class="w-full flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors">
+                            <div class="flex items-center gap-3 flex-1">
+                                <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                    </div>
+                                <div class="text-left flex-1 min-w-0">
+                                    <h2 class="text-sm font-semibold text-gray-900">Recent Consultations</h2>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        @if($recentConsultations->count() > 0)
+                                            {{ $recentConsultations->count() }} {{ $recentConsultations->count() === 1 ? 'consultation' : 'consultations' }}
+                                        @else
+                                            No consultations yet
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                @if($recentConsultations->count() > 0)
+                                <a href="{{ route('patient.consultations') }}" 
+                                   @click.stop
+                                   class="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors px-2 py-1 rounded hover:bg-purple-50">
+                                    View All
+                                </a>
+                                @endif
+                                <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" 
+                                     :class="{ 'rotate-180': consultationsOpen }" 
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </button>
+                        
+                        <!-- Dropdown Content -->
+                        <div x-show="consultationsOpen" 
+                             x-collapse
+                             x-cloak
+                             class="border-t border-gray-100">
                         @if($recentConsultations->count() > 0)
-                            <div class="divide-y divide-gray-50">
+                                <div class="divide-y divide-gray-50 max-h-96 overflow-y-auto">
                                 @foreach($recentConsultations as $consultation)
-                                    <a href="{{ route('patient.consultation.view', $consultation->id) }}" class="block p-3.5 hover:bg-gray-50/50 transition-all duration-200 group">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                                <!-- Status Indicator -->
-                                                <div class="flex-shrink-0">
-                                                    <div class="w-2 h-2 rounded-full 
-                                                        @if($consultation->status === 'completed') bg-emerald-500
-                                                        @elseif($consultation->status === 'pending') bg-amber-500
-                                                        @elseif($consultation->status === 'scheduled') bg-blue-500
-                                                        @elseif($consultation->status === 'cancelled') bg-red-500
-                                                        @else bg-gray-400 @endif">
+                                        <a href="{{ route('patient.consultation.view', $consultation->id) }}" 
+                                           class="block p-3.5 hover:bg-gray-50/50 transition-all duration-200 group">
+                                            <div class="flex items-center justify-between gap-3">
+                                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                                    <!-- Status Indicator -->
+                                                    <div class="flex-shrink-0">
+                                                        <div class="w-2 h-2 rounded-full 
+                                                            @if($consultation->status === 'completed') bg-emerald-500
+                                                            @elseif($consultation->status === 'pending') bg-amber-500
+                                                            @elseif($consultation->status === 'scheduled') bg-blue-500
+                                                            @elseif($consultation->status === 'cancelled') bg-red-500
+                                                            @else bg-gray-400 @endif">
+                                                        </div>
                                                     </div>
+                                                    
+                                                    <!-- Consultation Info -->
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="flex items-center gap-2 mb-0.5">
+                                                            <h3 class="text-xs font-semibold text-gray-900 truncate group-hover:text-purple-600 transition-colors">
+                                                                {{ $consultation->reference }}
+                                                            </h3>
+                                                            @if($consultation->payment_status === 'paid')
+                                                                <svg class="w-3 h-3 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                            @endif
+                                                </div>
+                                                        <div class="flex items-center gap-2 text-xs text-gray-600">
+                                                            <span class="truncate">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</span>
+                                                            <span class="text-gray-400">•</span>
+                                                            <span class="text-gray-500 whitespace-nowrap">{{ $consultation->created_at->format('M d, Y') }}</span>
+                                                </div>
+                                            </div>
                                                 </div>
                                                 
-                                                <!-- Consultation Info -->
-                                                <div class="min-w-0 flex-1">
-                                                    <div class="flex items-center gap-2 mb-0.5">
-                                                        <h3 class="text-xs font-semibold text-gray-900 truncate group-hover:text-purple-600 transition-colors">
-                                                            {{ $consultation->reference }}
-                                                        </h3>
-                                                        @if($consultation->payment_status === 'paid')
-                                                            <svg class="w-3 h-3 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                        @endif
-                                                </div>
-                                                    <div class="flex items-center gap-2 text-xs text-gray-600">
-                                                        <span class="truncate">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</span>
-                                                        <span class="text-gray-400">•</span>
-                                                        <span class="text-gray-500 whitespace-nowrap">{{ $consultation->created_at->format('M d, Y') }}</span>
-                                                </div>
-                                            </div>
-                                            </div>
-                                            
-                                            <!-- Status Badge -->
-                                            <div class="flex items-center gap-2 flex-shrink-0">
-                                                <span class="px-2 py-0.5 text-[10px] font-medium rounded-md 
-                                                    @if($consultation->status === 'completed') bg-emerald-50 text-emerald-700 border border-emerald-200
-                                                    @elseif($consultation->status === 'pending') bg-amber-50 text-amber-700 border border-amber-200
-                                                    @elseif($consultation->status === 'scheduled') bg-blue-50 text-blue-700 border border-blue-200
-                                                    @elseif($consultation->status === 'cancelled') bg-red-50 text-red-700 border border-red-200
-                                                    @else bg-gray-50 text-gray-700 border border-gray-200 @endif uppercase tracking-wide">
+                                                <!-- Status Badge -->
+                                                <div class="flex items-center gap-2 flex-shrink-0">
+                                                    <span class="px-2 py-0.5 text-[10px] font-medium rounded-md 
+                                                        @if($consultation->status === 'completed') bg-emerald-50 text-emerald-700 border border-emerald-200
+                                                        @elseif($consultation->status === 'pending') bg-amber-50 text-amber-700 border border-amber-200
+                                                        @elseif($consultation->status === 'scheduled') bg-blue-50 text-blue-700 border border-blue-200
+                                                        @elseif($consultation->status === 'cancelled') bg-red-50 text-red-700 border border-red-200
+                                                        @else bg-gray-50 text-gray-700 border border-gray-200 @endif uppercase tracking-wide">
                                                     {{ ucfirst($consultation->status) }}
                                                 </span>
-                                                <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                                </svg>
+                                                    <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                    </svg>
                                             </div>
                                         </div>
-                                    </a>
+                                        </a>
                                 @endforeach
                             </div>
                         @else
-                            <div class="text-center py-10 px-4">
-                                <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-center py-10 px-4">
+                                    <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                </div>
-                                <h3 class="text-xs font-semibold text-gray-700 mb-1">No Consultations Yet</h3>
-                                <p class="text-[10px] text-gray-500 mb-3">Start your first consultation to get medical advice</p>
-                                <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
-                                    Start Consultation
+                                    </div>
+                                    <h3 class="text-xs font-semibold text-gray-700 mb-1">No Consultations Yet</h3>
+                                    <p class="text-[10px] text-gray-500 mb-3">Start your first consultation to get medical advice</p>
+                                    <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
+                                        Start Consultation
                                 </a>
                             </div>
                         @endif
+                        </div>
                     </div>
                 </div>
 
@@ -855,7 +886,7 @@
                                             <div class="min-w-0 flex-1">
                                                 <p class="text-[10px] font-medium text-purple-900">Ovulation</p>
                                                 <p class="text-xs text-purple-700 truncate">{{ $nextOvulationPrediction->format('M d, Y') }}</p>
-                                </div>
+                            </div>
                                         </div>
                                     </div>
                                     @endif
@@ -915,35 +946,157 @@
                             </div>
                         @endif
                     </div>
+                            </div>
+                        @endif
+                        
+                <!-- Sexual Health & Performance Tracker (Male Patients Only) -->
+                @if(strtolower($patient->gender) === 'male')
+                <div id="sexual-health" class="mb-8">
+                    <div class="flex items-center justify-between mb-3">
+                                        <div>
+                            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Sexual Health & Performance Tracker</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Private tracking for your health</p>
+                        </div>
+                        <button onclick="document.getElementById('sexualHealthModal').classList.remove('hidden')" 
+                                class="px-4 py-2 purple-gradient hover:opacity-90 text-white rounded-lg text-xs font-semibold transition-all duration-200 flex items-center space-x-1.5 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>Log Entry</span>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        @if($latestSexualHealthRecord)
+                            <div class="p-4">
+                                <!-- Current Record Status -->
+                                <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                        <div>
+                                            <h3 class="text-xs font-semibold text-gray-900">Latest Record</h3>
+                                            <p class="text-[10px] text-gray-500">{{ $latestSexualHealthRecord->record_date->format('M d, Y') }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 text-[10px] font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-200 uppercase">
+                                            Active
+                                        </span>
+                                        <button onclick="deleteSexualHealthRecord({{ $latestSexualHealthRecord->id }})" 
+                                                class="p-2 text-red-500 hover:text-white hover:bg-red-500 rounded-lg transition-all border border-red-200 hover:border-red-500" 
+                                                title="Delete record">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Health Stats Grid -->
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    @if($latestSexualHealthRecord->libido_level)
+                                    <div class="bg-blue-50/50 rounded-lg p-2.5 border border-blue-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Libido Level</p>
+                                        <p class="text-xs font-semibold text-blue-700 capitalize">{{ $latestSexualHealthRecord->libido_level }}</p>
+                                    </div>
+                                            @endif
+                                    
+                                    @if($latestSexualHealthRecord->erectile_health_score)
+                                    <div class="bg-purple-50/50 rounded-lg p-2.5 border border-purple-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Erectile Health</p>
+                                        <p class="text-xs font-semibold text-purple-700">{{ $latestSexualHealthRecord->erectile_health_score }}/10</p>
+                                        </div>
+                                            @endif
+                                    
+                                    @if($latestSexualHealthRecord->ejaculation_issues)
+                                    <div class="bg-amber-50/50 rounded-lg p-2.5 border border-amber-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Ejaculation</p>
+                                        <p class="text-xs font-semibold text-amber-700">Issues noted</p>
+                                    </div>
+                                            @endif
+                                    
+                                    @if($latestSexualHealthRecord->last_sti_test_date)
+                                    <div class="bg-emerald-50/50 rounded-lg p-2.5 border border-emerald-100">
+                                        <p class="text-[10px] text-gray-600 mb-0.5">Last STI Test</p>
+                                        <p class="text-xs font-semibold text-emerald-700">{{ $latestSexualHealthRecord->last_sti_test_date->format('M d, Y') }}</p>
+                                        </div>
+                                    @endif
+                                    </div>
+                                
+                                <!-- STI Test Reminder -->
+                                @if($stiTestDue)
+                                <div class="bg-red-50/50 border border-red-200 rounded-lg p-2.5 mb-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <svg class="w-2 h-2 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-[10px] font-medium text-red-900">STI Test Due</p>
+                                            <p class="text-xs text-red-700">Time for your routine check-up</p>
+                            </div>
+                        </div>
+                                </div>
+                                @elseif($nextStiTestDate && $daysUntilStiTest > 0)
+                                <div class="bg-blue-50/50 border border-blue-200 rounded-lg p-2.5 mb-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <svg class="w-2 h-2 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-[10px] font-medium text-blue-900">Next STI Test</p>
+                                            <p class="text-xs text-blue-700">{{ $nextStiTestDate->format('M d, Y') }}</p>
+                                            <p class="text-[10px] text-blue-600 mt-0.5">In {{ $daysUntilStiTest }} {{ $daysUntilStiTest === 1 ? 'day' : 'days' }}</p>
+                                        </div>
+                    </div>
+                </div>
+                @endif
+                            </div>
+
+                            @if($sexualHealthRecords->count() > 1)
+                            <div class="border-t border-gray-100 px-4 py-3 bg-gray-50/50">
+                                <h4 class="text-[10px] font-semibold text-gray-700 uppercase tracking-wide mb-2">Recent Records</h4>
+                                <div class="space-y-1.5">
+                                    @foreach($sexualHealthRecords->take(3) as $record)
+                                        <div class="flex items-center justify-between text-xs">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-1 h-1 rounded-full bg-blue-400"></div>
+                                                <span class="text-gray-700">{{ $record->record_date->format('M d, Y') }}</span>
+                                            </div>
+                                            <div class="text-right">
+                                                @if($record->libido_level)
+                                                    <span class="text-gray-600 capitalize text-[10px]">{{ $record->libido_level }}</span>
+                                    @endif
+                                </div>
+                                </div>
+                                    @endforeach
+                            </div>
+                        </div>
+                            @endif
+                        @else
+                            <div class="text-center py-8 px-4">
+                                <div class="w-6 h-6 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-2.5">
+                                    <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-xs font-semibold text-gray-700 mb-1">Start Tracking Your Health</h3>
+                                <p class="text-[10px] text-gray-500 mb-3">Log your health metrics privately and securely</p>
+                                <button onclick="document.getElementById('sexualHealthModal').classList.remove('hidden')" 
+                                        class="inline-flex items-center space-x-2 purple-gradient hover:opacity-90 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Log Entry</span>
+                                </button>
+                            </div>
+                        @endif
+                    </div>
                 </div>
                 @endif
 
-                <!-- Account Status & Dependents -->
-                <div class="grid grid-cols-1 gap-6">
-
-                    <!-- Account Status & Dependents -->
-                    <div class="space-y-6">
-                        <!-- Account Status -->
-                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                            <h3 class="text-base font-bold text-gray-800 mb-4">Account Information</h3>
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between py-2 border-b border-gray-100">
-                                    <span class="text-sm text-gray-600">Email Verification</span>
-                                    @if($patient->is_verified)
-                                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">✓ Verified</span>
-                                    @else
-                                        <span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">Pending</span>
-                                    @endif
-                                </div>
-                                <div class="flex items-center justify-between py-2">
-                                    <span class="text-sm text-gray-600">Member Since</span>
-                                    <span class="text-sm font-medium text-gray-900">{{ $patient->created_at->format('M Y') }}</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Dependents -->
                         @if($dependents->count() > 0)
+                <div class="mb-8">
                         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-base font-bold text-gray-800">My Dependents</h3>
@@ -963,9 +1116,8 @@
                                 @endforeach
                             </div>
                         </div>
-                        @endif
                     </div>
-                </div>
+                @endif
             </main>
         </div>
     </div>
@@ -1086,6 +1238,150 @@
     </div>
     @endif
 
+    <!-- Sexual Health & Performance Logging Modal (Male Patients Only) -->
+    @if(strtolower($patient->gender) === 'male')
+    <div id="sexualHealthModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target === this) this.classList.add('hidden')">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header with Gradient -->
+            <div class="purple-gradient p-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-white">Log Health Entry</h3>
+                            <p class="text-xs text-white/90 mt-0.5">Private & secure health tracking</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('sexualHealthModal').classList.add('hidden')" class="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Form Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <form id="sexualHealthForm" onsubmit="submitSexualHealth(event)">
+                    @csrf
+                    <div class="space-y-4">
+                        <!-- Record Date -->
+                        <div>
+                            <label for="record_date" class="block text-xs font-semibold text-gray-700 mb-2">
+                                Record Date <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="record_date" id="record_date" 
+                                   value="{{ old('record_date', now()->format('Y-m-d')) }}"
+                                   max="{{ now()->format('Y-m-d') }}"
+                                   class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 transition-all" required>
+                        </div>
+                        
+                        <!-- Libido Level -->
+                        <div>
+                            <label for="libido_level" class="block text-xs font-semibold text-gray-700 mb-2">
+                                Libido Level
+                            </label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="flex flex-col items-center p-3 rounded-lg border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer group">
+                                    <input type="radio" name="libido_level" value="low" class="text-purple-600 focus:ring-purple-500 mb-1">
+                                    <span class="text-xs font-medium text-gray-700 group-hover:text-purple-700">Low</span>
+                                </label>
+                                <label class="flex flex-col items-center p-3 rounded-lg border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer group">
+                                    <input type="radio" name="libido_level" value="normal" class="text-purple-600 focus:ring-purple-500 mb-1">
+                                    <span class="text-xs font-medium text-gray-700 group-hover:text-purple-700">Normal</span>
+                                </label>
+                                <label class="flex flex-col items-center p-3 rounded-lg border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer group">
+                                    <input type="radio" name="libido_level" value="high" class="text-purple-600 focus:ring-purple-500 mb-1">
+                                    <span class="text-xs font-medium text-gray-700 group-hover:text-purple-700">High</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Erectile Health Score (Discreet) -->
+                        <div>
+                            <label for="erectile_health_score" class="block text-xs font-semibold text-gray-700 mb-2">
+                                Erectile Health <span class="text-gray-400 text-[10px] font-normal">(Optional, 1-10 scale)</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="range" name="erectile_health_score" id="erectile_health_score" 
+                                       min="1" max="10" value="5"
+                                       class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                       oninput="document.getElementById('scoreDisplay').textContent = this.value">
+                                <span id="scoreDisplay" class="text-sm font-semibold text-purple-600 w-8 text-center">5</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                This information is completely private
+                            </p>
+                        </div>
+                        
+                        <!-- Ejaculation Issues -->
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all">
+                                <input type="checkbox" name="ejaculation_issues" value="1" 
+                                       id="ejaculation_issues"
+                                       class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                                <span class="text-xs font-medium text-gray-700">Ejaculation Issues</span>
+                            </label>
+                            <textarea name="ejaculation_notes" id="ejaculation_notes" rows="2" 
+                                      placeholder="Optional notes about ejaculation issues..."
+                                      class="w-full text-xs rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2 px-3 resize-none transition-all mt-2"
+                                      style="display: none;"></textarea>
+                        </div>
+                        
+                        <!-- STI Test Date -->
+                        <div>
+                            <label for="last_sti_test_date" class="block text-xs font-semibold text-gray-700 mb-2">
+                                Last STI Test Date <span class="text-gray-400 text-[10px] font-normal">(Optional)</span>
+                            </label>
+                            <input type="date" name="last_sti_test_date" id="last_sti_test_date" 
+                                   max="{{ now()->format('Y-m-d') }}"
+                                   class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 transition-all">
+                            <p class="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Recommended every 6 months for sexual health
+                            </p>
+                        </div>
+                        
+                        <!-- Additional Notes -->
+                        <div>
+                            <label for="notes" class="block text-xs font-semibold text-gray-700 mb-2">
+                                Additional Notes <span class="text-gray-400 text-[10px] font-normal">(Optional, Private)</span>
+                            </label>
+                            <textarea name="notes" id="notes" rows="3" 
+                                      class="w-full text-sm rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 py-2.5 px-4 resize-none transition-all"
+                                      placeholder="Add any private notes about your health..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-gray-200">
+                        <button type="button" onclick="document.getElementById('sexualHealthModal').classList.add('hidden')" 
+                                class="px-5 py-2.5 border-2 border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-6 py-2.5 purple-gradient hover:opacity-90 text-white rounded-lg text-xs font-semibold transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Save Entry</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <script>
         function submitCycle(e) {
             e.preventDefault();
@@ -1142,6 +1438,74 @@
                 CustomAlert.error('An error occurred. Please try again.');
             });
         }
+
+        function submitSexualHealth(e) {
+            e.preventDefault();
+            const form = document.getElementById('sexualHealthForm');
+            const formData = new FormData(form);
+            
+            fetch('{{ route("patient.sexual-health.store") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('sexualHealthModal').classList.add('hidden');
+                    location.reload();
+                } else {
+                    CustomAlert.error(data.error || 'Failed to save record');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                CustomAlert.error('An error occurred. Please try again.');
+            });
+        }
+
+        function deleteSexualHealthRecord(recordId) {
+            if (!confirm('Are you sure you want to delete this health record? This action cannot be undone.')) {
+                return;
+            }
+
+            const url = '{{ route("patient.sexual-health.delete", ":id") }}'.replace(':id', recordId);
+            
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    CustomAlert.error(data.error || 'Failed to delete record');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                CustomAlert.error('An error occurred. Please try again.');
+            });
+        }
+
+        // Show/hide ejaculation notes textarea
+        document.addEventListener('DOMContentLoaded', function() {
+            const ejaculationCheckbox = document.getElementById('ejaculation_issues');
+            const ejaculationNotes = document.getElementById('ejaculation_notes');
+            
+            if (ejaculationCheckbox && ejaculationNotes) {
+                ejaculationCheckbox.addEventListener('change', function() {
+                    ejaculationNotes.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+        });
     </script>
     @include('components.custom-alert-modal')
 </body>

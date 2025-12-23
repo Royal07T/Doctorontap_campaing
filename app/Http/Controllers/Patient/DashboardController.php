@@ -9,6 +9,7 @@ use App\Models\Specialty;
 use App\Models\Doctor;
 use App\Models\Setting;
 use App\Models\MenstrualCycle;
+use App\Models\SexualHealthRecord;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -195,7 +196,36 @@ class DashboardController extends Controller
             }
         }
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength'));
+        // Get sexual health data for male patients
+        $sexualHealthRecords = collect([]);
+        $latestSexualHealthRecord = null;
+        $stiTestDue = false;
+        $nextStiTestDate = null;
+        $daysUntilStiTest = null;
+        
+        if (strtolower($patient->gender) === 'male') {
+            $sexualHealthRecords = SexualHealthRecord::where('patient_id', $patient->id)
+                ->orderBy('record_date', 'desc')
+                ->limit(6)
+                ->get();
+            
+            $latestSexualHealthRecord = SexualHealthRecord::where('patient_id', $patient->id)
+                ->orderBy('record_date', 'desc')
+                ->first();
+            
+            // Check if STI test is due (recommended every 6 months)
+            if ($latestSexualHealthRecord && $latestSexualHealthRecord->last_sti_test_date) {
+                $nextStiTestDate = $latestSexualHealthRecord->last_sti_test_date->copy()->addMonths(6);
+                $stiTestDue = $nextStiTestDate->isPast();
+                // Calculate days as integer (rounded)
+                $daysUntilStiTest = (int) round(now()->diffInDays($nextStiTestDate, false));
+            } elseif (!$latestSexualHealthRecord || !$latestSexualHealthRecord->last_sti_test_date) {
+                // Never tested or no test date recorded
+                $stiTestDue = true;
+            }
+        }
+
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest'));
     }
 
     /**
@@ -398,9 +428,16 @@ class DashboardController extends Controller
                 ->where('status', 'completed')
                 ->where('payment_status', '!=', 'paid')
                 ->count(),
+            'total_paid' => $patient->consultations()
+                ->where('payment_status', 'paid')
+                ->with('payment')
+                ->get()
+                ->sum(function($consultation) {
+                    return $consultation->payment ? $consultation->payment->amount : 0;
+                }),
         ];
 
-        return view('patient.consultations', compact('consultations', 'stats'));
+        return view('patient.consultations', compact('consultations', 'stats', 'patient'));
     }
 
     /**
@@ -662,336 +699,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Show new consultation form
-     */
-    public function newConsultation(Request $request)
-    {
-        $patient = Auth::guard('patient')->user();
-        
-        // Ensure patient is authenticated
-        if (!$patient) {
-            return redirect()->route('patient.login')
-                ->with('error', 'Please login to access your patient dashboard.');
-        }
-        
-        $doctors = Doctor::available()->ordered()->get();
-        $specialties = Specialty::active()->orderBy('name')->get();
-        
-        // Get consultation fees from settings (check both possible key names)
-        $payLaterFee = Setting::get('consultation_fee_pay_later', Setting::get('pay_later_consultation_fee', 5000));
-        $payNowFee = Setting::get('consultation_fee_pay_now', Setting::get('pay_now_consultation_fee', 4500));
-        
-        // Get pre-selected consultation type from query parameter
-        $selectedType = $request->get('type', 'pay_later');
-        if (!in_array($selectedType, ['pay_now', 'pay_later'])) {
-            $selectedType = 'pay_later';
-        }
-        
-        // Get pre-selected doctor from query parameter
-        $selectedDoctorId = $request->get('doctor_id');
-        
-        return view('patient.new-consultation', compact('patient', 'doctors', 'specialties', 'payLaterFee', 'payNowFee', 'selectedType', 'selectedDoctorId'));
-    }
-
-    /**
-     * Store new consultation
-     */
-    public function storeConsultation(Request $request)
-    {
-        $patient = Auth::guard('patient')->user();
-        
-        try {
-            // Sanitize inputs before validation (but preserve checkbox values)
-            $allInputs = $request->all();
-            $sanitized = [];
-            
-            foreach ($allInputs as $key => $value) {
-                // Skip sanitization for checkboxes and file inputs
-                if (in_array($key, ['informed_consent', 'data_privacy', '_token']) || $key === 'medical_documents') {
-                    $sanitized[$key] = $value;
-                } elseif (is_string($value)) {
-                    $sanitized[$key] = $this->sanitizeText($value);
-                } elseif (is_array($value)) {
-                    $sanitized[$key] = $this->sanitizeArray($value);
-                } else {
-                    $sanitized[$key] = $value;
-                }
-            }
-            
-            $request->merge($sanitized);
-            
-            $validated = $request->validate([
-                'consultation_type' => 'required|in:pay_now,pay_later',
-                'problem' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[\p{L}\p{N}\s\.,;:!?()\-\'"]+$/u'],
-                'symptoms' => ['nullable', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\.,;:!?()\-\'"]*$/u'],
-                'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
-                'severity' => 'required|in:mild,moderate,severe',
-                'emergency_symptoms' => 'nullable|array',
-                'emergency_symptoms.*' => 'required|string|in:chest_pain,difficulty_breathing,severe_bleeding,loss_of_consciousness,severe_allergic_reaction,severe_burns',
-                'doctor_id' => 'nullable|integer|exists:doctors,id',
-                'consult_mode' => 'required|in:voice,video,chat',
-                'informed_consent' => 'required|accepted',
-                'data_privacy' => 'required|accepted',
-            ], [
-                'consultation_type.required' => 'Please select a consultation type.',
-                'consultation_type.in' => 'Invalid consultation type selected.',
-                'problem.required' => 'Please describe your medical problem.',
-                'problem.min' => 'Problem description must be at least 10 characters.',
-                'problem.max' => 'Problem description cannot exceed 500 characters.',
-                'problem.regex' => 'Problem description contains invalid characters.',
-                'symptoms.max' => 'Symptoms description cannot exceed 1000 characters.',
-                'symptoms.regex' => 'Symptoms description contains invalid characters.',
-                'medical_documents.*.file' => 'Invalid file uploaded.',
-                'medical_documents.*.mimes' => 'Only PDF, JPG, PNG, DOC, and DOCX files are allowed.',
-                'medical_documents.*.max' => 'Each file must not exceed 5MB.',
-                'severity.required' => 'Please indicate the severity of your condition.',
-                'severity.in' => 'Invalid severity level selected.',
-                'emergency_symptoms.array' => 'Emergency symptoms must be an array.',
-                'emergency_symptoms.*.in' => 'Invalid emergency symptom selected.',
-                'doctor_id.integer' => 'Invalid doctor selected.',
-                'doctor_id.exists' => 'Selected doctor does not exist.',
-                'consult_mode.required' => 'Please select a consultation mode.',
-                'consult_mode.in' => 'Invalid consultation mode selected.',
-                'informed_consent.required' => 'You must accept the informed consent.',
-                'informed_consent.accepted' => 'You must accept the informed consent to proceed.',
-                'data_privacy.required' => 'You must accept the data privacy policy.',
-                'data_privacy.accepted' => 'You must accept the data privacy policy to proceed.',
-            ]);
-
-            // Generate unique consultation reference
-            $reference = 'CONSULT-' . time() . '-' . Str::random(6);
-
-            // Handle medical document uploads with sanitization
-            $uploadedDocuments = [];
-            if ($request->hasFile('medical_documents')) {
-                foreach ($request->file('medical_documents') as $file) {
-                    // Sanitize file name
-                    $originalName = $file->getClientOriginalName();
-                    $sanitizedOriginalName = $this->sanitizeFileName($originalName);
-                    $fileName = time() . '_' . uniqid() . '_' . $sanitizedOriginalName;
-                    
-                    // Additional file validation
-                    $mimeType = $file->getMimeType();
-                    $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-                    
-                    if (!in_array($mimeType, $allowedMimes)) {
-                        return redirect()->back()
-                            ->withErrors(['medical_documents' => 'Invalid file type detected.'])
-                            ->withInput();
-                    }
-                    
-                    $filePath = $file->storeAs('medical_documents', $fileName);
-                    
-                    $uploadedDocuments[] = [
-                        'original_name' => $sanitizedOriginalName,
-                        'stored_name' => $fileName,
-                        'path' => $filePath,
-                        'size' => $file->getSize(),
-                        'mime_type' => $mimeType,
-                    ];
-                }
-            }
-
-            // Determine if payment is required first
-            $requiresPaymentFirst = $validated['consultation_type'] === 'pay_now';
-
-            // Split patient name into first and last name
-            $nameParts = explode(' ', $patient->name, 2);
-            $firstName = $nameParts[0] ?? $patient->name;
-            $lastName = $nameParts[1] ?? '';
-
-            // Create consultation
-            $consultation = Consultation::create([
-                'reference' => $reference,
-                'patient_id' => $patient->id,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $patient->email,
-                'mobile' => $patient->phone,
-                'age' => $patient->age,
-                'gender' => $patient->gender,
-                'problem' => $this->sanitizeText($validated['problem']),
-                'symptoms' => isset($validated['symptoms']) ? $this->sanitizeText($validated['symptoms']) : null,
-                'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
-                'severity' => $validated['severity'],
-                'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
-                'consult_mode' => $validated['consult_mode'],
-                'doctor_id' => $validated['doctor_id'] ?? null,
-                'consultation_type' => $validated['consultation_type'],
-                'requires_payment_first' => $requiresPaymentFirst,
-                'status' => $requiresPaymentFirst ? 'pending_payment' : 'pending',
-                'payment_status' => 'unpaid',
-            ]);
-
-            // Update patient aggregates
-            $patient->increment('consultations_count');
-            $patient->last_consultation_at = now();
-            $patient->save();
-
-            // Get doctor email and name if doctor is assigned
-            $doctorEmail = null;
-            $doctorName = null;
-            if ($validated['doctor_id']) {
-                $assignedDoctor = Doctor::find($validated['doctor_id']);
-                $doctorEmail = $assignedDoctor->email ?? null;
-                $doctorName = $assignedDoctor->name ?? null;
-            }
-
-            // Prepare data for email notifications
-            $emailData = [
-                'consultation_reference' => $reference,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'name' => $patient->name,
-                'email' => $patient->email,
-                'mobile' => $patient->phone,
-                'age' => $patient->age,
-                'gender' => $patient->gender,
-                'problem' => $validated['problem'],
-                'symptoms' => $validated['symptoms'] ?? null,
-                'severity' => $validated['severity'],
-                'consult_mode' => $validated['consult_mode'],
-                'consultation_type' => $validated['consultation_type'],
-                'has_documents' => !empty($uploadedDocuments),
-                'documents_count' => count($uploadedDocuments),
-                'doctor_id' => $validated['doctor_id'] ?? null,
-                'doctor_name' => $doctorName,
-                'doctor_email' => $doctorEmail,
-            ];
-
-            // Queue emails for asynchronous sending (non-critical - continue even if they fail)
-            $emailsQueued = 0;
-            $adminEmail = config('mail.admin_email');
-
-            // Send confirmation email to patient
-            try {
-                Mail::to($patient->email)->queue(new ConsultationConfirmation($emailData));
-                $emailsQueued++;
-                \Log::info('Patient confirmation email queued successfully', [
-                    'consultation_reference' => $reference,
-                    'patient_email' => $patient->email
-                ]);
-            } catch (\Exception $e) {
-                \Log::warning('Failed to queue patient confirmation email: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'patient_email' => $patient->email
-                ]);
-            }
-
-            // Send SMS confirmation to patient
-            try {
-                $smsNotification = new ConsultationSmsNotification();
-                $smsResult = $smsNotification->sendConsultationConfirmation($emailData);
-                
-                if ($smsResult['success']) {
-                    \Log::info('Patient confirmation SMS sent successfully', [
-                        'consultation_reference' => $reference,
-                        'patient_mobile' => $patient->phone
-                    ]);
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Failed to send patient confirmation SMS: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'patient_mobile' => $patient->phone ?? 'N/A'
-                ]);
-            }
-
-            // Send alert email to admin
-            try {
-                Mail::to($adminEmail)->queue(new ConsultationAdminAlert($emailData));
-                $emailsQueued++;
-                \Log::info('Admin alert email queued successfully', [
-                    'consultation_reference' => $reference,
-                    'admin_email' => $adminEmail
-                ]);
-            } catch (\Exception $e) {
-                \Log::warning('Failed to queue admin alert email: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'admin_email' => $adminEmail
-                ]);
-            }
-
-            // Send notification email to assigned doctor (if doctor is assigned)
-            if ($doctorEmail) {
-                try {
-                    Mail::to($doctorEmail)->queue(new ConsultationDoctorNotification($emailData));
-                    $emailsQueued++;
-                    \Log::info('Doctor notification email queued successfully', [
-                        'consultation_reference' => $reference,
-                        'doctor_email' => $doctorEmail
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to queue doctor notification email: ' . $e->getMessage(), [
-                        'consultation_reference' => $reference,
-                        'doctor_email' => $doctorEmail
-                    ]);
-                }
-
-                // Send SMS notification to assigned doctor
-                try {
-                    $assignedDoctor = Doctor::find($validated['doctor_id']);
-                    if ($assignedDoctor && $assignedDoctor->phone) {
-                        $smsNotification = new ConsultationSmsNotification();
-                        $doctorSmsResult = $smsNotification->sendDoctorNewConsultation($assignedDoctor, $emailData);
-                        
-                        if ($doctorSmsResult['success']) {
-                            \Log::info('Doctor notification SMS sent successfully', [
-                                'consultation_reference' => $reference,
-                                'doctor_id' => $validated['doctor_id'],
-                                'doctor_phone' => $assignedDoctor->phone
-                            ]);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to send doctor notification SMS: ' . $e->getMessage(), [
-                        'consultation_reference' => $reference,
-                        'doctor_id' => $validated['doctor_id'] ?? 'N/A'
-                    ]);
-                }
-            }
-
-            \Log::info('Patient consultation created - emails queued', [
-                'consultation_reference' => $reference,
-                'total_emails_queued' => $emailsQueued,
-                'patient_email' => $patient->email,
-                'admin_email' => $adminEmail,
-                'doctor_email' => $doctorEmail ?? 'N/A'
-            ]);
-
-            // If pay now, redirect to payment page (to be implemented)
-            if ($requiresPaymentFirst) {
-                return redirect()->route('patient.consultations')
-                    ->with('success', 'Consultation created successfully. Please complete payment to proceed.');
-            }
-
-            return redirect()->route('patient.consultations')
-                ->with('success', 'Consultation created successfully. You will be notified once a doctor is assigned.');
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->back()
-                ->withErrors($e->errors())
-                ->withInput();
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->back()
-                ->withErrors($e->errors())
-                ->withInput();
-        } catch (\Exception $e) {
-            \Log::error('Failed to create patient consultation: ' . $e->getMessage(), [
-                'patient_id' => $patient->id,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except(['medical_documents', '_token', 'password'])
-            ]);
-            
-            return redirect()->back()
-                ->with('error', 'Unable to create consultation: ' . $e->getMessage() . '. Please check all fields and try again.')
-                ->withInput();
-        }
-    }
-
-    /**
      * Sanitize all input data
      */
     private function sanitizeInputs(array $inputs): array
@@ -1210,6 +917,128 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Menstrual cycle deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Store sexual health record
+     */
+    public function storeSexualHealthRecord(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for male patients
+        if (strtolower($patient->gender) !== 'male') {
+            return response()->json(['error' => 'This feature is only available for male patients.'], 403);
+        }
+        
+        $validated = $request->validate([
+            'record_date' => 'required|date',
+            'libido_level' => 'nullable|in:low,normal,high',
+            'erectile_health_score' => 'nullable|integer|min:1|max:10',
+            'ejaculation_issues' => 'nullable|boolean',
+            'ejaculation_notes' => 'nullable|string|max:500',
+            'last_sti_test_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+        
+        // Sanitize inputs
+        if (isset($validated['ejaculation_notes'])) {
+            $validated['ejaculation_notes'] = $this->sanitizeText($validated['ejaculation_notes']);
+        }
+        if (isset($validated['notes'])) {
+            $validated['notes'] = $this->sanitizeText($validated['notes']);
+        }
+        
+        // Calculate next STI test reminder (6 months from last test)
+        if (isset($validated['last_sti_test_date'])) {
+            $validated['next_sti_test_reminder'] = \Carbon\Carbon::parse($validated['last_sti_test_date'])->addMonths(6);
+            $validated['sti_test_due'] = $validated['next_sti_test_reminder']->isPast();
+        }
+        
+        $record = SexualHealthRecord::create([
+            'patient_id' => $patient->id,
+            'record_date' => $validated['record_date'],
+            'libido_level' => $validated['libido_level'] ?? null,
+            'erectile_health_score' => $validated['erectile_health_score'] ?? null,
+            'ejaculation_issues' => $validated['ejaculation_issues'] ?? false,
+            'ejaculation_notes' => $validated['ejaculation_notes'] ?? null,
+            'last_sti_test_date' => $validated['last_sti_test_date'] ?? null,
+            'next_sti_test_reminder' => $validated['next_sti_test_reminder'] ?? null,
+            'sti_test_due' => $validated['sti_test_due'] ?? false,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sexual health record saved successfully.',
+            'record' => $record->load('patient'),
+        ]);
+    }
+
+    /**
+     * Update sexual health record
+     */
+    public function updateSexualHealthRecord(Request $request, $id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $record = SexualHealthRecord::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $validated = $request->validate([
+            'record_date' => 'sometimes|required|date',
+            'libido_level' => 'nullable|in:low,normal,high',
+            'erectile_health_score' => 'nullable|integer|min:1|max:10',
+            'ejaculation_issues' => 'nullable|boolean',
+            'ejaculation_notes' => 'nullable|string|max:500',
+            'last_sti_test_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+        
+        // Sanitize inputs
+        if (isset($validated['ejaculation_notes'])) {
+            $validated['ejaculation_notes'] = $this->sanitizeText($validated['ejaculation_notes']);
+        }
+        if (isset($validated['notes'])) {
+            $validated['notes'] = $this->sanitizeText($validated['notes']);
+        }
+        
+        // Recalculate STI test reminder if date changed
+        if (isset($validated['last_sti_test_date'])) {
+            $validated['next_sti_test_reminder'] = \Carbon\Carbon::parse($validated['last_sti_test_date'])->addMonths(6);
+            $validated['sti_test_due'] = $validated['next_sti_test_reminder']->isPast();
+        }
+        
+        $record->update($validated);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sexual health record updated successfully.',
+            'record' => $record->load('patient'),
+        ]);
+    }
+
+    /**
+     * Delete sexual health record
+     */
+    public function deleteSexualHealthRecord($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Only allow for male patients
+        if (strtolower($patient->gender) !== 'male') {
+            return response()->json(['error' => 'This feature is only available for male patients.'], 403);
+        }
+        
+        $record = SexualHealthRecord::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        $record->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sexual health record deleted successfully.',
         ]);
     }
 }

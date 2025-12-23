@@ -148,7 +148,7 @@
                     @endif
 
                     <!-- Action Button -->
-                    <a href="{{ route('patient.consultation.new') }}?doctor_id={{ $doctor->id }}" 
+                    <a href="{{ route('consultation.index') }}?doctor_id={{ $doctor->id }}" 
                        class="block w-full text-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
                         Book Appointment
                     </a>
@@ -173,7 +173,7 @@
             <a href="{{ route('patient.dashboard') }}" class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
                 Back to Dashboard
             </a>
-            <a href="{{ route('patient.consultation.new') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">
+            <a href="{{ route('consultation.index') }}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">
                 Book General Consultation
             </a>
         </div>

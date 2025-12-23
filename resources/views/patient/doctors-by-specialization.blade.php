@@ -127,7 +127,7 @@
                         @endif
 
                     <!-- Action Button -->
-                    <a href="{{ route('patient.consultation.new') }}?doctor_id={{ $doctor->id }}" 
+                    <a href="{{ route('consultation.index') }}?doctor_id={{ $doctor->id }}" 
                        class="block w-full text-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
                         Book Appointment
                     </a>

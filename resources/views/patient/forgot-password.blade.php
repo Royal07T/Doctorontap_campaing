@@ -32,12 +32,32 @@
         <div class="bg-white rounded-xl shadow-xl p-6">
             <!-- Success Message -->
             @if(session('status'))
-            <div class="mb-4 p-3 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded text-sm">
-                <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <div class="mb-4 p-3 {{ session('verification_sent') ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700' : 'bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700' }} rounded text-sm">
+                <div class="flex items-start">
+                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        @if(session('verification_sent'))
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        @else
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        @endif
                     </svg>
-                    {{ session('status') }}
+                    <div class="flex-1">
+                        <p class="font-semibold mb-1">{{ session('status') }}</p>
+                        @if(session('verification_sent'))
+                        <div class="mt-2 pt-2 border-t border-blue-200">
+                            <p class="text-xs text-blue-600 mb-2">What happens next:</p>
+                            <ol class="list-decimal list-inside text-xs text-blue-600 space-y-1">
+                                <li>Check your email inbox (and spam folder)</li>
+                                <li>Click the verification link in the email</li>
+                                <li>Once verified, you can reset your password</li>
+                            </ol>
+                        </div>
+                        @else
+                        <p class="text-xs {{ session('verification_sent') ? 'text-blue-600' : 'text-emerald-600' }} mt-1.5">
+                            Please check your email inbox and spam folder. The link will expire in 60 minutes.
+                        </p>
+                        @endif
+                    </div>
                 </div>
             </div>
             @endif

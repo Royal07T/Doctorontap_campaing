@@ -33,11 +33,18 @@
             <!-- Success Message -->
             @if(session('success'))
             <div class="mb-4 p-3 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded text-sm">
-                <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <div class="flex items-start">
+                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                     </svg>
-                    {{ session('success') }}
+                    <div>
+                        <p class="font-semibold">{{ session('success') }}</p>
+                        @if(str_contains(session('success'), 'Verification link sent'))
+                        <p class="text-xs text-emerald-600 mt-1.5">
+                            Please check your email inbox and spam folder. The verification link will expire in 24 hours.
+                        </p>
+                        @endif
+                    </div>
                 </div>
             </div>
             @endif
@@ -61,10 +68,34 @@
                     <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
                     </svg>
-                    <div>
+                    <div class="flex-1">
                         @foreach($errors->all() as $error)
-                            <p>{{ $error }}</p>
+                            <p class="mb-2">{{ $error }}</p>
                         @endforeach
+                        
+                        <!-- Resend Verification Email Option -->
+                        @if(session('verification_required') && session('verification_email'))
+                        <div class="mt-3 pt-3 border-t border-rose-200">
+                            <p class="text-xs text-rose-600 mb-2">Didn't receive the verification email?</p>
+                            <form method="POST" action="{{ route('patient.verification.resend.public') }}" class="inline">
+                                @csrf
+                                <input type="hidden" name="email" value="{{ session('verification_email') }}">
+                                <button type="submit" 
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-md transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                    Resend Verification Email
+                                </button>
+                            </form>
+                            <p class="text-xs text-rose-500 mt-2">
+                                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Check your spam folder if you don't see it
+                            </p>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
