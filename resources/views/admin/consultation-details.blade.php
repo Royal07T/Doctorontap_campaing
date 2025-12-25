@@ -520,6 +520,26 @@
                         </p>
                     </div>
 
+                    @if($consultation->payment_status === 'paid')
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-2.5 mb-3">
+                        <p class="text-xs text-green-800 flex items-center">
+                            <svg class="w-3 h-3 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <strong>Payment Confirmed</strong> - Treatment plan will be sent to patient
+                        </p>
+                    </div>
+                    @else
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5 mb-3">
+                        <p class="text-xs text-yellow-800 flex items-center">
+                            <svg class="w-3 h-3 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <strong>Payment Not Confirmed</strong> - Payment request will be sent instead
+                        </p>
+                    </div>
+                    @endif
+
                     <button @click="forwardTreatmentPlan()" :disabled="isForwardingTP"
                             class="w-full px-3 py-2 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-1.5">
                         <svg x-show="!isForwardingTP" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -529,11 +549,15 @@
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span x-text="isForwardingTP ? 'Sending...' : 'Forward Treatment Plan to Patient'"></span>
+                        <span x-text="isForwardingTP ? 'Sending...' : 'Forward to Patient'"></span>
                     </button>
                     
                     <p class="text-xs text-gray-500 mt-2 text-center">
-                        Click to manually send the treatment plan to the patient's email as a redundancy measure
+                        @if($consultation->payment_status === 'paid')
+                        <strong>Redundancy Measure:</strong> Will manually send <strong>treatment plan</strong> to patient (payment confirmed). Useful if patient paid before consultation or automatic email was not delivered.
+                        @else
+                        Will send <strong>payment request</strong> to patient (payment not confirmed - treatment plan will be sent automatically after payment)
+                        @endif
                     </p>
                 </div>
                 @endif
@@ -1023,9 +1047,9 @@
                         });
                         const data = await response.json();
                         if (data.success) {
-                            this.showMessage('success', 'Success!', 'Treatment plan has been sent to the patient\'s email successfully!');
+                            this.showMessage('success', 'Success!', data.message || 'Email has been sent to the patient successfully!');
                         } else {
-                            this.showMessage('error', 'Error', data.message || 'Failed to forward treatment plan');
+                            this.showMessage('error', 'Error', data.message || 'Failed to forward email');
                         }
                     } catch (error) {
                         this.showMessage('error', 'Error', 'An error occurred while sending the treatment plan. Please try again.');
@@ -1035,7 +1059,15 @@
                 },
                 
                 forwardTreatmentPlan() {
-                    this.showConfirm('Forward Treatment Plan', 'Send treatment plan to {{ $consultation->email }}?', () => this.doForwardTreatmentPlan());
+                    @php
+                        $recipientEmail = $consultation->email ?: ($consultation->patient && $consultation->patient->email ? $consultation->patient->email : ($consultation->booking ? $consultation->booking->payer_email : 'the patient'));
+                        if ($consultation->payment_status === 'paid') {
+                            $message = 'Send treatment plan to ' . $recipientEmail . '? (Payment confirmed)';
+                        } else {
+                            $message = 'Payment not confirmed. Send payment request to ' . $recipientEmail . ' instead? Treatment plan will be sent automatically after payment.';
+                        }
+                    @endphp
+                    this.showConfirm('Forward to Patient', '{{ $message }}', () => this.doForwardTreatmentPlan());
                 },
                 
                 async queryDoctor() {

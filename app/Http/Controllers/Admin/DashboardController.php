@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
+use App\Mail\TreatmentPlanNotification;
 use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
@@ -514,7 +515,7 @@ class DashboardController extends Controller
      */
     public function forwardTreatmentPlan($id)
     {
-        $consultation = Consultation::with('doctor')->findOrFail($id);
+        $consultation = Consultation::with(['doctor', 'patient', 'booking'])->findOrFail($id);
 
         // Validate - treatment plan must exist
         if (!$consultation->hasTreatmentPlan()) {
@@ -524,29 +525,87 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        // Send payment request email
-        try {
-            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
-            
-            \Log::info('Payment request manually forwarded by admin', [
-                'consultation_id' => $consultation->id,
-                'reference' => $consultation->reference,
-                'email' => $consultation->email
-            ]);
+        // Determine recipient email: check multiple sources
+        $recipientEmail = null;
+        $recipientName = $consultation->full_name;
+        
+        // 1. First try consultation email field
+        if (!empty($consultation->email)) {
+            $recipientEmail = $consultation->email;
+        }
+        // 2. Try patient relationship email
+        elseif ($consultation->patient && !empty($consultation->patient->email)) {
+            $recipientEmail = $consultation->patient->email;
+            $recipientName = $consultation->patient->full_name ?? $recipientName;
+        }
+        // 3. Try booking payer email (for multi-patient bookings)
+        elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
+            $recipientEmail = $consultation->booking->payer_email;
+            $recipientName = $consultation->booking->payer_name ?? $recipientName;
+        }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment request sent successfully to ' . $consultation->email
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Failed to manually forward treatment plan', [
-                'consultation_id' => $consultation->id,
-                'error' => $e->getMessage()
-            ]);
-            
+        if (!$recipientEmail) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send treatment plan: ' . $e->getMessage()
+                'message' => 'No email address found for this consultation. Please ensure the patient has an email address.'
+            ], 400);
+        }
+
+        // Check payment status first - this is critical
+        // Only send treatment plan if payment has been made
+        // If payment not made, send payment request instead
+        $paymentStatus = $consultation->payment_status;
+        $isPaid = ($paymentStatus === 'paid');
+
+        try {
+            if ($isPaid) {
+                // Payment has been made - send treatment plan
+                Mail::to($recipientEmail)->send(new TreatmentPlanNotification($consultation));
+                
+                \Log::info('Treatment plan manually forwarded by admin (payment confirmed)', [
+                    'consultation_id' => $consultation->id,
+                    'reference' => $consultation->reference,
+                    'email' => $recipientEmail,
+                    'payment_status' => $paymentStatus,
+                    'admin_action' => 'manual_forward_treatment_plan'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Treatment plan has been sent successfully to ' . $recipientEmail . ' (Payment confirmed)'
+                ]);
+            } else {
+                // Payment has NOT been made - send payment request instead
+                Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
+                
+                \Log::info('Payment request sent by admin (treatment plan forward - payment not made)', [
+                    'consultation_id' => $consultation->id,
+                    'reference' => $consultation->reference,
+                    'email' => $recipientEmail,
+                    'payment_status' => $paymentStatus,
+                    'admin_action' => 'manual_forward_payment_request',
+                    'note' => 'Treatment plan exists but payment not made - sent payment request instead'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment request has been sent to ' . $recipientEmail . '. Treatment plan will be sent automatically once payment is confirmed.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to forward treatment plan/payment request', [
+                'consultation_id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'email' => $recipientEmail,
+                'payment_status' => $paymentStatus,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            $emailType = $isPaid ? 'treatment plan' : 'payment request';
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send ' . $emailType . ': ' . $e->getMessage()
             ], 500);
         }
     }
