@@ -68,6 +68,51 @@ class DashboardController extends Controller
     }
 
     /**
+     * Display most consulted doctors
+     */
+    public function mostConsultedDoctors(Request $request)
+    {
+        $query = Doctor::withCount(['consultations as consultations_count'])
+            ->withCount(['reviews as published_reviews_count' => function($q) {
+                $q->where('is_published', true);
+            }])
+            ->withAvg(['reviews as avg_rating' => function($q) {
+                $q->where('is_published', true);
+            }], 'rating');
+
+        // Filter by specialization if provided
+        if ($request->filled('specialization')) {
+            $query->where('specialization', 'like', '%' . $request->specialization . '%');
+        }
+
+        // Filter by approved status
+        if ($request->has('is_approved') && $request->is_approved !== '') {
+            $query->where('is_approved', $request->is_approved);
+        }
+
+        // Order by consultation count (most consulted first)
+        $doctors = $query->orderBy('consultations_count', 'desc')
+            ->orderBy('avg_rating', 'desc')
+            ->paginate(20);
+
+        // Get all specializations for filter
+        $specializations = Doctor::whereNotNull('specialization')
+            ->distinct()
+            ->orderBy('specialization')
+            ->pluck('specialization');
+
+        // Statistics
+        $stats = [
+            'total_doctors' => Doctor::count(),
+            'total_consultations' => Consultation::count(),
+            'total_reviews' => \App\Models\Review::where('reviewee_type', 'doctor')->where('is_published', true)->count(),
+            'avg_rating' => \App\Models\Review::where('reviewee_type', 'doctor')->where('is_published', true)->avg('rating'),
+        ];
+
+        return view('admin.most-consulted-doctors', compact('doctors', 'specializations', 'stats'));
+    }
+
+    /**
      * Display all consultations
      */
     public function consultations(Request $request)
@@ -899,7 +944,7 @@ class DashboardController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $doctors = $query->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')->orderBy('order')->paginate(20);
+        $doctors = $query->orderBy('id', 'asc')->paginate(20);
 
         // Statistics
         $stats = [

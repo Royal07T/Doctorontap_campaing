@@ -78,6 +78,50 @@
                         <p class="text-xs font-semibold text-purple-600">{{ $doctor->specialization ?? 'General Practitioner' }}</p>
                     </div>
 
+                    <!-- Ratings and Consultation Count -->
+                    <div class="mb-3 flex items-center justify-center gap-4 text-xs">
+                        @php
+                            $avgRating = $doctor->average_rating ?? 0;
+                            $reviewsCount = $doctor->published_reviews_count ?? 0;
+                            $consultationsCount = $doctor->consultations_count ?? 0;
+                        @endphp
+                        
+                        @if($reviewsCount > 0)
+                            <div class="flex items-center gap-1">
+                                <div class="flex items-center text-yellow-400">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        @if($i <= floor($avgRating))
+                                            <svg class="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                        @elseif($i - 0.5 <= $avgRating)
+                                            <svg class="w-3 h-3 fill-current" viewBox="0 0 20 20" style="clip-path: inset(0 50% 0 0);">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                        @else
+                                            <svg class="w-3 h-3 text-gray-300 fill-current" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                        @endif
+                                    @endfor
+                                </div>
+                                <span class="text-gray-700 font-semibold">{{ number_format($avgRating, 1) }}</span>
+                                <span class="text-gray-500">({{ $reviewsCount }})</span>
+                            </div>
+                        @else
+                            <div class="text-gray-500">No reviews yet</div>
+                        @endif
+                        
+                        @if($consultationsCount > 0)
+                            <div class="flex items-center gap-1 text-gray-600">
+                                <svg class="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>{{ $consultationsCount }} consultations</span>
+                            </div>
+                        @endif
+                    </div>
+
                     <!-- Availability Status -->
                     <div class="mb-3 text-center">
                         @if($doctor->is_available)
@@ -180,10 +224,10 @@
                     </div>
 
                     <!-- Action Button -->
-                    <a href="{{ route('consultation.index') }}?doctor_id={{ $doctor->id }}" 
-                       class="block w-full text-center px-4 py-2 purple-gradient hover:opacity-90 text-white text-xs font-medium rounded-lg transition">
+                    <button onclick="openBookingModal({{ $doctor->id }}, '{{ addslashes($doctor->name) }}', '{{ addslashes($doctor->specialization ?? 'General Practitioner') }}')" 
+                            class="block w-full text-center px-4 py-2 purple-gradient hover:opacity-90 text-white text-xs font-medium rounded-lg transition">
                         Book Appointment
-                    </a>
+                    </button>
                 </div>
             </div>
         @endforeach
@@ -223,10 +267,362 @@
         <div class="ml-3">
             <h3 class="text-xs font-medium text-blue-800">How to Book an Appointment</h3>
             <div class="mt-1.5 text-xs text-blue-700">
-                <p>Click the "Book Appointment" button on any doctor's card to start a consultation. You can describe your symptoms and our doctors will provide expert medical advice.</p>
+                <p>Click the "Book Appointment" button on any doctor's card to select a date and time for your consultation. Available slots are shown based on the doctor's schedule.</p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4" x-data="bookingModal()" x-show="showModal" @click.away="closeModal()" style="display: none;">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+        <!-- Modal Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-gray-900">Book Appointment</h3>
+                <p class="text-xs text-gray-500 mt-1" x-text="doctorName"></p>
+                <p class="text-xs text-purple-600 font-medium" x-text="doctorSpecialization"></p>
+            </div>
+            <button @click="closeModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6">
+            <form @submit.prevent="submitBooking()">
+                <!-- Date Selection -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Date</label>
+                    <input type="date" 
+                           x-model="selectedDate" 
+                           @change="loadTimeSlots()"
+                           :min="minDate"
+                           class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                    <p class="text-xs text-red-500 mt-1" x-show="dateError" x-text="dateError"></p>
+                </div>
+
+                <!-- Time Slot Selection -->
+                <div class="mb-6" x-show="selectedDate && availableSlots.length > 0">
+                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Time</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <template x-for="slot in availableSlots" :key="slot.value">
+                            <button type="button"
+                                    @click="selectedTime = slot.value; checkSlotAvailability()"
+                                    :class="{
+                                        'bg-purple-600 text-white border-purple-600': selectedTime === slot.value && !slot.booked,
+                                        'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed': slot.booked,
+                                        'bg-white text-gray-700 border-gray-300 hover:border-purple-500': selectedTime !== slot.value && !slot.booked
+                                    }"
+                                    :disabled="slot.booked"
+                                    class="px-3 py-2 text-xs font-medium rounded-lg border transition">
+                                <span x-text="slot.label"></span>
+                                <span x-show="slot.booked" class="block text-[10px] mt-0.5">Booked</span>
+                            </button>
+                        </template>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2" x-show="selectedDate && availableSlots.length === 0">No available time slots for this date</p>
+                </div>
+
+                <!-- Consultation Mode -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Consultation Mode</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" @click="consultMode = 'voice'" 
+                                :class="consultMode === 'voice' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
+                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                            Voice Call
+                        </button>
+                        <button type="button" @click="consultMode = 'video'" 
+                                :class="consultMode === 'video' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
+                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                            Video Call
+                        </button>
+                        <button type="button" @click="consultMode = 'chat'" 
+                                :class="consultMode === 'chat' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
+                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                            Chat
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Problem Description -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Describe Your Problem</label>
+                    <textarea x-model="problem" 
+                              rows="4" 
+                              placeholder="Please describe your symptoms or health concern..."
+                              class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
+                              required></textarea>
+                </div>
+
+                <!-- Severity -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Severity</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" @click="severity = 'mild'" 
+                                :class="severity === 'mild' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-500'"
+                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                            Mild
+                        </button>
+                        <button type="button" @click="severity = 'moderate'" 
+                                :class="severity === 'moderate' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-300 hover:border-amber-500'"
+                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                            Moderate
+                        </button>
+                        <button type="button" @click="severity = 'severe'" 
+                                :class="severity === 'severe' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:border-red-500'"
+                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                            Severe
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div x-show="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-xs text-red-600" x-text="errorMessage"></p>
+                </div>
+
+                <!-- Success Message -->
+                <div x-show="successMessage" class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <p class="text-xs text-emerald-600" x-text="successMessage"></p>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex gap-3">
+                    <button type="button" @click="closeModal()" 
+                            class="flex-1 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            :disabled="isSubmitting || !selectedDate || !selectedTime || !problem"
+                            :class="(isSubmitting || !selectedDate || !selectedTime || !problem) ? 'opacity-50 cursor-not-allowed' : ''"
+                            class="flex-1 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                        <span x-show="!isSubmitting">Book Appointment</span>
+                        <span x-show="isSubmitting">Booking...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openBookingModal(doctorId, doctorName, doctorSpecialization) {
+    window.dispatchEvent(new CustomEvent('open-booking-modal', { 
+        detail: { doctorId, doctorName, doctorSpecialization } 
+    }));
+}
+
+function bookingModal() {
+    return {
+        showModal: false,
+        doctorId: null,
+        doctorName: '',
+        doctorSpecialization: '',
+        selectedDate: '',
+        selectedTime: '',
+        consultMode: 'voice',
+        problem: '',
+        severity: 'mild',
+        availableSlots: [],
+        bookedSlots: [],
+        isSubmitting: false,
+        errorMessage: '',
+        successMessage: '',
+        dateError: '',
+        minDate: new Date().toISOString().split('T')[0],
+
+        init() {
+            window.addEventListener('open-booking-modal', (e) => {
+                this.doctorId = e.detail.doctorId;
+                this.doctorName = e.detail.doctorName;
+                this.doctorSpecialization = e.detail.doctorSpecialization;
+                this.showModal = true;
+                this.resetForm();
+                this.loadDoctorAvailability();
+            });
+        },
+
+        resetForm() {
+            this.selectedDate = '';
+            this.selectedTime = '';
+            this.consultMode = 'voice';
+            this.problem = '';
+            this.severity = 'mild';
+            this.availableSlots = [];
+            this.bookedSlots = [];
+            this.errorMessage = '';
+            this.successMessage = '';
+            this.dateError = '';
+        },
+
+        closeModal() {
+            this.showModal = false;
+            setTimeout(() => this.resetForm(), 300);
+        },
+
+        async loadDoctorAvailability() {
+            try {
+                const response = await fetch(`/patient/doctors/${this.doctorId}/availability`, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.bookedSlots = data.booked_slots || [];
+                }
+            } catch (error) {
+                console.error('Error loading availability:', error);
+            }
+        },
+
+        loadTimeSlots() {
+            if (!this.selectedDate) return;
+            
+            this.selectedTime = '';
+            this.dateError = '';
+            
+            const selectedDateObj = new Date(this.selectedDate);
+            const dayOfWeek = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            
+            // Load doctor availability for this day
+            fetch(`/patient/doctors/${this.doctorId}/availability`, {
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const schedule = data.availability_schedule || {};
+                    const daySchedule = schedule[dayOfWeek];
+                    
+                    if (!daySchedule || !daySchedule.enabled) {
+                        this.dateError = 'Doctor is not available on this day';
+                        this.availableSlots = [];
+                        return;
+                    }
+                    
+                    // Generate time slots (30-minute intervals)
+                    const slots = [];
+                    const start = new Date(`${this.selectedDate}T${daySchedule.start}`);
+                    const end = new Date(`${this.selectedDate}T${daySchedule.end}`);
+                    
+                    let current = new Date(start);
+                    while (current < end) {
+                        const timeStr = current.toTimeString().slice(0, 5);
+                        const slotDateTime = `${this.selectedDate} ${timeStr}`;
+                        
+                        // Check if this slot is booked
+                        const isBooked = this.bookedSlots.some(booked => {
+                            const bookedDate = booked.date;
+                            const bookedTime = booked.time;
+                            return bookedDate === this.selectedDate && bookedTime === timeStr;
+                        });
+                        
+                        slots.push({
+                            value: timeStr,
+                            label: current.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                            booked: isBooked
+                        });
+                        
+                        current.setMinutes(current.getMinutes() + 30);
+                    }
+                    
+                    this.availableSlots = slots;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading time slots:', error);
+                this.dateError = 'Error loading available time slots';
+            });
+        },
+
+        async checkSlotAvailability() {
+            if (!this.selectedDate || !this.selectedTime) return;
+            
+            const scheduledAt = `${this.selectedDate} ${this.selectedTime}`;
+            
+            try {
+                const response = await fetch('/patient/doctors/check-slot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        doctor_id: this.doctorId,
+                        scheduled_at: scheduledAt
+                    })
+                });
+                
+                const data = await response.json();
+                if (!data.success || !data.available) {
+                    this.errorMessage = data.message || 'This time slot is not available';
+                    this.selectedTime = '';
+                } else {
+                    this.errorMessage = '';
+                }
+            } catch (error) {
+                console.error('Error checking slot:', error);
+            }
+        },
+
+        async submitBooking() {
+            if (!this.selectedDate || !this.selectedTime || !this.problem) {
+                this.errorMessage = 'Please fill in all required fields';
+                return;
+            }
+            
+            this.isSubmitting = true;
+            this.errorMessage = '';
+            this.successMessage = '';
+            
+            const scheduledAt = `${this.selectedDate} ${this.selectedTime}`;
+            
+            try {
+                const response = await fetch('/patient/doctors/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        doctor_id: this.doctorId,
+                        scheduled_at: scheduledAt,
+                        consult_mode: this.consultMode,
+                        problem: this.problem,
+                        severity: this.severity
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.successMessage = data.message || 'Appointment booked successfully!';
+                    setTimeout(() => {
+                        window.location.href = '/patient/consultations';
+                    }, 1500);
+                } else {
+                    this.errorMessage = data.message || 'Failed to book appointment. Please try again.';
+                }
+            } catch (error) {
+                console.error('Error booking appointment:', error);
+                this.errorMessage = 'An error occurred. Please try again.';
+            } finally {
+                this.isSubmitting = false;
+            }
+        }
+    }
+}
+</script>
 @endsection
 

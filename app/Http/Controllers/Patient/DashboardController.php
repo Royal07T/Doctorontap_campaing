@@ -271,7 +271,14 @@ class DashboardController extends Controller
             });
         }
 
-        $doctors = $query->orderBy('name')->paginate(12);
+        // Order by consultation count (most consulted first), then by average rating, then by name
+        $doctors = $query->withCount(['consultations as consultations_count'])
+            ->withCount(['reviews as published_reviews_count' => function($q) {
+                $q->where('is_published', true);
+            }])
+            ->orderBy('consultations_count', 'desc')
+            ->orderBy('name')
+            ->paginate(12);
         $specializations = \App\Models\Doctor::where('is_approved', true)
             ->where('is_available', true)
             ->whereNotNull('specialization')
@@ -786,6 +793,22 @@ class DashboardController extends Controller
     }
 
     /**
+     * Show menstrual cycle
+     */
+    public function showMenstrualCycle($id)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $cycle = MenstrualCycle::where('patient_id', $patient->id)
+            ->findOrFail($id);
+        
+        return response()->json([
+            'success' => true,
+            'cycle' => $cycle,
+        ]);
+    }
+
+    /**
      * Store or update menstrual cycle
      */
     public function storeMenstrualCycle(Request $request)
@@ -1016,6 +1039,204 @@ class DashboardController extends Controller
             'success' => true,
             'message' => 'Sexual health record updated successfully.',
             'record' => $record->load('patient'),
+        ]);
+    }
+
+    /**
+     * Get doctor availability for booking
+     */
+    public function getDoctorAvailability($doctorId)
+    {
+        try {
+            $doctor = Doctor::where('id', $doctorId)
+                ->where('is_approved', true)
+                ->where('is_available', true)
+                ->firstOrFail();
+
+            $schedule = $doctor->availability_schedule ?? [];
+            
+            // Get existing consultations for this doctor to check conflicts
+            $existingConsultations = Consultation::where('doctor_id', $doctor->id)
+                ->whereIn('status', ['pending', 'scheduled'])
+                ->whereNotNull('scheduled_at')
+                ->where('scheduled_at', '>=', now())
+                ->get()
+                ->map(function($consultation) {
+                    return [
+                        'date' => $consultation->scheduled_at->format('Y-m-d'),
+                        'time' => $consultation->scheduled_at->format('H:i'),
+                        'datetime' => $consultation->scheduled_at->format('Y-m-d H:i:s'),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'doctor' => [
+                    'id' => $doctor->id,
+                    'name' => $doctor->name,
+                    'specialization' => $doctor->specialization,
+                ],
+                'availability_schedule' => $schedule,
+                'booked_slots' => $existingConsultations,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Doctor not found or unavailable'
+            ], 404);
+        }
+    }
+
+    /**
+     * Check if a time slot is available
+     */
+    public function checkTimeSlotAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'doctor_id' => 'required|exists:doctors,id',
+            'scheduled_at' => 'required|date|after:now',
+        ]);
+
+        $doctor = Doctor::findOrFail($validated['doctor_id']);
+        $scheduledAt = \Carbon\Carbon::parse($validated['scheduled_at']);
+        $dayOfWeek = strtolower($scheduledAt->format('l')); // monday, tuesday, etc.
+        $time = $scheduledAt->format('H:i');
+
+        // Check if doctor is available on this day
+        $schedule = $doctor->availability_schedule ?? [];
+        $daySchedule = $schedule[$dayOfWeek] ?? null;
+
+        if (!$daySchedule || !($daySchedule['enabled'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'available' => false,
+                'message' => 'Doctor is not available on this day'
+            ]);
+        }
+
+        // Check if time is within doctor's availability window
+        $startTime = \Carbon\Carbon::parse($daySchedule['start']);
+        $endTime = \Carbon\Carbon::parse($daySchedule['end']);
+        $requestTime = \Carbon\Carbon::parse($time);
+
+        if ($requestTime->lt($startTime) || $requestTime->gte($endTime)) {
+            return response()->json([
+                'success' => false,
+                'available' => false,
+                'message' => 'Time slot is outside doctor\'s availability hours'
+            ]);
+        }
+
+        // Check for conflicts with existing consultations
+        $conflict = Consultation::where('doctor_id', $doctor->id)
+            ->whereIn('status', ['pending', 'scheduled'])
+            ->whereNotNull('scheduled_at')
+            ->where('scheduled_at', '>=', now())
+            ->whereBetween('scheduled_at', [
+                $scheduledAt->copy()->subMinutes(29), // 30-minute buffer
+                $scheduledAt->copy()->addMinutes(29)
+            ])
+            ->exists();
+
+        if ($conflict) {
+            return response()->json([
+                'success' => false,
+                'available' => false,
+                'message' => 'This time slot is already booked. Please choose another time.'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'available' => true,
+            'message' => 'Time slot is available'
+        ]);
+    }
+
+    /**
+     * Create consultation with scheduled time
+     */
+    public function createScheduledConsultation(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+
+        $validated = $request->validate([
+            'doctor_id' => 'required|exists:doctors,id',
+            'scheduled_at' => 'required|date|after:now',
+            'consult_mode' => 'required|in:voice,video,chat',
+            'problem' => 'required|string|max:1000',
+            'severity' => 'required|in:mild,moderate,severe',
+        ]);
+
+        $doctor = Doctor::findOrFail($validated['doctor_id']);
+
+        // Verify doctor is available
+        if (!$doctor->is_available || !$doctor->is_approved) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Doctor is not available for booking'
+            ], 400);
+        }
+
+        // Check time slot availability
+        $scheduledAt = \Carbon\Carbon::parse($validated['scheduled_at']);
+        $dayOfWeek = strtolower($scheduledAt->format('l'));
+        $schedule = $doctor->availability_schedule ?? [];
+        $daySchedule = $schedule[$dayOfWeek] ?? null;
+
+        if (!$daySchedule || !($daySchedule['enabled'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Doctor is not available on this day'
+            ], 400);
+        }
+
+        // Check for conflicts
+        $conflict = Consultation::where('doctor_id', $doctor->id)
+            ->whereIn('status', ['pending', 'scheduled'])
+            ->whereNotNull('scheduled_at')
+            ->where('scheduled_at', '>=', now())
+            ->whereBetween('scheduled_at', [
+                $scheduledAt->copy()->subMinutes(29),
+                $scheduledAt->copy()->addMinutes(29)
+            ])
+            ->exists();
+
+        if ($conflict) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This time slot is already booked. Please choose another time.'
+            ], 400);
+        }
+
+        // Create consultation
+        $consultation = Consultation::create([
+            'reference' => 'CONS-' . strtoupper(Str::random(8)),
+            'patient_id' => $patient->id,
+            'doctor_id' => $doctor->id,
+            'first_name' => $patient->first_name,
+            'last_name' => $patient->last_name,
+            'email' => $patient->email,
+            'mobile' => $patient->phone,
+            'age' => $patient->age,
+            'gender' => $patient->gender,
+            'problem' => $validated['problem'],
+            'severity' => $validated['severity'],
+            'consult_mode' => $validated['consult_mode'],
+            'status' => 'scheduled',
+            'payment_status' => 'unpaid',
+            'scheduled_at' => $scheduledAt,
+            'consultation_type' => 'scheduled',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Appointment booked successfully!',
+            'consultation' => [
+                'id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'scheduled_at' => $consultation->scheduled_at->format('Y-m-d H:i:s'),
+            ]
         ]);
     }
 

@@ -170,6 +170,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
     Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
     Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
+    Route::get('/most-consulted-doctors', [DashboardController::class, 'mostConsultedDoctors'])->name('most-consulted-doctors');
     Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
     Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
     Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
@@ -484,9 +485,15 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/doctors/symptom/{symptom}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySymptom'])->name('doctors-by-symptom');
     
     // Menstrual Cycle Tracking (for female patients)
+    Route::get('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'showMenstrualCycle'])->name('menstrual-cycle.show');
     Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
     Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
     Route::delete('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteMenstrualCycle'])->name('menstrual-cycle.delete');
+    
+    // Doctor Booking
+    Route::get('/doctors/{id}/availability', [\App\Http\Controllers\Patient\DashboardController::class, 'getDoctorAvailability'])->name('doctors.availability');
+    Route::post('/doctors/check-slot', [\App\Http\Controllers\Patient\DashboardController::class, 'checkTimeSlotAvailability'])->name('doctors.check-slot');
+    Route::post('/doctors/book', [\App\Http\Controllers\Patient\DashboardController::class, 'createScheduledConsultation'])->name('doctors.book');
     
     // Sexual Health & Performance Tracking (for male patients)
     Route::post('/sexual-health', [\App\Http\Controllers\Patient\DashboardController::class, 'storeSexualHealthRecord'])->name('sexual-health.store');

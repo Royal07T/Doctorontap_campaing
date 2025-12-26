@@ -113,6 +113,20 @@ class DashboardController extends Controller
             });
         }
         
+        // Get doctor payment percentage from settings
+        $doctorPercentage = \App\Models\Setting::get('doctor_payment_percentage', 70);
+        
+        // Get all paid consultations
+        $paidConsultations = Consultation::where('doctor_id', $doctor->id)
+                                         ->where('payment_status', 'paid')
+                                         ->get();
+        
+        // Calculate total earnings from paid consultations
+        $totalEarnings = $paidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
+            $consultationFee = $doctor->effective_consultation_fee ?? 0;
+            return ($consultationFee * $doctorPercentage) / 100;
+        });
+        
         // Calculate statistics
         $stats = [
             'total' => Consultation::where('doctor_id', $doctor->id)->count(),
@@ -122,6 +136,7 @@ class DashboardController extends Controller
                 ->where('payment_status', '!=', 'paid')->count(),
             'pending' => Consultation::where('doctor_id', $doctor->id)->where('status', 'pending')->count(),
             'completed' => Consultation::where('doctor_id', $doctor->id)->where('status', 'completed')->count(),
+            'total_earnings' => $totalEarnings,
         ];
         
         $consultations = $query->latest()->paginate(20);

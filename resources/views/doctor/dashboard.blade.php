@@ -27,6 +27,12 @@
                             <div class="flex-1">
                                 <h2 class="text-2xl md:text-3xl font-bold mb-2 drop-shadow-lg">Welcome back, Dr. {{ Auth::guard('doctor')->user()->name }}! 👨‍⚕️</h2>
                                 <p class="text-white text-opacity-90 text-sm md:text-base mb-4">We're glad to have you here. Manage your consultations, view patient information, and stay updated with your practice.</p>
+                                <div class="flex items-center gap-4 mb-4">
+                                    <div class="bg-white px-4 py-2 rounded-lg shadow-md">
+                                        <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Earnings</p>
+                                        <p class="text-xl font-bold text-gray-900">₦{{ number_format($stats['total_earnings'] ?? 0, 2) }}</p>
+                                    </div>
+                                </div>
                                 <div class="flex flex-wrap gap-3 mt-4">
                                     <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-900 shadow-md">
                                         <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,10 +49,13 @@
                                 </div>
                             </div>
                             <div class="hidden md:block ml-6">
-                                <div class="bg-white bg-opacity-20 backdrop-blur-sm p-6 rounded-xl shadow-xl border border-white border-opacity-30">
-                                    <svg class="w-16 h-16 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
+                                <div class="bg-white p-6 rounded-xl shadow-xl">
+                                    <div class="relative">
+                                        <div class="absolute inset-0 bg-emerald-500 rounded-full opacity-20"></div>
+                                        <svg class="w-16 h-16 text-emerald-600 drop-shadow-lg relative z-10" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
