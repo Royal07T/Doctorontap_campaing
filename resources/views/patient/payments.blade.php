@@ -63,19 +63,19 @@
                         <div class="flex-1">
                             <h3 class="text-sm font-semibold text-gray-900 mb-1">{{ $consultation->reference }}</h3>
                             <p class="text-xs text-gray-600">
-                                @if($consultation->doctor)
-                                    @php
-                                        $doctorName = trim($consultation->doctor->name);
-                                        $doctorNameLower = strtolower($doctorName);
-                                        $hasDrPrefix = preg_match('/^dr\.?\s*/i', $doctorNameLower);
-                                    @endphp
-                                    {{ $hasDrPrefix ? $doctorName : 'Dr. ' . $doctorName }} - {{ $consultation->doctor->specialization ?? 'General Practitioner' }}
-                                @else
-                                    No doctor assigned yet
-                                @endif
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">{{ $consultation->created_at->format('M d, Y H:i A') }}</p>
-                        </div>
+                                        @if($consultation->doctor)
+                                            @php
+                                                $doctorName = trim($consultation->doctor->name);
+                                                $doctorNameLower = strtolower($doctorName);
+                                                $hasDrPrefix = preg_match('/^dr\.?\s*/i', $doctorNameLower);
+                                            @endphp
+                                            {{ $hasDrPrefix ? $doctorName : 'Dr. ' . $doctorName }} - {{ $consultation->doctor->specialization ?? 'General Practitioner' }}
+                                        @else
+                                            No doctor assigned yet
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $consultation->created_at->format('M d, Y H:i A') }}</p>
+                                </div>
                         <div class="flex items-center space-x-3 ml-4">
                             <div class="text-right">
                                 @php
@@ -120,8 +120,8 @@
 
 <!-- Payment History Cards -->
 <div class="space-y-4">
-    @if($consultations->count() > 0)
-        @foreach($consultations as $consultation)
+        @if($consultations->count() > 0)
+                        @foreach($consultations as $consultation)
             <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                 <!-- Card Header -->
                 <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -157,11 +157,11 @@
                                 </p>
                             </div>
                             <div class="flex-shrink-0 text-right mr-4">
-                                @if($consultation->payment)
+                                    @if($consultation->payment)
                                     <p class="text-sm font-bold text-gray-900">₦{{ number_format($consultation->payment->amount, 2) }}</p>
-                                @else
+                                    @else
                                     <p class="text-xs text-gray-500">N/A</p>
-                                @endif
+                                    @endif
                             </div>
                         </div>
                         <div class="flex-shrink-0 ml-4">
@@ -230,36 +230,36 @@
 
                         <!-- Action Buttons -->
                         <div class="pt-3 border-t border-gray-200">
-                            @if($consultation->payment_status === 'paid' && $consultation->payment)
+                                    @if($consultation->payment_status === 'paid' && $consultation->payment)
                                 <a href="{{ route('patient.consultation.receipt', $consultation->id) }}" 
                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white purple-gradient rounded-lg hover:opacity-90 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
                                     View Receipt
-                                </a>
-                            @else
-                                @php
-                                    $fee = 0;
-                                    if ($consultation->consultation_type === 'pay_now') {
-                                        $fee = \App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500));
-                                    } elseif ($consultation->consultation_type === 'pay_later') {
-                                        $fee = \App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000));
-                                    } else {
-                                        $fee = $consultation->doctor->effective_consultation_fee ?? 0;
-                                    }
-                                @endphp
-                                @if($fee > 0)
-                                    <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST" class="inline">
-                                        @csrf
+                                        </a>
+                                    @else
+                                        @php
+                                            $fee = 0;
+                                            if ($consultation->consultation_type === 'pay_now') {
+                                                $fee = \App\Models\Setting::get('consultation_fee_pay_now', \App\Models\Setting::get('pay_now_consultation_fee', 4500));
+                                            } elseif ($consultation->consultation_type === 'pay_later') {
+                                                $fee = \App\Models\Setting::get('consultation_fee_pay_later', \App\Models\Setting::get('pay_later_consultation_fee', 5000));
+                                            } else {
+                                                $fee = $consultation->doctor->effective_consultation_fee ?? 0;
+                                            }
+                                        @endphp
+                                        @if($fee > 0)
+                                            <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST" class="inline">
+                                                @csrf
                                         <button type="submit" class="px-4 py-2 purple-gradient hover:opacity-90 text-white text-xs font-medium rounded-lg transition">
-                                            Pay Now
-                                        </button>
-                                    </form>
-                                @else
+                                                    Pay Now
+                                                </button>
+                                            </form>
+                                    @else
                                     <span class="text-xs text-gray-400">N/A</span>
-                                @endif
-                            @endif
+                                        @endif
+                                    @endif
                         </div>
                     </div>
                 </div>

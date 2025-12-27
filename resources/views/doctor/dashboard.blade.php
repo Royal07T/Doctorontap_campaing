@@ -31,22 +31,22 @@
                                     <div class="bg-white px-4 py-2 rounded-lg shadow-md">
                                         <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Earnings</p>
                                         <p class="text-xl font-bold text-gray-900">₦{{ number_format($stats['total_earnings'] ?? 0, 2) }}</p>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
                                 <div class="flex flex-wrap gap-3 mt-4">
                                     <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-900 shadow-md">
                                         <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
+                                </svg>
                                         <span class="text-gray-900">View Consultations</span>
                                     </a>
                                     <a href="{{ route('doctor.profile') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-900 shadow-md">
                                         <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                        </svg>
+                                </svg>
                                         <span class="text-gray-900">Update Profile</span>
                                     </a>
-                                </div>
+                    </div>
                             </div>
                             <div class="hidden md:block ml-6">
                                 <div class="bg-white p-6 rounded-xl shadow-xl">
@@ -54,9 +54,9 @@
                                         <div class="absolute inset-0 bg-emerald-500 rounded-full opacity-20"></div>
                                         <svg class="w-16 h-16 text-emerald-600 drop-shadow-lg relative z-10" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                </div>
+                                </svg>
+                            </div>
+                        </div>
                             </div>
                         </div>
                     </div>
@@ -80,7 +80,7 @@
                         </a>
                     </div>
                     <div class="space-y-4">
-                        @foreach($recentConsultations as $consultation)
+                                @foreach($recentConsultations as $consultation)
                             <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                                 <!-- Card Header -->
                                 <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -108,8 +108,8 @@
                                                         @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-700
                                                         @elseif($consultation->status === 'cancelled') bg-red-100 text-red-700
                                                         @else bg-gray-100 text-gray-700 @endif">
-                                                        {{ ucfirst($consultation->status) }}
-                                                    </span>
+                                            {{ ucfirst($consultation->status) }}
+                                        </span>
                                                     @if($consultation->payment_status === 'paid')
                                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">✓ Paid</span>
                                                     @elseif($consultation->payment_status === 'pending')
@@ -167,30 +167,30 @@
                                             </div>
                                             <div>
                                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Status</p>
-                                                @if($consultation->payment_status == 'paid')
+                                        @if($consultation->payment_status == 'paid')
                                                     <div>
                                                         <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">
-                                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                            </svg>
-                                                            Paid
-                                                        </span>
-                                                        @if($consultation->payment)
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Paid
+                                            </span>
+                                            @if($consultation->payment)
                                                             <p class="text-xs text-gray-700 mt-1 font-semibold">₦{{ number_format($consultation->payment->amount, 2) }}</p>
-                                                        @endif
+                                            @endif
                                                     </div>
-                                                @elseif($consultation->payment_status == 'pending')
+                                        @elseif($consultation->payment_status == 'pending')
                                                     <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
-                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                                                        </svg>
-                                                        Pending
-                                                    </span>
-                                                @else
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Pending
+                                            </span>
+                                        @else
                                                     <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
-                                                        Not Required
-                                                    </span>
-                                                @endif
+                                                Not Required
+                                            </span>
+                                        @endif
                                             </div>
                                         </div>
 
@@ -208,7 +208,7 @@
                                     </div>
                                 </div>
                             </div>
-                        @endforeach
+                                @endforeach
                     </div>
                 </div>
                 @endif

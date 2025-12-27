@@ -144,7 +144,7 @@
 
         <!-- Payments Cards -->
         <div class="space-y-4">
-            @forelse($payments as $payment)
+                        @forelse($payments as $payment)
                 <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                     <!-- Card Header -->
                     <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -166,8 +166,8 @@
                                             @if($payment->status === 'success') bg-emerald-100 text-emerald-700
                                             @elseif($payment->status === 'pending') bg-amber-100 text-amber-700
                                             @elseif($payment->status === 'failed') bg-red-100 text-red-700 @endif">
-                                            {{ ucfirst($payment->status) }}
-                                        </span>
+                                    {{ ucfirst($payment->status) }}
+                                </span>
                                     </div>
                                     <p class="text-xs text-gray-600">{{ $payment->customer_name }} • NGN {{ number_format($payment->amount, 2) }}</p>
                                 </div>
@@ -234,7 +234,7 @@
                     </svg>
                     <h3 class="text-sm font-semibold text-gray-900 mb-2">No Payments Found</h3>
                 </div>
-            @endforelse
+                        @endforelse
 
             <!-- Pagination -->
             @if($payments->hasPages())

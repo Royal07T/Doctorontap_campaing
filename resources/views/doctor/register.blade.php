@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Doctor Registration - {{ config('app.name') }}</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
@@ -54,20 +57,20 @@
                         // Completed
                         circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-green-500 text-white font-bold shadow-lg transform scale-110';
                         circle.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
-                        if (label) label.className = 'step-label text-xs font-semibold text-green-600 mt-2';
+                        if (label) label.className = 'step-label text-xs font-semibold text-white mt-2';
                         if (line) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-green-500';
                     } else if (index === step) {
                         // Current
-                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-purple-600 text-white font-bold shadow-lg ring-4 ring-purple-200 transform scale-110';
+                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-white text-purple-600 font-bold shadow-lg ring-4 ring-white/50 transform scale-110';
                         circle.textContent = index + 1;
-                        if (label) label.className = 'step-label text-xs font-semibold text-purple-600 mt-2';
-                        if (line && index < 3) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-gray-300';
+                        if (label) label.className = 'step-label text-xs font-semibold text-white mt-2';
+                        if (line && index < 3) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-white/30';
                     } else {
                         // Upcoming
-                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold';
+                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white/70 font-bold border-2 border-white/30';
                         circle.textContent = index + 1;
-                        if (label) label.className = 'step-label text-xs font-medium text-gray-400 mt-2';
-                        if (line && index < 3) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-gray-300';
+                        if (label) label.className = 'step-label text-xs font-medium text-white/80 mt-2';
+                        if (line && index < 3) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-white/30';
                     }
                 });
             }
@@ -105,9 +108,73 @@
                 });
             });
         });
+        
+        // Toggle password visibility
+        function togglePasswordVisibility(inputId, buttonId) {
+            const passwordInput = document.getElementById(inputId);
+            const eyeOpen = document.getElementById(buttonId + '-open');
+            const eyeClosed = document.getElementById(buttonId + '-closed');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeOpen.classList.add('hidden');
+                eyeClosed.classList.remove('hidden');
+            } else {
+                passwordInput.type = 'password';
+                eyeOpen.classList.remove('hidden');
+                eyeClosed.classList.add('hidden');
+            }
+        }
+        
+        // Load cities when state is selected
+        document.addEventListener('DOMContentLoaded', function() {
+            const stateSelect = document.getElementById('state');
+            const locationSelect = document.getElementById('location');
+            const oldState = @json(old('state'));
+            const oldLocation = @json(old('location', ''));
+            
+            if (stateSelect && locationSelect) {
+                stateSelect.addEventListener('change', function() {
+                    const stateId = this.value;
+                    locationSelect.innerHTML = '<option value="">Loading cities...</option>';
+                    locationSelect.disabled = true;
+                    
+                    if (stateId) {
+                        fetch(`/doctor/states/${stateId}/cities`)
+                            .then(response => response.json())
+                            .then(cities => {
+                                locationSelect.innerHTML = '<option value="">Select your city</option>';
+                                cities.forEach(city => {
+                                    const option = document.createElement('option');
+                                    option.value = city.name;
+                                    option.textContent = city.name;
+                                    if (oldLocation === city.name) {
+                                        option.selected = true;
+                                    }
+                                    locationSelect.appendChild(option);
+                                });
+                                locationSelect.disabled = false;
+                            })
+                            .catch(error => {
+                                console.error('Error loading cities:', error);
+                                locationSelect.innerHTML = '<option value="">Error loading cities</option>';
+                            });
+                    } else {
+                        locationSelect.innerHTML = '<option value="">Select state first</option>';
+                        locationSelect.disabled = true;
+                    }
+                });
+                
+                // If old state is set, trigger change to load cities
+                if (oldState) {
+                    stateSelect.value = oldState;
+                    stateSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        });
     </script>
 </head>
-<body class="bg-gradient-to-br from-purple-50 via-white to-purple-50 min-h-screen">
+<body class="bg-gradient-to-br from-purple-50 via-white to-purple-50 min-h-screen" x-data="{ isSubmitting: false }">
     <!-- Header -->
     <div class="bg-purple-600 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -123,12 +190,12 @@
     </div>
 
     <!-- Progress Bar -->
-    <div class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <div class="sticky top-0 z-50 bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 border-b border-purple-700 shadow-lg">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <!-- Progress Bar Line -->
             <div class="relative mb-8">
-                <div class="absolute top-4 left-0 w-full h-0.5 bg-gray-200"></div>
-                <div id="progress-bar" class="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-green-500 via-purple-500 to-purple-600 transition-all duration-500 ease-out" style="width: 25%;"></div>
+                <div class="absolute top-4 left-0 w-full h-0.5 bg-white/20"></div>
+                <div id="progress-bar" class="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-green-400 via-white to-white transition-all duration-500 ease-out shadow-lg" style="width: 25%;"></div>
                 
                 <!-- Steps -->
                 <div class="relative flex justify-between">
@@ -137,7 +204,7 @@
                         <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-purple-600 text-white font-bold shadow-lg ring-4 ring-purple-200 transform scale-110">
                             1
                         </div>
-                        <span class="step-label text-xs font-semibold text-purple-600 mt-2 hidden sm:block">Personal Info</span>
+                        <span class="step-label text-xs font-semibold text-white mt-2 hidden sm:block">Personal Info</span>
                     </div>
                     
                     <!-- Step 2 -->
@@ -146,7 +213,7 @@
                         <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">
                             2
                         </div>
-                        <span class="step-label text-xs font-medium text-gray-400 mt-2 hidden sm:block">Professional</span>
+                        <span class="step-label text-xs font-medium text-white/80 mt-2 hidden sm:block">Professional</span>
                     </div>
                     
                     <!-- Step 3 -->
@@ -155,7 +222,7 @@
                         <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">
                             3
                         </div>
-                        <span class="step-label text-xs font-medium text-gray-400 mt-2 hidden sm:block">Documents</span>
+                        <span class="step-label text-xs font-medium text-white/80 mt-2 hidden sm:block">Documents</span>
                     </div>
                     
                     <!-- Step 4 -->
@@ -164,15 +231,15 @@
                         <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">
                             4
                         </div>
-                        <span class="step-label text-xs font-medium text-gray-400 mt-2 hidden sm:block">Security</span>
+                        <span class="step-label text-xs font-medium text-white/80 mt-2 hidden sm:block">Security</span>
                     </div>
                 </div>
             </div>
             
             <!-- Progress Text -->
             <div class="text-center">
-                <p class="text-sm text-gray-600">
-                    <span id="progress-text" class="font-semibold text-purple-600">Step 1 of 4</span>
+                <p class="text-sm text-white/90">
+                    <span id="progress-text" class="font-semibold text-white">Step 1 of 4</span>
                     <span class="hidden sm:inline"> - Complete all sections to register</span>
                 </p>
             </div>
@@ -184,7 +251,7 @@
         <!-- Welcome Section -->
         <div class="text-center mb-10">
             <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-                Welcome to DoctorOnTap! 🎉
+                Welcome to DoctorOnTap! 
             </h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
                 We are super excited to have you join our network. Complete the registration form below to get started with providing excellent healthcare services.
@@ -193,7 +260,7 @@
 
         <!-- Registration Form Card -->
         <div class="bg-white rounded-2xl shadow-xl border border-purple-100 overflow-hidden">
-            <form method="POST" action="{{ route('doctor.register.post') }}" enctype="multipart/form-data" class="divide-y divide-gray-100">
+            <form method="POST" action="{{ route('doctor.register.post') }}" enctype="multipart/form-data" class="divide-y divide-gray-100" @submit="isSubmitting = true">
                 @csrf
 
                 @if ($errors->any())
@@ -376,13 +443,20 @@
                             <label for="specialization" class="block text-sm font-semibold text-gray-700 mb-2">
                                 F. Specialty <span class="text-red-500">*</span>
                             </label>
-                            <input type="text"
-                                   id="specialization"
-                                   name="specialization"
-                                   value="{{ old('specialization') }}"
-                                   required
-                                   placeholder="e.g., General Doctor, ENT Specialist"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('specialization') border-red-500 @enderror">
+                            <select id="specialization"
+                                    name="specialization"
+                                    required
+                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('specialization') border-red-500 @enderror">
+                                <option value="">Select your medical specialty</option>
+                                @foreach($specialties as $specialty)
+                                    <option value="{{ $specialty->name }}" {{ old('specialization') == $specialty->name ? 'selected' : '' }}>
+                                        {{ $specialty->name }}
+                                        @if($specialty->description)
+                                            - {{ Str::limit($specialty->description, 50) }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
                             @error('specialization')
                                 <p class="mt-2 text-xs text-red-500 flex items-center">
                                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -391,6 +465,12 @@
                                     {{ $message }}
                                 </p>
                             @enderror
+                            <p class="mt-1.5 text-xs text-gray-500">
+                                <svg class="w-4 h-4 inline mr-1 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Select your area of medical expertise from the list
+                            </p>
                         </div>
 
                         <!-- Years of Experience -->
@@ -485,18 +565,44 @@
                             @enderror
                         </div>
 
-                        <!-- Location -->
+                        <!-- State -->
+                        <div>
+                            <label for="state" class="block text-sm font-semibold text-gray-700 mb-2">
+                                L. State <span class="text-red-500">*</span>
+                            </label>
+                            <select id="state"
+                                    name="state"
+                                    required
+                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('state') border-red-500 @enderror">
+                                <option value="">Select your state</option>
+                                @foreach($states as $state)
+                                    <option value="{{ $state->id }}" {{ old('state') == $state->id ? 'selected' : '' }}>
+                                        {{ $state->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('state')
+                                <p class="mt-2 text-xs text-red-500 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {{ $message }}
+                                </p>
+                            @enderror
+                        </div>
+
+                        <!-- City/Location -->
                         <div>
                             <label for="location" class="block text-sm font-semibold text-gray-700 mb-2">
-                                L. Location <span class="text-red-500">*</span>
+                                City <span class="text-red-500">*</span>
                             </label>
-                            <input type="text"
-                                   id="location"
-                                   name="location"
-                                   value="{{ old('location') }}"
-                                   required
-                                   placeholder="e.g., Warri, Delta state"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('location') border-red-500 @enderror">
+                            <select id="location"
+                                    name="location"
+                                    required
+                                    disabled
+                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('location') border-red-500 @enderror">
+                                <option value="">Select state first</option>
+                            </select>
                             @error('location')
                                 <p class="mt-2 text-xs text-red-500 flex items-center">
                                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -505,6 +611,13 @@
                                     {{ $message }}
                                 </p>
                             @enderror
+                            <p class="mt-1.5 text-xs text-gray-500">
+                                <svg class="w-4 h-4 inline mr-1 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Select your city from the list
+                            </p>
                         </div>
 
                         <!-- MDCN License -->
@@ -587,7 +700,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900">Documentation (Optional)</h3>
+                            <h3 class="text-xl font-bold text-gray-900">Documentation</h3>
                             <p class="text-sm text-gray-500">Upload your credentials for verification</p>
                         </div>
                     </div>
@@ -630,13 +743,14 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         <label for="certificate" class="block text-sm font-semibold text-gray-700 mb-1">
-                            Upload MDCN License or Medical Certificate
+                            Upload MDCN License or Medical Certificate <span class="text-red-500">*</span>
                         </label>
-                        <p class="text-xs text-gray-500 mb-3">Click to browse or drag and drop</p>
+                        <p class="text-xs text-gray-500 mb-3">Click to browse or drag and drop (Required)</p>
                         <input type="file"
                                id="certificate"
                                name="certificate"
                                accept=".pdf,.jpg,.jpeg,.png"
+                               required
                                class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer">
                         @error('certificate')
                             <p class="mt-2 text-xs text-red-500 flex items-center justify-center">
@@ -669,14 +783,31 @@
                             <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Password <span class="text-red-500">*</span>
                             </label>
-                            <input type="password"
-                                   id="password"
-                                   name="password"
-                                   required
-                                   minlength="8"
-                                   placeholder="Minimum 8 characters (uppercase, lowercase, number)"
-                                   title="Password must be at least 8 characters and contain uppercase, lowercase, and number"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('password') border-red-500 @enderror">
+                            <div class="relative">
+                                <input type="password"
+                                       id="password"
+                                       name="password"
+                                       required
+                                       minlength="8"
+                                       placeholder="Minimum 8 characters (uppercase, lowercase, number)"
+                                       title="Password must be at least 8 characters and contain uppercase, lowercase, and number"
+                                       class="w-full px-4 py-3 pr-12 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('password') border-red-500 @enderror">
+                                <button type="button"
+                                        onclick="togglePasswordVisibility('password', 'password-eye')"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors p-1"
+                                        id="password-eye"
+                                        aria-label="Toggle password visibility">
+                                    <!-- Eye icon (show password) -->
+                                    <svg id="password-eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <!-- Eye slash icon (hide password) -->
+                                    <svg id="password-eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                </button>
+                            </div>
                             @error('password')
                                 <p class="mt-2 text-xs text-red-500 flex items-center">
                                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -692,14 +823,31 @@
                             <label for="password_confirmation" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Confirm Password <span class="text-red-500">*</span>
                             </label>
-                            <input type="password"
-                                   id="password_confirmation"
-                                   name="password_confirmation"
-                                   required
-                                   minlength="8"
-                                   placeholder="Re-enter password"
-                                   title="Please confirm your password"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
+                            <div class="relative">
+                                <input type="password"
+                                       id="password_confirmation"
+                                       name="password_confirmation"
+                                       required
+                                       minlength="8"
+                                       placeholder="Re-enter password"
+                                       title="Please confirm your password"
+                                       class="w-full px-4 py-3 pr-12 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
+                                <button type="button"
+                                        onclick="togglePasswordVisibility('password_confirmation', 'password-confirmation-eye')"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors p-1"
+                                        id="password-confirmation-eye"
+                                        aria-label="Toggle password visibility">
+                                    <!-- Eye icon (show password) -->
+                                    <svg id="password-confirmation-eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <!-- Eye slash icon (hide password) -->
+                                    <svg id="password-confirmation-eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -711,8 +859,16 @@
                         <p class="text-xs text-gray-500 mt-1">We'll send you a verification email after registration.</p>
                     </div>
                     <button type="submit"
-                            class="w-full px-8 py-4 bg-purple-600 text-white font-bold text-lg rounded-xl hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 shadow-lg hover:shadow-xl transition-all">
-                        Complete Registration →
+                            :disabled="isSubmitting"
+                            class="w-full px-8 py-4 bg-purple-600 text-white font-bold text-lg rounded-xl hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span x-show="!isSubmitting">Complete Registration →</span>
+                        <span x-show="isSubmitting" class="flex items-center justify-center gap-2">
+                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Submitting...
+                        </span>
                     </button>
                 </div>
             </form>
@@ -734,5 +890,28 @@
             </p>
         </div>
     </div>
+
+    <!-- Preloader -->
+    <x-system-preloader x-show="isSubmitting" message="Submitting your registration..." />
+
+    <script>
+        // Handle form submission and show preloader
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[action="{{ route('doctor.register.post') }}"]');
+            
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    // The Alpine.js @submit handler will set isSubmitting = true
+                    // But we also want to ensure it's set in case Alpine hasn't initialized
+                    if (typeof Alpine !== 'undefined' && Alpine.$data) {
+                        const bodyData = Alpine.$data(document.body);
+                        if (bodyData) {
+                            bodyData.isSubmitting = true;
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

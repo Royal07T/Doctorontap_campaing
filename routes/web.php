@@ -182,6 +182,8 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/doctor-registrations/{id}/approve', [DashboardController::class, 'approveDoctorRegistration'])->name('doctor-registrations.approve');
     Route::post('/doctor-registrations/{id}/reject', [DashboardController::class, 'rejectDoctorRegistration'])->name('doctor-registrations.reject');
     Route::get('/doctors/{id}/certificate', [DashboardController::class, 'viewCertificate'])->name('doctors.certificate');
+    Route::post('/doctors/{id}/verify-certificate', [DashboardController::class, 'verifyMdcnCertificate'])->name('doctors.verify-certificate');
+    Route::post('/doctors/{id}/unverify-certificate', [DashboardController::class, 'unverifyMdcnCertificate'])->name('doctors.unverify-certificate');
     
     // Settings
     Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
@@ -337,6 +339,7 @@ Route::prefix('doctor')->name('doctor.')->group(function () {
     Route::get('/register', [DoctorRegistrationController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [DoctorRegistrationController::class, 'register'])->name('register.post');
     Route::get('/registration-success', [DoctorRegistrationController::class, 'success'])->name('registration.success');
+    Route::get('/states/{stateId}/cities', [DoctorRegistrationController::class, 'getCitiesByState'])->name('doctor.cities-by-state');
     
     // Password Reset Routes
     Route::get('/forgot-password', [DoctorForgotPasswordController::class, 'showForgotPassword'])->name('password.request');

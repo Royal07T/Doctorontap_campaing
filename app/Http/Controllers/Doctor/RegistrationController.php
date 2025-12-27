@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Doctor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Doctor;
+use App\Models\Specialty;
+use App\Models\Location;
+use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +18,21 @@ class RegistrationController extends Controller
      */
     public function showRegistrationForm()
     {
-        return view('doctor.register');
+        $specialties = Specialty::active()->orderBy('name')->get();
+        $states = State::orderBy('name')->get();
+        return view('doctor.register', compact('specialties', 'states'));
+    }
+    
+    /**
+     * Get cities by state
+     */
+    public function getCitiesByState($stateId)
+    {
+        $cities = Location::where('state_id', $stateId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        
+        return response()->json($cities);
     }
 
     /**
@@ -30,16 +47,17 @@ class RegistrationController extends Controller
             'phone' => 'required|string|min:10|max:20|regex:/^[0-9+\s\-\(\)]+$/',
             'email' => 'required|email|max:255|unique:doctors,email',
             'password' => 'required|string|min:8|confirmed|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/',
-            'specialization' => 'required|string|min:3|max:255',
+            'specialization' => 'required|string|exists:specialties,name',
             'experience' => 'required|string|min:3|max:255',
             'consultation_fee' => 'required|numeric|min:500|max:1000000',
             'place_of_work' => 'required|string|min:3|max:255',
             'role' => 'required|in:clinical,non-clinical',
-            'location' => 'required|string|min:3|max:255',
+            'state' => 'required|exists:states,id',
+            'location' => 'required|string|exists:locations,name',
             'mdcn_license_current' => 'required|in:yes,no,processing',
             'languages' => 'required|string|min:3|max:255',
             'days_of_availability' => 'required|string|min:10|max:1000',
-            'certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'certificate' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ], [
             // Custom error messages
             'first_name.required' => 'Please enter your first name.',
@@ -59,8 +77,8 @@ class RegistrationController extends Controller
             'password.min' => 'Password must be at least 8 characters long.',
             'password.confirmed' => 'Password confirmation does not match.',
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, and one number.',
-            'specialization.required' => 'Please enter your medical specialty.',
-            'specialization.min' => 'Specialty must be at least 3 characters.',
+            'specialization.required' => 'Please select your medical specialty.',
+            'specialization.exists' => 'Please select a valid medical specialty.',
             'experience.required' => 'Please enter your years of experience.',
             'experience.min' => 'Experience must be at least 3 characters.',
             'consultation_fee.required' => 'Please enter your consultation fee.',
@@ -69,18 +87,19 @@ class RegistrationController extends Controller
             'place_of_work.required' => 'Please enter your current place of work.',
             'place_of_work.min' => 'Place of work must be at least 3 characters.',
             'role.required' => 'Please select your role.',
-            'location.required' => 'Please enter your location.',
-            'location.min' => 'Location must be at least 3 characters.',
+            'location.required' => 'Please select your location.',
+            'location.exists' => 'Please select a valid location.',
             'mdcn_license_current.required' => 'Please select your MDCN license status.',
             'languages.required' => 'Please enter languages you speak.',
             'languages.min' => 'Languages must be at least 3 characters.',
             'days_of_availability.required' => 'Please enter your days of availability.',
             'days_of_availability.min' => 'Days of availability must be at least 10 characters.',
+            'certificate.required' => 'MDCN certificate upload is required for registration.',
             'certificate.mimes' => 'Certificate must be a PDF, JPG, JPEG, or PNG file.',
             'certificate.max' => 'Certificate file size must not exceed 5MB.',
         ]);
 
-        // Handle certificate upload
+        // Handle certificate upload - Store securely in private storage
         $certificatePath = null;
         $certificateData = null;
         $certificateMimeType = null;
@@ -89,10 +108,11 @@ class RegistrationController extends Controller
         if ($request->hasFile('certificate')) {
             $file = $request->file('certificate');
             
-            // Store file path (for backup/reference)
-            $certificatePath = $file->store('doctor-certificates', 'public');
+            // Store file securely in private storage (not public)
+            $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+            $certificatePath = $file->storeAs('doctor-certificates', $fileName); // Uses 'local' disk by default (private)
             
-            // Store file content in database as base64
+            // Store file content in database as base64 (for quick viewing without disk access)
             $certificateData = base64_encode(file_get_contents($file->getRealPath()));
             $certificateMimeType = $file->getMimeType();
             $certificateOriginalName = $file->getClientOriginalName();
@@ -120,6 +140,7 @@ class RegistrationController extends Controller
             'certificate_data' => $certificateData,
             'certificate_mime_type' => $certificateMimeType,
             'certificate_original_name' => $certificateOriginalName,
+            'mdcn_certificate_verified' => false, // Requires admin verification
             'is_available' => false, // Not available until approved
             'is_approved' => false, // Needs admin approval
             'use_default_fee' => false, // Doctor sets their own fee initially

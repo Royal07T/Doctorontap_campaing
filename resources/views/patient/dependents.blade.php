@@ -26,7 +26,7 @@
                                      viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
-                            </div>
+                        </div>
                         </div>
                     </div>
                 </button>
@@ -56,13 +56,13 @@
                             <div class="col-span-2">
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Email</p>
                                 <p class="text-xs text-gray-900">{{ $dependent->email }}</p>
-                            </div>
+                        </div>
                             @endif
                             @if($dependent->phone)
                             <div class="col-span-2">
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Phone</p>
                                 <p class="text-xs text-gray-900">{{ $dependent->phone }}</p>
-                            </div>
+                        </div>
                             @endif
                         </div>
 
@@ -79,9 +79,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        @endforeach
-    </div>
+                </div>
+            @endforeach
+        </div>
 @else
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

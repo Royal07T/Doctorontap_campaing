@@ -43,6 +43,9 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'certificate_data',
         'certificate_mime_type',
         'certificate_original_name',
+        'mdcn_certificate_verified',
+        'mdcn_certificate_verified_at',
+        'mdcn_certificate_verified_by',
         'is_available',
         'is_approved',
         'approved_by',
@@ -61,6 +64,8 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'is_available' => 'boolean',
         'is_approved' => 'boolean',
         'mdcn_license_current' => 'boolean',
+        'mdcn_certificate_verified' => 'boolean',
+        'mdcn_certificate_verified_at' => 'datetime',
         'use_default_fee' => 'boolean',
         'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
@@ -76,6 +81,14 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     public function approvedBy()
     {
         return $this->belongsTo(AdminUser::class, 'approved_by');
+    }
+
+    /**
+     * Get the admin who verified the MDCN certificate
+     */
+    public function verifiedByAdmin()
+    {
+        return $this->belongsTo(AdminUser::class, 'mdcn_certificate_verified_by');
     }
 
     /**

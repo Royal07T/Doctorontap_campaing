@@ -77,7 +77,7 @@
 
                 <!-- Patients Cards -->
                 <div class="space-y-4">
-                    @forelse($patients as $patient)
+                                @forelse($patients as $patient)
                         <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                             <!-- Card Header -->
                             <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -142,8 +142,8 @@
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                                          {{ $patient->gender == 'male' ? 'bg-blue-100 text-blue-700' : 
                                                             ($patient->gender == 'female' ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700') }}">
-                                                {{ ucfirst($patient->gender) }}
-                                            </span>
+                                                    {{ ucfirst($patient->gender) }}
+                                                </span>
                                         </div>
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Latest Visit</p>
@@ -169,34 +169,34 @@
 
                                     <!-- Action Buttons -->
                                     <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
-                                        <a href="{{ route('admin.consultation.show', $patient->id) }}" 
+                                            <a href="{{ route('admin.consultation.show', $patient->id) }}" 
                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                            View Details
-                                        </a>
-                                        <button onclick="deletePatient({{ $patient->id }})" 
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                View Details
+                                            </a>
+                                            <button onclick="deletePatient({{ $patient->id }})" 
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                             </svg>
-                                            Delete
-                                        </button>
-                                    </div>
+                                                Delete
+                                            </button>
+                                        </div>
                                 </div>
                             </div>
                         </div>
-                    @empty
+                                @empty
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
                             <h3 class="text-sm font-semibold text-gray-900 mb-2">No Patients Found</h3>
                             <p class="text-xs text-gray-500">Try adjusting your search or filters</p>
                         </div>
-                    @endforelse
+                                @endforelse
 
                     <!-- Pagination -->
                     @if($patients->hasPages())

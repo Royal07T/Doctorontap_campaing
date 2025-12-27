@@ -68,12 +68,30 @@
                 @endif
             </div>
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>
-                <p class="text-xs text-gray-900">{{ $consultation->created_at->format('M d, Y H:i A') }}</p>
-            </div>
-            <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Reference</p>
                 <p class="text-xs text-gray-900 font-mono">{{ $consultation->reference }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Created Date</p>
+                <p class="text-xs text-gray-900">{{ $consultation->created_at->format('M d, Y H:i A') }}</p>
+            </div>
+            @if($consultation->scheduled_at)
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Scheduled Date & Time</p>
+                <p class="text-xs text-gray-900 font-semibold">{{ $consultation->scheduled_at->format('M d, Y H:i A') }}</p>
+            </div>
+            @endif
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Status</p>
+                @if($consultation->status === 'completed')
+                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Completed</span>
+                @elseif($consultation->status === 'pending')
+                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-amber-100 text-amber-700">Pending</span>
+                @elseif($consultation->status === 'scheduled')
+                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Scheduled</span>
+                @else
+                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-gray-100 text-gray-700">{{ ucfirst($consultation->status) }}</span>
+                @endif
             </div>
             <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Status</p>
@@ -83,6 +101,117 @@
                     <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-amber-100 text-amber-700">{{ ucfirst($consultation->payment_status) }}</span>
                 @endif
             </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultation Mode</p>
+                <p class="text-xs text-gray-900">
+                    @if($consultation->consult_mode === 'voice')
+                        <span class="inline-flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                            </svg>
+                            Voice Call
+                        </span>
+                    @elseif($consultation->consult_mode === 'video')
+                        <span class="inline-flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            Video Call
+                        </span>
+                    @elseif($consultation->consult_mode === 'chat')
+                        <span class="inline-flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            Text Chat
+                        </span>
+                    @else
+                        {{ ucfirst($consultation->consult_mode ?? 'N/A') }}
+                    @endif
+                </p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Severity</p>
+                <p class="text-xs text-gray-900">
+                    @if($consultation->severity === 'mild')
+                        <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">🟢 Mild</span>
+                    @elseif($consultation->severity === 'moderate')
+                        <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-amber-100 text-amber-700">🟡 Moderate</span>
+                    @elseif($consultation->severity === 'severe')
+                        <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-700">🔴 Severe</span>
+                    @else
+                        {{ ucfirst($consultation->severity ?? 'N/A') }}
+                    @endif
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Information -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+        <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Patient Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Full Name</p>
+                <p class="text-xs text-gray-900">{{ $consultation->first_name }} {{ $consultation->last_name }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Age</p>
+                <p class="text-xs text-gray-900">{{ $consultation->age ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Gender</p>
+                <p class="text-xs text-gray-900">{{ ucfirst($consultation->gender ?? 'N/A') }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Email</p>
+                <p class="text-xs text-gray-900">{{ $consultation->email ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Mobile</p>
+                <p class="text-xs text-gray-900">{{ $consultation->mobile ?? 'N/A' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Information -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+        <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Medical Information</h2>
+        <div class="space-y-4">
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Problem Description</p>
+                <p class="text-xs text-gray-900 leading-relaxed">{{ $consultation->problem ?? 'N/A' }}</p>
+            </div>
+            
+            @if($consultation->emergency_symptoms && count($consultation->emergency_symptoms) > 0)
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Emergency Symptoms</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($consultation->emergency_symptoms as $symptom)
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">{{ ucfirst(str_replace('_', ' ', $symptom)) }}</span>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            @if($consultation->medical_documents && count($consultation->medical_documents) > 0)
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Medical Documents</p>
+                <div class="space-y-2">
+                    @foreach($consultation->medical_documents as $doc)
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span class="text-xs text-gray-900">{{ $doc['original_name'] ?? 'Document' }}</span>
+                                <span class="text-xs text-gray-500">({{ number_format(($doc['size'] ?? 0) / 1024, 2) }} KB)</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 

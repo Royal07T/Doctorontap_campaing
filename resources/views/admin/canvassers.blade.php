@@ -160,7 +160,7 @@
 
                 <!-- Canvassers Cards -->
                 <div class="space-y-4">
-                    @forelse($canvassers as $canvasser)
+                                @forelse($canvassers as $canvasser)
                         <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                             <!-- Card Header -->
                             <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -174,11 +174,11 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 mb-1">
                                                 <h3 class="text-sm font-semibold text-gray-900">{{ $canvasser->name }}</h3>
-                                                @if($canvasser->is_active)
+                                        @if($canvasser->is_active)
                                                     <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">Active</span>
-                                                @else
+                                        @else
                                                     <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">Inactive</span>
-                                                @endif
+                                        @endif
                                                 <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">{{ $canvasser->consultations_count ?? 0 }} patients</span>
                                             </div>
                                             <p class="text-xs text-gray-600">{{ $canvasser->email }} • {{ $canvasser->phone ?? 'No phone' }}</p>
@@ -224,11 +224,11 @@
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Created By</p>
                                             <p class="text-xs text-gray-900">
-                                                @if($canvasser->createdBy)
-                                                    <span class="text-purple-600 font-medium">{{ $canvasser->createdBy->name }}</span>
-                                                @else
-                                                    <span class="text-gray-400">N/A</span>
-                                                @endif
+                                        @if($canvasser->createdBy)
+                                            <span class="text-purple-600 font-medium">{{ $canvasser->createdBy->name }}</span>
+                                        @else
+                                            <span class="text-gray-400">N/A</span>
+                                        @endif
                                             </p>
                                         </div>
                                         <div>
@@ -243,37 +243,37 @@
 
                                     <!-- Action Buttons -->
                                     <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
-                                        <button onclick='openEditModal(@json($canvasser))' 
+                                            <button onclick='openEditModal(@json($canvasser))' 
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
-                                            Edit
-                                        </button>
-                                        <button onclick="toggleStatus({{ $canvasser->id }}, {{ $canvasser->is_active ? 'false' : 'true' }})" 
+                                                Edit
+                                            </button>
+                                            <button onclick="toggleStatus({{ $canvasser->id }}, {{ $canvasser->is_active ? 'false' : 'true' }})" 
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white {{ $canvasser->is_active ? 'bg-gray-600' : 'bg-emerald-600' }} rounded-lg hover:opacity-90 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
-                                            {{ $canvasser->is_active ? 'Deactivate' : 'Activate' }}
-                                        </button>
-                                        <button onclick="deleteRecord({{ $canvasser->id }})" 
+                                                {{ $canvasser->is_active ? 'Deactivate' : 'Activate' }}
+                                            </button>
+                                            <button onclick="deleteRecord({{ $canvasser->id }})" 
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                             </svg>
-                                            Delete
-                                        </button>
-                                    </div>
+                                                Delete
+                                            </button>
+                                        </div>
                                 </div>
                             </div>
                         </div>
-                    @empty
+                                @empty
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                             <div class="text-4xl mb-4">👥</div>
                             <h3 class="text-sm font-semibold text-gray-900 mb-2">No Canvassers Found</h3>
                         </div>
-                    @endforelse
+                                @endforelse
 
                     <!-- Pagination -->
                     @if($canvassers->hasPages())

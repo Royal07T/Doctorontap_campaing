@@ -41,12 +41,12 @@
                         </svg>
                     </div>
                 </div>
-            </div>
+            </div>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 
             <!-- Pending Consultations -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
                 <div class="flex items-center justify-between">
-                    <div class="flex-1">
+                    <div class="flex-1">                    
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['pending_consultations'] }}</p>
                         <p class="text-xs text-gray-500">Awaiting Action</p>

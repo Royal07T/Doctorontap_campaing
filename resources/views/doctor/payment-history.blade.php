@@ -113,7 +113,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
                                     </div>
-                                </div>
+                    </div>
                             </button>
 
                             <!-- Dropdown Content -->
@@ -132,7 +132,7 @@
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>
                                             <p class="text-xs text-gray-900">{{ $payment->created_at->format('M d, Y') }}</p>
-                                            @if($payment->paid_at)
+                                        @if($payment->paid_at)
                                                 <p class="text-xs text-gray-600 mt-0.5">Paid: {{ $payment->paid_at->format('M d, Y') }}</p>
                                             @endif
                                         </div>
@@ -152,17 +152,17 @@
                                                 <p class="text-xs text-gray-600 font-mono">{{ $payment->bankAccount->masked_account_number }}</p>
                                             @else
                                                 <p class="text-xs text-gray-400">N/A</p>
-                                            @endif
+                                        @endif
                                         </div>
                                         @if($payment->korapay_fee)
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Transaction Fee</p>
                                             <p class="text-xs text-amber-600 font-semibold">₦{{ number_format($payment->korapay_fee, 2) }}</p>
-                                        </div>
+                                            </div>
                                         @endif
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payout Status</p>
-                                            @if($payment->korapay_reference)
+                                        @if($payment->korapay_reference)
                                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
                                                     @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-700
                                                     @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-700
@@ -174,9 +174,9 @@
                                                 @elseif($payment->payout_initiated_at)
                                                     <p class="text-xs text-blue-600 mt-1">Initiated: {{ $payment->payout_initiated_at->format('M d, Y') }}</p>
                                                 @endif
-                                            @else
+                                        @else
                                                 <p class="text-xs text-gray-400">Not initiated</p>
-                                            @endif
+                                        @endif
                                         </div>
                                     </div>
 
@@ -194,15 +194,15 @@
                                 </div>
                             </div>
                         </div>
-                    @empty
+                                @empty
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
                             <h3 class="text-sm font-semibold text-gray-900 mb-2">No Payment History Yet</h3>
                             <p class="text-xs text-gray-500">Your payments will appear here once admin processes them.</p>
-                        </div>
-                    @endforelse
+                                        </div>
+                                @endforelse
 
                     <!-- Pagination -->
                     @if($payments->hasPages())

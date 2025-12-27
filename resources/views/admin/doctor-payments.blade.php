@@ -139,7 +139,7 @@
 
                 <!-- Payments Cards -->
                 <div class="space-y-4">
-                    @forelse($payments as $payment)
+                                @forelse($payments as $payment)
                     <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                         <!-- Card Header - Clickable to toggle dropdown -->
                         <div @click="open = !open" class="flex items-center justify-between p-5 cursor-pointer bg-white hover:bg-gray-50 transition-colors duration-200">
@@ -174,20 +174,20 @@
                                 <!-- Amount -->
                                 <div class="text-right">
                                     <p class="text-sm font-bold text-gray-900">₦{{ number_format($payment->doctor_amount, 2) }}</p>
-                                    @if($payment->korapay_fee)
+                                        @if($payment->korapay_fee)
                                         <p class="text-[10px] text-gray-500">Fee: ₦{{ number_format($payment->korapay_fee, 2) }}</p>
-                                    @endif
+                                        @endif
                                 </div>
                                 
                                 <!-- Status Badge -->
                                 <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     @if($payment->status === 'completed') bg-emerald-100 text-emerald-800
                                     @elseif($payment->status === 'pending') bg-amber-100 text-amber-800
-                                    @elseif($payment->status === 'failed') bg-red-100 text-red-800
-                                    @else bg-blue-100 text-blue-800
-                                    @endif">
-                                    {{ ucfirst($payment->status) }}
-                                </span>
+                                            @elseif($payment->status === 'failed') bg-red-100 text-red-800
+                                            @else bg-blue-100 text-blue-800
+                                            @endif">
+                                            {{ ucfirst($payment->status) }}
+                                        </span>
 
                                 <!-- Chevron Icon -->
                                 <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" 
@@ -232,24 +232,24 @@
                                 </div>
                                 <div class="md:col-span-2">
                                     <p class="font-medium text-gray-800 mb-1">KoraPay Status:</p>
-                                    @if($payment->korapay_reference)
+                                        @if($payment->korapay_reference)
                                         <div class="flex items-center gap-2 mb-2">
                                             <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
                                                 @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-800
-                                                @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-800
-                                                @else bg-blue-100 text-blue-800
-                                                @endif">
-                                                {{ ucfirst($payment->korapay_status ?? 'processing') }}
-                                            </span>
+                                                    @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-800
+                                                    @else bg-blue-100 text-blue-800
+                                                    @endif">
+                                                    {{ ucfirst($payment->korapay_status ?? 'processing') }}
+                                                </span>
                                             <p class="text-xs text-gray-600 font-mono">{{ $payment->korapay_reference }}</p>
-                                        </div>
-                                    @else
+                                            </div>
+                                        @else
                                         <p class="text-xs text-gray-500">Not initiated</p>
-                                    @endif
-                                </div>
+                                        @endif
+                                            </div>
                             </div>
                             <div class="px-5 py-3 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-2">
-                                @if($payment->status === 'pending' && !$payment->korapay_reference)
+                                            @if($payment->status === 'pending' && !$payment->korapay_reference)
                                     <button @click="initiatePayout({{ $payment->id }})" 
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,24 +263,24 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                         </svg>
                                         Complete
-                                    </button>
-                                @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
+                                                </button>
+                                            @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
                                     <button @click="initiatePayout({{ $payment->id }})" 
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                         </svg>
                                         Retry
-                                    </button>
-                                @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
+                                                </button>
+                                            @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
                                     <button @click="verifyPayout({{ $payment->id }})" 
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
                                         Verify
-                                    </button>
-                                @endif
+                                                </button>
+                                            @endif
                                 <button @click="viewPayment({{ $payment->id }})" 
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,11 +288,11 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                     </svg>
                                     View Details
-                                </button>
-                            </div>
+                                            </button>
+                                        </div>
                         </div>
                     </div>
-                    @empty
+                                @empty
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                         <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -300,12 +300,12 @@
                         <h3 class="text-sm font-semibold text-gray-900 mb-2">No Payments Found</h3>
                         <p class="text-xs text-gray-500">Try adjusting your filters or search terms.</p>
                     </div>
-                    @endforelse
-                </div>
-
+                                @endforelse
+                    </div>
+                    
                 <!-- Pagination -->
                 <div class="mt-6">
-                    {{ $payments->links() }}
+                            {{ $payments->links() }}
                 </div>
 
                 <!-- Create Payment Modal -->

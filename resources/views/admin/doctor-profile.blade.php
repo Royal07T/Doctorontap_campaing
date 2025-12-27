@@ -122,11 +122,11 @@
                                         </svg>
                                         Bank Accounts
                                     </h2>
-                                    @if($doctor->bankAccounts->where('is_verified', false)->count() > 0)
+                                @if($doctor->bankAccounts->where('is_verified', false)->count() > 0)
                                         <span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-semibold">
-                                            {{ $doctor->bankAccounts->where('is_verified', false)->count() }} Pending
-                                        </span>
-                                    @endif
+                                        {{ $doctor->bankAccounts->where('is_verified', false)->count() }} Pending
+                                    </span>
+                                @endif
                                 </div>
                             </div>
                             @forelse($doctor->bankAccounts as $account)
@@ -216,14 +216,14 @@
                                         </svg>
                                         Unpaid Consultations
                                     </h2>
-                                    <div class="text-right">
+                                <div class="text-right">
                                         <p class="text-xs text-gray-500 uppercase tracking-wide">Pending Amount</p>
                                         <p class="text-sm font-bold text-purple-600">₦{{ number_format($stats['pending_payment'], 2) }}</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="space-y-2 mb-4">
-                                @foreach($unpaidConsultations as $consultation)
+                                        @foreach($unpaidConsultations as $consultation)
                                     <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                                         <div class="flex items-center justify-between">
                                             <div>
@@ -233,7 +233,7 @@
                                             <p class="text-xs font-semibold text-gray-900">₦{{ number_format($doctor->effective_consultation_fee, 2) }}</p>
                                         </div>
                                     </div>
-                                @endforeach
+                                        @endforeach
                             </div>
                             <div class="pt-3 border-t border-gray-200">
                                 <a href="{{ route('admin.doctor-payments.create') }}?doctor_id={{ $doctor->id }}" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
@@ -257,28 +257,28 @@
                                 </h2>
                             </div>
                             <div class="space-y-3">
-                                @forelse($paymentHistory as $payment)
+                            @forelse($paymentHistory as $payment)
                                     <div class="p-3 border border-gray-200 rounded-lg bg-gray-50">
                                         <div class="flex justify-between items-start mb-2">
-                                            <div>
+                                        <div>
                                                 <p class="text-xs font-semibold text-gray-900 font-mono">{{ $payment->reference }}</p>
                                                 <p class="text-xs text-gray-600 mt-0.5">{{ $payment->total_consultations_count }} consultations • {{ $payment->created_at->format('M d, Y') }}</p>
-                                            </div>
-                                            <div class="text-right">
+                                        </div>
+                                        <div class="text-right">
                                                 <p class="text-xs font-bold text-gray-900">₦{{ number_format($payment->doctor_amount, 2) }}</p>
                                                 <span class="inline-block px-2 py-0.5 text-xs rounded-full mt-1 font-semibold
                                                     {{ $payment->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
-                                                    {{ ucfirst($payment->status) }}
-                                                </span>
-                                            </div>
+                                                {{ ucfirst($payment->status) }}
+                                            </span>
                                         </div>
-                                        @if($payment->paid_at)
-                                            <p class="text-xs text-gray-500 mt-1.5">Paid on {{ $payment->paid_at->format('M d, Y') }} by {{ $payment->paidBy->name ?? 'Admin' }}</p>
-                                        @endif
                                     </div>
-                                @empty
+                                    @if($payment->paid_at)
+                                            <p class="text-xs text-gray-500 mt-1.5">Paid on {{ $payment->paid_at->format('M d, Y') }} by {{ $payment->paidBy->name ?? 'Admin' }}</p>
+                                    @endif
+                                </div>
+                            @empty
                                     <p class="text-xs text-gray-500 text-center py-4">No payment history yet</p>
-                                @endforelse
+                            @endforelse
                             </div>
                         </div>
 
@@ -293,7 +293,7 @@
                                 </h2>
                             </div>
                             <div class="space-y-2">
-                                @foreach($recentConsultations as $consultation)
+                                        @foreach($recentConsultations as $consultation)
                                     <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
                                         <div class="flex items-center justify-between">
                                             <div class="flex-1">
@@ -314,7 +314,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                @endforeach
+                                        @endforeach
                             </div>
                         </div>
                     </div>

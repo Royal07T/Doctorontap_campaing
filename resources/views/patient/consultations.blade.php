@@ -90,8 +90,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                 </div>
-                <input type="text" name="search" value="{{ request('search') }}" 
-                       placeholder="Reference or Doctor name..." 
+            <input type="text" name="search" value="{{ request('search') }}" 
+                   placeholder="Reference or Doctor name..." 
                        class="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
             </div>
         </div>
@@ -139,7 +139,7 @@
 <!-- Consultations Cards -->
 <div class="space-y-4">
     @if($consultations->count() > 0)
-        @foreach($consultations as $consultation)
+                    @foreach($consultations as $consultation)
             <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                 <!-- Card Header (Always Visible) -->
                 <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -173,11 +173,11 @@
                                     @elseif($consultation->status === 'cancelled')
                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Cancelled</span>
                                     @endif
-                                    @if($consultation->payment_status === 'paid')
+                                @if($consultation->payment_status === 'paid')
                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">✓ Paid</span>
-                                    @elseif($consultation->payment_status === 'pending')
+                                @elseif($consultation->payment_status === 'pending')
                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Payment Pending</span>
-                                    @else
+                                @else
                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-rose-100 text-rose-700">Unpaid</span>
                                     @endif
                                 </div>
@@ -258,50 +258,50 @@
                             </div>
                             @endif
                         </div>
-                        @endif
+                                @endif
 
                         <!-- Action Buttons -->
                         <div class="pt-3 border-t border-gray-200 flex flex-wrap items-center gap-2">
-                            <a href="{{ route('patient.consultation.view', $consultation->id) }}" 
+                                    <a href="{{ route('patient.consultation.view', $consultation->id) }}" 
                                class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white purple-gradient rounded-lg hover:opacity-90 transition">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
-                                View Details
-                            </a>
+                                        View Details
+                                    </a>
                             
-                            @if($consultation->payment_status === 'paid' && $consultation->hasTreatmentPlan())
-                            <a href="{{ route('patient.consultation.view', $consultation->id) }}#treatment-plan" 
+                                    @if($consultation->payment_status === 'paid' && $consultation->hasTreatmentPlan())
+                                        <a href="{{ route('patient.consultation.view', $consultation->id) }}#treatment-plan" 
                                class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
                                 Treatment Plan
-                            </a>
-                            @endif
+                                        </a>
+                                    @endif
                             
-                            @if($consultation->status === 'completed' && !$consultation->hasPatientReview())
-                            <button onclick="openReviewModal({{ $consultation->id }}, '{{ $consultation->reference }}', '{{ $consultation->doctor->name ?? 'N/A' }}')" 
+                                    @if($consultation->status === 'completed' && !$consultation->hasPatientReview())
+                                        <button onclick="openReviewModal({{ $consultation->id }}, '{{ $consultation->reference }}', '{{ $consultation->doctor->name ?? 'N/A' }}')" 
                                     class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition">
                                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                </svg>
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
                                 Write Review
-                            </button>
-                            @elseif($consultation->status === 'completed' && $consultation->hasPatientReview())
+                                        </button>
+                                    @elseif($consultation->status === 'completed' && $consultation->hasPatientReview())
                             <span class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg">
                                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                </svg>
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
                                 Reviewed
-                            </span>
-                            @endif
-                        </div>
+                                        </span>
+                                    @endif
+                                </div>
                     </div>
                 </div>
             </div>
-        @endforeach
+                    @endforeach
 
         <!-- Pagination -->
         <div class="mt-6">

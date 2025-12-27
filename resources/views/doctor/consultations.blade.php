@@ -65,11 +65,11 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                 </div>
-                                <input type="text"
-                                       id="search"
-                                       name="search"
-                                       value="{{ request('search') }}"
-                                       placeholder="Name, email, phone, reference"
+                            <input type="text"
+                                   id="search"
+                                   name="search"
+                                   value="{{ request('search') }}"
+                                   placeholder="Name, email, phone, reference"
                                        class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
                             </div>
                         </div>
@@ -115,65 +115,65 @@
 
                 <!-- Consultations Cards -->
                 <div class="space-y-4">
-                    @forelse($consultations as $consultation)
+                                @forelse($consultations as $consultation)
                         <div x-data="{ 
                             open: false,
-                            isUpdating: false,
-                            consultationId: {{ $consultation->id }},
-                            async updateStatus(newStatus) {
-                                if (!newStatus || newStatus === '') {
-                                    console.error('No status provided');
-                                    return;
-                                }
-                                
+                                        isUpdating: false,
+                                        consultationId: {{ $consultation->id }},
+                                        async updateStatus(newStatus) {
+                                            if (!newStatus || newStatus === '') {
+                                                console.error('No status provided');
+                                                return;
+                                            }
+                                            
                                 if (!this.consultationId) {
-                                    console.error('Consultation ID is missing');
-                                    if (typeof showAlertModal === 'function') {
-                                        showAlertModal('Error: Consultation ID is missing. Please refresh the page.', 'error');
-                                    }
-                                    return;
-                                }
-                                
-                                this.isUpdating = true;
-                                this.isGlobalUpdating = true;
-                                try {
+                                                console.error('Consultation ID is missing');
+                                                if (typeof showAlertModal === 'function') {
+                                                    showAlertModal('Error: Consultation ID is missing. Please refresh the page.', 'error');
+                                                }
+                                                return;
+                                            }
+                                            
+                                            this.isUpdating = true;
+                                            this.isGlobalUpdating = true;
+                                            try {
                                     const url = `/doctor/consultations/${this.consultationId}/update-status`;
-                                    const response = await fetch(url, {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                                            'Accept': 'application/json'
-                                        },
-                                        body: JSON.stringify({ status: newStatus })
-                                    });
-                                    
-                                    if (!response.ok) {
-                                        const errorText = await response.text();
-                                        throw new Error(`Server error: ${response.status} - ${errorText}`);
-                                    }
-                                    
-                                    const data = await response.json();
-                                    if (data.success) {
-                                        if (typeof showAlertModal === 'function') {
-                                            showAlertModal('Status updated successfully! Admin has been notified.', 'success');
+                                                const response = await fetch(url, {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                                        'Accept': 'application/json'
+                                                    },
+                                                    body: JSON.stringify({ status: newStatus })
+                                                });
+                                                
+                                                if (!response.ok) {
+                                                    const errorText = await response.text();
+                                                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                                                }
+                                                
+                                                const data = await response.json();
+                                                if (data.success) {
+                                                    if (typeof showAlertModal === 'function') {
+                                                        showAlertModal('Status updated successfully! Admin has been notified.', 'success');
+                                                    }
+                                                    setTimeout(() => window.location.reload(), 1500);
+                                                } else {
+                                                    if (typeof showAlertModal === 'function') {
+                                                        showAlertModal(data.message || 'Failed to update status', 'error');
+                                                    }
+                                                }
+                                            } catch (error) {
+                                                console.error('Error updating status:', error);
+                                                if (typeof showAlertModal === 'function') {
+                                                    showAlertModal('Error updating status: ' + error.message, 'error');
+                                                }
+                                            } finally {
+                                                this.isUpdating = false;
+                                                this.isGlobalUpdating = false;
+                                            }
                                         }
-                                        setTimeout(() => window.location.reload(), 1500);
-                                    } else {
-                                        if (typeof showAlertModal === 'function') {
-                                            showAlertModal(data.message || 'Failed to update status', 'error');
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error('Error updating status:', error);
-                                    if (typeof showAlertModal === 'function') {
-                                        showAlertModal('Error updating status: ' + error.message, 'error');
-                                    }
-                                } finally {
-                                    this.isUpdating = false;
-                                    this.isGlobalUpdating = false;
-                                }
-                            }
                         }" 
                         class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
                             <!-- Card Header -->
@@ -196,12 +196,12 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 mb-1">
                                                 <h3 class="text-sm font-semibold text-gray-900">{{ $consultation->reference }}</h3>
-                                                @if($consultation->is_multi_patient_booking && $consultation->booking)
+                                            @if($consultation->is_multi_patient_booking && $consultation->booking)
                                                     <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700" title="Multi-Patient Booking: {{ $consultation->booking->reference }}">
                                                         <svg class="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                                        </svg>
-                                                        Multi
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                    Multi
                                                     </span>
                                                 @endif
                                                 <span class="px-2 py-0.5 text-xs font-medium rounded-full
@@ -276,7 +276,7 @@
                                                 </span>
                                             @endif
                                         </div>
-                                    </div>
+                                            </div>
 
                                     <!-- Status Update -->
                                     <div class="pt-3 border-t border-gray-200">
@@ -303,40 +303,40 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                             </svg>
-                                            View Details
-                                        </a>
-                                        @if($consultation->status === 'completed')
-                                            @if($consultation->hasTreatmentPlan())
+                                                View Details
+                                            </a>
+                                            @if($consultation->status === 'completed')
+                                                @if($consultation->hasTreatmentPlan())
                                                 <a href="{{ route('doctor.consultations.view', $consultation->id) }}#treatment-plan" 
                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                    </svg>
-                                                    Edit Treatment Plan
-                                                </a>
-                                            @else
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                        Edit Treatment Plan
+                                                    </a>
+                                                @else
                                                 <a href="{{ route('doctor.consultations.view', $consultation->id) }}#treatment-plan" 
                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                                    </svg>
-                                                    Create Treatment Plan
-                                                </a>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                        Create Treatment Plan
+                                                    </a>
+                                                @endif
                                             @endif
-                                        @endif
-                                    </div>
+                                        </div>
                                 </div>
                             </div>
                         </div>
-                    @empty
+                                @empty
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
                             <h3 class="text-sm font-semibold text-gray-900 mb-2">No Consultations Found</h3>
                             <p class="text-xs text-gray-500 mb-4">{{ request()->has('search') || request()->has('status') || request()->has('payment_status') ? 'Try adjusting your filters' : 'Your consultations will appear here' }}</p>
-                        </div>
-                    @endforelse
+                                        </div>
+                                @endforelse
 
                     <!-- Pagination -->
                     @if($consultations->hasPages())

@@ -173,34 +173,34 @@
                          style="display: none;">
                         <!-- Professional Info -->
                         <div class="space-y-2 mb-3 text-xs">
-                            @if($doctor->experience)
-                                <div class="flex items-center text-gray-600">
+                        @if($doctor->experience)
+                            <div class="flex items-center text-gray-600">
                                     <svg class="w-3 h-3 mr-1.5 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    <span>{{ $doctor->experience }}</span>
-                                </div>
-                            @endif
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>{{ $doctor->experience }}</span>
+                            </div>
+                        @endif
 
-                            @if($doctor->languages)
-                                <div class="flex items-center text-gray-600">
+                        @if($doctor->languages)
+                            <div class="flex items-center text-gray-600">
                                     <svg class="w-3 h-3 mr-1.5 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
-                                    </svg>
-                                    <span>{{ $doctor->languages }}</span>
-                                </div>
-                            @endif
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                                </svg>
+                                <span>{{ $doctor->languages }}</span>
+                            </div>
+                        @endif
 
-                            @if($doctor->location)
-                                <div class="flex items-center text-gray-600">
+                        @if($doctor->location)
+                            <div class="flex items-center text-gray-600">
                                     <svg class="w-3 h-3 mr-1.5 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                    <span>{{ $doctor->location }}</span>
-                                </div>
-                            @endif
-                        </div>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span>{{ $doctor->location }}</span>
+                            </div>
+                        @endif
+                    </div>
 
                         <!-- Full Bio -->
                         @if($doctor->bio)
@@ -210,21 +210,21 @@
                             </div>
                         @endif
 
-                        <!-- Verified Badge -->
-                        @if($doctor->is_approved)
+                    <!-- Verified Badge -->
+                    @if($doctor->is_approved)
                             <div class="mb-3 text-center">
                                 <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Verified Doctor
-                                </span>
-                            </div>
-                        @endif
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                Verified Doctor
+                            </span>
+                        </div>
+                    @endif
                     </div>
 
                     <!-- Action Button -->
-                    <button onclick="openBookingModal({{ $doctor->id }}, '{{ addslashes($doctor->name) }}', '{{ addslashes($doctor->specialization ?? 'General Practitioner') }}')" 
+                    <button onclick="window.openBookingModal({{ $doctor->id }}, '{{ addslashes($doctor->name) }}', '{{ addslashes($doctor->specialization ?? 'General Practitioner') }}')" 
                             class="block w-full text-center px-4 py-2 purple-gradient hover:opacity-90 text-white text-xs font-medium rounded-lg transition">
                         Book Appointment
                     </button>
@@ -274,7 +274,12 @@
 </div>
 
 <!-- Booking Modal -->
-<div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4" x-data="bookingModal()" x-show="showModal" @click.away="closeModal()" style="display: none;">
+<div id="bookingModal" 
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" 
+     x-data="bookingModal()" 
+     x-show="showModal" 
+     x-cloak 
+     @click.away="closeModal()">
     <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
         <!-- Modal Header -->
         <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -292,43 +297,309 @@
 
         <!-- Modal Body -->
         <div class="p-6">
-            <form @submit.prevent="submitBooking()">
-                <!-- Date Selection -->
-                <div class="mb-6">
-                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Date</label>
-                    <input type="date" 
-                           x-model="selectedDate" 
-                           @change="loadTimeSlots()"
-                           :min="minDate"
-                           class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
-                    <p class="text-xs text-red-500 mt-1" x-show="dateError" x-text="dateError"></p>
+            <form @submit.prevent="submitBooking()" enctype="multipart/form-data">
+                <!-- DATE & TIME SELECTION -->
+                <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-5 mb-6">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Step 1: Schedule Appointment</h3>
+                            <p class="text-xs text-gray-600">Select date and time</p>
+                        </div>
+                    </div>
+
+                    <!-- Date Selection -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Date *</label>
+                        <input type="date" 
+                               x-model="selectedDate" 
+                               @change="loadTimeSlots()"
+                               :min="minDate"
+                               required
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                        <p class="text-xs text-red-500 mt-1" x-show="dateError" x-text="dateError"></p>
+                    </div>
+
+                    <!-- Time Slot Selection -->
+                    <div class="mb-4" x-show="selectedDate && availableSlots.length > 0">
+                        <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Time *</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <template x-for="slot in availableSlots" :key="slot.value">
+                                <button type="button"
+                                        @click="selectedTime = slot.value; checkSlotAvailability()"
+                                        :class="{
+                                            'bg-blue-600 text-white border-blue-600': selectedTime === slot.value && !slot.booked,
+                                            'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed': slot.booked,
+                                            'bg-white text-gray-700 border-gray-300 hover:border-blue-500': selectedTime !== slot.value && !slot.booked
+                                        }"
+                                        :disabled="slot.booked"
+                                        class="px-3 py-2 text-xs font-medium rounded-lg border transition">
+                                    <span x-text="slot.label"></span>
+                                    <span x-show="slot.booked" class="block text-[10px] mt-0.5">Booked</span>
+                                </button>
+                            </template>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2" x-show="selectedDate && availableSlots.length === 0">No available time slots for this date</p>
+                    </div>
                 </div>
 
-                <!-- Time Slot Selection -->
-                <div class="mb-6" x-show="selectedDate && availableSlots.length > 0">
-                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Time</label>
-                    <div class="grid grid-cols-4 gap-2">
-                        <template x-for="slot in availableSlots" :key="slot.value">
-                            <button type="button"
-                                    @click="selectedTime = slot.value; checkSlotAvailability()"
-                                    :class="{
-                                        'bg-purple-600 text-white border-purple-600': selectedTime === slot.value && !slot.booked,
-                                        'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed': slot.booked,
-                                        'bg-white text-gray-700 border-gray-300 hover:border-purple-500': selectedTime !== slot.value && !slot.booked
-                                    }"
-                                    :disabled="slot.booked"
-                                    class="px-3 py-2 text-xs font-medium rounded-lg border transition">
-                                <span x-text="slot.label"></span>
-                                <span x-show="slot.booked" class="block text-[10px] mt-0.5">Booked</span>
-                            </button>
+                <!-- MEDICAL INFORMATION SECTION -->
+                <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-5 mb-6">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Step 2: Medical Information</h3>
+                            <p class="text-xs text-gray-600">Help us understand your health concern</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Problem Description -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">What's the problem right now? *</label>
+                        <input type="text" 
+                               x-model="problem"
+                               required
+                               minlength="10"
+                               maxlength="500"
+                               placeholder="Brief description of your main concern (at least 10 characters)"
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors">
+                        <p x-show="errors.problem" class="text-red-500 text-xs mt-1" x-text="errors.problem"></p>
+                    </div>
+
+                    <!-- Medical Documents Upload -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Upload Medical Documents (Optional)</label>
+                        <p class="text-xs text-gray-600 mb-2">Upload test results, lab reports, X-rays, or prescriptions (PDF, JPG, PNG, DOC - Max 5MB)</p>
+                        <input type="file" 
+                               @change="handleFileUpload($event)"
+                               multiple
+                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors">
+                        <div x-show="uploadedFiles.length > 0" class="mt-2">
+                            <p class="text-xs font-semibold text-gray-700 mb-1.5">Selected files:</p>
+                            <ul class="space-y-1">
+                                <template x-for="(file, index) in uploadedFiles" :key="index">
+                                    <li class="flex items-center justify-between text-xs bg-white px-3 py-2 rounded-lg border border-gray-200">
+                                        <span class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            <span x-text="file.name" class="truncate max-w-xs"></span>
+                                            <span class="text-gray-500" x-text="'(' + (file.size / 1024).toFixed(0) + ' KB)'"></span>
+                                        </span>
+                                        <button type="button" @click="removeFile(index)" class="text-red-500 hover:text-red-700 ml-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Severity -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">How bad is it? *</label>
+                        <select x-model="severity"
+                                required
+                                class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white transition-colors">
+                            <option value="">Select Severity</option>
+                            <option value="mild">🟢 Mild - Not urgent</option>
+                            <option value="moderate">🟡 Moderate - Needs attention</option>
+                            <option value="severe">🔴 Severe - Urgent care needed</option>
+                        </select>
+                        <p x-show="errors.severity" class="text-red-500 text-xs mt-1" x-text="errors.severity"></p>
+                    </div>
+
+                    <!-- Emergency Symptoms -->
+                    <div x-data="symptomsSelector()" class="mb-4">
+                        <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Are you experiencing any of these symptoms now? (Optional)</label>
+                        
+                        <!-- Selected Symptoms Display -->
+                        <div x-show="selectedSymptoms.length > 0" class="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <template x-for="symptom in selectedSymptoms" :key="symptom.value">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-full">
+                                    <span x-text="symptom.label"></span>
+                                    <button type="button" @click="removeSymptom(symptom.value)" class="hover:bg-blue-700 rounded-full p-0.5">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            </template>
+                            <button type="button" @click="clearAll()" class="text-xs text-red-600 hover:text-red-800 font-medium underline ml-2">Clear all</button>
+                        </div>
+
+                        <!-- Dropdown Selector (Always visible) -->
+                        <div class="relative">
+                                <button type="button"
+                                        @click="isOpen = !isOpen"
+                                        class="w-full px-4 py-3 text-sm text-left bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all flex items-center justify-between hover:border-blue-400">
+                                    <span class="text-gray-700" x-text="selectedSymptoms.length > 0 ? `${selectedSymptoms.length} symptom(s) selected` : 'Click to select symptoms'"></span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{'rotate-180': isOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                <div x-show="isOpen"
+                                     @click.away="isOpen = false"
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 -translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 translate-y-0"
+                                     x-transition:leave-end="opacity-0 -translate-y-2"
+                                     class="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-xl max-h-96 overflow-hidden"
+                                     style="display: none;">
+                                    <div class="p-3 border-b border-gray-200 bg-gray-50 sticky top-0">
+                                        <div class="relative">
+                                            <input type="text"
+                                                   x-model="searchQuery"
+                                                   @input="filterSymptoms()"
+                                                   placeholder="Search symptoms..."
+                                                   class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                            <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="overflow-y-auto max-h-80">
+                                        <template x-if="filteredSymptoms.critical.length > 0">
+                                            <div class="border-b border-gray-200">
+                                                <div class="px-3 py-2 bg-red-50 sticky top-0">
+                                                    <span class="text-xs font-bold text-red-700 uppercase tracking-wide">🚨 Critical/Emergency</span>
+                                                </div>
+                                                <template x-for="symptom in filteredSymptoms.critical" :key="symptom.value">
+                                                    <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-red-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                        <input type="checkbox" 
+                                                               :value="symptom.value"
+                                                               :checked="isSelected(symptom.value)"
+                                                               @change="toggleSymptom(symptom)"
+                                                               class="mt-0.5 rounded text-red-600 focus:ring-red-500 flex-shrink-0">
+                                                        <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="filteredSymptoms.respiratory.length > 0">
+                                            <div class="border-b border-gray-200">
+                                                <div class="px-3 py-2 bg-cyan-50 sticky top-0">
+                                                    <span class="text-xs font-bold text-cyan-700 uppercase tracking-wide">🫁 Respiratory</span>
+                                                </div>
+                                                <template x-for="symptom in filteredSymptoms.respiratory" :key="symptom.value">
+                                                    <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-cyan-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                        <input type="checkbox" 
+                                                               :value="symptom.value"
+                                                               :checked="isSelected(symptom.value)"
+                                                               @change="toggleSymptom(symptom)"
+                                                               class="mt-0.5 rounded text-cyan-600 focus:ring-cyan-500 flex-shrink-0">
+                                                        <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="filteredSymptoms.neurological.length > 0">
+                                            <div class="border-b border-gray-200">
+                                                <div class="px-3 py-2 bg-purple-50 sticky top-0">
+                                                    <span class="text-xs font-bold text-purple-700 uppercase tracking-wide">🧠 Neurological</span>
+                                                </div>
+                                                <template x-for="symptom in filteredSymptoms.neurological" :key="symptom.value">
+                                                    <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-purple-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                        <input type="checkbox" 
+                                                               :value="symptom.value"
+                                                               :checked="isSelected(symptom.value)"
+                                                               @change="toggleSymptom(symptom)"
+                                                               class="mt-0.5 rounded text-purple-600 focus:ring-purple-500 flex-shrink-0">
+                                                        <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="filteredSymptoms.pain.length > 0">
+                                            <div class="border-b border-gray-200">
+                                                <div class="px-3 py-2 bg-orange-50 sticky top-0">
+                                                    <span class="text-xs font-bold text-orange-700 uppercase tracking-wide">🩹 Pain & Discomfort</span>
+                                                </div>
+                                                <template x-for="symptom in filteredSymptoms.pain" :key="symptom.value">
+                                                    <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                        <input type="checkbox" 
+                                                               :value="symptom.value"
+                                                               :checked="isSelected(symptom.value)"
+                                                               @change="toggleSymptom(symptom)"
+                                                               class="mt-0.5 rounded text-orange-600 focus:ring-orange-500 flex-shrink-0">
+                                                        <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="filteredSymptoms.general.length > 0">
+                                            <div>
+                                                <div class="px-3 py-2 bg-blue-50 sticky top-0">
+                                                    <span class="text-xs font-bold text-blue-700 uppercase tracking-wide">📋 General Symptoms</span>
+                                                </div>
+                                                <template x-for="symptom in filteredSymptoms.general" :key="symptom.value">
+                                                    <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                                        <input type="checkbox" 
+                                                               :value="symptom.value"
+                                                               :checked="isSelected(symptom.value)"
+                                                               @change="toggleSymptom(symptom)"
+                                                               class="mt-0.5 rounded text-blue-600 focus:ring-blue-500 flex-shrink-0">
+                                                        <span class="text-sm text-gray-800" x-text="symptom.label"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <div x-show="!hasResults()" class="px-4 py-8 text-center text-gray-500">
+                                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p class="text-sm">No symptoms found</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                                        <span class="text-xs text-gray-600" x-text="`${selectedSymptoms.length} selected`"></span>
+                                        <button type="button" @click="isOpen = false" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">Done</button>
+                                    </div>
+                                </div>
+                        </div>
+
+                        <!-- Hidden inputs for form submission -->
+                        <template x-for="symptom in selectedSymptoms" :key="symptom.value">
+                            <input type="hidden" name="emergency_symptoms[]" :value="symptom.value">
                         </template>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2" x-show="selectedDate && availableSlots.length === 0">No available time slots for this date</p>
                 </div>
 
-                <!-- Consultation Mode -->
-                <div class="mb-6">
-                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Consultation Mode</label>
+                <!-- CONSULTATION MODE -->
+                <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-5 mb-6">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Step 3: Consultation Mode</h3>
+                            <p class="text-xs text-gray-600">Choose how you'd like to consult</p>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" @click="consultMode = 'voice'" 
                                 :class="consultMode === 'voice' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
@@ -344,38 +615,6 @@
                                 :class="consultMode === 'chat' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
                                 class="px-4 py-2 text-xs font-medium rounded-lg border transition">
                             Chat
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Problem Description -->
-                <div class="mb-6">
-                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Describe Your Problem</label>
-                    <textarea x-model="problem" 
-                              rows="4" 
-                              placeholder="Please describe your symptoms or health concern..."
-                              class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
-                              required></textarea>
-                </div>
-
-                <!-- Severity -->
-                <div class="mb-6">
-                    <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Severity</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" @click="severity = 'mild'" 
-                                :class="severity === 'mild' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-500'"
-                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
-                            Mild
-                        </button>
-                        <button type="button" @click="severity = 'moderate'" 
-                                :class="severity === 'moderate' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-300 hover:border-amber-500'"
-                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
-                            Moderate
-                        </button>
-                        <button type="button" @click="severity = 'severe'" 
-                                :class="severity === 'severe' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:border-red-500'"
-                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
-                            Severe
                         </button>
                     </div>
                 </div>
@@ -410,12 +649,15 @@
 </div>
 
 <script>
-function openBookingModal(doctorId, doctorName, doctorSpecialization) {
-    window.dispatchEvent(new CustomEvent('open-booking-modal', { 
+// Make function globally available - must be defined before Alpine initializes
+window.openBookingModal = function(doctorId, doctorName, doctorSpecialization) {
+    const event = new CustomEvent('open-booking-modal', { 
         detail: { doctorId, doctorName, doctorSpecialization } 
-    }));
+    });
+    window.dispatchEvent(event);
 }
 
+// Make Alpine component function globally available
 function bookingModal() {
     return {
         showModal: false,
@@ -434,6 +676,8 @@ function bookingModal() {
         successMessage: '',
         dateError: '',
         minDate: new Date().toISOString().split('T')[0],
+        uploadedFiles: [],
+        emergencySymptoms: [],
 
         init() {
             window.addEventListener('open-booking-modal', (e) => {
@@ -457,6 +701,23 @@ function bookingModal() {
             this.errorMessage = '';
             this.successMessage = '';
             this.dateError = '';
+            this.uploadedFiles = [];
+            this.emergencySymptoms = [];
+        },
+
+        handleFileUpload(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                if (file.size > 5 * 1024 * 1024) {
+                    this.errorMessage = `File ${file.name} is too large. Maximum size is 5MB.`;
+                    return;
+                }
+                this.uploadedFiles.push(file);
+            });
+        },
+
+        removeFile(index) {
+            this.uploadedFiles.splice(index, 1);
         },
 
         closeModal() {
@@ -587,21 +848,35 @@ function bookingModal() {
             
             const scheduledAt = `${this.selectedDate} ${this.selectedTime}`;
             
+            // Collect emergency symptoms from hidden inputs
+            const symptomInputs = document.querySelectorAll('input[name="emergency_symptoms[]"]');
+            const emergencySymptoms = Array.from(symptomInputs).map(input => input.value);
+            
             try {
+                const formData = new FormData();
+                formData.append('doctor_id', this.doctorId);
+                formData.append('scheduled_at', scheduledAt);
+                formData.append('consult_mode', this.consultMode);
+                formData.append('problem', this.problem);
+                formData.append('severity', this.severity);
+                
+                // Add emergency symptoms
+                emergencySymptoms.forEach(symptom => {
+                    formData.append('emergency_symptoms[]', symptom);
+                });
+                
+                // Add medical documents
+                this.uploadedFiles.forEach((file, index) => {
+                    formData.append(`medical_documents[${index}]`, file);
+                });
+                
                 const response = await fetch('/patient/doctors/book', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        doctor_id: this.doctorId,
-                        scheduled_at: scheduledAt,
-                        consult_mode: this.consultMode,
-                        problem: this.problem,
-                        severity: this.severity
-                    })
+                    body: formData
                 });
                 
                 const data = await response.json();
@@ -620,6 +895,103 @@ function bookingModal() {
             } finally {
                 this.isSubmitting = false;
             }
+        }
+    }
+}
+
+// Symptoms Selector Component
+function symptomsSelector() {
+    return {
+        isOpen: false,
+        searchQuery: '',
+        selectedSymptoms: [],
+        
+        allSymptoms: {
+            critical: [
+                { value: 'chest_pain', label: 'Chest pain or pressure', category: 'critical' },
+                { value: 'breathing', label: 'Severe difficulty breathing', category: 'critical' },
+                { value: 'consciousness', label: 'Loss of consciousness / fainting', category: 'critical' },
+                { value: 'bleeding', label: 'Uncontrolled heavy bleeding', category: 'critical' },
+                { value: 'seizure', label: 'Seizure now or ongoing', category: 'critical' },
+                { value: 'pregnancy_bleeding', label: 'Heavy vaginal bleeding in pregnancy', category: 'critical' }
+            ],
+            respiratory: [
+                { value: 'cough', label: 'Persistent cough', category: 'respiratory' },
+                { value: 'shortness_breath', label: 'Shortness of breath', category: 'respiratory' },
+                { value: 'wheezing', label: 'Wheezing', category: 'respiratory' }
+            ],
+            neurological: [
+                { value: 'weakness', label: 'Sudden weakness, numbness', category: 'neurological' },
+                { value: 'speech', label: 'Slurred speech', category: 'neurological' },
+                { value: 'headache', label: 'Severe headache', category: 'neurological' },
+                { value: 'dizziness', label: 'Dizziness or vertigo', category: 'neurological' }
+            ],
+            pain: [
+                { value: 'abdominal', label: 'Severe abdominal pain', category: 'pain' },
+                { value: 'back_pain', label: 'Severe back pain', category: 'pain' },
+                { value: 'joint_pain', label: 'Joint pain', category: 'pain' }
+            ],
+            general: [
+                { value: 'fever', label: 'Very high fever', category: 'general' },
+                { value: 'fatigue', label: 'Extreme fatigue', category: 'general' },
+                { value: 'nausea', label: 'Nausea or vomiting', category: 'general' },
+                { value: 'dehydration', label: 'Signs of dehydration', category: 'general' }
+            ]
+        },
+        
+        filteredSymptoms: {
+            critical: [],
+            respiratory: [],
+            neurological: [],
+            pain: [],
+            general: []
+        },
+        
+        init() {
+            this.filterSymptoms();
+        },
+        
+        filterSymptoms() {
+            const query = this.searchQuery.toLowerCase();
+            
+            Object.keys(this.allSymptoms).forEach(category => {
+                this.filteredSymptoms[category] = this.allSymptoms[category].filter(symptom => 
+                    symptom.label.toLowerCase().includes(query)
+                );
+            });
+        },
+        
+        getAllSymptomsFlat() {
+            const allFlat = [];
+            Object.keys(this.allSymptoms).forEach(category => {
+                allFlat.push(...this.allSymptoms[category]);
+            });
+            return allFlat;
+        },
+        
+        toggleSymptom(symptom) {
+            const index = this.selectedSymptoms.findIndex(s => s.value === symptom.value);
+            if (index > -1) {
+                this.selectedSymptoms.splice(index, 1);
+            } else {
+                this.selectedSymptoms.push(symptom);
+            }
+        },
+        
+        removeSymptom(value) {
+            this.selectedSymptoms = this.selectedSymptoms.filter(s => s.value !== value);
+        },
+        
+        clearAll() {
+            this.selectedSymptoms = [];
+        },
+        
+        isSelected(value) {
+            return this.selectedSymptoms.some(s => s.value === value);
+        },
+        
+        hasResults() {
+            return Object.values(this.filteredSymptoms).some(cat => cat.length > 0);
         }
     }
 }

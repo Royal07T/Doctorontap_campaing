@@ -1164,8 +1164,12 @@ class DashboardController extends Controller
             'doctor_id' => 'required|exists:doctors,id',
             'scheduled_at' => 'required|date|after:now',
             'consult_mode' => 'required|in:voice,video,chat',
-            'problem' => 'required|string|max:1000',
+            'problem' => 'required|string|min:10|max:1000',
             'severity' => 'required|in:mild,moderate,severe',
+            'emergency_symptoms' => 'nullable|array',
+            'emergency_symptoms.*' => 'nullable|string',
+            'medical_documents' => 'nullable|array',
+            'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
         ]);
 
         $doctor = Doctor::findOrFail($validated['doctor_id']);
@@ -1209,6 +1213,33 @@ class DashboardController extends Controller
             ], 400);
         }
 
+        // Handle medical document uploads - HIPAA: Store in private storage
+        $uploadedDocuments = [];
+        if ($request->hasFile('medical_documents')) {
+            try {
+                foreach ($request->file('medical_documents') as $file) {
+                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                    // Store in private storage (storage/app/private/medical_documents)
+                    $filePath = $file->storeAs('medical_documents', $fileName);
+                    
+                    $uploadedDocuments[] = [
+                        'original_name' => $file->getClientOriginalName(),
+                        'stored_name' => $fileName,
+                        'path' => $filePath,
+                        'size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ];
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to upload medical documents: ' . $e->getMessage(), [
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $doctor->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Continue without documents rather than failing completely
+            }
+        }
+
         // Create consultation
         $consultation = Consultation::create([
             'reference' => 'CONS-' . strtoupper(Str::random(8)),
@@ -1221,12 +1252,14 @@ class DashboardController extends Controller
             'age' => $patient->age,
             'gender' => $patient->gender,
             'problem' => $validated['problem'],
+            'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
             'severity' => $validated['severity'],
+            'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
             'consult_mode' => $validated['consult_mode'],
             'status' => 'scheduled',
             'payment_status' => 'unpaid',
             'scheduled_at' => $scheduledAt,
-            'consultation_type' => 'scheduled',
+            'consultation_type' => 'pay_later', // Scheduled appointments use pay_later by default
         ]);
 
         return response()->json([

@@ -412,19 +412,60 @@
                                     ` : ''}
                                     ${doctor.certificate_path || doctor.certificate_data ? `
                                     <div class="col-span-full">
-                                        <h3 class="text-lg font-semibold mb-3">MDCN License / Medical Certificate</h3>
-                                        <a href="/admin/doctors/${doctor.id}/certificate" target="_blank" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                            View/Download License
-                                        </a>
-                                        <p class="text-xs text-gray-500 mt-2">
-                                            <svg class="w-4 h-4 inline mr-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                            </svg>
-                                            Certificate stored securely in database
-                                        </p>
+                                        <h3 class="text-lg font-semibold mb-3 flex items-center justify-between">
+                                            <span>MDCN License / Medical Certificate</span>
+                                            ${doctor.mdcn_certificate_verified ? `
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Verified
+                                                </span>
+                                            ` : `
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
+                                                    Pending Verification
+                                                </span>
+                                            `}
+                                        </h3>
+                                        <div class="space-y-3">
+                                            <div class="flex items-center gap-3">
+                                                <a href="/admin/doctors/${doctor.id}/certificate" target="_blank" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                    View/Download Certificate
+                                                </a>
+                                                ${!doctor.mdcn_certificate_verified ? `
+                                                    <button onclick="verifyCertificate(${doctor.id})" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Verify Certificate
+                                                    </button>
+                                                ` : `
+                                                    <button onclick="unverifyCertificate(${doctor.id})" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                        Unverify Certificate
+                                                    </button>
+                                                `}
+                                            </div>
+                                            ${doctor.mdcn_certificate_verified ? `
+                                                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                                                    <p class="text-xs text-emerald-800">
+                                                        <strong>✓ Verified</strong> on ${doctor.mdcn_certificate_verified_at || 'N/A'}
+                                                        ${doctor.mdcn_certificate_verified_by ? ` by ${doctor.mdcn_certificate_verified_by}` : ''}
+                                                    </p>
+                                                </div>
+                                            ` : ''}
+                                            <p class="text-xs text-gray-500">
+                                                <svg class="w-4 h-4 inline mr-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Certificate stored securely in private storage
+                                            </p>
+                                        </div>
                                     </div>
                                     ` : `
                                     <div class="col-span-full">
@@ -604,6 +645,58 @@
         function closeAlertModal() {
             document.getElementById('alertModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
+        }
+
+        function verifyCertificate(doctorId) {
+            showConfirmModal('Are you sure you want to verify this MDCN certificate? This action confirms the certificate is valid.', () => {
+                fetch(`/admin/doctors/${doctorId}/verify-certificate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlertModal(data.message, 'success');
+                        // Reload the page to update the view
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlertModal(data.message || 'Failed to verify certificate', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlertModal('An error occurred while verifying the certificate', 'error');
+                });
+            });
+        }
+
+        function unverifyCertificate(doctorId) {
+            showConfirmModal('Are you sure you want to remove verification from this MDCN certificate? This will mark it as unverified.', () => {
+                fetch(`/admin/doctors/${doctorId}/unverify-certificate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlertModal(data.message, 'success');
+                        // Reload the page to update the view
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlertModal(data.message || 'Failed to unverify certificate', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlertModal('An error occurred while unverifying the certificate', 'error');
+                });
+            });
         }
     </script>
 

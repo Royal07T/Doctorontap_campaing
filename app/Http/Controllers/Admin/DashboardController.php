@@ -9,6 +9,8 @@ use App\Models\Doctor;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
 use App\Mail\TreatmentPlanNotification;
@@ -1824,7 +1826,7 @@ class DashboardController extends Controller
     public function viewDoctorRegistration($id)
     {
         try {
-            $doctor = Doctor::findOrFail($id);
+            $doctor = Doctor::with('verifiedByAdmin')->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -1849,6 +1851,9 @@ class DashboardController extends Controller
                     'certificate_path' => $doctor->certificate_path,
                     'certificate_data' => $doctor->certificate_data ? true : false, // Just check if exists, don't send full data
                     'certificate_original_name' => $doctor->certificate_original_name,
+                    'mdcn_certificate_verified' => $doctor->mdcn_certificate_verified ?? false,
+                    'mdcn_certificate_verified_at' => $doctor->mdcn_certificate_verified_at ? $doctor->mdcn_certificate_verified_at->format('M d, Y H:i A') : null,
+                    'mdcn_certificate_verified_by' => $doctor->mdcn_certificate_verified_by ? $doctor->verifiedByAdmin->name ?? null : null,
                     'is_approved' => $doctor->is_approved,
                 ]
             ]);
@@ -2140,25 +2145,118 @@ class DashboardController extends Controller
         try {
             $doctor = Doctor::findOrFail($id);
             
-            if (!$doctor->certificate_data) {
+            // Try to get from private storage first, fallback to base64
+            if ($doctor->certificate_path && Storage::exists($doctor->certificate_path)) {
+                $fileContent = Storage::get($doctor->certificate_path);
+                $mimeType = $doctor->certificate_mime_type ?? Storage::mimeType($doctor->certificate_path);
+            } elseif ($doctor->certificate_data) {
+                // Fallback to base64 data
+                $fileContent = base64_decode($doctor->certificate_data);
+                $mimeType = $doctor->certificate_mime_type ?? 'application/pdf';
+            } else {
                 return response()->json([
                     'success' => false,
                     'message' => 'No certificate found for this doctor.'
                 ], 404);
             }
             
-            // Decode the base64 data
-            $fileContent = base64_decode($doctor->certificate_data);
-            
             // Return the file for viewing/download
             return response($fileContent)
-                ->header('Content-Type', $doctor->certificate_mime_type ?? 'application/pdf')
-                ->header('Content-Disposition', 'inline; filename="' . ($doctor->certificate_original_name ?? 'certificate.pdf') . '"');
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . ($doctor->certificate_original_name ?? 'mdcn-certificate.pdf') . '"');
                 
         } catch (\Exception $e) {
+            \Log::error('Failed to view doctor certificate', [
+                'doctor_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load certificate: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify MDCN certificate
+     */
+    public function verifyMdcnCertificate(Request $request, $id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            
+            if (!$doctor->certificate_path && !$doctor->certificate_data) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No certificate found to verify.'
+                ], 400);
+            }
+            
+            $admin = Auth::guard('admin')->user();
+            
+            $doctor->update([
+                'mdcn_certificate_verified' => true,
+                'mdcn_certificate_verified_at' => now(),
+                'mdcn_certificate_verified_by' => $admin->id,
+            ]);
+            
+            \Log::info('MDCN certificate verified by admin', [
+                'doctor_id' => $doctor->id,
+                'doctor_name' => $doctor->full_name,
+                'admin_id' => $admin->id,
+                'admin_name' => $admin->name,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'MDCN certificate verified successfully.',
+                'verified' => true,
+                'verified_at' => $doctor->mdcn_certificate_verified_at->format('M d, Y H:i A'),
+                'verified_by' => $admin->name,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to verify MDCN certificate', [
+                'doctor_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify certificate: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Unverify MDCN certificate
+     */
+    public function unverifyMdcnCertificate(Request $request, $id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            
+            $doctor->update([
+                'mdcn_certificate_verified' => false,
+                'mdcn_certificate_verified_at' => null,
+                'mdcn_certificate_verified_by' => null,
+            ]);
+            
+            \Log::info('MDCN certificate unverified by admin', [
+                'doctor_id' => $doctor->id,
+                'doctor_name' => $doctor->full_name,
+                'admin_id' => Auth::guard('admin')->user()->id,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'MDCN certificate verification removed.',
+                'verified' => false,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unverify certificate: ' . $e->getMessage()
             ], 500);
         }
     }
