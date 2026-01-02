@@ -471,6 +471,9 @@
         }
     </script>
     @include('components.custom-alert-modal')
+    
+    <!-- System Preloader -->
+    <x-system-preloader message="Loading..." subtext="Please wait while we process your request." />
 </body>
 </html>
 

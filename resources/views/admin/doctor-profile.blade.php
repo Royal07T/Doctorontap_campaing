@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, showPaymentModal: false, selectedConsultations: [] }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, isSubmitting: false, isLoading: false, showPaymentModal: false, selectedConsultations: [] }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'doctors'])
@@ -274,6 +274,9 @@
         }
     </script>
     @include('components.custom-alert-modal')
+    
+    <!-- System Preloader -->
+    <x-system-preloader message="Loading..." subtext="Please wait while we process your request." />
 </body>
 </html>
 

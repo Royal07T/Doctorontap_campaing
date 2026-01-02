@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, isSubmitting: false, isLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'doctors'])
@@ -848,6 +848,9 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
          x-transition:leave-end="opacity-0"
          class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
          style="display: none;"></div>
+    
+    <!-- System Preloader -->
+    <x-system-preloader message="Loading..." subtext="Please wait while we process your request." />
 </body>
 </html>
 

@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, isSubmitting: false, isLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'canvasser-patients'])
@@ -411,6 +411,9 @@
             document.body.style.overflow = 'auto';
         }
     </script>
+    
+    <!-- System Preloader -->
+    <x-system-preloader message="Loading..." subtext="Please wait while we process your request." />
 </body>
 </html>
 
