@@ -153,7 +153,7 @@
 <div class="footer">
     Reference: {{ $consultation->reference }} <br>
     Generated on {{ now()->format('F d, Y h:i A') }} <br>
-    © {{ date('Y') }} DoctorOnTap
+    © {{ date('Y') }} DoctorOnTap. All rights reserved.
 </div>
 
 </body>

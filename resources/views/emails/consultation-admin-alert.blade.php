@@ -222,7 +222,7 @@
         <div class="footer">
             <p>This is an automated admin alert from DoctorOnTap Healthcare Awareness Campaign.</p>
             <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
-            <p>&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
+            <p>© {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
         </div>
     </div>
 </body>

@@ -162,7 +162,7 @@
     <footer class="bg-white border-t border-gray-200 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="text-center text-sm text-gray-500">
-                <p>&copy; 2025 DoctorOnTap. All rights reserved.</p>
+                <p>© {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
                 <p class="mt-1">If you have any questions, please contact our support team.</p>
             </div>
         </div>

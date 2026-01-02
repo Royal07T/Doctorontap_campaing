@@ -246,7 +246,7 @@
             <p>This consultation was booked by your canvasser: <strong>{{ $canvasser->name }}</strong></p>
             <p>This is an automated confirmation email from DoctorOnTap Healthcare Campaign.</p>
             <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
-            <p>&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
+            <p>© {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
         </div>
     </div>
 </body>

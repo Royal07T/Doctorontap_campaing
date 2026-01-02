@@ -2200,7 +2200,7 @@
             <div class="pt-6 border-t border-gray-700">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                     <p class="text-gray-400 text-sm">
-                        © 2025 <span class="font-semibold text-purple-300">DoctorOnTap</span>. All rights reserved.
+                        © {{ date('Y') }} DoctorOnTap. All rights reserved.
                     </p>
                     <div class="flex items-center gap-4 text-sm text-gray-400">
                         <a href="#" class="hover:text-purple-400 transition-colors">Privacy Policy</a>

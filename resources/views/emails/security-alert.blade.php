@@ -183,7 +183,7 @@
         <div class="footer">
             <p>This is an automated security alert from DoctorOnTap.</p>
             <p>If you believe this is a false positive, please contact the security team.</p>
-            <p>&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
+            <p>© {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
         </div>
     </div>
 </body>

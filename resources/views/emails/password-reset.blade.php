@@ -72,7 +72,7 @@
     <div class="footer">
         <p>This email was sent from DoctorOnTap. If you have any questions, please contact our support team.</p>
         <p><strong>DoctorOnTap</strong> — caring for you, just like family</p>
-        <p>&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
+        <p>© {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
     </div>
 </body>
 </html>
