@@ -392,8 +392,60 @@
                     </div>
                 </div>
             </div>
-        @elseif($consultation->status === 'completed' && $consultation->requiresPaymentForTreatmentPlan())
-            <!-- Payment Required -->
+        @elseif($consultation->status === 'completed' && $consultation->hasTreatmentPlan() && !$consultation->isPaid())
+            <!-- Treatment Plan Ready - Payment Required -->
+            <div class="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-500 p-6 rounded-lg mb-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h3 class="text-base font-semibold text-purple-900 mb-2">🎉 Your Treatment Plan is Ready!</h3>
+                        <p class="text-sm text-purple-800 mb-4">
+                            Your doctor has completed your treatment plan. Complete payment to unlock and view your full treatment plan.
+                        </p>
+                        
+                        <!-- Payment Information -->
+                        <div class="bg-white rounded-lg p-4 mb-4 border border-purple-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm font-medium text-gray-700">Consultation Fee:</span>
+                                <span class="text-lg font-bold text-purple-900">
+                                    ₦{{ number_format($consultation->doctor ? $consultation->doctor->effective_consultation_fee : 5000, 2) }}
+                                </span>
+                            </div>
+                            @if($consultation->doctor)
+                                <p class="text-xs text-gray-600 mb-3">
+                                    <span class="font-medium">Doctor:</span> {{ $consultation->doctor->name }}
+                                </p>
+                            @endif
+                            <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST" class="w-full">
+                                @csrf
+                                <button type="submit" 
+                                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition shadow-md hover:shadow-lg">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                    </svg>
+                                    Pay Now to View Treatment Plan
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="bg-purple-100 rounded-lg p-3 border border-purple-200">
+                            <p class="text-xs text-purple-800">
+                                <strong>What happens after payment?</strong><br>
+                                • You'll receive a payment confirmation email<br>
+                                • Your treatment plan will be unlocked immediately<br>
+                                • You can download your treatment plan PDF<br>
+                                • Access your complete medical records
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @elseif($consultation->status === 'completed' && $consultation->requiresPaymentForTreatmentPlan() && !$consultation->hasTreatmentPlan())
+            <!-- Payment Required (Treatment Plan Not Ready Yet) -->
             <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded mb-6">
                 <div class="flex">
                     <div class="flex-shrink-0">
@@ -404,7 +456,7 @@
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-blue-800">Payment Required</h3>
                         <p class="mt-2 text-sm text-blue-700">
-                            Payment is required to access your treatment plan. Please complete payment to view your treatment plan.
+                            Payment is required to access your treatment plan. Please complete payment to view your treatment plan once it's ready.
                         </p>
                     </div>
                 </div>

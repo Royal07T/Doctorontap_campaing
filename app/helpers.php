@@ -1,90 +1,123 @@
 <?php
 
-if (!function_exists('format_whatsapp_phone')) {
+if (!function_exists('domain_url')) {
     /**
-     * Format phone number for WhatsApp links
-     * Converts Nigerian local format (080XXXXX) to international format (23480XXXXX)
-     * 
-     * @param string $phone The phone number to format
-     * @return string Formatted phone number with country code
+     * Generate a URL for a specific domain type.
+     *
+     * @param string $domainType
+     * @param string $path
+     * @param array $parameters
+     * @return string
      */
-    function format_whatsapp_phone($phone) {
-        // Remove all non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
+    function domain_url(string $domainType, string $path = '', array $parameters = []): string
+    {
+        if (!config('domains.enabled')) {
+            return url($path, $parameters);
+        }
+
+        $domain = config("domains.domains.{$domainType}");
         
-        // Convert Nigerian local format to international format
-        // If starts with 0, replace with 234
-        // If doesn't start with 234, add 234
-        if (strlen($phone) > 0 && $phone[0] === '0') {
-            $phone = '234' . substr($phone, 1);
-        } elseif (!str_starts_with($phone, '234')) {
-            // If it doesn't start with 234 and is a valid length, add 234
-            if (strlen($phone) >= 10) {
-                $phone = '234' . $phone;
+        if (!$domain) {
+            return url($path, $parameters);
+        }
+
+        $scheme = request()->getScheme();
+        $url = "{$scheme}://{$domain}";
+        
+        if ($path) {
+            $url .= '/' . ltrim($path, '/');
+        }
+        
+        if (!empty($parameters)) {
+            $url .= '?' . http_build_query($parameters);
+        }
+        
+        return $url;
+    }
+}
+
+if (!function_exists('admin_url')) {
+    /**
+     * Generate a URL for the admin domain.
+     * 
+     * @param string $path
+     * @param array $parameters
+     * @return string
+     */
+    function admin_url(string $path = '', array $parameters = []): string
+    {
+        return domain_url('admin', $path, $parameters);
+    }
+}
+
+if (!function_exists('patient_url')) {
+    /**
+     * Generate a URL for the patient domain.
+     *
+     * @param string $path
+     * @param array $parameters
+     * @return string
+     */
+    function patient_url(string $path = '', array $parameters = []): string
+    {
+        return domain_url('patient', $path, $parameters);
+    }
+}
+
+if (!function_exists('doctor_url')) {
+    /**
+     * Generate a URL for the doctor domain.
+     * 
+     * @param string $path
+     * @param array $parameters
+     * @return string
+     */
+    function doctor_url(string $path = '', array $parameters = []): string
+    {
+        return domain_url('doctor', $path, $parameters);
+    }
+}
+
+if (!function_exists('current_domain_type')) {
+    /**
+     * Get the current domain type based on the request host.
+     *
+     * @return string|null
+     */
+    function current_domain_type(): ?string
+    {
+        if (!config('domains.enabled')) {
+            return null;
+        }
+
+        $currentHost = request()->getHost();
+        
+        foreach (config('domains.domains') as $type => $domain) {
+            if ($currentHost === $domain) {
+                return $type;
             }
         }
         
-        return $phone;
+        return null;
     }
 }
 
-if (!function_exists('app_url')) {
+if (!function_exists('is_domain')) {
     /**
-     * Generate application URL that always reads from env (not cached config)
-     * 
-     * @param string $path Optional path to append
-     * @return string Full application URL
+     * Check if the current request is on a specific domain type.
+     *
+     * @param string $domainType
+     * @return bool
      */
-    function app_url($path = '') {
-        $baseUrl = env('APP_URL', config('app.url', 'http://localhost'));
-        $baseUrl = rtrim($baseUrl, '/');
-        $path = ltrim($path, '/');
-        return $path ? $baseUrl . '/' . $path : $baseUrl;
-    }
-}
-
-if (!function_exists('email_logo_inline')) {
-    /**
-     * Get inline base64-encoded logo for email embedding
-     * This allows the logo to display in emails without requiring external URL access
-     * 
-     * @return string Data URI with base64-encoded PNG logo
-     */
-    function email_logo_inline() {
-        $logoPath = public_path('img/whitelogo.png');
-        
-        if (!file_exists($logoPath)) {
-            return '';
+    function is_domain(string $domainType): bool
+    {
+        if (!config('domains.enabled')) {
+            return false;
         }
+
+        $expectedDomain = config("domains.domains.{$domainType}");
+        $currentHost = request()->getHost();
         
-        $imageData = base64_encode(file_get_contents($logoPath));
-        return 'data:image/png;base64,' . $imageData;
+        return $expectedDomain && $currentHost === $expectedDomain;
     }
 }
-
-if (!function_exists('create_notification')) {
-    /**
-     * Create a notification for a user
-     * 
-     * @param string $userType The type of user (patient, doctor, admin, nurse, canvasser)
-     * @param int $userId The ID of the user
-     * @param string $title The notification title
-     * @param string $message The notification message
-     * @param string $type The notification type (info, success, warning, error)
-     * @param string|null $actionUrl Optional URL to navigate to when clicked
-     * @param array|null $data Optional additional data
-     * @return \App\Models\Notification
-     */
-    function create_notification($userType, $userId, $title, $message, $type = 'info', $actionUrl = null, $data = null) {
-        return \App\Models\Notification::create([
-            'user_type' => $userType,
-            'user_id' => $userId,
-            'title' => $title,
-            'message' => $message,
-            'type' => $type,
-            'action_url' => $actionUrl,
-            'data' => $data,
-        ]);
-    }
-}
-

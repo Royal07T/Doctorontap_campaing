@@ -20,8 +20,11 @@ use App\Models\Nurse;
 use App\Models\Setting;
 use App\Models\VitalSign;
 use App\Models\Patient;
+use App\Models\Notification;
 use App\Mail\CanvasserAccountCreated;
 use App\Mail\NurseAccountCreated;
+use App\Notifications\ConsultationSmsNotification;
+use App\Notifications\ConsultationWhatsAppNotification;
 
 class DashboardController extends Controller
 {
@@ -370,7 +373,7 @@ class DashboardController extends Controller
             'doctor_id' => 'required|exists:doctors,id'
         ]);
 
-        $consultation = Consultation::findOrFail($id);
+        $consultation = Consultation::with('patient')->findOrFail($id);
         $doctor = Doctor::findOrFail($request->doctor_id);
 
         if (!$doctor->is_available) {
@@ -386,32 +389,238 @@ class DashboardController extends Controller
             'doctor_id' => $request->doctor_id
         ]);
 
-        // Send notification to the new doctor
-        try {
-            \Mail::to($doctor->email)->send(new \App\Mail\ConsultationDoctorNotification([
-                'consultation_reference' => $consultation->reference,
-                'first_name' => $consultation->first_name,
-                'last_name' => $consultation->last_name,
-                'email' => $consultation->email,
-                'mobile' => $consultation->mobile,
-                'age' => $consultation->age,
-                'gender' => $consultation->gender,
-                'problem' => $consultation->problem,
-                'severity' => $consultation->severity,
-                'consult_mode' => $consultation->consult_mode,
-                'doctor' => $doctor->full_name,
-                'doctor_fee' => $doctor->effective_consultation_fee,
-                'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
-                'has_documents' => !empty($consultation->medical_documents),
-                'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
-            ]));
-        } catch (\Exception $e) {
-            \Log::warning("Failed to send notification to reassigned doctor: " . $e->getMessage());
+        // Refresh consultation to get updated doctor relationship
+        $consultation->refresh();
+        $consultation->load('doctor');
+
+        // Get patient - try from relationship first, then from consultation email
+        $patient = $consultation->patient;
+        if (!$patient && $consultation->email) {
+            $patient = Patient::where('email', $consultation->email)->first();
         }
 
-           $message = 'Doctor reassigned successfully from ' . 
-                   ($oldDoctor ? $oldDoctor->full_name : 'No Doctor') . 
-                   ' to ' . $doctor->full_name;
+        $consultationData = [
+            'consultation_reference' => $consultation->reference,
+            'first_name' => $consultation->first_name,
+            'last_name' => $consultation->last_name,
+            'email' => $consultation->email,
+            'mobile' => $consultation->mobile,
+            'age' => $consultation->age,
+            'gender' => $consultation->gender,
+            'problem' => $consultation->problem,
+            'severity' => $consultation->severity,
+            'consult_mode' => $consultation->consult_mode,
+            'doctor' => $doctor->full_name,
+            'doctor_fee' => $doctor->effective_consultation_fee,
+            'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
+            'has_documents' => !empty($consultation->medical_documents),
+            'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
+        ];
+
+        // ============================================
+        // CREATE NOTIFICATION RECORDS (BELL ICON)
+        // ============================================
+
+        // Create notification for patient
+        if ($patient) {
+            try {
+                Notification::create([
+                    'user_type' => 'patient',
+                    'user_id' => $patient->id,
+                    'title' => 'Doctor Reassigned',
+                    'message' => "Your consultation (Ref: {$consultation->reference}) has been reassigned to Dr. {$doctor->full_name}. Please check your consultation details.",
+                    'type' => 'info',
+                    'action_url' => route('patient.consultation.view', $consultation->id),
+                    'data' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $consultation->reference,
+                        'old_doctor' => $oldDoctor ? $oldDoctor->full_name : 'No Doctor',
+                        'new_doctor' => $doctor->full_name,
+                        'type' => 'doctor_reassignment'
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("Failed to create patient notification: " . $e->getMessage());
+            }
+        }
+
+        // Create notification for doctor
+        try {
+            Notification::create([
+                'user_type' => 'doctor',
+                'user_id' => $doctor->id,
+                'title' => 'New Consultation Assigned',
+                'message' => "A consultation (Ref: {$consultation->reference}) for {$consultation->full_name} has been assigned to you. Please review the consultation details.",
+                'type' => 'info',
+                'action_url' => route('doctor.consultations.view', $consultation->id),
+                'data' => [
+                    'consultation_id' => $consultation->id,
+                    'consultation_reference' => $consultation->reference,
+                    'patient_name' => $consultation->full_name,
+                    'type' => 'consultation_assigned'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning("Failed to create doctor notification: " . $e->getMessage());
+        }
+
+        // ============================================
+        // SEND EMAIL NOTIFICATIONS
+        // ============================================
+
+        // Send email to patient
+        if ($consultation->email) {
+            try {
+                \Mail::to($consultation->email)->send(new \App\Mail\DoctorReassignmentNotification(array_merge($consultationData, [
+                    'is_patient' => true,
+                    'is_reassignment' => true,
+                    'old_doctor' => $oldDoctor ? $oldDoctor->full_name : 'No Doctor',
+                    'new_doctor' => $doctor->full_name,
+                    'consultation_id' => $consultation->id,
+                ])));
+                \Log::info('Patient reassignment email sent', [
+                    'consultation_id' => $consultation->id,
+                    'patient_email' => $consultation->email
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send patient reassignment email: " . $e->getMessage());
+            }
+        }
+
+        // Send email to doctor
+        try {
+            \Mail::to($doctor->email)->send(new \App\Mail\DoctorReassignmentNotification(array_merge($consultationData, [
+                'is_patient' => false,
+                'is_reassignment' => true,
+                'old_doctor' => $oldDoctor ? $oldDoctor->full_name : 'No Doctor',
+                'consultation_id' => $consultation->id,
+            ])));
+            \Log::info('Doctor reassignment email sent', [
+                'consultation_id' => $consultation->id,
+                'doctor_id' => $doctor->id,
+                'doctor_email' => $doctor->email
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send doctor reassignment email: " . $e->getMessage());
+        }
+
+        // ============================================
+        // SEND SMS NOTIFICATIONS
+        // ============================================
+
+        // Send SMS to patient
+        if ($consultation->mobile) {
+            try {
+                $smsNotification = new ConsultationSmsNotification();
+                $patientSmsData = array_merge($consultationData, [
+                    'is_reassignment' => true,
+                    'old_doctor' => $oldDoctor ? $oldDoctor->full_name : 'No Doctor',
+                    'new_doctor' => $doctor->full_name,
+                ]);
+                
+                // Create a custom SMS message for reassignment
+                $patientName = $consultation->first_name;
+                $reference = $consultation->reference;
+                $newDoctorName = $doctor->full_name;
+                $oldDoctorName = $oldDoctor ? $oldDoctor->full_name : 'No Doctor';
+                
+                $smsMessage = "Dear {$patientName}, your consultation (Ref: {$reference}) has been reassigned from {$oldDoctorName} to Dr. {$newDoctorName}. We'll contact you shortly. - DoctorOnTap";
+                
+                $termiiService = app(\App\Services\TermiiService::class);
+                $smsResult = $termiiService->sendSMS($consultation->mobile, $smsMessage);
+                
+                if ($smsResult['success']) {
+                    \Log::info('Patient reassignment SMS sent', [
+                        'consultation_id' => $consultation->id,
+                        'patient_mobile' => $consultation->mobile
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send patient reassignment SMS: " . $e->getMessage());
+            }
+        }
+
+        // Send SMS to doctor
+        if ($doctor->phone) {
+            try {
+                $smsNotification = new ConsultationSmsNotification();
+                $doctorSmsResult = $smsNotification->sendDoctorNewConsultation($doctor, $consultationData);
+                
+                if ($doctorSmsResult['success']) {
+                    \Log::info('Doctor reassignment SMS sent', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctor->id,
+                        'doctor_phone' => $doctor->phone
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send doctor reassignment SMS: " . $e->getMessage());
+            }
+        }
+
+        // ============================================
+        // SEND WHATSAPP NOTIFICATIONS
+        // ============================================
+
+        // Send WhatsApp to patient
+        if (config('services.termii.whatsapp_enabled') && $consultation->mobile) {
+            try {
+                $whatsapp = new ConsultationWhatsAppNotification();
+                
+                $patientName = $consultation->first_name;
+                $reference = $consultation->reference;
+                $newDoctorName = $doctor->full_name;
+                $oldDoctorName = $oldDoctor ? $oldDoctor->full_name : 'No Doctor';
+                
+                $whatsappMessage = "🔄 *Doctor Reassignment Notice*\n\n";
+                $whatsappMessage .= "Hi {$patientName},\n\n";
+                $whatsappMessage .= "Your consultation has been reassigned:\n\n";
+                $whatsappMessage .= "📋 *Reference:* {$reference}\n";
+                $whatsappMessage .= "👨‍⚕️ *Previous Doctor:* {$oldDoctorName}\n";
+                $whatsappMessage .= "👨‍⚕️ *New Doctor:* Dr. {$newDoctorName}\n\n";
+                $whatsappMessage .= "We'll contact you shortly with more details.\n\n";
+                $whatsappMessage .= "Questions? Reply to this message!\n\n";
+                $whatsappMessage .= "— *DoctorOnTap Healthcare* 🏥";
+                
+                $termiiService = app(\App\Services\TermiiService::class);
+                $whatsappResult = $termiiService->sendWhatsAppMessage($consultation->mobile, $whatsappMessage);
+                
+                if ($whatsappResult['success']) {
+                    \Log::info('Patient reassignment WhatsApp sent', [
+                        'consultation_id' => $consultation->id,
+                        'patient_mobile' => $consultation->mobile
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send patient reassignment WhatsApp: " . $e->getMessage());
+            }
+        }
+
+        // Send WhatsApp to doctor
+        if (config('services.termii.whatsapp_enabled') && $doctor->phone) {
+            try {
+                $whatsapp = new ConsultationWhatsAppNotification();
+                $doctorWhatsappResult = $whatsapp->sendDoctorNewConsultationTemplate(
+                    $doctor,
+                    $consultationData,
+                    'doctor_new_consultation' // Template ID from Termii dashboard
+                );
+                
+                if ($doctorWhatsappResult['success']) {
+                    \Log::info('Doctor reassignment WhatsApp sent', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctor->id,
+                        'doctor_phone' => $doctor->phone
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send doctor reassignment WhatsApp: " . $e->getMessage());
+            }
+        }
+
+        $message = 'Doctor reassigned successfully from ' . 
+                ($oldDoctor ? $oldDoctor->full_name : 'No Doctor') . 
+                ' to ' . $doctor->full_name . '. Notifications sent to patient and doctor.';
 
         return response()->json([
             'success' => true,

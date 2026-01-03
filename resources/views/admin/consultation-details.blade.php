@@ -261,6 +261,7 @@
                                     <span x-text="isQuerying ? 'Sending...' : 'Query'"></span>
                             </button>
                             @endif
+                            @if($consultation->status !== 'completed')
                             <button @click="showReassignModal = true" 
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,6 +269,7 @@
                                 </svg>
                                     Reassign
                             </button>
+                            @endif
                         </div>
                         @endif
                         </div>
@@ -300,6 +302,7 @@
                     </div>
                     @else
                     <p class="text-xs text-gray-600">No specific doctor assigned - Any available doctor</p>
+                    @if($consultation->status !== 'completed')
                     <button @click="showReassignModal = true" 
                             class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,6 +310,7 @@
                         </svg>
                         Assign Doctor
                     </button>
+                    @endif
                     @endif
                 </div>
 

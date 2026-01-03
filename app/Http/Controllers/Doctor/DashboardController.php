@@ -471,6 +471,69 @@ class DashboardController extends Controller
                     'payment_status' => $consultation->payment_status,
                     'is_paid' => $consultation->isPaid()
                 ]);
+                
+                // If payment is already made and treatment plan was just created, send treatment plan email
+                if (!$isUpdate && $consultation->isPaid() && $consultation->hasTreatmentPlan()) {
+                    try {
+                        // Determine recipient email: check multiple sources
+                        $recipientEmail = null;
+                        
+                        // 1. First try consultation email field
+                        if (!empty($consultation->email)) {
+                            $recipientEmail = $consultation->email;
+                        }
+                        // 2. Try patient relationship email
+                        elseif ($consultation->patient && !empty($consultation->patient->email)) {
+                            $recipientEmail = $consultation->patient->email;
+                        }
+                        // 3. Try booking payer email (for multi-patient bookings)
+                        elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
+                            $recipientEmail = $consultation->booking->payer_email;
+                        }
+                        
+                        if ($recipientEmail) {
+                            // Ensure treatment plan is unlocked
+                            if (!$consultation->treatment_plan_unlocked) {
+                                $consultation->unlockTreatmentPlan();
+                            }
+                            
+                            \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\TreatmentPlanNotification($consultation));
+                            
+                            \Illuminate\Support\Facades\Log::info('Treatment plan email sent immediately after creation (payment already made)', [
+                                'consultation_id' => $consultation->id,
+                                'reference' => $consultation->reference,
+                                'email' => $recipientEmail
+                            ]);
+                            
+                            // Send Review Request email
+                            try {
+                                \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\ReviewRequest($consultation));
+                                \Illuminate\Support\Facades\Log::info('Review request email sent after treatment plan', [
+                                    'consultation_id' => $consultation->id,
+                                    'email' => $recipientEmail
+                                ]);
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('Failed to send review request email', [
+                                    'consultation_id' => $consultation->id,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
+                        } else {
+                            \Illuminate\Support\Facades\Log::warning('No email available to send treatment plan (payment already made)', [
+                                'consultation_id' => $consultation->id,
+                                'reference' => $consultation->reference
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Failed to send treatment plan email after creation (payment already made)', [
+                            'consultation_id' => $consultation->id,
+                            'email' => $consultation->email ?? 'N/A',
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        // Don't fail the request if email fails
+                    }
+                }
             }
             
             \Illuminate\Support\Facades\Log::info('Treatment plan update completed successfully', [

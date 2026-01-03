@@ -46,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.termii.webhook' => \App\Http\Middleware\VerifyTermiiWebhook::class,
             'sanitize.input' => \App\Http\Middleware\SanitizeInput::class,
             'validate.route.params' => \App\Http\Middleware\ValidateRouteParameters::class,
+            'domain.routing' => \App\Http\Middleware\DomainRouting::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
