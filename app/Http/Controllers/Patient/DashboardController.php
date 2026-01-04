@@ -1352,6 +1352,48 @@ class DashboardController extends Controller
             'consultation_type' => 'pay_later', // Scheduled appointments use pay_later by default
         ]);
 
+        // Create notifications for both patient and doctor
+        try {
+            // Notification for patient
+            \App\Models\Notification::create([
+                'user_type' => 'patient',
+                'user_id' => $patient->id,
+                'title' => 'Appointment Booked Successfully',
+                'message' => "Your appointment with Dr. {$doctor->name} has been booked for " . $scheduledAt->format('M d, Y h:i A') . ". Reference: {$consultation->reference}",
+                'type' => 'success',
+                'action_url' => patient_url('consultations/' . $consultation->id),
+                'data' => [
+                    'consultation_id' => $consultation->id,
+                    'consultation_reference' => $consultation->reference,
+                    'doctor_name' => $doctor->name,
+                    'scheduled_at' => $scheduledAt->toDateTimeString(),
+                    'type' => 'appointment_booked'
+                ]
+            ]);
+
+            // Notification for doctor
+            \App\Models\Notification::create([
+                'user_type' => 'doctor',
+                'user_id' => $doctor->id,
+                'title' => 'New Appointment Booked',
+                'message' => "{$patient->name} has booked an appointment with you for " . $scheduledAt->format('M d, Y h:i A') . ". Reference: {$consultation->reference}",
+                'type' => 'info',
+                'action_url' => doctor_url('consultations/' . $consultation->id),
+                'data' => [
+                    'consultation_id' => $consultation->id,
+                    'consultation_reference' => $consultation->reference,
+                    'patient_name' => $patient->name,
+                    'scheduled_at' => $scheduledAt->toDateTimeString(),
+                    'type' => 'new_appointment'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create booking notifications', [
+                'consultation_id' => $consultation->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Appointment booked successfully!',

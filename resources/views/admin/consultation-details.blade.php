@@ -138,100 +138,114 @@
                     </div>
                 </div>
 
-                <!-- Medical Details -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <div class="mb-4 pb-4 border-b border-gray-200">
-                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Medical Details
-                        </h2>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Problem Description</label>
-                            <p class="text-sm text-gray-900 leading-relaxed">{{ $consultation->problem }}</p>
+                <!-- Medical Details (Blurred for Admin) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative overflow-hidden" style="min-height: 200px;">
+                    <!-- Blurred Content -->
+                    <div style="filter: blur(10px); pointer-events: none; user-select: none; -webkit-user-select: none;">
+                        <div class="mb-4 pb-4 border-b border-gray-200">
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Medical Details
+                            </h2>
                         </div>
                         
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Severity</label>
-                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
-                                {{ $consultation->severity === 'mild' ? 'bg-green-100 text-green-700' : '' }}
-                                {{ $consultation->severity === 'moderate' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                {{ $consultation->severity === 'severe' ? 'bg-red-100 text-red-700' : '' }}">
-                                {{ ucfirst($consultation->severity) }}
-                            </span>
-                        </div>
-
-                        @if($consultation->emergency_symptoms && count($consultation->emergency_symptoms) > 0)
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Emergency Symptoms</label>
-                            <div class="flex flex-wrap gap-1.5">
-                                @foreach($consultation->emergency_symptoms as $symptom)
-                                <span class="px-2 py-0.5 bg-red-50 text-red-700 rounded-lg text-xs border border-red-200">
-                                    {{ $symptom }}
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Problem Description</label>
+                                <p class="text-sm text-gray-900 leading-relaxed">{{ $consultation->problem }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Severity</label>
+                                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                                    {{ $consultation->severity === 'mild' ? 'bg-green-100 text-green-700' : '' }}
+                                    {{ $consultation->severity === 'moderate' ? 'bg-yellow-100 text-yellow-700' : '' }}
+                                    {{ $consultation->severity === 'severe' ? 'bg-red-100 text-red-700' : '' }}">
+                                    {{ ucfirst($consultation->severity) }}
                                 </span>
-                                @endforeach
                             </div>
-                        </div>
-                        @endif
 
-                        @if($consultation->medical_documents && count($consultation->medical_documents) > 0)
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Medical Documents</label>
-                                @if($consultation->doctor)
-                                <button 
-                                    @click="forwardDocuments()"
-                                    :disabled="isForwarding"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-                                    <svg x-show="!isForwarding" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <svg x-show="isForwarding" class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span x-text="isForwarding ? 'Forwarding...' : 'Forward to Doctor'"></span>
-                                </button>
-                                @endif
-                            </div>
-                            @if($consultation->documents_forwarded_at)
-                            <div class="mb-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                                <p class="text-xs text-green-700 flex items-center">
-                                    <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Documents forwarded to {{ $consultation->doctor->full_name }} on {{ $consultation->documents_forwarded_at->format('M d, Y g:i A') }}
-                                </p>
+                            @if($consultation->emergency_symptoms && count($consultation->emergency_symptoms) > 0)
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Emergency Symptoms</label>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($consultation->emergency_symptoms as $symptom)
+                                    <span class="px-2 py-0.5 bg-red-50 text-red-700 rounded-lg text-xs border border-red-200">
+                                        {{ $symptom }}
+                                    </span>
+                                    @endforeach
+                                </div>
                             </div>
                             @endif
-                            <div class="space-y-2">
-                                @foreach($consultation->medical_documents as $document)
-                                <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-2.5">
-                                    <div class="flex items-center space-x-2">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+
+                            @if($consultation->medical_documents && count($consultation->medical_documents) > 0)
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Medical Documents</label>
+                                    @if($consultation->doctor)
+                                    <button 
+                                        @click="forwardDocuments()"
+                                        :disabled="isForwarding"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition disabled:opacity-50">
+                                        <svg x-show="!isForwarding" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                         </svg>
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-900">{{ $document['original_name'] }}</p>
-                                            <p class="text-xs text-gray-500">{{ number_format($document['size'] / 1024, 2) }} KB</p>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('medical-document.download', ['consultation' => $consultation->id, 'filename' => $document['stored_name']]) }}" 
-                                       class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        <svg x-show="isForwarding" class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        Download
-                                    </a>
+                                        <span x-text="isForwarding ? 'Forwarding...' : 'Forward to Doctor'"></span>
+                                    </button>
+                                    @endif
                                 </div>
-                                @endforeach
+                                @if($consultation->documents_forwarded_at)
+                                <div class="mb-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                    <p class="text-xs text-green-700 flex items-center">
+                                        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Documents forwarded to {{ $consultation->doctor->full_name }} on {{ $consultation->documents_forwarded_at->format('M d, Y g:i A') }}
+                                    </p>
+                                </div>
+                                @endif
+                                <div class="space-y-2">
+                                    @foreach($consultation->medical_documents as $document)
+                                    <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-2.5">
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            <div>
+                                                <p class="text-xs font-medium text-gray-900">{{ $document['original_name'] }}</p>
+                                                <p class="text-xs text-gray-500">{{ number_format($document['size'] / 1024, 2) }} KB</p>
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('medical-document.download', ['consultation' => $consultation->id, 'filename' => $document['stored_name']]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                            </svg>
+                                            Download
+                                        </a>
+                                    </div>
+                                    @endforeach
+                                </div>
                             </div>
+                            @endif
                         </div>
-                        @endif
+                    </div>
+                    
+                    <!-- Overlay message (centered on top of blurred content) -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div class="bg-red-600 text-white px-6 py-4 rounded-lg shadow-2xl text-center max-w-sm mx-4 border-2 border-red-700">
+                            <svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <p class="text-base font-bold mb-1">RESTRICTED ACCESS</p>
+                            <p class="text-xs leading-relaxed">Medical details are only accessible to authorized doctors during active consultations</p>
+                        </div>
                     </div>
                 </div>
 

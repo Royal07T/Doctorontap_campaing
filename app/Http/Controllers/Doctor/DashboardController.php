@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use App\Mail\ConsultationStatusChange;
 
 class DashboardController extends Controller

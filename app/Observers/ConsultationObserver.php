@@ -80,7 +80,7 @@ class ConsultationObserver
                         'title' => 'Treatment Plan Ready - Payment Required',
                         'message' => "Your treatment plan for consultation (Ref: {$consultation->reference}) is ready! Complete payment of ₦" . number_format($fee, 2) . " to view your treatment plan.",
                         'type' => 'info',
-                        'action_url' => route('consultation.view', $consultation->id),
+                        'action_url' => patient_url('consultations/' . $consultation->id),
                         'data' => [
                             'consultation_id' => $consultation->id,
                             'consultation_reference' => $consultation->reference,
@@ -170,7 +170,7 @@ class ConsultationObserver
                                 'title' => 'Treatment Plan Sent',
                                 'message' => "Your treatment plan for consultation (Ref: {$consultation->reference}) has been sent to your email. Please check your inbox.",
                                 'type' => 'success',
-                                'action_url' => route('consultation.view', $consultation->id),
+                                'action_url' => patient_url('consultations/' . $consultation->id),
                                 'data' => [
                                     'consultation_id' => $consultation->id,
                                     'consultation_reference' => $consultation->reference,
@@ -223,6 +223,49 @@ class ConsultationObserver
                 ]);
             }
         } elseif ($paymentStatusChanged && !$consultation->hasTreatmentPlan()) {
+            // Payment made but no treatment plan yet - notify both patient and doctor
+            try {
+                // Notification for patient
+                if ($consultation->patient_id) {
+                    Notification::create([
+                        'user_type' => 'patient',
+                        'user_id' => $consultation->patient_id,
+                        'title' => 'Payment Confirmed',
+                        'message' => "Your payment for consultation (Ref: {$consultation->reference}) has been confirmed. The doctor will prepare your treatment plan.",
+                        'type' => 'success',
+                        'action_url' => patient_url('consultations/' . $consultation->id),
+                        'data' => [
+                            'consultation_id' => $consultation->id,
+                            'consultation_reference' => $consultation->reference,
+                            'type' => 'payment_confirmed'
+                        ]
+                    ]);
+                }
+
+                // Notification for doctor
+                if ($consultation->doctor_id) {
+                    Notification::create([
+                        'user_type' => 'doctor',
+                        'user_id' => $consultation->doctor_id,
+                        'title' => 'Payment Received',
+                        'message' => "Payment has been confirmed for consultation (Ref: {$consultation->reference}) with {$consultation->full_name}. You can now prepare the treatment plan.",
+                        'type' => 'success',
+                        'action_url' => doctor_url('consultations/' . $consultation->id),
+                        'data' => [
+                            'consultation_id' => $consultation->id,
+                            'consultation_reference' => $consultation->reference,
+                            'patient_name' => $consultation->full_name,
+                            'type' => 'payment_received'
+                        ]
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to create payment confirmation notifications', [
+                    'consultation_id' => $consultation->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
             Log::info('Payment status changed to paid but no treatment plan exists yet', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference

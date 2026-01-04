@@ -218,6 +218,54 @@ class ConsultationController extends Controller
                 'status' => 'pending',
                 'payment_status' => 'unpaid',
             ]);
+
+            // Create notifications for patient and doctor
+            try {
+                // Notification for patient (if authenticated)
+                if ($patient && $patient->id) {
+                    \App\Models\Notification::create([
+                        'user_type' => 'patient',
+                        'user_id' => $patient->id,
+                        'title' => 'Consultation Created',
+                        'message' => "Your consultation request (Ref: {$reference}) has been submitted successfully. " . ($doctorId ? "You have been assigned to Dr. {$validated['doctor_name']}." : "A doctor will be assigned shortly."),
+                        'type' => 'success',
+                        'action_url' => patient_url('consultations/' . $consultation->id),
+                        'data' => [
+                            'consultation_id' => $consultation->id,
+                            'consultation_reference' => $reference,
+                            'doctor_id' => $doctorId,
+                            'doctor_name' => $validated['doctor_name'] ?? null,
+                            'type' => 'consultation_created'
+                        ]
+                    ]);
+                }
+
+                // Notification for doctor (if assigned)
+                if ($doctorId) {
+                    $assignedDoctor = \App\Models\Doctor::find($doctorId);
+                    if ($assignedDoctor) {
+                        \App\Models\Notification::create([
+                            'user_type' => 'doctor',
+                            'user_id' => $doctorId,
+                            'title' => 'New Consultation Assigned',
+                            'message' => "A new consultation (Ref: {$reference}) has been assigned to you. Patient: {$validated['first_name']} {$validated['last_name']}",
+                            'type' => 'info',
+                            'action_url' => doctor_url('consultations/' . $consultation->id),
+                            'data' => [
+                                'consultation_id' => $consultation->id,
+                                'consultation_reference' => $reference,
+                                'patient_name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                                'type' => 'new_consultation'
+                            ]
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to create consultation notifications', [
+                    'consultation_id' => $consultation->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         } catch (\Exception $e) {
             \Log::error('Failed to create consultation record: ' . $e->getMessage(), [
                 'reference' => $reference,

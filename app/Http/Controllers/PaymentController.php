@@ -431,6 +431,51 @@ class PaymentController extends Controller
                             'consultation_id' => $consultation->id,
                             'payment_id' => $payment->id
                         ]);
+
+                        // Create notifications for patient and doctor
+                        try {
+                            // Notification for patient
+                            if ($consultation->patient_id) {
+                                \App\Models\Notification::create([
+                                    'user_type' => 'patient',
+                                    'user_id' => $consultation->patient_id,
+                                    'title' => 'Payment Confirmed',
+                                    'message' => "Your payment for consultation (Ref: {$consultation->reference}) has been confirmed successfully.",
+                                    'type' => 'success',
+                                    'action_url' => patient_url('consultations/' . $consultation->id),
+                                    'data' => [
+                                        'consultation_id' => $consultation->id,
+                                        'consultation_reference' => $consultation->reference,
+                                        'payment_id' => $payment->id,
+                                        'type' => 'payment_confirmed'
+                                    ]
+                                ]);
+                            }
+
+                            // Notification for doctor
+                            if ($consultation->doctor_id) {
+                                \App\Models\Notification::create([
+                                    'user_type' => 'doctor',
+                                    'user_id' => $consultation->doctor_id,
+                                    'title' => 'Payment Received',
+                                    'message' => "Payment has been confirmed for consultation (Ref: {$consultation->reference}) with {$consultation->full_name}.",
+                                    'type' => 'success',
+                                    'action_url' => doctor_url('consultations/' . $consultation->id),
+                                    'data' => [
+                                        'consultation_id' => $consultation->id,
+                                        'consultation_reference' => $consultation->reference,
+                                        'patient_name' => $consultation->full_name,
+                                        'payment_id' => $payment->id,
+                                        'type' => 'payment_received'
+                                    ]
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('Failed to create payment confirmation notifications', [
+                                'consultation_id' => $consultation->id,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
                     }
                     
                     // UNLOCK TREATMENT PLAN - Only after payment confirmed via webhook

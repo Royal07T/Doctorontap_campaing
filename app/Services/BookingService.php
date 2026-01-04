@@ -107,6 +107,51 @@ class BookingService
                 
                 $consultation = Consultation::create($consultationData);
 
+                // Create notifications for patient and doctor
+                try {
+                    // Notification for patient (if authenticated)
+                    if ($patient && $patient->id) {
+                        \App\Models\Notification::create([
+                            'user_type' => 'patient',
+                            'user_id' => $patient->id,
+                            'title' => 'Consultation Created',
+                            'message' => "Your consultation (Ref: {$consultation->reference}) has been created. " . ($booking->doctor_id ? "You have been assigned to a doctor." : "A doctor will be assigned shortly."),
+                            'type' => 'success',
+                            'action_url' => patient_url('consultations/' . $consultation->id),
+                            'data' => [
+                                'consultation_id' => $consultation->id,
+                                'consultation_reference' => $consultation->reference,
+                                'booking_id' => $booking->id,
+                                'type' => 'consultation_created'
+                            ]
+                        ]);
+                    }
+
+                    // Notification for doctor (if assigned)
+                    if ($booking->doctor_id) {
+                        \App\Models\Notification::create([
+                            'user_type' => 'doctor',
+                            'user_id' => $booking->doctor_id,
+                            'title' => 'New Consultation Assigned',
+                            'message' => "A new consultation (Ref: {$consultation->reference}) has been assigned to you. Patient: {$consultationData['first_name']} {$consultationData['last_name']}",
+                            'type' => 'info',
+                            'action_url' => doctor_url('consultations/' . $consultation->id),
+                            'data' => [
+                                'consultation_id' => $consultation->id,
+                                'consultation_reference' => $consultation->reference,
+                                'patient_name' => $consultationData['first_name'] . ' ' . $consultationData['last_name'],
+                                'booking_id' => $booking->id,
+                                'type' => 'new_consultation'
+                            ]
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create booking consultation notifications', [
+                        'consultation_id' => $consultation->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
                 // 3c. Link patient to booking with pricing
                 // First patient 100%, others based on setting (e.g. 60%)
                 $discountMultiplier = \App\Models\Setting::get('additional_child_discount_percentage', 60) / 100;

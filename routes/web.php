@@ -161,6 +161,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
     Route::post('/consultations/{id}/resend-treatment-plan', [DashboardController::class, 'resendTreatmentPlan'])->name('consultation.resend-treatment-plan');
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
+    Route::post('/consultations/bulk-action', [DashboardController::class, 'bulkAction'])->name('consultations.bulk-action');
     Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
     
     // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
