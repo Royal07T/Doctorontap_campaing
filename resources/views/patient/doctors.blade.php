@@ -678,6 +678,8 @@ function bookingModal() {
         minDate: new Date().toISOString().split('T')[0],
         uploadedFiles: [],
         emergencySymptoms: [],
+        // Validation errors
+        errors: {},
 
         init() {
             window.addEventListener('open-booking-modal', (e) => {
@@ -880,6 +882,13 @@ function bookingModal() {
                 });
                 
                 const data = await response.json();
+                
+                // Handle validation errors
+                if (data.errors) {
+                    this.errors = data.errors;
+                    this.isSubmitting = false;
+                    return;
+                }
                 
                 if (data.success) {
                     this.successMessage = data.message || 'Appointment booked successfully!';

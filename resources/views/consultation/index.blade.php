@@ -2484,6 +2484,8 @@
                     informed_consent: false,
                     data_privacy: false
                 },
+                // Validation errors
+                errors: {},
                 // Multi-patient form data
                 multiPatientData: {
                     payer_name: '',
