@@ -31,6 +31,7 @@ class Consultation extends Model
         'doctor_id',
         'canvasser_id',
         'nurse_id',
+        'customer_care_id',
         'status',
         'payment_status',
         'payment_id',
@@ -125,6 +126,14 @@ class Consultation extends Model
     public function nurse(): BelongsTo
     {
         return $this->belongsTo(Nurse::class);
+    }
+
+    /**
+     * Get the customer care for this consultation
+     */
+    public function customerCare(): BelongsTo
+    {
+        return $this->belongsTo(CustomerCare::class);
     }
 
     /**

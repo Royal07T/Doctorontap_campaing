@@ -21,6 +21,10 @@ use App\Http\Controllers\Patient\ForgotPasswordController as PatientForgotPasswo
 use App\Http\Controllers\Doctor\ForgotPasswordController as DoctorForgotPasswordController;
 use App\Http\Controllers\Nurse\ForgotPasswordController as NurseForgotPasswordController;
 use App\Http\Controllers\Canvasser\ForgotPasswordController as CanvasserForgotPasswordController;
+use App\Http\Controllers\CustomerCare\AuthController as CustomerCareAuthController;
+use App\Http\Controllers\CustomerCare\DashboardController as CustomerCareDashboardController;
+use App\Http\Controllers\CustomerCare\VerificationController as CustomerCareVerificationController;
+use App\Http\Controllers\CustomerCare\ForgotPasswordController as CustomerCareForgotPasswordController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\VerificationController as AdminVerificationController;
 use App\Http\Controllers\ReviewController;
@@ -214,6 +218,13 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/nurses/{id}/toggle-status', [DashboardController::class, 'toggleNurseStatus'])->name('nurses.toggle-status');
     Route::delete('/nurses/{id}', [DashboardController::class, 'deleteNurse'])->name('nurses.delete');
     
+    // Customer Care Management
+    Route::get('/customer-cares', [DashboardController::class, 'customerCares'])->name('customer-cares');
+    Route::post('/customer-cares', [DashboardController::class, 'storeCustomerCare'])->name('customer-cares.store');
+    Route::put('/customer-cares/{id}', [DashboardController::class, 'updateCustomerCare'])->name('customer-cares.update');
+    Route::post('/customer-cares/{id}/toggle-status', [DashboardController::class, 'toggleCustomerCareStatus'])->name('customer-cares.toggle-status');
+    Route::delete('/customer-cares/{id}', [DashboardController::class, 'deleteCustomerCare'])->name('customer-cares.delete');
+    
     // Reviews Management
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
     Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
@@ -331,6 +342,46 @@ Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verifie
     Route::get('/patients/{id}', [NurseDashboardController::class, 'viewPatient'])->name('patients.view');
     Route::post('/vital-signs', [NurseDashboardController::class, 'storeVitalSigns'])->name('vital-signs.store');
     Route::post('/vital-signs/{id}/send-email', [NurseDashboardController::class, 'sendVitalSignsEmail'])->name('vital-signs.send-email');
+});
+
+// ==================== CUSTOMER CARE ROUTES ====================
+
+// Customer Care Login Routes (No authentication required)
+Route::prefix('customer-care')->name('customer-care.')->group(function () {
+    Route::get('/login', [CustomerCareAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [CustomerCareAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
+    
+    // Password Reset Routes
+    Route::get('/forgot-password', [CustomerCareForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [CustomerCareForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [CustomerCareForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [CustomerCareForgotPasswordController::class, 'resetPassword'])->name('password.update');
+});
+
+// Customer Care Email Verification Routes
+Route::prefix('customer-care')->name('customer-care.')->middleware('customer_care.auth')->group(function () {
+    Route::get('/email/verify', [CustomerCareVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [CustomerCareVerificationController::class, 'resend'])->name('verification.resend');
+});
+
+Route::get('/customer-care/email/verify/{id}/{hash}', [CustomerCareVerificationController::class, 'verify'])
+    ->name('customer-care.verification.verify');
+
+// Protected Customer Care Routes (Authentication required)
+Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_care.auth', 'customer_care.verified'])->group(function () {
+    Route::post('/logout', [CustomerCareAuthController::class, 'logout'])->name('logout');
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    Route::get('/dashboard', [CustomerCareDashboardController::class, 'index'])->name('dashboard');
+    
+    // Consultation Management
+    Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
+    Route::get('/consultations/{id}', [CustomerCareDashboardController::class, 'showConsultation'])->name('consultations.show');
 });
 
 // ==================== DOCTOR ROUTES ====================

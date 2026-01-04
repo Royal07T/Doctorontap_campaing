@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'canvasser.verified' => \App\Http\Middleware\EnsureCanvasserEmailIsVerified::class,
             'nurse.auth' => \App\Http\Middleware\NurseAuthenticate::class,
             'nurse.verified' => \App\Http\Middleware\EnsureNurseEmailIsVerified::class,
+            'customer_care.auth' => \App\Http\Middleware\CustomerCareAuthenticate::class,
+            'customer_care.verified' => \App\Http\Middleware\EnsureCustomerCareEmailIsVerified::class,
             'doctor.auth' => \App\Http\Middleware\DoctorAuthenticate::class,
             'doctor.verified' => \App\Http\Middleware\EnsureDoctorEmailIsVerified::class,
             'patient.auth' => \App\Http\Middleware\PatientAuthenticate::class,

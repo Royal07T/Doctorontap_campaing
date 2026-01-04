@@ -18,12 +18,14 @@ use App\Mail\ConsultationReminder;
 use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
+use App\Models\CustomerCare;
 use App\Models\Setting;
 use App\Models\VitalSign;
 use App\Models\Patient;
 use App\Models\Notification;
 use App\Mail\CanvasserAccountCreated;
 use App\Mail\NurseAccountCreated;
+use App\Mail\CustomerCareAccountCreated;
 use App\Notifications\ConsultationSmsNotification;
 use App\Notifications\ConsultationWhatsAppNotification;
 
@@ -2208,6 +2210,191 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete nurse: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ==================== CUSTOMER CARE MANAGEMENT ====================
+
+    /**
+     * Display customer care list
+     */
+    public function customerCares(Request $request)
+    {
+        $query = CustomerCare::with('createdBy')->withCount('consultations');
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $customerCares = $query->latest()->paginate(20);
+        
+        return view('admin.customer-cares', compact('customerCares'));
+    }
+
+    /**
+     * Store a new customer care
+     */
+    public function storeCustomerCare(Request $request)
+    {
+        // Validate request - Laravel will automatically return JSON if Accept: application/json header is present
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:customer_cares,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        // Store plain password before hashing
+        $plainPassword = $validated['password'];
+        
+        $validated['password'] = bcrypt($validated['password']);
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['created_by'] = auth()->guard('admin')->id();
+
+        try {
+            $customerCare = CustomerCare::create($validated);
+            
+            // Get admin name
+            $adminName = auth()->guard('admin')->user()->name;
+            
+            // Send account creation email with password and verification link
+            Mail::to($customerCare->email)->send(new CustomerCareAccountCreated($customerCare, $plainPassword, $adminName));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer Care created successfully! An email with login credentials and verification link has been sent.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create customer care', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create customer care: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing customer care
+     */
+    public function updateCustomerCare(Request $request, $id)
+    {
+        try {
+            $customerCare = CustomerCare::findOrFail($id);
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:customer_cares,email,' . $id,
+                'phone' => 'nullable|string|max:20',
+                'password' => 'nullable|string|min:8|confirmed',
+                'is_active' => 'nullable|boolean',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer care not found'
+            ], 404);
+        }
+
+        // Only update password if provided
+        if (!empty($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+
+        try {
+            $customerCare->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer Care updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update customer care: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle customer care status
+     */
+    public function toggleCustomerCareStatus(Request $request, $id)
+    {
+        try {
+            $customerCare = CustomerCare::findOrFail($id);
+            $customerCare->is_active = $request->input('is_active', false);
+            $customerCare->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer Care status updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete a customer care
+     */
+    public function deleteCustomerCare($id)
+    {
+        try {
+            $customerCare = CustomerCare::findOrFail($id);
+            
+            // Soft delete the customer care
+            $customerCare->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer Care deleted successfully! The record has been archived and can be restored if needed.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete customer care: ' . $e->getMessage()
             ], 500);
         }
     }
