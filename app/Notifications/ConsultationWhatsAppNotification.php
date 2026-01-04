@@ -431,5 +431,96 @@ class ConsultationWhatsAppNotification
             'error' => $e->getMessage()
         ];
     }
+
+    /**
+     * Send referral notification via WhatsApp
+     *
+     * @param \App\Models\Consultation $originalConsultation
+     * @param \App\Models\Consultation $newConsultation
+     * @param \App\Models\Doctor $referringDoctor
+     * @param \App\Models\Doctor $referredToDoctor
+     * @param string $recipientType 'patient' or 'doctor'
+     * @return array Result of WhatsApp sending
+     */
+    public function sendReferralNotification($originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor, string $recipientType): array
+    {
+        if ($recipientType === 'patient') {
+            $phone = $originalConsultation->mobile;
+            $patientName = $originalConsultation->first_name ?? 'Patient';
+            $message = $this->getReferralWhatsAppTemplate($patientName, $originalConsultation->reference, $newConsultation->reference, $referringDoctor->name ?? $referringDoctor->full_name, $referredToDoctor->name ?? $referredToDoctor->full_name, 'patient');
+        } else {
+            $phone = $referredToDoctor->phone;
+            $doctorName = $referredToDoctor->first_name ?? $referredToDoctor->name ?? 'Doctor';
+            $patientName = $originalConsultation->first_name ?? 'Patient';
+            $message = $this->getReferralWhatsAppTemplate($doctorName, $originalConsultation->reference, $newConsultation->reference, $referringDoctor->name ?? $referringDoctor->full_name, $referredToDoctor->name ?? $referredToDoctor->full_name, 'doctor', $patientName);
+        }
+
+        if (empty($phone)) {
+            return $this->logAndReturnError(
+                "Cannot send referral WhatsApp to {$recipientType}: No phone number",
+                [
+                    'consultation_id' => $newConsultation->id,
+                    'recipient_type' => $recipientType
+                ],
+                'No phone number provided'
+            );
+        }
+
+        return $this->sendWhatsAppMessageWithLogging(
+            $phone,
+            $message,
+            null,
+            "Referral Notification - {$newConsultation->reference}",
+            'referral_notification_whatsapp',
+            [
+                'consultation_id' => $newConsultation->id,
+                'original_consultation_id' => $originalConsultation->id,
+                'recipient_type' => $recipientType,
+                'phone' => $phone
+            ]
+        );
+    }
+
+    /**
+     * Get referral WhatsApp template
+     *
+     * @param string $recipientName
+     * @param string $originalReference
+     * @param string $newReference
+     * @param string $referringDoctorName
+     * @param string $referredToDoctorName
+     * @param string $recipientType
+     * @param string|null $patientName
+     * @return string
+     */
+    protected function getReferralWhatsAppTemplate(string $recipientName, string $originalReference, string $newReference, string $referringDoctorName, string $referredToDoctorName, string $recipientType, ?string $patientName = null): string
+    {
+        if ($recipientType === 'patient') {
+            $message = "🔄 *Consultation Referral*\n\n";
+            $message .= "Hi {$recipientName},\n\n";
+            $message .= "Dr. {$referringDoctorName} has referred you to Dr. {$referredToDoctorName} for specialized care.\n\n";
+            $message .= "📋 *Details:*\n";
+            $message .= "• Original Ref: {$originalReference}\n";
+            $message .= "• New Ref: {$newReference}\n\n";
+            $message .= "A new consultation has been created. You'll receive further updates.\n\n";
+            $message .= "Questions? Reply to this message!\n\n";
+            $message .= "— *DoctorOnTap Healthcare* 🏥";
+        } else {
+            $message = "🔄 *New Patient Referral*\n\n";
+            $message .= "Hi Dr. {$recipientName},\n\n";
+            $message .= "You have received a new patient referral from Dr. {$referringDoctorName}";
+            if ($patientName) {
+                $message .= " for patient {$patientName}";
+            }
+            $message .= ".\n\n";
+            $message .= "📋 *Details:*\n";
+            $message .= "• Original Ref: {$originalReference}\n";
+            $message .= "• New Ref: {$newReference}\n\n";
+            $message .= "Please review the consultation and proceed with appropriate care.\n\n";
+            $message .= "— *DoctorOnTap Healthcare* 🏥";
+        }
+
+        return $message;
+    }
 }
 

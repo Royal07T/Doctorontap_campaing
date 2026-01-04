@@ -453,6 +453,75 @@ class ConsultationSmsNotification
      * @param string $level
      * @return array
      */
+    /**
+     * Send referral notification via SMS
+     *
+     * @param \App\Models\Consultation $originalConsultation
+     * @param \App\Models\Consultation $newConsultation
+     * @param \App\Models\Doctor $referringDoctor
+     * @param \App\Models\Doctor $referredToDoctor
+     * @param string $recipientType 'patient' or 'doctor'
+     * @return array Result of SMS sending
+     */
+    public function sendReferralNotification($originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor, string $recipientType): array
+    {
+        if ($recipientType === 'patient') {
+            $phone = $originalConsultation->mobile;
+            $patientName = $originalConsultation->first_name ?? 'Patient';
+            $message = $this->getReferralTemplate($patientName, $originalConsultation->reference, $newConsultation->reference, $referringDoctor->name ?? $referringDoctor->full_name, $referredToDoctor->name ?? $referredToDoctor->full_name, 'patient');
+        } else {
+            $phone = $referredToDoctor->phone;
+            $doctorName = $referredToDoctor->first_name ?? $referredToDoctor->name ?? 'Doctor';
+            $patientName = $originalConsultation->first_name ?? 'Patient';
+            $message = $this->getReferralTemplate($doctorName, $originalConsultation->reference, $newConsultation->reference, $referringDoctor->name ?? $referringDoctor->full_name, $referredToDoctor->name ?? $referredToDoctor->full_name, 'doctor', $patientName);
+        }
+
+        if (empty($phone)) {
+            return $this->logAndReturnError(
+                "Cannot send referral SMS to {$recipientType}: No phone number",
+                [
+                    'consultation_id' => $newConsultation->id,
+                    'recipient_type' => $recipientType
+                ],
+                'No phone number provided'
+            );
+        }
+
+        return $this->sendSmsWithLogging(
+            $phone,
+            $message,
+            'referral_notification',
+            [
+                'consultation_id' => $newConsultation->id,
+                'original_consultation_id' => $originalConsultation->id,
+                'recipient_type' => $recipientType,
+                'phone' => $phone
+            ]
+        );
+    }
+
+    /**
+     * Get referral SMS template
+     *
+     * @param string $recipientName
+     * @param string $originalReference
+     * @param string $newReference
+     * @param string $referringDoctorName
+     * @param string $referredToDoctorName
+     * @param string $recipientType
+     * @param string|null $patientName
+     * @return string
+     */
+    protected function getReferralTemplate(string $recipientName, string $originalReference, string $newReference, string $referringDoctorName, string $referredToDoctorName, string $recipientType, ?string $patientName = null): string
+    {
+        if ($recipientType === 'patient') {
+            return "Dear {$recipientName}, Dr. {$referringDoctorName} has referred you to Dr. {$referredToDoctorName}. New consultation Ref: {$newReference}. You'll be notified of next steps. - DoctorOnTap";
+        } else {
+            $patientText = $patientName ? " for patient {$patientName}" : '';
+            return "Dear Dr. {$recipientName}, you have received a new patient referral{$patientText} from Dr. {$referringDoctorName}. New consultation Ref: {$newReference}. Please review and respond. - DoctorOnTap";
+        }
+    }
+
     private function logAndReturnError(
         string $message,
         array $context,

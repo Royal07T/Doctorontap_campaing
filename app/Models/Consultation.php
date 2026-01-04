@@ -68,6 +68,7 @@ class Consultation extends Model
         'treatment_plan_email_sent',
         'treatment_plan_email_sent_at',
         'treatment_plan_email_status',
+        'treatment_plan_attachments',
     ];
 
     protected $casts = [
@@ -76,6 +77,7 @@ class Consultation extends Model
         'medical_documents' => 'array',
         'prescribed_medications' => 'array',
         'referrals' => 'array',
+        'treatment_plan_attachments' => 'array',
         'payment_request_sent' => 'boolean',
         'payment_request_sent_at' => 'datetime',
         'consultation_completed_at' => 'datetime',
@@ -205,6 +207,38 @@ class Consultation extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Get referrals from this consultation (where this is the original consultation)
+     */
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'consultation_id');
+    }
+
+    /**
+     * Get referral that created this consultation (if this consultation was created from a referral)
+     */
+    public function referralFrom(): BelongsTo
+    {
+        return $this->belongsTo(Referral::class, 'id', 'new_consultation_id');
+    }
+
+    /**
+     * Check if this consultation has been referred
+     */
+    public function hasReferral(): bool
+    {
+        return $this->referrals()->exists();
+    }
+
+    /**
+     * Check if this consultation was created from a referral
+     */
+    public function isFromReferral(): bool
+    {
+        return $this->referralFrom()->exists();
     }
 
     /**

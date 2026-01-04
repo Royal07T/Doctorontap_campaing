@@ -34,6 +34,20 @@ class Patient extends Authenticatable
         'email_verification_token',
         'is_verified',
         'verification_sent_at',
+        // Medical Information
+        'blood_group',
+        'genotype',
+        'allergies',
+        'chronic_conditions',
+        'current_medications',
+        'surgical_history',
+        'family_medical_history',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
+        'height',
+        'weight',
+        'medical_notes',
     ];
 
     protected $hidden = [

@@ -254,8 +254,33 @@ class DashboardController extends Controller
                 ]);
             }
             
+            // Get available doctors for referral (excluding current doctor)
+            $availableDoctors = \App\Models\Doctor::where('id', '!=', $doctor->id)
+                ->where('is_available', true)
+                ->where('is_approved', true)
+                ->orderBy('specialization')
+                ->orderBy('name')
+                ->get(['id', 'name', 'first_name', 'last_name', 'specialization', 'email'])
+                ->map(function($doctor) {
+                    return [
+                        'id' => $doctor->id,
+                        'name' => $doctor->name ?: trim(($doctor->first_name ?? '') . ' ' . ($doctor->last_name ?? '')),
+                        'first_name' => $doctor->first_name,
+                        'last_name' => $doctor->last_name,
+                        'specialization' => $doctor->specialization ?? 'General Practice',
+                        'email' => $doctor->email,
+                    ];
+                })
+                ->values();
+            
+            // Load patient medical information if consultation is not completed and patient is authenticated
+            $patientMedicalInfo = null;
+            if ($consultation->status !== 'completed' && $consultation->patient_id) {
+                $patientMedicalInfo = \App\Models\Patient::find($consultation->patient_id);
+            }
+            
             // Return view for regular HTTP requests
-            return view('doctor.consultation-details', compact('consultation'));
+            return view('doctor.consultation-details', compact('consultation', 'availableDoctors', 'patientMedicalInfo'));
             
         } catch (\Exception $e) {
             // For AJAX requests, return JSON error
@@ -316,6 +341,16 @@ class DashboardController extends Controller
                 ], 403);
             }
             
+            // Handle JSON fields that come as strings from FormData
+            $requestData = $request->all();
+            if (isset($requestData['prescribed_medications']) && is_string($requestData['prescribed_medications'])) {
+                $requestData['prescribed_medications'] = json_decode($requestData['prescribed_medications'], true);
+            }
+            if (isset($requestData['referrals']) && is_string($requestData['referrals'])) {
+                $requestData['referrals'] = json_decode($requestData['referrals'], true);
+            }
+            $request->merge($requestData);
+            
             $validated = $request->validate([
                 // Medical Format Fields
                 'presenting_complaint' => 'required|string|max:2000',
@@ -341,7 +376,37 @@ class DashboardController extends Controller
                 'referrals.*.urgency' => 'required_with:referrals|in:routine,urgent,emergency',
                 'next_appointment_date' => 'nullable|date|after:today',
                 'additional_notes' => 'nullable|string|max:2000',
+                'treatment_plan_attachments' => 'nullable|array',
+                'treatment_plan_attachments.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx|max:10240',
             ]);
+            
+            // Handle treatment plan attachments
+            $attachments = $consultation->treatment_plan_attachments ?? [];
+            
+            if ($request->hasFile('treatment_plan_attachments')) {
+                try {
+                    foreach ($request->file('treatment_plan_attachments') as $file) {
+                        $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                        // Store in private storage (storage/app/treatment_plan_attachments)
+                        $filePath = $file->storeAs('treatment_plan_attachments', $fileName);
+                        
+                        $attachments[] = [
+                            'original_name' => $file->getClientOriginalName(),
+                            'stored_name' => $fileName,
+                            'path' => $filePath,
+                            'size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                            'uploaded_at' => now()->toDateTimeString(),
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Failed to upload treatment plan attachments: ' . $e->getMessage(), [
+                        'consultation_id' => $consultation->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Continue without attachments rather than failing completely
+                }
+            }
             
             // Update consultation with treatment plan
             $updateData = [
@@ -362,6 +427,7 @@ class DashboardController extends Controller
                 'referrals' => $validated['referrals'] ?? null,
                 'next_appointment_date' => $validated['next_appointment_date'] ?? null,
                 'additional_notes' => $validated['additional_notes'] ?? null,
+                'treatment_plan_attachments' => !empty($attachments) ? $attachments : null,
                 'treatment_plan_created' => true,
             ];
             
@@ -1164,6 +1230,254 @@ class DashboardController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Availability settings updated successfully!');
+    }
+
+    /**
+     * Refer patient to another doctor
+     */
+    public function referPatient(Request $request, $id)
+    {
+        $doctor = Auth::guard('doctor')->user();
+        
+        $consultation = Consultation::where('id', $id)
+                                   ->where('doctor_id', $doctor->id)
+                                   ->with(['patient', 'doctor'])
+                                   ->firstOrFail();
+
+        $validated = $request->validate([
+            'referred_to_doctor_id' => 'required|exists:doctors,id',
+            'reason' => 'required|string|min:10|max:1000',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        // Check if trying to refer to self
+        if ($validated['referred_to_doctor_id'] == $doctor->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot refer a patient to yourself.'
+            ], 400);
+        }
+
+        // Check if already referred
+        if ($consultation->hasReferral()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This consultation has already been referred to another doctor.'
+            ], 400);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Get referred to doctor
+            $referredToDoctor = \App\Models\Doctor::findOrFail($validated['referred_to_doctor_id']);
+
+            // Generate reference for new consultation
+            $newReference = 'CONS-' . strtoupper(\Illuminate\Support\Str::random(8));
+
+            // Create new consultation for referred doctor
+            $newConsultation = Consultation::create([
+                'reference' => $newReference,
+                'patient_id' => $consultation->patient_id,
+                'first_name' => $consultation->first_name,
+                'last_name' => $consultation->last_name,
+                'email' => $consultation->email,
+                'mobile' => $consultation->mobile,
+                'age' => $consultation->age,
+                'gender' => $consultation->gender,
+                'problem' => $consultation->problem . ' [Referred from Dr. ' . $doctor->name . ' - Ref: ' . $consultation->reference . ']',
+                'medical_documents' => $consultation->medical_documents,
+                'severity' => $consultation->severity,
+                'emergency_symptoms' => $consultation->emergency_symptoms,
+                'consult_mode' => $consultation->consult_mode,
+                'doctor_id' => $referredToDoctor->id,
+                'status' => 'pending',
+                'payment_status' => $consultation->payment_status, // Inherit payment status
+                'payment_id' => $consultation->payment_id, // Link to same payment if paid
+                // Copy medical history fields
+                'presenting_complaint' => $consultation->presenting_complaint,
+                'history_of_complaint' => $consultation->history_of_complaint,
+                'past_medical_history' => $consultation->past_medical_history,
+                'family_history' => $consultation->family_history,
+                'drug_history' => $consultation->drug_history,
+                'social_history' => $consultation->social_history,
+                'diagnosis' => $consultation->diagnosis,
+                'investigation' => $consultation->investigation,
+                'doctor_notes' => "Referred from Dr. {$doctor->name} (Ref: {$consultation->reference}). " . ($validated['notes'] ?? ''),
+            ]);
+
+            // Create referral record
+            $referral = \App\Models\Referral::create([
+                'consultation_id' => $consultation->id,
+                'referring_doctor_id' => $doctor->id,
+                'referred_to_doctor_id' => $referredToDoctor->id,
+                'reason' => $validated['reason'],
+                'notes' => $validated['notes'],
+                'new_consultation_id' => $newConsultation->id,
+                'status' => 'pending',
+            ]);
+
+            \DB::commit();
+
+            // Send notifications
+            $this->sendReferralNotifications($referral, $consultation, $newConsultation, $doctor, $referredToDoctor);
+
+            \Log::info('Patient referred successfully', [
+                'referral_id' => $referral->id,
+                'original_consultation_id' => $consultation->id,
+                'new_consultation_id' => $newConsultation->id,
+                'referring_doctor_id' => $doctor->id,
+                'referred_to_doctor_id' => $referredToDoctor->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Patient has been successfully referred to Dr. ' . $referredToDoctor->name . '. A new consultation has been created.',
+                'referral' => $referral,
+                'new_consultation' => $newConsultation,
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Failed to refer patient', [
+                'consultation_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refer patient: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send notifications for referral
+     */
+    private function sendReferralNotifications($referral, $originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor)
+    {
+        // Prepare common notification data
+        $notificationData = [
+            'referral_id' => $referral->id,
+            'original_consultation_id' => $originalConsultation->id,
+            'new_consultation_id' => $newConsultation->id,
+            'original_consultation_reference' => $originalConsultation->reference,
+            'new_consultation_reference' => $newConsultation->reference,
+            'referring_doctor_name' => $referringDoctor->name ?? $referringDoctor->full_name,
+            'referred_to_doctor_name' => $referredToDoctor->name ?? $referredToDoctor->full_name,
+            'referred_to_doctor_specialization' => $referredToDoctor->specialization,
+            'patient_name' => $originalConsultation->full_name,
+            'patient_age' => $originalConsultation->age,
+            'patient_gender' => ucfirst($originalConsultation->gender ?? ''),
+            'referral_reason' => $referral->reason,
+            'referral_notes' => $referral->notes,
+            'action_url_patient' => patient_url('consultations/' . $newConsultation->id),
+            'action_url_doctor' => doctor_url('consultations/' . $newConsultation->id),
+        ];
+
+        // 1. In-app notification for referred doctor
+        try {
+            \App\Models\Notification::create([
+                'user_type' => 'doctor',
+                'user_id' => $referredToDoctor->id,
+                'title' => 'New Patient Referral',
+                'message' => "Dr. {$referringDoctor->name} has referred a patient (Ref: {$originalConsultation->reference}) to you. A new consultation has been created.",
+                'type' => 'info',
+                'action_url' => doctor_url('consultations/' . $newConsultation->id),
+                'data' => array_merge($notificationData, ['type' => 'patient_referral']),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create referral notification for doctor', ['error' => $e->getMessage()]);
+        }
+
+        // 2. In-app notification for patient
+        if ($newConsultation->patient_id) {
+            try {
+                \App\Models\Notification::create([
+                    'user_type' => 'patient',
+                    'user_id' => $newConsultation->patient_id,
+                    'title' => 'Consultation Referred',
+                    'message' => "Dr. {$referringDoctor->name} has referred you to Dr. {$referredToDoctor->name}. A new consultation has been created for you.",
+                    'type' => 'info',
+                    'action_url' => patient_url('consultations/' . $newConsultation->id),
+                    'data' => array_merge($notificationData, ['type' => 'consultation_referred']),
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create referral notification for patient', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // 3. Email notification to referred doctor
+        try {
+            if ($referredToDoctor->email) {
+                \Mail::to($referredToDoctor->email)->send(new \App\Mail\ReferralNotification($notificationData, 'doctor'));
+                \Log::info('Referral email sent to doctor', [
+                    'doctor_id' => $referredToDoctor->id,
+                    'consultation_id' => $newConsultation->id,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send referral email to doctor: " . $e->getMessage());
+        }
+
+        // 4. Email notification to patient
+        try {
+            $patientEmail = $originalConsultation->email ?: ($originalConsultation->patient->email ?? null);
+            if ($patientEmail) {
+                \Mail::to($patientEmail)->send(new \App\Mail\ReferralNotification($notificationData, 'patient'));
+                \Log::info('Referral email sent to patient', [
+                    'patient_id' => $newConsultation->patient_id,
+                    'consultation_id' => $newConsultation->id,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send referral email to patient: " . $e->getMessage());
+        }
+
+        // 5. SMS notification to referred doctor
+        try {
+            if ($referredToDoctor->phone) {
+                $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+                $smsNotification->sendReferralNotification($originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor, 'doctor');
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send referral SMS to doctor: " . $e->getMessage());
+        }
+
+        // 6. SMS notification to patient
+        try {
+            if ($originalConsultation->mobile) {
+                $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+                $smsNotification->sendReferralNotification($originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor, 'patient');
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send referral SMS to patient: " . $e->getMessage());
+        }
+
+        // 7. WhatsApp notification to referred doctor
+        if (config('services.termii.whatsapp_enabled')) {
+            try {
+                if ($referredToDoctor->phone) {
+                    $whatsappNotification = new \App\Notifications\ConsultationWhatsAppNotification();
+                    $whatsappNotification->sendReferralNotification($originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor, 'doctor');
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send referral WhatsApp to doctor: " . $e->getMessage());
+            }
+        }
+
+        // 8. WhatsApp notification to patient
+        if (config('services.termii.whatsapp_enabled')) {
+            try {
+                if ($originalConsultation->mobile) {
+                    $whatsappNotification = new \App\Notifications\ConsultationWhatsAppNotification();
+                    $whatsappNotification->sendReferralNotification($originalConsultation, $newConsultation, $referringDoctor, $referredToDoctor, 'patient');
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send referral WhatsApp to patient: " . $e->getMessage());
+            }
+        }
     }
 }
 

@@ -17,15 +17,13 @@
 consultationPage()
 @endsection
 
-@push('x-data-extra')
-, showReviewModal: false, selectedRating: 0, reviewComment: '', revieweeType: 'patient', isSubmittingReview: false
-@endpush
 
 @push('scripts')
     <script>
         function consultationPage() {
             return {
                 sidebarOpen: false,
+                pageLoading: false,
                 showMessageModal: false,
                 messageType: 'success',
                 messageTitle: '',
@@ -35,6 +33,32 @@ consultationPage()
                 confirmText: '',
                 confirmCallback: null,
                 isUpdating: false,
+                // Review modal variables
+                showReviewModal: false,
+                selectedRating: 0,
+                reviewComment: '',
+                revieweeType: 'patient',
+                isSubmittingReview: false,
+                // Referral modal variables
+                showReferModal: false,
+                referredToDoctorId: '',
+                referralReason: '',
+                referralNotes: '',
+                isReferring: false,
+                availableDoctors: @json($availableDoctors ?? []),
+                
+                // Group doctors by specialization
+                get groupedDoctors() {
+                    const grouped = {};
+                    this.availableDoctors.forEach(doctor => {
+                        const spec = doctor.specialization || 'General Practice';
+                        if (!grouped[spec]) {
+                            grouped[spec] = [];
+                        }
+                        grouped[spec].push(doctor);
+                    });
+                    return grouped;
+                },
                 
                 showMessage(type, title, text) {
                     this.messageType = type;
@@ -159,6 +183,65 @@ consultationPage()
                     } finally {
                         this.isSubmittingReview = false;
                     }
+                },
+                
+                async submitReferral() {
+                    if (!this.referredToDoctorId || this.referralReason.length < 10) {
+                        this.showMessage('error', 'Validation Error', 'Please select a doctor and provide a reason (minimum 10 characters).');
+                        return;
+                    }
+                    
+                    // Get selected doctor details for confirmation
+                    const selectedDoctor = this.availableDoctors.find(d => d.id == this.referredToDoctorId);
+                    const doctorName = selectedDoctor ? (selectedDoctor.name || (selectedDoctor.first_name + ' ' + selectedDoctor.last_name)) : 'Selected Doctor';
+                    const doctorSpecialization = selectedDoctor?.specialization || '';
+                    
+                    // Show confirmation
+                    this.showConfirm(
+                        'Confirm Referral',
+                        `Are you sure you want to refer this patient to Dr. ${doctorName}${doctorSpecialization ? ' (' + doctorSpecialization + ')' : ''}? This action will create a new consultation and notify both the patient and the referred doctor.`,
+                        () => {
+                            this.doSubmitReferral();
+                        }
+                    );
+                },
+                
+                async doSubmitReferral() {
+                    this.isReferring = true;
+                    try {
+                        const response = await fetch('{{ route("doctor.consultations.refer", $consultation->id) }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                referred_to_doctor_id: this.referredToDoctorId,
+                                reason: this.referralReason,
+                                notes: this.referralNotes
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.showMessage('success', 'Referral Successful', data.message || 'Patient has been successfully referred. Notifications have been sent to the patient and the referred doctor.');
+                            this.showReferModal = false;
+                            // Reset form
+                            this.referredToDoctorId = '';
+                            this.referralReason = '';
+                            this.referralNotes = '';
+                            setTimeout(() => window.location.reload(), 2000);
+                        } else {
+                            this.showMessage('error', 'Error', data.message || 'Failed to refer patient');
+                        }
+                    } catch (error) {
+                        console.error('Error submitting referral:', error);
+                        this.showMessage('error', 'Error', 'An error occurred while submitting the referral.');
+                    } finally {
+                        this.isReferring = false;
+                    }
                 }
             }
         }
@@ -217,6 +300,127 @@ consultationPage()
                         </div>
                     </div>
                 </div>
+
+                <!-- Patient Medical Information (Only visible during active consultation) -->
+                @if($consultation->status !== 'completed' && $patientMedicalInfo)
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-5 rounded-lg mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-blue-900 uppercase tracking-wide flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Patient Medical Information
+                            </h3>
+                            <span class="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">Active Consultation</span>
+                        </div>
+                        <p class="text-xs text-blue-700 mb-4 italic">This information is only accessible during active consultations. Access will be restricted once the consultation is completed.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            @if($patientMedicalInfo->blood_group)
+                                <div>
+                                    <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Blood Group</label>
+                                    <p class="text-sm text-blue-900 font-semibold">{{ $patientMedicalInfo->blood_group }}</p>
+                                </div>
+                            @endif
+                            
+                            @if($patientMedicalInfo->genotype)
+                                <div>
+                                    <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Genotype</label>
+                                    <p class="text-sm text-blue-900 font-semibold">{{ $patientMedicalInfo->genotype }}</p>
+                                </div>
+                            @endif
+                            
+                            @if($patientMedicalInfo->height)
+                                <div>
+                                    <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Height</label>
+                                    <p class="text-sm text-blue-900">{{ $patientMedicalInfo->height }} cm</p>
+                                </div>
+                            @endif
+                            
+                            @if($patientMedicalInfo->weight)
+                                <div>
+                                    <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Weight</label>
+                                    <p class="text-sm text-blue-900">{{ $patientMedicalInfo->weight }} kg</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        @if($patientMedicalInfo->allergies)
+                            <div class="mb-4">
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Allergies</label>
+                                <p class="text-sm text-blue-900 bg-white p-3 rounded border border-blue-200">{{ $patientMedicalInfo->allergies }}</p>
+                            </div>
+                        @endif
+
+                        @if($patientMedicalInfo->chronic_conditions)
+                            <div class="mb-4">
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Chronic Conditions</label>
+                                <p class="text-sm text-blue-900 bg-white p-3 rounded border border-blue-200">{{ $patientMedicalInfo->chronic_conditions }}</p>
+                            </div>
+                        @endif
+
+                        @if($patientMedicalInfo->current_medications)
+                            <div class="mb-4">
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Current Medications</label>
+                                <p class="text-sm text-blue-900 bg-white p-3 rounded border border-blue-200">{{ $patientMedicalInfo->current_medications }}</p>
+                            </div>
+                        @endif
+
+                        @if($patientMedicalInfo->surgical_history)
+                            <div class="mb-4">
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Surgical History</label>
+                                <p class="text-sm text-blue-900 bg-white p-3 rounded border border-blue-200">{{ $patientMedicalInfo->surgical_history }}</p>
+                            </div>
+                        @endif
+
+                        @if($patientMedicalInfo->family_medical_history)
+                            <div class="mb-4">
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Family Medical History</label>
+                                <p class="text-sm text-blue-900 bg-white p-3 rounded border border-blue-200">{{ $patientMedicalInfo->family_medical_history }}</p>
+                            </div>
+                        @endif
+
+                        @if($patientMedicalInfo->emergency_contact_name || $patientMedicalInfo->emergency_contact_phone)
+                            <div class="mb-4 border-t border-blue-300 pt-4">
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-2">Emergency Contact</label>
+                                <div class="bg-white p-3 rounded border border-blue-200">
+                                    @if($patientMedicalInfo->emergency_contact_name)
+                                        <p class="text-sm text-blue-900"><strong>Name:</strong> {{ $patientMedicalInfo->emergency_contact_name }}</p>
+                                    @endif
+                                    @if($patientMedicalInfo->emergency_contact_phone)
+                                        <p class="text-sm text-blue-900"><strong>Phone:</strong> {{ $patientMedicalInfo->emergency_contact_phone }}</p>
+                                    @endif
+                                    @if($patientMedicalInfo->emergency_contact_relationship)
+                                        <p class="text-sm text-blue-900"><strong>Relationship:</strong> {{ $patientMedicalInfo->emergency_contact_relationship }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($patientMedicalInfo->medical_notes)
+                            <div>
+                                <label class="block text-xs font-medium text-blue-800 uppercase tracking-wide mb-1">Additional Medical Notes</label>
+                                <p class="text-sm text-blue-900 bg-white p-3 rounded border border-blue-200 whitespace-pre-line">{{ $patientMedicalInfo->medical_notes }}</p>
+                            </div>
+                        @endif
+
+                        @if(!$patientMedicalInfo->blood_group && !$patientMedicalInfo->genotype && !$patientMedicalInfo->allergies && !$patientMedicalInfo->chronic_conditions && !$patientMedicalInfo->current_medications && !$patientMedicalInfo->surgical_history && !$patientMedicalInfo->family_medical_history && !$patientMedicalInfo->emergency_contact_name)
+                            <p class="text-sm text-blue-700 italic">No medical information available for this patient.</p>
+                        @endif
+                    </div>
+                @elseif($consultation->status === 'completed' && $consultation->patient_id)
+                    <div class="bg-gray-50 border-l-4 border-gray-400 p-4 rounded-lg mb-6">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-700">Medical Information Access Restricted</p>
+                                <p class="text-xs text-gray-600 mt-1">Patient medical information is only accessible during active consultations. This consultation has been completed.</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <!-- Medical Details -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
@@ -333,22 +537,52 @@ consultationPage()
                                     Review Submitted
                                 </span>
                             @endif
-                        @if($consultation->treatment_plan_created)
-                            <div class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-gray-400 text-white rounded-lg cursor-not-allowed" title="Treatment plan cannot be edited once saved">
-                                <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                </svg>
-                                Treatment Plan Locked
-                            </div>
-                        @else
-                            <button onclick="document.getElementById('treatment-plan').scrollIntoView({ behavior: 'smooth' });" 
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                                Edit Treatment Plan
-                            </button>
-                        @endif
+                            
+                            {{-- Refer Patient Button --}}
+                            @php
+                                $hasReferral = false;
+                                try {
+                                    $hasReferral = $consultation->hasReferral();
+                                } catch (\Exception $e) {
+                                    // If error, assume no referral
+                                    $hasReferral = false;
+                                }
+                                $canShowReferButton = !$hasReferral && $consultation->status !== 'cancelled';
+                            @endphp
+                            
+                            @if($canShowReferButton)
+                                <button @click="showReferModal = true" 
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                    Refer Patient
+                                </button>
+                            @elseif($hasReferral)
+                                <span class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-purple-700 bg-purple-50 rounded-lg">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Referred
+                                </span>
+                            @endif
+                            
+                            @if($consultation->treatment_plan_created)
+                                <div class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-gray-400 text-white rounded-lg cursor-not-allowed" title="Treatment plan cannot be edited once saved">
+                                    <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                    </svg>
+                                    Treatment Plan Locked
+                                </div>
+                            @else
+                                <button onclick="document.getElementById('treatment-plan').scrollIntoView({ behavior: 'smooth' });" 
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    Edit Treatment Plan
+                                </button>
+                            @endif
                         </div>
                     </div>
                     
@@ -612,9 +846,164 @@ consultationPage()
                 </div>
             </div>
         </div>
+
+    <!-- Refer Patient Modal -->
+    <div x-show="showReferModal" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         x-transition:enter="ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="showReferModal = false">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="modal-backdrop fixed inset-0" @click="showReferModal = false"></div>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white">Refer Patient to Another Doctor</h3>
+                    <button @click="showReferModal = false" class="text-white hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Consultation Info -->
+                <div class="bg-purple-50 p-4 rounded-lg m-6">
+                    <div class="text-sm text-gray-700 space-y-1">
+                        <p><strong>Reference:</strong> {{ $consultation->reference }}</p>
+                        <p><strong>Patient:</strong> {{ $consultation->full_name }}</p>
+                        <p><strong>Age:</strong> {{ $consultation->age }} years | <strong>Gender:</strong> {{ ucfirst($consultation->gender) }}</p>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <form @submit.prevent="submitReferral()" class="px-6 pb-6">
+                    <!-- Select Doctor -->
+                    <div class="mb-6">
+                        <label for="referredToDoctorId" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Select Doctor to Refer To <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <select 
+                                x-model="referredToDoctorId"
+                                id="referredToDoctorId"
+                                required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 text-sm appearance-none bg-white">
+                                <option value="">-- Select a doctor --</option>
+                                <template x-for="(doctors, specialization) in groupedDoctors" :key="specialization">
+                                    <optgroup :label="specialization || 'General Practice'">
+                                        <template x-for="doctor in doctors" :key="doctor.id">
+                                            <option :value="doctor.id" 
+                                                    x-text="doctor.name + (doctor.specialization ? ' (' + doctor.specialization + ')' : '')">
+                                            </option>
+                                        </template>
+                                    </optgroup>
+                                </template>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Only available and approved doctors are shown</p>
+                        
+                        <!-- Selected Doctor Info -->
+                        <div x-show="referredToDoctorId" 
+                             x-cloak
+                             class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <template x-for="doctor in availableDoctors" :key="doctor.id">
+                                <div x-show="doctor.id == referredToDoctorId" class="text-sm">
+                                    <p class="font-semibold text-gray-900" x-text="doctor.name"></p>
+                                    <p class="text-gray-600 mt-1" x-show="doctor.specialization">
+                                        <span class="font-medium">Specialization:</span> 
+                                        <span x-text="doctor.specialization"></span>
+                                    </p>
+                                    <p class="text-gray-600" x-show="doctor.email">
+                                        <span class="font-medium">Email:</span> 
+                                        <span x-text="doctor.email"></span>
+                                    </p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-6">
+                        <label for="referralReason" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Reason for Referral <span class="text-red-500">*</span>
+                        </label>
+                        <textarea 
+                            x-model="referralReason"
+                            id="referralReason"
+                            required
+                            minlength="10"
+                            maxlength="1000"
+                            rows="4"
+                            placeholder="Please provide a clear reason for referring this patient (e.g., requires specialist care, outside my area of expertise, etc.)"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 resize-none text-sm"
+                        ></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Minimum 10 characters required</p>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="mb-6">
+                        <label for="referralNotes" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Additional Notes (Optional)
+                        </label>
+                        <textarea 
+                            x-model="referralNotes"
+                            id="referralNotes"
+                            maxlength="2000"
+                            rows="3"
+                            placeholder="Any additional information that might be helpful for the receiving doctor..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 resize-none text-sm"
+                        ></textarea>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
+                        <p class="text-sm text-blue-800">
+                            <strong>Note:</strong> A new consultation will be created for the referred doctor with all patient information and medical history. The patient and the receiving doctor will be notified.
+                        </p>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex gap-3">
+                        <button 
+                            type="submit"
+                            :disabled="isReferring || !referredToDoctorId || referralReason.length < 10"
+                            class="flex-1 purple-gradient text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                            <span x-show="!isReferring">Submit Referral</span>
+                            <span x-show="isReferring">Submitting...</span>
+                        </button>
+                        <button 
+                            type="button"
+                            @click="showReferModal = false"
+                            class="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
     <x-system-preloader x-show="isUpdating" message="Updating Status..." subtext="Please wait while we finalize the change." />
     <x-system-preloader x-show="isSubmittingReview" message="Submitting Review..." subtext="Please wait..." />
+    <x-system-preloader x-show="isReferring" message="Submitting Referral..." subtext="Please wait while we process the referral..." />
 @endpush

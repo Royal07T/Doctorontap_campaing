@@ -232,5 +232,126 @@ class MedicalDocumentController extends Controller
             abort(500, 'Error viewing document.');
         }
     }
+    
+    /**
+     * Download a treatment plan attachment securely with authentication
+     *
+     * @param Request $request
+     * @param int $id
+     * @param string $file
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
+     */
+    public function downloadTreatmentPlanAttachment(Request $request, $id, $file)
+    {
+        try {
+            // Find the consultation
+            $consultation = Consultation::findOrFail($id);
+            
+            // Authorization checks
+            $user = auth()->user();
+            $authorized = false;
+            $userType = null;
+            
+            // Check if user is authenticated
+            if (!$user) {
+                if (auth()->guard('admin')->check()) {
+                    $user = auth()->guard('admin')->user();
+                    $userType = 'admin';
+                    $authorized = true;
+                } elseif (auth()->guard('doctor')->check()) {
+                    $user = auth()->guard('doctor')->user();
+                    $userType = 'doctor';
+                    $authorized = $consultation->doctor_id == $user->id;
+                } elseif (auth()->guard('patient')->check()) {
+                    $user = auth()->guard('patient')->user();
+                    $userType = 'patient';
+                    // Patients can access their own consultations
+                    $authorized = ($consultation->patient_id && $consultation->patient_id == $user->id) || 
+                                  ($consultation->email && $consultation->email == $user->email) ||
+                                  ($user->email && $consultation->email && strtolower($consultation->email) === strtolower($user->email));
+                }
+            }
+            
+            // Deny access if not authorized
+            if (!$authorized || !$user) {
+                Log::warning('Unauthorized treatment plan attachment access attempt', [
+                    'consultation_id' => $id,
+                    'filename' => $file,
+                    'user_id' => $user?->id ?? null,
+                    'user_type' => $userType ?? 'unauthenticated',
+                    'ip_address' => $request->ip(),
+                ]);
+                
+                abort(403, 'Unauthorized access to treatment plan attachment.');
+            }
+            
+            // Verify the file belongs to this consultation
+            $attachments = $consultation->treatment_plan_attachments ?? [];
+            $attachmentFound = null;
+            
+            foreach ($attachments as $attachment) {
+                if (($attachment['stored_name'] ?? basename($attachment['path'] ?? '')) === $file) {
+                    $attachmentFound = $attachment;
+                    break;
+                }
+            }
+            
+            if (!$attachmentFound) {
+                Log::warning('Treatment plan attachment not found in consultation', [
+                    'consultation_id' => $id,
+                    'filename' => $file,
+                ]);
+                
+                abort(404, 'Attachment not found.');
+            }
+            
+            // Build the file path
+            $filePath = $attachmentFound['path'] ?? 'treatment_plan_attachments/' . $file;
+            
+            // Check if file exists in storage
+            if (!Storage::exists($filePath)) {
+                Log::error('Treatment plan attachment file missing from storage', [
+                    'consultation_id' => $id,
+                    'filename' => $file,
+                    'path' => $filePath,
+                ]);
+                
+                abort(404, 'Attachment file not found.');
+            }
+            
+            // Log the access (HIPAA audit trail)
+            Log::channel('audit')->info('Treatment Plan Attachment Downloaded', [
+                'action' => 'download',
+                'consultation_id' => $id,
+                'filename' => $file,
+                'user_type' => $userType,
+                'user_id' => $user->id,
+                'user_email' => $user->email ?? null,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toIso8601String(),
+            ]);
+            
+            // Return the file for download
+            return Storage::download($filePath, $attachmentFound['original_name'] ?? $file);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::warning('Consultation not found for treatment plan attachment download', [
+                'consultation_id' => $id,
+                'filename' => $file,
+            ]);
+            
+            abort(404, 'Consultation not found.');
+        } catch (\Exception $e) {
+            Log::error('Error downloading treatment plan attachment', [
+                'consultation_id' => $id,
+                'filename' => $file,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            abort(500, 'Error downloading attachment.');
+        }
+    }
 }
 

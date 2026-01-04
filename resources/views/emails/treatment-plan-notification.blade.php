@@ -132,6 +132,38 @@
                                 </tr>
                             </table>
                             
+                            @if($consultation->referrals && count($consultation->referrals) > 0)
+                                <div class="section" style="margin: 20px 0; padding: 15px; background-color: #F0F9FF; border-radius: 8px; border-left: 4px solid #3B82F6;">
+                                    <p style="margin: 0 0 10px 0; font-weight: 600; color: #1e40af; font-size: 15px;">🔗 Referral Information</p>
+                                    <p style="margin: 0 0 15px 0; font-size: 14px; color: #1e3a8a; line-height: 1.6;">
+                                        Your doctor has recommended that you see a specialist for further care:
+                                    </p>
+                                    @foreach($consultation->referrals as $referral)
+                                        <div style="margin: 10px 0; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #BFDBFE;">
+                                            <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e40af; font-size: 14px;">
+                                                📋 {{ $referral['specialist'] ?? 'Specialist' }}
+                                            </p>
+                                            <p style="margin: 0 0 5px 0; font-size: 13px; color: #1e3a8a;">
+                                                <strong>Reason:</strong> {{ $referral['reason'] ?? 'N/A' }}
+                                            </p>
+                                            <p style="margin: 0; font-size: 13px; color: #1e3a8a;">
+                                                <strong>Urgency:</strong> 
+                                                <span style="padding: 3px 8px; border-radius: 4px; font-weight: 600; 
+                                                    @if(($referral['urgency'] ?? 'routine') === 'emergency')
+                                                        background-color: #FEE2E2; color: #991B1B;
+                                                    @elseif(($referral['urgency'] ?? 'routine') === 'urgent')
+                                                        background-color: #FEF3C7; color: #92400E;
+                                                    @else
+                                                        background-color: #D1FAE5; color: #065F46;
+                                                    @endif">
+                                                    {{ ucfirst($referral['urgency'] ?? 'routine') }}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                            
                             <div class="section" style="margin: 20px 0; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
                                 <p style="margin: 0 0 10px 0; font-weight: 600; color: #92400E; font-size: 15px;">⚠️ Important:</p>
                                 <p style="margin: 0; font-size: 14px; color: #78350F; line-height: 1.6;">

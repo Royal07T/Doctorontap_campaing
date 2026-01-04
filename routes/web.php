@@ -59,6 +59,8 @@ Route::get('/consultations/{consultation}/documents/{filename}/download', [Medic
     ->name('medical-document.download');
 Route::get('/consultations/{consultation}/documents/{filename}/view', [MedicalDocumentController::class, 'view'])
     ->name('medical-document.view');
+Route::get('/consultations/{id}/treatment-plan-attachments/{file}/download', [MedicalDocumentController::class, 'downloadTreatmentPlanAttachment'])
+    ->name('treatment-plan-attachment.download');
 
 // Test route for consultation status notification (remove in production)
 Route::get('/test-notification/{consultation_id}', function($consultationId) {
@@ -376,6 +378,7 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::post('/consultations/{id}/treatment-plan', [DoctorDashboardController::class, 'updateTreatmentPlan'])->name('consultations.treatment-plan');
     Route::post('/consultations/{id}/auto-save-treatment-plan', [DoctorDashboardController::class, 'autoSaveTreatmentPlan'])->name('consultations.auto-save-treatment-plan');
     Route::get('/consultations/{id}/patient-history', [DoctorDashboardController::class, 'getPatientHistory'])->name('consultations.patient-history');
+    Route::post('/consultations/{id}/refer', [DoctorDashboardController::class, 'referPatient'])->name('consultations.refer');
     
     // Multi-Patient Bookings
     Route::get('/bookings', [\App\Http\Controllers\BookingController::class, 'index'])->name('bookings.index');
@@ -462,6 +465,7 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     // Consultations
     Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
+    Route::get('/consultations/{id}/attachments/{file}', [\App\Http\Controllers\MedicalDocumentController::class, 'downloadTreatmentPlanAttachment'])->name('consultation.attachment');
     
     // Medical Records
     Route::get('/medical-records', [\App\Http\Controllers\Patient\DashboardController::class, 'medicalRecords'])->name('medical-records');

@@ -524,13 +524,52 @@ class DashboardController extends Controller
     {
         $patient = Auth::guard('patient')->user();
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'gender' => 'nullable|in:male,female',
-            'date_of_birth' => 'nullable|date|before:today',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        // Check if this is a medical information update (no name/phone in request)
+        // Since the patient is authenticated, we already have their name, email, and phone
+        $isMedicalUpdate = !$request->has('name') && !$request->has('phone');
+        
+        if ($isMedicalUpdate) {
+            // Only validate medical information fields
+            // Patient name, email, and phone are already in database from authentication
+            $validated = $request->validate([
+                'blood_group' => 'nullable|string|max:10|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Unknown',
+                'genotype' => 'nullable|string|max:10|in:AA,AS,AC,SS,SC,CC,Unknown',
+                'allergies' => 'nullable|string|max:2000',
+                'chronic_conditions' => 'nullable|string|max:2000',
+                'current_medications' => 'nullable|string|max:2000',
+                'surgical_history' => 'nullable|string|max:2000',
+                'family_medical_history' => 'nullable|string|max:2000',
+                'emergency_contact_name' => 'nullable|string|max:255',
+                'emergency_contact_phone' => 'nullable|string|max:20',
+                'emergency_contact_relationship' => 'nullable|string|max:100',
+                'height' => 'nullable|string|max:10',
+                'weight' => 'nullable|string|max:10',
+                'medical_notes' => 'nullable|string|max:5000',
+            ]);
+        } else {
+            // Validate personal information (and optionally medical info if present)
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+                'gender' => 'nullable|in:male,female',
+                'date_of_birth' => 'nullable|date|before:today',
+                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                // Medical Information (optional when updating personal info)
+                'blood_group' => 'nullable|string|max:10|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Unknown',
+                'genotype' => 'nullable|string|max:10|in:AA,AS,AC,SS,SC,CC,Unknown',
+                'allergies' => 'nullable|string|max:2000',
+                'chronic_conditions' => 'nullable|string|max:2000',
+                'current_medications' => 'nullable|string|max:2000',
+                'surgical_history' => 'nullable|string|max:2000',
+                'family_medical_history' => 'nullable|string|max:2000',
+                'emergency_contact_name' => 'nullable|string|max:255',
+                'emergency_contact_phone' => 'nullable|string|max:20',
+                'emergency_contact_relationship' => 'nullable|string|max:100',
+                'height' => 'nullable|string|max:10',
+                'weight' => 'nullable|string|max:10',
+                'medical_notes' => 'nullable|string|max:5000',
+            ]);
+        }
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -578,9 +617,60 @@ class DashboardController extends Controller
             }
         }
 
-        $patient->update($validated);
+        // Update only the fields that are present in the validated data
+        // Since patient is authenticated, name, email, and phone already exist in database
+        // We only need to update the medical information fields that were submitted
+        $updateData = [];
+        foreach ($validated as $key => $value) {
+            // For text fields (allergies, chronic_conditions, etc.), allow empty strings
+            // User might want to clear them
+            $textFields = ['allergies', 'chronic_conditions', 'current_medications', 'surgical_history', 
+                          'family_medical_history', 'emergency_contact_name', 'emergency_contact_phone', 
+                          'emergency_contact_relationship', 'height', 'weight', 'medical_notes'];
+            
+            if (in_array($key, $textFields)) {
+                // Allow empty strings for text fields (user might want to clear them)
+                $updateData[$key] = $value ?? null;
+            } elseif ($value !== null && $value !== '') {
+                // For other fields (blood_group, genotype, etc.), only include non-null and non-empty values
+                $updateData[$key] = $value;
+            }
+        }
+        
+        if (!empty($updateData)) {
+            try {
+                $patient->update($updateData);
+                
+                \Log::info('Patient profile updated', [
+                    'patient_id' => $patient->id,
+                    'patient_name' => $patient->name,
+                    'patient_email' => $patient->email,
+                    'patient_phone' => $patient->phone,
+                    'updated_fields' => array_keys($updateData),
+                    'is_medical_update' => $isMedicalUpdate,
+                    'update_data' => $updateData
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to update patient profile', [
+                    'patient_id' => $patient->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->back()->with('error', 'Failed to update profile. Please try again.');
+            }
+        } else {
+            \Log::warning('No data to update for patient profile', [
+                'patient_id' => $patient->id,
+                'validated_data' => $validated
+            ]);
+        }
 
-        return redirect()->back()->with('success', 'Profile updated successfully!');
+        $message = $isMedicalUpdate 
+            ? 'Medical information updated successfully!' 
+            : 'Profile updated successfully!';
+            
+        return redirect()->back()->with('success', $message);
     }
 
     /**

@@ -358,6 +358,42 @@
                             </div>
                         @endif
 
+                        <!-- Referrals -->
+                        @if($consultation->referrals && count($consultation->referrals) > 0)
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center">
+                                    <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                    Referral Information
+                                </h3>
+                                <div class="space-y-3">
+                                    @foreach($consultation->referrals as $referral)
+                                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                                            <div class="flex items-start justify-between mb-2">
+                                                <h4 class="text-sm font-semibold text-blue-900">
+                                                    {{ $referral['specialist'] ?? 'Specialist' }}
+                                                </h4>
+                                                <span class="px-2.5 py-1 text-xs font-semibold rounded-full
+                                                    @if(($referral['urgency'] ?? 'routine') === 'emergency')
+                                                        bg-red-100 text-red-700
+                                                    @elseif(($referral['urgency'] ?? 'routine') === 'urgent')
+                                                        bg-yellow-100 text-yellow-700
+                                                    @else
+                                                        bg-green-100 text-green-700
+                                                    @endif">
+                                                    {{ ucfirst($referral['urgency'] ?? 'routine') }}
+                                                </span>
+                                            </div>
+                                            <p class="text-xs text-blue-800 mb-1">
+                                                <span class="font-medium">Reason:</span> {{ $referral['reason'] ?? 'N/A' }}
+                                            </p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- Additional Notes -->
                         @if($consultation->additional_notes)
                             <div>
@@ -369,6 +405,45 @@
                                 </h3>
                                 <div class="bg-gray-50 border-l-4 border-gray-500 p-3 rounded">
                                     <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->additional_notes }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Treatment Plan Attachments -->
+                        @if($consultation->treatment_plan_attachments && count($consultation->treatment_plan_attachments) > 0)
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center">
+                                    <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                    </svg>
+                                    Additional Files
+                                </h3>
+                                <div class="space-y-2">
+                                    @foreach($consultation->treatment_plan_attachments as $attachment)
+                                        <a href="{{ route('patient.consultation.attachment', ['id' => $consultation->id, 'file' => $attachment['stored_name'] ?? basename($attachment['path'])]) }}" 
+                                           target="_blank"
+                                           class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors group">
+                                            <div class="flex items-center gap-3">
+                                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                                <div>
+                                                    <p class="text-sm font-medium text-blue-900 group-hover:text-blue-700">{{ $attachment['original_name'] ?? 'File' }}</p>
+                                                    <p class="text-xs text-blue-600">
+                                                        @if(isset($attachment['size']))
+                                                            {{ number_format($attachment['size'] / 1024, 2) }} KB
+                                                        @endif
+                                                        @if(isset($attachment['mime_type']))
+                                                            • {{ strtoupper(pathinfo($attachment['original_name'] ?? '', PATHINFO_EXTENSION)) }}
+                                                        @endif
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <svg class="w-4 h-4 text-blue-600 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                            </svg>
+                                        </a>
+                                    @endforeach
                                 </div>
                             </div>
                         @endif

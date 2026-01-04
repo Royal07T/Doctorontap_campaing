@@ -16,7 +16,7 @@
     </div>
 @endif
 
-<form id="treatmentPlanForm" method="POST" action="{{ route('doctor.consultations.treatment-plan', $consultation->id) }}" class="space-y-6" onsubmit="return false;">
+<form id="treatmentPlanForm" method="POST" action="{{ route('doctor.consultations.treatment-plan', $consultation->id) }}" class="space-y-6" enctype="multipart/form-data" onsubmit="return false;">
     @csrf
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -123,6 +123,52 @@
         </div>
     </div>
 
+    <!-- Treatment Plan Attachments -->
+    <div class="border-t border-gray-200 pt-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Additional Files (Optional)</h3>
+                <p class="text-sm text-gray-600 mt-1">Attach files that will be sent to the patient with the treatment plan email</p>
+            </div>
+        </div>
+        
+        <!-- File Upload -->
+        <div class="mb-4">
+            <label for="treatment_plan_attachments" class="block text-sm font-medium text-gray-700 mb-2">
+                Upload Files
+            </label>
+            <input type="file" 
+                   id="treatment_plan_attachments" 
+                   name="treatment_plan_attachments[]" 
+                   multiple
+                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+            <p class="mt-1 text-xs text-gray-500">Accepted formats: PDF, DOC, DOCX, JPG, PNG, XLS, XLSX (Max 10MB per file)</p>
+        </div>
+
+        <!-- Existing Attachments -->
+        @if($consultation->treatment_plan_attachments && count($consultation->treatment_plan_attachments) > 0)
+            <div class="mt-4">
+                <p class="text-sm font-medium text-gray-700 mb-2">Current Attachments:</p>
+                <div class="space-y-2">
+                    @foreach($consultation->treatment_plan_attachments as $attachment)
+                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ $attachment['original_name'] ?? 'File' }}</p>
+                                    <p class="text-xs text-gray-500">{{ isset($attachment['size']) ? number_format($attachment['size'] / 1024, 2) . ' KB' : '' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </div>
+
     <!-- Prescribed Medications -->
     <div class="border-t border-gray-200 pt-6">
         <div class="flex items-center justify-between mb-4">
@@ -158,6 +204,71 @@
                             </div>
                         </div>
                         <button type="button" class="removeMedication mt-2 text-sm text-red-600 hover:text-red-800">Remove</button>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+    </div>
+
+    <!-- Referrals Section -->
+    <div class="border-t border-gray-200 pt-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Referrals (Optional)</h3>
+            <button type="button" id="addReferral" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                + Add Referral
+            </button>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">If the patient needs to be referred to another specialist, add the referral details below.</p>
+        <div id="referralsContainer" class="space-y-4">
+            @if(old('referrals') || ($consultation->referrals && count($consultation->referrals) > 0))
+                @foreach(old('referrals', $consultation->referrals ?? []) as $index => $referral)
+                    <div class="referral-item bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Specialization <span class="text-red-500">*</span></label>
+                                <input type="text" 
+                                       name="referrals[{{ $index }}][specialist]" 
+                                       value="{{ $referral['specialist'] ?? '' }}" 
+                                       required
+                                       list="specializations-list-{{ $index }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                       placeholder="e.g., Cardiology, Pediatrics">
+                                <datalist id="specializations-list-{{ $index }}">
+                                    @php
+                                        $specializations = \App\Models\Doctor::where('is_approved', true)
+                                            ->where('is_available', true)
+                                            ->whereNotNull('specialization')
+                                            ->distinct()
+                                            ->orderBy('specialization')
+                                            ->pluck('specialization')
+                                            ->filter();
+                                    @endphp
+                                    @foreach($specializations as $spec)
+                                        <option value="{{ $spec }}">
+                                    @endforeach
+                                </datalist>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Reason <span class="text-red-500">*</span></label>
+                                <input type="text" 
+                                       name="referrals[{{ $index }}][reason]" 
+                                       value="{{ $referral['reason'] ?? '' }}" 
+                                       required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                       placeholder="Reason for referral">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Urgency <span class="text-red-500">*</span></label>
+                                <select name="referrals[{{ $index }}][urgency]" 
+                                        required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    <option value="routine" {{ ($referral['urgency'] ?? 'routine') === 'routine' ? 'selected' : '' }}>Routine</option>
+                                    <option value="urgent" {{ ($referral['urgency'] ?? '') === 'urgent' ? 'selected' : '' }}>Urgent</option>
+                                    <option value="emergency" {{ ($referral['urgency'] ?? '') === 'emergency' ? 'selected' : '' }}>Emergency</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" class="removeReferral mt-2 text-sm text-red-600 hover:text-red-800">Remove</button>
                     </div>
                 @endforeach
             @endif
@@ -215,6 +326,62 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
     
     let medicationIndex = {{ count(old('prescribed_medications', $consultation->prescribed_medications ?? [])) }};
+    let referralIndex = {{ count(old('referrals', $consultation->referrals ?? [])) }};
+    
+    // Get specializations for datalist
+    const specializations = @json(\App\Models\Doctor::where('is_approved', true)->where('is_available', true)->whereNotNull('specialization')->distinct()->orderBy('specialization')->pluck('specialization')->filter()->values());
+    
+    // Add referral
+    document.getElementById('addReferral')?.addEventListener('click', function() {
+        const container = document.getElementById('referralsContainer');
+        const datalistId = `specializations-list-${referralIndex}`;
+        const referralHtml = `
+            <div class="referral-item bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Specialization <span class="text-red-500">*</span></label>
+                        <input type="text" 
+                               name="referrals[${referralIndex}][specialist]" 
+                               required
+                               list="${datalistId}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                               placeholder="e.g., Cardiology, Pediatrics">
+                        <datalist id="${datalistId}">
+                            ${specializations.map(spec => `<option value="${spec}">`).join('')}
+                        </datalist>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Reason <span class="text-red-500">*</span></label>
+                        <input type="text" 
+                               name="referrals[${referralIndex}][reason]" 
+                               required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                               placeholder="Reason for referral">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Urgency <span class="text-red-500">*</span></label>
+                        <select name="referrals[${referralIndex}][urgency]" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="routine">Routine</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" class="removeReferral mt-2 text-sm text-red-600 hover:text-red-800">Remove</button>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', referralHtml);
+        referralIndex++;
+    });
+    
+    // Remove referral
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('removeReferral')) {
+            e.target.closest('.referral-item').remove();
+        }
+    });
     
     // Add medication
     document.getElementById('addMedication')?.addEventListener('click', function() {
@@ -309,37 +476,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Build JSON payload
-        const payload = {
-            presenting_complaint: formData.get('presenting_complaint'),
-            history_of_complaint: formData.get('history_of_complaint'),
-            past_medical_history: formData.get('past_medical_history'),
-            family_history: formData.get('family_history'),
-            drug_history: formData.get('drug_history'),
-            social_history: formData.get('social_history'),
-            diagnosis: formData.get('diagnosis'),
-            investigation: formData.get('investigation'),
-            treatment_plan: formData.get('treatment_plan'),
-            prescribed_medications: medications.length > 0 ? medications : null,
-            follow_up_instructions: formData.get('follow_up_instructions'),
-            lifestyle_recommendations: formData.get('lifestyle_recommendations'),
-        };
+        // Convert referrals array properly
+        const referrals = [];
+        const referralItems = form.querySelectorAll('.referral-item');
+        referralItems.forEach((item, index) => {
+            const specialist = item.querySelector('input[name*="[specialist]"]')?.value;
+            const reason = item.querySelector('input[name*="[reason]"]')?.value;
+            const urgency = item.querySelector('select[name*="[urgency]"]')?.value;
+            
+            if (specialist && reason && urgency) {
+                referrals.push({ specialist, reason, urgency });
+            }
+        });
+        
+        // Add medications and referrals as JSON strings to FormData
+        if (medications.length > 0) {
+            formData.set('prescribed_medications', JSON.stringify(medications));
+        }
+        if (referrals.length > 0) {
+            formData.set('referrals', JSON.stringify(referrals));
+        }
         
         console.log('Submitting treatment plan form', {
             url: form.action,
             consultation_id: {{ $consultation->id }},
-            payload_keys: Object.keys(payload)
+            has_files: form.querySelector('#treatment_plan_attachments')?.files.length > 0
         });
         
         try {
             const response = await fetch(form.action, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     'Accept': 'application/json'
+                    // Don't set Content-Type - let browser set it with boundary for multipart/form-data
                 },
-                body: JSON.stringify(payload)
+                body: formData
             });
             
             console.log('Response received', {

@@ -121,3 +121,28 @@ if (!function_exists('is_domain')) {
         return $expectedDomain && $currentHost === $expectedDomain;
     }
 }
+
+if (!function_exists('email_logo_inline')) {
+    /**
+     * Get the logo URL for email templates.
+     * Returns the full URL to the logo image for use in emails.
+     *
+     * @return string
+     */
+    function email_logo_inline(): string
+    {
+        // Try to get logo from settings or use default
+        try {
+            $logoPath = \App\Models\Setting::get('email_logo_path', 'img/logo-text.png');
+        } catch (\Exception $e) {
+            $logoPath = 'img/logo-text.png';
+        }
+        
+        // If logo path doesn't start with http, make it a full URL
+        if (!filter_var($logoPath, FILTER_VALIDATE_URL)) {
+            return asset($logoPath);
+        }
+        
+        return $logoPath;
+    }
+}

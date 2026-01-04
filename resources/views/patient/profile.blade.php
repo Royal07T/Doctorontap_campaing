@@ -104,6 +104,155 @@
             </form>
         </div>
 
+    <!-- Medical Information -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+        <h2 class="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">Medical Information</h2>
+        
+        <form method="POST" action="{{ route('patient.profile.update') }}">
+            @csrf
+            @method('PUT')
+
+            <div class="space-y-6">
+                <!-- Blood Group and Genotype -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="blood_group" class="block text-xs font-medium text-gray-700 mb-1.5">Blood Group</label>
+                        <select name="blood_group" id="blood_group" 
+                                class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                            <option value="">Select Blood Group</option>
+                            <option value="A+" {{ old('blood_group', $patient->blood_group) === 'A+' ? 'selected' : '' }}>A+</option>
+                            <option value="A-" {{ old('blood_group', $patient->blood_group) === 'A-' ? 'selected' : '' }}>A-</option>
+                            <option value="B+" {{ old('blood_group', $patient->blood_group) === 'B+' ? 'selected' : '' }}>B+</option>
+                            <option value="B-" {{ old('blood_group', $patient->blood_group) === 'B-' ? 'selected' : '' }}>B-</option>
+                            <option value="AB+" {{ old('blood_group', $patient->blood_group) === 'AB+' ? 'selected' : '' }}>AB+</option>
+                            <option value="AB-" {{ old('blood_group', $patient->blood_group) === 'AB-' ? 'selected' : '' }}>AB-</option>
+                            <option value="O+" {{ old('blood_group', $patient->blood_group) === 'O+' ? 'selected' : '' }}>O+</option>
+                            <option value="O-" {{ old('blood_group', $patient->blood_group) === 'O-' ? 'selected' : '' }}>O-</option>
+                            <option value="Unknown" {{ old('blood_group', $patient->blood_group) === 'Unknown' ? 'selected' : '' }}>Unknown</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="genotype" class="block text-xs font-medium text-gray-700 mb-1.5">Genotype</label>
+                        <select name="genotype" id="genotype" 
+                                class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                            <option value="">Select Genotype</option>
+                            <option value="AA" {{ old('genotype', $patient->genotype) === 'AA' ? 'selected' : '' }}>AA</option>
+                            <option value="AS" {{ old('genotype', $patient->genotype) === 'AS' ? 'selected' : '' }}>AS</option>
+                            <option value="AC" {{ old('genotype', $patient->genotype) === 'AC' ? 'selected' : '' }}>AC</option>
+                            <option value="SS" {{ old('genotype', $patient->genotype) === 'SS' ? 'selected' : '' }}>SS</option>
+                            <option value="SC" {{ old('genotype', $patient->genotype) === 'SC' ? 'selected' : '' }}>SC</option>
+                            <option value="CC" {{ old('genotype', $patient->genotype) === 'CC' ? 'selected' : '' }}>CC</option>
+                            <option value="Unknown" {{ old('genotype', $patient->genotype) === 'Unknown' ? 'selected' : '' }}>Unknown</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Height and Weight -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="height" class="block text-xs font-medium text-gray-700 mb-1.5">Height (cm)</label>
+                        <input type="text" name="height" id="height" value="{{ old('height', $patient->height) }}" 
+                               placeholder="e.g., 175"
+                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                    </div>
+
+                    <div>
+                        <label for="weight" class="block text-xs font-medium text-gray-700 mb-1.5">Weight (kg)</label>
+                        <input type="text" name="weight" id="weight" value="{{ old('weight', $patient->weight) }}" 
+                               placeholder="e.g., 70"
+                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                    </div>
+                </div>
+
+                <!-- Allergies -->
+                <div>
+                    <label for="allergies" class="block text-xs font-medium text-gray-700 mb-1.5">Allergies</label>
+                    <textarea name="allergies" id="allergies" rows="3" 
+                              placeholder="List any known allergies (e.g., Penicillin, Peanuts, Latex)"
+                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('allergies', $patient->allergies) }}</textarea>
+                </div>
+
+                <!-- Chronic Conditions -->
+                <div>
+                    <label for="chronic_conditions" class="block text-xs font-medium text-gray-700 mb-1.5">Chronic Conditions</label>
+                    <textarea name="chronic_conditions" id="chronic_conditions" rows="3" 
+                              placeholder="List any chronic medical conditions (e.g., Diabetes, Hypertension, Asthma)"
+                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('chronic_conditions', $patient->chronic_conditions) }}</textarea>
+                </div>
+
+                <!-- Current Medications -->
+                <div>
+                    <label for="current_medications" class="block text-xs font-medium text-gray-700 mb-1.5">Current Medications</label>
+                    <textarea name="current_medications" id="current_medications" rows="3" 
+                              placeholder="List medications you are currently taking"
+                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('current_medications', $patient->current_medications) }}</textarea>
+                </div>
+
+                <!-- Surgical History -->
+                <div>
+                    <label for="surgical_history" class="block text-xs font-medium text-gray-700 mb-1.5">Surgical History</label>
+                    <textarea name="surgical_history" id="surgical_history" rows="3" 
+                              placeholder="List any past surgeries or procedures"
+                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('surgical_history', $patient->surgical_history) }}</textarea>
+                </div>
+
+                <!-- Family Medical History -->
+                <div>
+                    <label for="family_medical_history" class="block text-xs font-medium text-gray-700 mb-1.5">Family Medical History</label>
+                    <textarea name="family_medical_history" id="family_medical_history" rows="3" 
+                              placeholder="List significant medical conditions in your family"
+                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('family_medical_history', $patient->family_medical_history) }}</textarea>
+                </div>
+
+                <!-- Emergency Contact -->
+                <div class="border-t border-gray-200 pt-4">
+                    <h3 class="text-xs font-semibold text-gray-900 mb-4 uppercase tracking-wide">Emergency Contact</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="emergency_contact_name" class="block text-xs font-medium text-gray-700 mb-1.5">Contact Name</label>
+                            <input type="text" name="emergency_contact_name" id="emergency_contact_name" 
+                                   value="{{ old('emergency_contact_name', $patient->emergency_contact_name) }}" 
+                                   placeholder="Full Name"
+                                   class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                        </div>
+
+                        <div>
+                            <label for="emergency_contact_phone" class="block text-xs font-medium text-gray-700 mb-1.5">Contact Phone</label>
+                            <input type="tel" name="emergency_contact_phone" id="emergency_contact_phone" 
+                                   value="{{ old('emergency_contact_phone', $patient->emergency_contact_phone) }}" 
+                                   placeholder="Phone Number"
+                                   class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                        </div>
+
+                        <div>
+                            <label for="emergency_contact_relationship" class="block text-xs font-medium text-gray-700 mb-1.5">Relationship</label>
+                            <input type="text" name="emergency_contact_relationship" id="emergency_contact_relationship" 
+                                   value="{{ old('emergency_contact_relationship', $patient->emergency_contact_relationship) }}" 
+                                   placeholder="e.g., Spouse, Parent, Sibling"
+                                   class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Notes -->
+                <div>
+                    <label for="medical_notes" class="block text-xs font-medium text-gray-700 mb-1.5">Additional Medical Notes</label>
+                    <textarea name="medical_notes" id="medical_notes" rows="4" 
+                              placeholder="Any additional medical information you'd like to share with your doctors"
+                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('medical_notes', $patient->medical_notes) }}</textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end">
+                    <button type="submit" class="purple-gradient hover:opacity-90 text-white px-5 py-2.5 text-sm font-medium rounded-lg transition">
+                        Update Medical Information
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <!-- Account Information -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
             <h2 class="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">Account Information</h2>

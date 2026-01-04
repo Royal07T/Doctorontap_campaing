@@ -72,6 +72,8 @@ class TreatmentPlanNotification extends Mailable
      */
     public function attachments(): array
     {
+        $attachments = [];
+        
         try {
             // Generate patient-friendly PDF (without clinical documentation)
             // Only includes: Treatment Plan, Medications, Follow-up, Lifestyle, Appointments
@@ -79,10 +81,8 @@ class TreatmentPlanNotification extends Mailable
                 'consultation' => $this->consultation
             ]);
             
-            return [
-                Attachment::fromData(fn () => $pdf->output(), 'treatment-plan-' . $this->consultation->reference . '.pdf')
-                    ->withMime('application/pdf'),
-            ];
+            $attachments[] = Attachment::fromData(fn () => $pdf->output(), 'treatment-plan-' . $this->consultation->reference . '.pdf')
+                ->withMime('application/pdf');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to generate treatment plan PDF', [
                 'consultation_id' => $this->consultation->id,
@@ -90,8 +90,36 @@ class TreatmentPlanNotification extends Mailable
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            throw $e;
+            // Don't throw - continue with file attachments even if PDF fails
         }
+        
+        // Add treatment plan file attachments
+        if ($this->consultation->treatment_plan_attachments && count($this->consultation->treatment_plan_attachments) > 0) {
+            foreach ($this->consultation->treatment_plan_attachments as $attachment) {
+                try {
+                    $filePath = storage_path('app/' . $attachment['path']);
+                    if (file_exists($filePath)) {
+                        $attachments[] = Attachment::fromPath($filePath)
+                            ->as($attachment['original_name'] ?? basename($attachment['path']))
+                            ->withMime($attachment['mime_type'] ?? 'application/octet-stream');
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('Treatment plan attachment file not found', [
+                            'consultation_id' => $this->consultation->id,
+                            'path' => $attachment['path'] ?? 'N/A',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to attach treatment plan file', [
+                        'consultation_id' => $this->consultation->id,
+                        'attachment' => $attachment,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Continue with other attachments
+                }
+            }
+        }
+        
+        return $attachments;
     }
     
     /**
