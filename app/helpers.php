@@ -146,3 +146,48 @@ if (!function_exists('email_logo_inline')) {
         return $logoPath;
     }
 }
+
+if (!function_exists('format_whatsapp_phone')) {
+    /**
+     * Format a phone number for WhatsApp URL (wa.me links).
+     * Removes all non-numeric characters and ensures international format.
+     * 
+     * For Nigerian numbers:
+     * - "+2348012345678" → "2348012345678"
+     * - "08012345678" → "2348012345678"
+     * - "2348012345678" → "2348012345678"
+     *
+     * @param string|null $phone
+     * @return string
+     */
+    function format_whatsapp_phone(?string $phone): string
+    {
+        if (empty($phone)) {
+            return '';
+        }
+
+        // Remove all non-numeric characters
+        $cleaned = preg_replace('/[^0-9]/', '', $phone);
+
+        // Handle empty result
+        if (empty($cleaned)) {
+            return '';
+        }
+
+        // Handle Nigerian phone numbers
+        // If starts with 0, replace with 234 (Nigeria country code)
+        if (strlen($cleaned) === 11 && $cleaned[0] === '0') {
+            $cleaned = '234' . substr($cleaned, 1);
+        }
+        // If starts with 234, keep as is
+        elseif (strlen($cleaned) === 13 && substr($cleaned, 0, 3) === '234') {
+            // Already in correct format
+        }
+        // If it's 10 digits and doesn't start with 0, assume it's missing country code
+        elseif (strlen($cleaned) === 10) {
+            $cleaned = '234' . $cleaned;
+        }
+
+        return $cleaned;
+    }
+}

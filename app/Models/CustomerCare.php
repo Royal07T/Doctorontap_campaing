@@ -54,6 +54,38 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get all customer interactions handled by this agent
+     */
+    public function interactions(): HasMany
+    {
+        return $this->hasMany(CustomerInteraction::class, 'agent_id');
+    }
+
+    /**
+     * Get all support tickets assigned to this agent
+     */
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'agent_id');
+    }
+
+    /**
+     * Get all escalations created by this agent
+     */
+    public function escalations(): HasMany
+    {
+        return $this->hasMany(Escalation::class, 'escalated_by');
+    }
+
+    /**
+     * Get all interaction notes created by this agent
+     */
+    public function interactionNotes(): HasMany
+    {
+        return $this->hasMany(InteractionNote::class, 'created_by');
+    }
+
+    /**
      * Send the email verification notification.
      */
     public function sendEmailVerificationNotification()

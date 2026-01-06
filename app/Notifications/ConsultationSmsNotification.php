@@ -3,20 +3,26 @@
 namespace App\Notifications;
 
 use App\Services\TermiiService;
+use App\Services\VonageService;
 use Illuminate\Support\Facades\Log;
 
 class ConsultationSmsNotification
 {
-    protected TermiiService $termiiService;
+    protected $smsService;
 
     /**
      * Constructor with dependency injection
-     *
-     * @param TermiiService|null $termiiService
+     * Automatically selects the configured SMS provider
      */
-    public function __construct(?TermiiService $termiiService = null)
+    public function __construct()
     {
-        $this->termiiService = $termiiService ?? app(TermiiService::class);
+        $provider = config('services.sms_provider', 'termii');
+        
+        if ($provider === 'vonage') {
+            $this->smsService = app(VonageService::class);
+        } else {
+            $this->smsService = app(TermiiService::class);
+        }
     }
 
     /**
@@ -344,7 +350,7 @@ class ConsultationSmsNotification
         $normalizedPhone = $this->normalizePhoneNumber($phone);
 
         try {
-            $result = $this->termiiService->sendSMS($normalizedPhone, $message);
+            $result = $this->smsService->sendSMS($normalizedPhone, $message);
 
             if ($result['success']) {
                 $this->logSuccess($type, $context, $result);

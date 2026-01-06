@@ -1,0 +1,450 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Log;
+use Vonage\Client;
+use Vonage\Client\Credentials\Basic;
+use Vonage\Client\Credentials\Keypair;
+use Vonage\SMS\Message\SMS;
+use Vonage\Messages\MessageObjects\TextObject;
+use Vonage\Messages\Channel\SMS\SMSText;
+
+class VonageService
+{
+    protected $apiKey;
+    protected $apiSecret;
+    protected $applicationId;
+    protected $privateKey;
+    protected $brandName;
+    protected $apiMethod;
+    protected $enabled;
+
+    public function __construct()
+    {
+        $this->apiKey = config('services.vonage.api_key');
+        $this->apiSecret = config('services.vonage.api_secret');
+        $this->applicationId = config('services.vonage.application_id');
+        $this->privateKey = $this->getPrivateKey();
+        $this->brandName = config('services.vonage.brand_name', 'DoctorOnTap');
+        $this->apiMethod = config('services.vonage.api_method', 'legacy');
+        $this->enabled = config('services.vonage.enabled', true);
+    }
+
+    /**
+     * Get private key from file path or inline
+     */
+    protected function getPrivateKey()
+    {
+        $privateKeyPath = config('services.vonage.private_key_path');
+        $privateKey = config('services.vonage.private_key');
+
+        if ($privateKeyPath && file_exists($privateKeyPath)) {
+            return file_get_contents($privateKeyPath);
+        }
+
+        if ($privateKey) {
+            // Replace \n with actual newlines if provided as string
+            return str_replace('\\n', "\n", $privateKey);
+        }
+
+        return null;
+    }
+
+    /**
+     * Send SMS to a single recipient
+     *
+     * @param string $to Phone number in international format (e.g., +2348012345678)
+     * @param string $message The SMS message content
+     * @return array Response with success status and data
+     */
+    public function sendSMS(string $to, string $message): array
+    {
+        // Check if Vonage is enabled
+        if (!$this->enabled) {
+            Log::info('Vonage SMS skipped (disabled in config)', [
+                'to' => $to,
+                'message' => $message
+            ]);
+            
+            return [
+                'success' => true,
+                'message' => 'SMS sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        // Validate configuration based on API method
+        if ($this->apiMethod === 'messages') {
+            // Messages API requires Application ID and Private Key
+            if (empty($this->applicationId) || empty($this->privateKey)) {
+                Log::error('Vonage Messages API credentials not configured', [
+                    'has_application_id' => !empty($this->applicationId),
+                    'has_private_key' => !empty($this->privateKey)
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Vonage Messages API credentials not configured. Need VONAGE_APPLICATION_ID and VONAGE_PRIVATE_KEY_PATH or VONAGE_PRIVATE_KEY',
+                    'error' => 'configuration_error'
+                ];
+            }
+        } else {
+            // Legacy API requires API Key and Secret
+            if (empty($this->apiKey) || empty($this->apiSecret)) {
+                Log::error('Vonage Legacy API credentials not configured', [
+                    'has_api_key' => !empty($this->apiKey),
+                    'has_api_secret' => !empty($this->apiSecret)
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Vonage API credentials not configured',
+                    'error' => 'configuration_error'
+                ];
+            }
+        }
+
+        // Format phone number (ensure it's in international format)
+        $formattedPhone = $this->formatPhoneNumber($to);
+
+        try {
+            set_time_limit(30);
+            
+            // Use Messages API or Legacy API based on configuration
+            if ($this->apiMethod === 'messages') {
+                return $this->sendViaMessagesAPI($formattedPhone, $message);
+            } else {
+                return $this->sendViaLegacyAPI($formattedPhone, $message);
+            }
+        } catch (\Exception $e) {
+            Log::error('Vonage SMS exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending SMS',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send SMS via Legacy SMS API (using API Key/Secret)
+     */
+    protected function sendViaLegacyAPI(string $formattedPhone, string $message): array
+    {
+        try {
+            $credentials = new Basic($this->apiKey, $this->apiSecret);
+            $client = new Client($credentials);
+
+            $response = $client->sms()->send(
+                new SMS($formattedPhone, $this->brandName, $message)
+            );
+
+            $messageObj = $response->current();
+
+            if ($messageObj->getStatus() == 0) {
+                Log::info('Vonage Legacy API SMS sent successfully', [
+                    'to' => $formattedPhone,
+                    'message_id' => $messageObj->getMessageId(),
+                    'remaining_balance' => $messageObj->getRemainingBalance(),
+                    'message_price' => $messageObj->getMessagePrice(),
+                    'network' => $messageObj->getNetwork()
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'SMS sent successfully',
+                    'data' => [
+                        'message_id' => $messageObj->getMessageId(),
+                        'status' => $messageObj->getStatus(),
+                        'remaining_balance' => $messageObj->getRemainingBalance(),
+                        'message_price' => $messageObj->getMessagePrice(),
+                        'network' => $messageObj->getNetwork(),
+                        'to' => $messageObj->getTo()
+                    ]
+                ];
+            } else {
+                $errorMessage = $this->getStatusErrorMessage($messageObj->getStatus());
+                
+                Log::error('Vonage Legacy API SMS failed', [
+                    'to' => $formattedPhone,
+                    'status' => $messageObj->getStatus(),
+                    'error_text' => $errorMessage,
+                    'error_label' => $messageObj->getErrorText()
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send SMS',
+                    'error' => [
+                        'status' => $messageObj->getStatus(),
+                        'error_text' => $errorMessage,
+                        'error_label' => $messageObj->getErrorText()
+                    ],
+                    'status_code' => $messageObj->getStatus()
+                ];
+            }
+        } catch (\Vonage\Client\Exception\Request $e) {
+            Log::error('Vonage Legacy API request exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Vonage API request failed',
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage Legacy API exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'class' => get_class($e)
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while calling Vonage API',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send SMS via Messages API (using Application with JWT)
+     * Note: This requires a Vonage Application with private key
+     */
+    protected function sendViaMessagesAPI(string $formattedPhone, string $message): array
+    {
+        try {
+            // Check if Messages API classes are available
+            if (!class_exists('Vonage\Messages\Channel\SMS\SMSText')) {
+                Log::error('Vonage Messages API classes not found. Please ensure you have the latest Vonage SDK.');
+                return [
+                    'success' => false,
+                    'message' => 'Messages API classes not available. Please use legacy API or update SDK.',
+                    'error' => 'sdk_version_error'
+                ];
+            }
+
+            $credentials = new Keypair($this->privateKey, $this->applicationId);
+            $client = new Client($credentials);
+
+            // Create SMS message using Messages API
+            // Constructor: SMSText(to, from, message)
+            $smsMessage = new \Vonage\Messages\Channel\SMS\SMSText(
+                $formattedPhone,
+                $this->brandName,
+                $message
+            );
+
+            $response = $client->messages()->send($smsMessage);
+
+            // Messages API response structure is different
+            $messageUuid = $response->getMessageUuid();
+            
+            Log::info('Vonage Messages API SMS sent successfully', [
+                'to' => $formattedPhone,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'SMS sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Vonage\Client\Exception\Request $e) {
+            Log::error('Vonage Messages API request exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Vonage Messages API request failed',
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage Messages API exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'class' => get_class($e)
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while calling Vonage Messages API',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send bulk SMS to multiple recipients
+     *
+     * @param array $recipients Array of phone numbers
+     * @param string $message The SMS message content
+     * @return array Response with success status and results
+     */
+    public function sendBulkSMS(array $recipients, string $message): array
+    {
+        $results = [];
+        $successCount = 0;
+        $failedCount = 0;
+
+        foreach ($recipients as $recipient) {
+            $result = $this->sendSMS($recipient, $message);
+            
+            if ($result['success']) {
+                $successCount++;
+            } else {
+                $failedCount++;
+            }
+            
+            $results[] = [
+                'recipient' => $recipient,
+                'result' => $result
+            ];
+        }
+
+        return [
+            'success' => $successCount > 0,
+            'total' => count($recipients),
+            'successful' => $successCount,
+            'failed' => $failedCount,
+            'results' => $results
+        ];
+    }
+
+    /**
+     * Format phone number to international format
+     *
+     * @param string $phone Phone number in various formats
+     * @return string Formatted phone number (e.g., +2348012345678)
+     */
+    /**
+     * Format phone number to E.164 format (without + sign, as required by Vonage)
+     * E.164 format: country code + number, no special characters, no leading +
+     * Examples: 14155550101 (US), 447700900123 (UK), 2347081114942 (Nigeria)
+     *
+     * @param string $phone Phone number in any format
+     * @return string Phone number in E.164 format (without +)
+     */
+    protected function formatPhoneNumber(string $phone): string
+    {
+        // Remove spaces, hyphens, parentheses, and plus signs
+        $phone = preg_replace('/[\s\-\(\)\+]/', '', $phone);
+
+        // If starts with 0, replace with 234 (Nigeria country code)
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '234' . substr($phone, 1);
+        }
+
+        // If doesn't start with country code, assume Nigeria (234)
+        // This is a fallback - ideally numbers should already have country code
+        if (strlen($phone) < 10 || (strlen($phone) === 10 && substr($phone, 0, 1) !== '2')) {
+            // If it's a 10-digit number without country code, assume Nigeria
+            if (strlen($phone) === 10) {
+                $phone = '234' . $phone;
+            }
+        }
+
+        // Ensure no leading + (Vonage E.164 format omits the +)
+        $phone = ltrim($phone, '+');
+
+        return $phone;
+    }
+
+    /**
+     * Get human-readable error message for status code
+     *
+     * @param int $status Status code from Vonage
+     * @return string Error message
+     */
+    protected function getStatusErrorMessage(int $status): string
+    {
+        $errorMessages = [
+            0 => 'Success',
+            1 => 'Throttled',
+            2 => 'Missing parameters',
+            3 => 'Invalid parameters',
+            4 => 'Invalid credentials',
+            5 => 'Internal error',
+            6 => 'Invalid message',
+            7 => 'Number barred',
+            8 => 'Partner account barred',
+            9 => 'Partner quota exceeded',
+            10 => 'Too many existing binds',
+            11 => 'Account not enabled for HTTP',
+            12 => 'Message too long',
+            13 => 'Communication failed',
+            14 => 'Invalid signature',
+            15 => 'Invalid sender address',
+            16 => 'Invalid TTL',
+            19 => 'Facility not allowed',
+            20 => 'Invalid message class',
+            23 => 'Bad callback URL',
+            29 => 'Non-whitelisted destination',
+        ];
+
+        return $errorMessages[$status] ?? "Unknown error (Status: {$status})";
+    }
+
+    /**
+     * Check account balance (Vonage doesn't have a direct balance API, but we can check account status)
+     *
+     * @return array Response with account information
+     */
+    public function checkBalance(): array
+    {
+        if (empty($this->apiKey) || empty($this->apiSecret)) {
+            return [
+                'success' => false,
+                'message' => 'Vonage API credentials not configured'
+            ];
+        }
+
+        try {
+            $credentials = new Basic($this->apiKey, $this->apiSecret);
+            $client = new Client($credentials);
+
+            // Vonage doesn't have a direct balance API, but we can get account info
+            // Note: This requires additional API calls. For now, we'll return a simple success.
+            // You can extend this to use Vonage's Account API if needed.
+            
+            Log::info('Vonage balance check attempted', [
+                'note' => 'Vonage does not provide a direct balance API endpoint. Check your dashboard for account balance.'
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Vonage account is configured. Check your Vonage dashboard for balance information.',
+                'note' => 'Vonage does not provide a direct balance API endpoint'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage balance check exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+}
+

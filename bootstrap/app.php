@@ -11,6 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Exclude webhook routes from CSRF protection
+        $middleware->validateCsrfTokens(except: [
+            'vonage/webhook/*',
+        ]);
+        
         // SECURITY: Input sanitization for all requests
         $middleware->append(\App\Http\Middleware\SanitizeInput::class);
         

@@ -31,6 +31,21 @@ class DashboardController extends Controller
                                                     ->where('status', 'cancelled')->count(),
         ];
 
+        // Get Customer Care Module statistics
+        $interactionService = app(\App\Services\CustomerInteractionService::class);
+        $ticketService = app(\App\Services\SupportTicketService::class);
+        $escalationService = app(\App\Services\EscalationService::class);
+
+        $customerCareStats = [
+            'active_interactions' => \App\Models\CustomerInteraction::where('agent_id', $customerCare->id)
+                ->where('status', 'active')->count(),
+            'pending_tickets' => \App\Models\SupportTicket::where('agent_id', $customerCare->id)
+                ->where('status', 'pending')->count(),
+            'resolved_tickets_today' => $ticketService->getResolvedTodayCount($customerCare->id),
+            'escalated_cases' => $escalationService->getEscalatedCasesCount($customerCare->id),
+            'avg_response_time' => $interactionService->getAverageResponseTime($customerCare->id),
+        ];
+
         // Get recent consultations
         $recentConsultations = Consultation::where('customer_care_id', $customerCare->id)
                                           ->with(['doctor', 'patient'])
@@ -38,7 +53,27 @@ class DashboardController extends Controller
                                           ->limit(10)
                                           ->get();
 
-        return view('customer-care.dashboard', compact('stats', 'recentConsultations'));
+        // Get recent interactions
+        $recentInteractions = \App\Models\CustomerInteraction::where('agent_id', $customerCare->id)
+            ->with(['user'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Get recent tickets
+        $recentTickets = \App\Models\SupportTicket::where('agent_id', $customerCare->id)
+            ->with(['user'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('customer-care.dashboard', compact(
+            'stats',
+            'customerCareStats',
+            'recentConsultations',
+            'recentInteractions',
+            'recentTickets'
+        ));
     }
 
     /**
@@ -48,8 +83,13 @@ class DashboardController extends Controller
     {
         $customerCare = Auth::guard('customer_care')->user();
         
-        $query = Consultation::where('customer_care_id', $customerCare->id)
-                            ->with(['doctor', 'patient', 'payment']);
+        // Show all consultations, not just those assigned to this customer care agent
+        $query = Consultation::with(['doctor', 'patient', 'payment', 'customerCare']);
+
+        // Optional filter: Show only consultations assigned to this agent
+        if ($request->has('my_consultations') && $request->my_consultations == '1') {
+            $query->where('customer_care_id', $customerCare->id);
+        }
 
         // Filter by status
         if ($request->has('status') && $request->status != '') {
@@ -82,11 +122,16 @@ class DashboardController extends Controller
      */
     public function showConsultation($id)
     {
-        $customerCare = Auth::guard('customer_care')->user();
-        
-        $consultation = Consultation::where('customer_care_id', $customerCare->id)
-                                   ->with(['doctor', 'patient', 'payment', 'canvasser', 'nurse'])
-                                   ->findOrFail($id);
+        // Allow viewing any consultation, not just those assigned to this agent
+        $consultation = Consultation::with([
+            'doctor', 
+            'patient', 
+            'payment', 
+            'canvasser', 
+            'nurse',
+            'customerCare',
+            'booking'
+        ])->findOrFail($id);
 
         return view('customer-care.consultation-details', compact('consultation'));
     }

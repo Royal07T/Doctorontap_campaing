@@ -5,9 +5,15 @@ namespace App\Providers;
 use App\Models\Consultation;
 use App\Models\Patient;
 use App\Models\VitalSign;
+use App\Models\CustomerInteraction;
+use App\Models\SupportTicket;
+use App\Models\Escalation;
 use App\Policies\ConsultationPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\VitalSignPolicy;
+use App\Policies\CustomerInteractionPolicy;
+use App\Policies\SupportTicketPolicy;
+use App\Policies\EscalationPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -22,6 +28,9 @@ class AuthServiceProvider extends ServiceProvider
         Consultation::class => ConsultationPolicy::class,
         Patient::class => PatientPolicy::class,
         VitalSign::class => VitalSignPolicy::class,
+        CustomerInteraction::class => CustomerInteractionPolicy::class,
+        SupportTicket::class => SupportTicketPolicy::class,
+        Escalation::class => EscalationPolicy::class,
     ];
 
     /**

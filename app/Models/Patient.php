@@ -368,4 +368,20 @@ class Patient extends Authenticatable
         $parts = explode(' ', $this->name);
         return count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '';
     }
+
+    /**
+     * Get all customer interactions for this patient
+     */
+    public function customerInteractions(): HasMany
+    {
+        return $this->hasMany(CustomerInteraction::class, 'user_id');
+    }
+
+    /**
+     * Get all support tickets for this patient
+     */
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'user_id');
+    }
 }

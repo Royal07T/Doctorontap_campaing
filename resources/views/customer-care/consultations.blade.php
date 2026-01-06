@@ -59,6 +59,34 @@
                     <span>Consultations</span>
                 </a>
 
+                <a href="{{ route('customer-care.interactions.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span>Interactions</span>
+                </a>
+
+                <a href="{{ route('customer-care.tickets.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Support Tickets</span>
+                </a>
+
+                <a href="{{ route('customer-care.escalations.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span>Escalations</span>
+                </a>
+
+                <a href="{{ route('customer-care.customers.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Customers</span>
+                </a>
+
                 <div class="border-t border-gray-200 my-2"></div>
 
                 <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
@@ -118,84 +146,192 @@
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Filters -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <form method="GET" action="{{ route('customer-care.consultations') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <!-- Search -->
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Search</label>
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Reference, name, or email..."
-                                   class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                    <form method="GET" action="{{ route('customer-care.consultations') }}" class="space-y-4">
+                        <!-- View Toggle -->
+                        <div class="flex items-center gap-4 pb-4 border-b border-gray-200">
+                            <label class="text-sm font-medium text-gray-700">View:</label>
+                            <div class="flex gap-2">
+                                <a href="{{ route('customer-care.consultations', array_merge(request()->except('my_consultations'), ['my_consultations' => '0'])) }}" 
+                                   class="px-4 py-2 text-sm font-medium rounded-lg transition {{ !request('my_consultations') ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    All Consultations
+                                </a>
+                                <a href="{{ route('customer-care.consultations', array_merge(request()->except('my_consultations'), ['my_consultations' => '1'])) }}" 
+                                   class="px-4 py-2 text-sm font-medium rounded-lg transition {{ request('my_consultations') == '1' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    My Consultations
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Status -->
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Status</label>
-                            <select name="status" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 bg-white transition">
-                                <option value="">All</option>
-                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="scheduled" {{ request('status') == 'scheduled' ? 'selected' : '' }}>Scheduled</option>
-                                <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                                <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            </select>
-                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <!-- Search -->
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Search</label>
+                                <input type="text" name="search" value="{{ request('search') }}" placeholder="Reference, name, or email..."
+                                       class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                                @if(request('my_consultations'))
+                                <input type="hidden" name="my_consultations" value="1">
+                                @endif
+                            </div>
 
-                        <!-- Submit -->
-                        <div class="flex items-end gap-2">
-                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                                </svg>
-                                Filter
-                            </button>
-                            <a href="{{ route('customer-care.consultations') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                                Reset
-                            </a>
+                            <!-- Status -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Status</label>
+                                <select name="status" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 bg-white transition">
+                                    <option value="">All</option>
+                                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="scheduled" {{ request('status') == 'scheduled' ? 'selected' : '' }}>Scheduled</option>
+                                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
+                                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                </select>
+                            </div>
+
+                            <!-- Payment Status -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Payment</label>
+                                <select name="payment_status" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 bg-white transition">
+                                    <option value="">All</option>
+                                    <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
+                                    <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
+                                </select>
+                            </div>
+
+                            <!-- Submit -->
+                            <div class="flex items-end gap-2">
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                    </svg>
+                                    Filter
+                                </button>
+                                <a href="{{ route('customer-care.consultations') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    Reset
+                                </a>
+                            </div>
                         </div>
                     </form>
                 </div>
 
-                <!-- Consultations List -->
-                <div class="space-y-4">
-                    @forelse($consultations as $consultation)
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
-                            <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" class="block p-5">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-3 mb-2">
-                                            <h3 class="text-sm font-semibold text-gray-900">#{{ $consultation->reference }}</h3>
-                                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full
-                                                @if($consultation->status === 'completed') bg-green-100 text-green-800
-                                                @elseif($consultation->status === 'pending') bg-yellow-100 text-yellow-800
-                                                @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-800
-                                                @else bg-gray-100 text-gray-800
-                                                @endif">
-                                                {{ ucfirst($consultation->status) }}
-                                            </span>
-                                        </div>
-                                        <p class="text-sm text-gray-900 mb-1">{{ $consultation->full_name }}</p>
-                                        <p class="text-xs text-gray-600">{{ $consultation->email }}</p>
+                <!-- Consultations Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    @if($consultations->count() > 0)
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Problem</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($consultations as $consultation)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-semibold text-gray-900">#{{ $consultation->reference }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ $consultation->full_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->age }} years, {{ ucfirst($consultation->gender ?? 'N/A') }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900">{{ $consultation->email }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->mobile ?? 'N/A' }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
                                         @if($consultation->doctor)
-                                        <p class="text-xs text-gray-500 mt-1">Doctor: {{ $consultation->doctor->full_name }}</p>
+                                        <div class="text-sm text-gray-900">{{ $consultation->doctor->full_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->doctor->specialization ?? 'N/A' }}</div>
+                                        @else
+                                        <span class="text-sm text-gray-400">Not Assigned</span>
                                         @endif
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-xs text-gray-500">{{ $consultation->created_at->format('M d, Y') }}</p>
-                                        <svg class="w-5 h-5 text-gray-400 mt-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    @empty
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                            <div class="text-4xl mb-4">📋</div>
-                            <h3 class="text-sm font-semibold text-gray-900 mb-2">No Consultations Found</h3>
-                            <p class="text-xs text-gray-500">No consultations match your search criteria.</p>
-                        </div>
-                    @endforelse
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if($consultation->customerCare)
+                                        <div class="text-sm text-gray-900">{{ $consultation->customerCare->name }}</div>
+                                        <div class="text-xs text-gray-500">Customer Care</div>
+                                        @else
+                                        <span class="text-sm text-gray-400">Unassigned</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900">{{ Str::limit($consultation->problem ?? 'N/A', 40) }}</div>
+                                        @if($consultation->severity)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1
+                                            @if($consultation->severity === 'critical' || $consultation->severity === 'urgent') bg-red-100 text-red-800
+                                            @elseif($consultation->severity === 'high') bg-orange-100 text-orange-800
+                                            @elseif($consultation->severity === 'medium') bg-yellow-100 text-yellow-800
+                                            @else bg-gray-100 text-gray-800
+                                            @endif">
+                                            {{ ucfirst($consultation->severity) }}
+                                        </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                            {{ ucfirst($consultation->consult_mode ?? 'N/A') }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                            @if($consultation->status === 'completed') bg-green-100 text-green-800
+                                            @elseif($consultation->status === 'pending') bg-yellow-100 text-yellow-800
+                                            @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-800
+                                            @elseif($consultation->status === 'cancelled') bg-red-100 text-red-800
+                                            @else bg-gray-100 text-gray-800
+                                            @endif">
+                                            {{ ucfirst($consultation->status) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                            @if($consultation->payment_status === 'paid') bg-green-100 text-green-800
+                                            @elseif($consultation->payment_status === 'pending') bg-yellow-100 text-yellow-800
+                                            @else bg-red-100 text-red-800
+                                            @endif">
+                                            {{ ucfirst($consultation->payment_status) }}
+                                        </span>
+                                        @if($consultation->payment && $consultation->payment->amount)
+                                        <div class="text-xs text-gray-500 mt-1">₦{{ number_format($consultation->payment->amount, 2) }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ $consultation->created_at->format('M d, Y') }}</div>
+                                        <div class="text-xs text-gray-500">{{ $consultation->created_at->format('H:i') }}</div>
+                                        @if($consultation->scheduled_at)
+                                        <div class="text-xs text-purple-600 mt-1">
+                                            Scheduled: {{ $consultation->scheduled_at->format('M d, H:i') }}
+                                        </div>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" class="text-purple-600 hover:text-purple-900 font-semibold">View Details</a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                    <div class="p-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No consultations found</h3>
+                        <p class="mt-1 text-sm text-gray-500">No consultations match your search criteria.</p>
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Pagination -->

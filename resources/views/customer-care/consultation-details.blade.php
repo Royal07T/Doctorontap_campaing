@@ -59,6 +59,34 @@
                     <span>Consultations</span>
                 </a>
 
+                <a href="{{ route('customer-care.interactions.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span>Interactions</span>
+                </a>
+
+                <a href="{{ route('customer-care.tickets.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Support Tickets</span>
+                </a>
+
+                <a href="{{ route('customer-care.escalations.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span>Escalations</span>
+                </a>
+
+                <a href="{{ route('customer-care.customers.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Customers</span>
+                </a>
+
                 <div class="border-t border-gray-200 my-2"></div>
 
                 <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
@@ -165,12 +193,101 @@
                                 </div>
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Phone</p>
-                                    <p class="text-sm text-gray-900">{{ $consultation->phone }}</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->mobile ?? 'N/A' }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Date</p>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Age</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->age ?? 'N/A' }} years</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Gender</p>
+                                    <p class="text-sm text-gray-900">{{ ucfirst($consultation->gender ?? 'N/A') }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Created Date</p>
                                     <p class="text-sm text-gray-900">{{ $consultation->created_at->format('M d, Y h:i A') }}</p>
                                 </div>
+                                @if($consultation->patient)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Patient Record</p>
+                                    <a href="{{ route('customer-care.customers.show', $consultation->patient) }}" class="text-sm text-purple-600 hover:text-purple-800">
+                                        View Patient Profile
+                                    </a>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Medical Information -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <div class="mb-4 pb-4 border-b border-gray-200">
+                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Medical Information
+                                </h2>
+                            </div>
+                            <div class="space-y-4">
+                                @if($consultation->problem)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Problem/Complaint</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->problem }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->presenting_complaint)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Presenting Complaint</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->presenting_complaint }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->severity)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Severity</p>
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                        @if($consultation->severity === 'critical' || $consultation->severity === 'urgent') bg-red-100 text-red-800
+                                        @elseif($consultation->severity === 'high') bg-orange-100 text-orange-800
+                                        @elseif($consultation->severity === 'medium') bg-yellow-100 text-yellow-800
+                                        @else bg-gray-100 text-gray-800
+                                        @endif">
+                                        {{ ucfirst($consultation->severity) }}
+                                    </span>
+                                </div>
+                                @endif
+                                @if($consultation->emergency_symptoms && is_array($consultation->emergency_symptoms) && count($consultation->emergency_symptoms) > 0)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Emergency Symptoms</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($consultation->emergency_symptoms as $symptom)
+                                        <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">{{ $symptom }}</span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                                @if($consultation->history_of_complaint)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">History of Complaint</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->history_of_complaint }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->past_medical_history)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Past Medical History</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->past_medical_history }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->family_history)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Family History</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->family_history }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->drug_history)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Drug History</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->drug_history }}</p>
+                                </div>
+                                @endif
                             </div>
                         </div>
 
@@ -184,12 +301,20 @@
                                     Consultation Details
                                 </h2>
                             </div>
-                            <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @if($consultation->doctor)
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Doctor</p>
                                     <p class="text-sm text-gray-900">{{ $consultation->doctor->full_name }}</p>
-                                    <p class="text-xs text-gray-600">{{ $consultation->doctor->specialization }}</p>
+                                    <p class="text-xs text-gray-600">{{ $consultation->doctor->specialization ?? 'N/A' }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->consult_mode)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Consultation Mode</p>
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                        {{ ucfirst($consultation->consult_mode) }}
+                                    </span>
                                 </div>
                                 @endif
                                 @if($consultation->scheduled_at)
@@ -198,14 +323,94 @@
                                     <p class="text-sm text-gray-900">{{ $consultation->scheduled_at->format('M d, Y h:i A') }}</p>
                                 </div>
                                 @endif
-                                @if($consultation->complaint)
+                                @if($consultation->consultation_completed_at)
                                 <div>
-                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Complaint</p>
-                                    <p class="text-sm text-gray-900">{{ $consultation->complaint }}</p>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Completed Date</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->consultation_completed_at->format('M d, Y h:i A') }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->consultation_type)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Consultation Type</p>
+                                    <p class="text-sm text-gray-900">{{ ucfirst($consultation->consultation_type) }}</p>
                                 </div>
                                 @endif
                             </div>
                         </div>
+
+                        <!-- Treatment Plan -->
+                        @if($consultation->diagnosis || $consultation->treatment_plan || $consultation->prescribed_medications)
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <div class="mb-4 pb-4 border-b border-gray-200">
+                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Treatment Plan
+                                </h2>
+                            </div>
+                            <div class="space-y-4">
+                                @if($consultation->diagnosis)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Diagnosis</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->diagnosis }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->investigation)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Investigation</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->investigation }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->treatment_plan)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Treatment Plan</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->treatment_plan }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->prescribed_medications && is_array($consultation->prescribed_medications) && count($consultation->prescribed_medications) > 0)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Prescribed Medications</p>
+                                    <ul class="list-disc list-inside space-y-1">
+                                        @foreach($consultation->prescribed_medications as $medication)
+                                        <li class="text-sm text-gray-900">{{ $medication }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                                @endif
+                                @if($consultation->follow_up_instructions)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Follow-up Instructions</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->follow_up_instructions }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->lifestyle_recommendations)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Lifestyle Recommendations</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->lifestyle_recommendations }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->next_appointment_date)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Next Appointment</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->next_appointment_date->format('M d, Y') }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->doctor_notes)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Doctor Notes</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->doctor_notes }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->additional_notes)
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Additional Notes</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->additional_notes }}</p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
                     </div>
 
                     <!-- Sidebar -->
@@ -213,15 +418,15 @@
                         <!-- Payment Status -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                             <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Payment Status</h3>
-                            <div class="space-y-2">
+                            <div class="space-y-3">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs text-gray-600">Status</span>
                                     <span class="px-2 py-0.5 text-xs font-semibold rounded-full
                                         @if($consultation->payment_status === 'paid') bg-green-100 text-green-800
                                         @elseif($consultation->payment_status === 'pending') bg-yellow-100 text-yellow-800
-                                        @else bg-gray-100 text-gray-800
+                                        @else bg-red-100 text-red-800
                                         @endif">
-                                        {{ ucfirst($consultation->payment_status ?? 'N/A') }}
+                                        {{ ucfirst($consultation->payment_status ?? 'Unpaid') }}
                                     </span>
                                 </div>
                                 @if($consultation->payment)
@@ -229,22 +434,74 @@
                                     <span class="text-xs text-gray-600">Amount</span>
                                     <span class="text-sm font-semibold text-gray-900">₦{{ number_format($consultation->payment->amount, 2) }}</span>
                                 </div>
+                                @if($consultation->payment_completed_at)
+                                <div>
+                                    <p class="text-xs text-gray-500">Paid On</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->payment_completed_at->format('M d, Y h:i A') }}</p>
+                                </div>
+                                @endif
+                                @endif
+                                @if($consultation->payment_request_sent)
+                                <div>
+                                    <p class="text-xs text-gray-500">Payment Request Sent</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->payment_request_sent_at ? $consultation->payment_request_sent_at->format('M d, Y h:i A') : 'Yes' }}</p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Assigned Staff -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Assigned Staff</h3>
+                            <div class="space-y-3">
+                                @if($consultation->doctor)
+                                <div>
+                                    <p class="text-xs text-gray-500">Doctor</p>
+                                    <p class="text-sm font-medium text-gray-900">{{ $consultation->doctor->full_name }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->customerCare)
+                                <div>
+                                    <p class="text-xs text-gray-500">Customer Care</p>
+                                    <p class="text-sm font-medium text-gray-900">{{ $consultation->customerCare->name }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->nurse)
+                                <div>
+                                    <p class="text-xs text-gray-500">Nurse</p>
+                                    <p class="text-sm font-medium text-gray-900">{{ $consultation->nurse->name }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->canvasser)
+                                <div>
+                                    <p class="text-xs text-gray-500">Canvasser</p>
+                                    <p class="text-sm font-medium text-gray-900">{{ $consultation->canvasser->name }}</p>
+                                </div>
                                 @endif
                             </div>
                         </div>
 
                         <!-- Quick Info -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Quick Info</h3>
+                            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Timeline</h3>
                             <div class="space-y-3">
                                 <div>
                                     <p class="text-xs text-gray-500">Created</p>
                                     <p class="text-sm text-gray-900">{{ $consultation->created_at->format('M d, Y') }}</p>
+                                    <p class="text-xs text-gray-400">{{ $consultation->created_at->format('h:i A') }}</p>
                                 </div>
-                                @if($consultation->updated_at)
+                                @if($consultation->updated_at && $consultation->updated_at != $consultation->created_at)
                                 <div>
                                     <p class="text-xs text-gray-500">Last Updated</p>
                                     <p class="text-sm text-gray-900">{{ $consultation->updated_at->format('M d, Y') }}</p>
+                                    <p class="text-xs text-gray-400">{{ $consultation->updated_at->format('h:i A') }}</p>
+                                </div>
+                                @endif
+                                @if($consultation->treatment_plan_created_at)
+                                <div>
+                                    <p class="text-xs text-gray-500">Treatment Plan Created</p>
+                                    <p class="text-sm text-gray-900">{{ $consultation->treatment_plan_created_at->format('M d, Y') }}</p>
+                                    <p class="text-xs text-gray-400">{{ $consultation->treatment_plan_created_at->format('h:i A') }}</p>
                                 </div>
                                 @endif
                             </div>

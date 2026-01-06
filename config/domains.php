@@ -26,6 +26,7 @@ return [
         'doctor' => env('DOCTOR_DOMAIN', 'doctor.doctorontap.com.ng'),
         'canvasser' => env('CANVASSER_DOMAIN', 'canvasser.doctorontap.com.ng'),
         'nurse' => env('NURSE_DOMAIN', 'nurse.doctorontap.com.ng'),
+        'customercare' => env('CUSTOMERCARE_DOMAIN', 'customercare.doctorontap.com.ng'),
         'public' => env('PUBLIC_DOMAIN', 'www.doctorontap.com.ng'),
     ],
 
@@ -46,6 +47,7 @@ return [
         'doctor' => env('DOCTOR_DOMAIN', 'doctor.doctorontap.com.ng'),
         'canvasser' => env('CANVASSER_DOMAIN', 'canvasser.doctorontap.com.ng'),
         'nurse' => env('NURSE_DOMAIN', 'nurse.doctorontap.com.ng'),
+        'customercare' => env('CUSTOMERCARE_DOMAIN', 'customercare.doctorontap.com.ng'),
     ],
 
     /*

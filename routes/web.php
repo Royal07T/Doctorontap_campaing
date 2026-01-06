@@ -25,13 +25,21 @@ use App\Http\Controllers\CustomerCare\AuthController as CustomerCareAuthControll
 use App\Http\Controllers\CustomerCare\DashboardController as CustomerCareDashboardController;
 use App\Http\Controllers\CustomerCare\VerificationController as CustomerCareVerificationController;
 use App\Http\Controllers\CustomerCare\ForgotPasswordController as CustomerCareForgotPasswordController;
+use App\Http\Controllers\Admin\CustomerCareOversightController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\VerificationController as AdminVerificationController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\VonageWebhookController;
 use Illuminate\Support\Facades\File;
+
+// Vonage Webhooks (must be public, no CSRF protection)
+Route::post('/vonage/webhook/inbound', [VonageWebhookController::class, 'handleInbound'])
+    ->name('vonage.webhook.inbound');
+Route::post('/vonage/webhook/status', [VonageWebhookController::class, 'handleStatus'])
+    ->name('vonage.webhook.status');
 
 // Service Worker Route - Handle both /sw.js and /service-worker.js
 Route::get('/service-worker.js', function () {
@@ -244,6 +252,19 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
     Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
     
+    // Customer Care Oversight
+    Route::prefix('customer-care-oversight')->name('customer-care-oversight.')->group(function () {
+        Route::get('/interactions', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'interactions'])->name('interactions');
+        Route::get('/interactions/{interaction}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showInteraction'])->name('interactions.show');
+        Route::get('/tickets', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'tickets'])->name('tickets');
+        Route::get('/tickets/{ticket}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showTicket'])->name('tickets.show');
+        Route::get('/escalations', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'escalations'])->name('escalations');
+        Route::get('/escalations/{escalation}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showEscalation'])->name('escalations.show');
+        Route::get('/customers/{patient}/history', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'customerHistory'])->name('customers.history');
+        Route::get('/agent-performance', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'agentPerformance'])->name('agent-performance');
+        Route::get('/frequent-issues', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'frequentIssues'])->name('frequent-issues');
+    });
+    
     // Doctor Payment Management
     Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
     Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
@@ -382,6 +403,26 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     // Consultation Management
     Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [CustomerCareDashboardController::class, 'showConsultation'])->name('consultations.show');
+    
+    // Customer Interactions
+    Route::resource('interactions', \App\Http\Controllers\CustomerCare\InteractionsController::class);
+    Route::post('/interactions/{interaction}/end', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'end'])->name('interactions.end');
+    Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
+    
+    // Support Tickets
+    Route::resource('tickets', \App\Http\Controllers\CustomerCare\TicketsController::class);
+    Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'updateStatus'])->name('tickets.update-status');
+    
+    // Escalations
+    Route::resource('escalations', \App\Http\Controllers\CustomerCare\EscalationsController::class)->only(['index', 'show']);
+    Route::get('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromTicket'])->name('escalations.create-from-ticket');
+    Route::post('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateTicket'])->name('escalations.escalate-ticket');
+    Route::get('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromInteraction'])->name('escalations.create-from-interaction');
+    Route::post('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateInteraction'])->name('escalations.escalate-interaction');
+    
+    // Customer Profiles
+    Route::get('/customers', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'search'])->name('customers.index');
+    Route::get('/customers/{patient}', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'show'])->name('customers.show');
 });
 
 // ==================== DOCTOR ROUTES ====================
