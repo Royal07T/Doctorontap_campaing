@@ -16,6 +16,7 @@ class MenstrualCycle extends Model
         'notes',
         'symptoms',
         'flow_intensity',
+        'spouse_number',
     ];
 
     protected $casts = [

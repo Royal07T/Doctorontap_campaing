@@ -106,6 +106,7 @@ class DashboardController extends Controller
         $fertileWindowEnd = null;
         $averageCycleLength = null;
         $averagePeriodLength = null;
+        $latestSpouseNumber = null;
         
         if (strtolower($patient->gender) === 'female') {
             $menstrualCycles = \App\Models\MenstrualCycle::where('patient_id', $patient->id)
@@ -121,6 +122,17 @@ class DashboardController extends Controller
                 })
                 ->orderBy('start_date', 'desc')
                 ->first();
+            
+            // Get latest spouse number from any cycle for pre-filling the form
+            $latestCycleWithSpouse = \App\Models\MenstrualCycle::where('patient_id', $patient->id)
+                ->whereNotNull('spouse_number')
+                ->where('spouse_number', '!=', '')
+                ->orderBy('start_date', 'desc')
+                ->first();
+            
+            if ($latestCycleWithSpouse) {
+                $latestSpouseNumber = $latestCycleWithSpouse->spouse_number;
+            }
             
             // Calculate average cycle length (from start of one period to start of next)
             if ($menstrualCycles->count() >= 2) {
@@ -225,7 +237,7 @@ class DashboardController extends Controller
             }
         }
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest'));
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber'));
     }
 
     /**
@@ -917,6 +929,7 @@ class DashboardController extends Controller
             'flow_intensity' => 'nullable|in:light,moderate,heavy',
             'symptoms' => 'nullable|array',
             'notes' => 'nullable|string|max:500',
+            'spouse_number' => 'nullable|string|max:20',
         ]);
         
         // Sanitize inputs
@@ -944,6 +957,24 @@ class DashboardController extends Controller
             ]);
         }
         
+        // Normalize spouse number if provided
+        $spouseNumber = null;
+        if (!empty($validated['spouse_number'])) {
+            $spouseNumber = preg_replace('/[^0-9+]/', '', $validated['spouse_number']);
+            // Ensure it starts with + if it's an international number, or add country code if needed
+            if (!empty($spouseNumber) && !str_starts_with($spouseNumber, '+')) {
+                // If it starts with 0, replace with country code (assuming Nigeria +234)
+                if (str_starts_with($spouseNumber, '0')) {
+                    $spouseNumber = '+234' . substr($spouseNumber, 1);
+                } elseif (str_starts_with($spouseNumber, '234')) {
+                    $spouseNumber = '+' . $spouseNumber;
+                } else {
+                    // Assume local number, add country code
+                    $spouseNumber = '+234' . $spouseNumber;
+                }
+            }
+        }
+        
         // Create new cycle
         $cycle = MenstrualCycle::create([
             'patient_id' => $patient->id,
@@ -953,6 +984,7 @@ class DashboardController extends Controller
             'flow_intensity' => $validated['flow_intensity'] ?? null,
             'symptoms' => $validated['symptoms'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'spouse_number' => $spouseNumber,
         ]);
         
         // Calculate cycle length
@@ -983,11 +1015,34 @@ class DashboardController extends Controller
             'flow_intensity' => 'nullable|in:light,moderate,heavy',
             'symptoms' => 'nullable|array',
             'notes' => 'nullable|string|max:500',
+            'spouse_number' => 'nullable|string|max:20',
         ]);
         
         // Sanitize inputs
         if (isset($validated['notes'])) {
             $validated['notes'] = $this->sanitizeText($validated['notes']);
+        }
+        
+        // Normalize spouse number if provided
+        if (isset($validated['spouse_number'])) {
+            if (!empty($validated['spouse_number'])) {
+                $spouseNumber = preg_replace('/[^0-9+]/', '', $validated['spouse_number']);
+                // Ensure it starts with + if it's an international number, or add country code if needed
+                if (!empty($spouseNumber) && !str_starts_with($spouseNumber, '+')) {
+                    // If it starts with 0, replace with country code (assuming Nigeria +234)
+                    if (str_starts_with($spouseNumber, '0')) {
+                        $spouseNumber = '+234' . substr($spouseNumber, 1);
+                    } elseif (str_starts_with($spouseNumber, '234')) {
+                        $spouseNumber = '+' . $spouseNumber;
+                    } else {
+                        // Assume local number, add country code
+                        $spouseNumber = '+234' . $spouseNumber;
+                    }
+                }
+                $validated['spouse_number'] = $spouseNumber;
+            } else {
+                $validated['spouse_number'] = null;
+            }
         }
         
         // Calculate period length if not provided

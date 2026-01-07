@@ -62,4 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         // Ensure queue worker is running every minute
         $schedule->command('queue:ensure-worker')->everyMinute()->withoutOverlapping();
+        
+        // Send fertility notifications daily (1 day before fertile window)
+        $schedule->command('fertility:notify --days-before=1')->daily()->at('09:00');
     })->create();
