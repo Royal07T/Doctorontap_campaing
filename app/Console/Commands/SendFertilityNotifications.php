@@ -192,24 +192,24 @@ class SendFertilityNotifications extends Command
      * Build the fertility notification message
      */
     private function buildFertilityMessage(Patient $patient, Carbon $fertileWindowStart): string
-    {
-        // Fertility window: 5 days before ovulation + ovulation day + 1 day after = 7 days total
-        $fertileWindowEnd = $fertileWindowStart->copy()->addDays(6); // 5 days before + ovulation + 1 day after
-        $ovulationDay = $fertileWindowStart->copy()->addDays(5); // Ovulation is 5 days after window starts
-        
-        $message = "Hello! This is a fertility reminder from DoctorOnTap.\n\n";
-        $message .= "Your partner's FERTILITY WINDOW is approaching:\n";
-        $message .= "📅 " . $fertileWindowStart->format('F j, Y') . " - " . $fertileWindowEnd->format('F j, Y') . "\n\n";
-        $message .= "Peak Fertility Day (Ovulation):\n";
-        $message .= "⭐ " . $ovulationDay->format('F j, Y') . "\n\n";
-        $message .= "💡 Why the window is 7 days:\n";
-        $message .= "• Sperm can survive up to 5 days\n";
-        $message .= "• Egg is viable for 12-24 hours after ovulation\n";
-        $message .= "• Best chances: Days leading up to and including ovulation\n\n";
-        $message .= "This is the optimal time for conception. Wishing you both the best! 💕\n\n";
-        $message .= "DoctorOnTap - Your Health Partner";
+{
+    $fertileWindowEnd = $fertileWindowStart->copy()->addDays(6);
+    $ovulationDay = $fertileWindowStart->copy()->addDays(5);
 
-        return $message;
-    }
+    $message  = "Hello! This is a fertility reminder from DoctorOnTap.\n\n";
+    $message .= "Your partner’s fertile window is coming up.\n\n";
+    $message .= "🗓 Fertile Window:\n";
+    $message .= $fertileWindowStart->format('F j, Y') . " – " . $fertileWindowEnd->format('F j, Y') . "\n\n";
+    $message .= "⭐ Most Fertile Day (Ovulation):\n";
+    $message .= $ovulationDay->format('F j, Y') . "\n\n";
+    $message .= "💡 Why this period matters:\n";
+    $message .= "• Sperm can live up to 5 days\n";
+    $message .= "• The egg is fertile for about 24 hours\n";
+    $message .= "• Chances are highest just before and on ovulation day\n\n";
+    $message .= "This window offers the best chance for conception.\n\n";
+    $message .= "DoctorOnTap — Supporting your family’s journey 💙";
+
+    return $message;
+}
 }
 
