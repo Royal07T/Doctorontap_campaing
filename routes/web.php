@@ -113,138 +113,300 @@ Route::prefix('reviews')->name('reviews.')->group(function () {
     Route::post('/patient', [ReviewController::class, 'storePatientReview'])->name('patient.store');
 });
 
-// Admin Login Routes (No authentication required)
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
+// ==================== ADMIN SUBDOMAIN ROUTES ====================
+// All admin routes are now accessible via admin.doctorontap.com.ng subdomain
+// In production: only accessible via admin subdomain
+// In development: also accessible via localhost (for local development)
+
+Route::domain('admin.doctorontap.com.ng')->group(function () {
+    // Admin Login Routes (No authentication required)
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
+        
+        // Password Reset Routes
+        Route::get('/forgot-password', [AdminForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+        Route::post('/forgot-password', [AdminForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+        Route::get('/reset-password/{token}', [AdminForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+        Route::post('/reset-password', [AdminForgotPasswordController::class, 'resetPassword'])->name('password.update');
+    });
+
+    // Admin Email Verification Route (No authentication required - public verification link)
+    Route::get('/admin/email/verify/{id}/{hash}', [AdminVerificationController::class, 'verify'])
+        ->middleware(['signed'])
+        ->name('admin.verification.verify');
+
+    // Protected Admin Routes (Authentication required)
+    Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.management'])->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        
+        // Admin Email Verification Routes
+        Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
+        Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
+        
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+            ->middleware('throttle:10,1')
+            ->name('notifications.unread-count');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
+        Route::get('/consultations-livewire', function() {
+            return view('admin.consultations-livewire');
+        })->name('consultations.livewire');
+        Route::get('/consultation/{id}', [DashboardController::class, 'showConsultation'])->name('consultation.show');
+        Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
+        Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
+        Route::post('/consultation/{id}/reassign-doctor', [DashboardController::class, 'reassignDoctor'])->name('consultation.reassign-doctor');
+        Route::post('/consultation/{id}/query-doctor', [DashboardController::class, 'queryDoctor'])->name('consultation.query-doctor');
+        Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
+        Route::post('/consultation/{id}/mark-payment-paid', [DashboardController::class, 'markPaymentAsPaid'])->name('consultation.mark-payment-paid');
+        Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
+        Route::post('/consultations/{id}/resend-treatment-plan', [DashboardController::class, 'resendTreatmentPlan'])->name('consultation.resend-treatment-plan');
+        Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
+        Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
+        
+        // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
+        Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
+        Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
+        Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
+        Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
+        Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
+        Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
+        Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
+        Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
+        Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
+        Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
+        Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
+        Route::post('/doctors/send-campaign-notification', [DashboardController::class, 'sendCampaignNotification'])->name('doctors.send-campaign');
+        
+        // Doctor Registrations Approval
+        Route::get('/doctor-registrations', [DashboardController::class, 'doctorRegistrations'])->name('doctor-registrations');
+        Route::get('/doctor-registrations/{id}/view', [DashboardController::class, 'viewDoctorRegistration'])->name('doctor-registrations.view');
+        Route::post('/doctor-registrations/{id}/approve', [DashboardController::class, 'approveDoctorRegistration'])->name('doctor-registrations.approve');
+        Route::post('/doctor-registrations/{id}/reject', [DashboardController::class, 'rejectDoctorRegistration'])->name('doctor-registrations.reject');
+        Route::get('/doctors/{id}/certificate', [DashboardController::class, 'viewCertificate'])->name('doctors.certificate');
+        
+        // Settings
+        Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
+        Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
+        
+        // Admin Users Management
+        Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
+        Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
+        Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
+        Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
+        Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
+        
+        // Canvassers Management
+        Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');
+        Route::post('/canvassers', [DashboardController::class, 'storeCanvasser'])->name('canvassers.store');
+        Route::put('/canvassers/{id}', [DashboardController::class, 'updateCanvasser'])->name('canvassers.update');
+        Route::post('/canvassers/{id}/toggle-status', [DashboardController::class, 'toggleCanvasserStatus'])->name('canvassers.toggle-status');
+        Route::delete('/canvassers/{id}', [DashboardController::class, 'deleteCanvasser'])->name('canvassers.delete');
+        
+        // Nurses Management
+        Route::get('/nurses', [DashboardController::class, 'nurses'])->name('nurses');
+        Route::post('/nurses', [DashboardController::class, 'storeNurse'])->name('nurses.store');
+        Route::put('/nurses/{id}', [DashboardController::class, 'updateNurse'])->name('nurses.update');
+        Route::post('/nurses/{id}/toggle-status', [DashboardController::class, 'toggleNurseStatus'])->name('nurses.toggle-status');
+        Route::delete('/nurses/{id}', [DashboardController::class, 'deleteNurse'])->name('nurses.delete');
+        
+        // Reviews Management
+        Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
+        Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
+        Route::post('/reviews/{id}/verify', [AdminReviewController::class, 'verify'])->name('reviews.verify');
+        Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+        
+        // Canvasser Management
+        Route::get('/canvasser-patients', [DashboardController::class, 'canvasserPatients'])->name('canvasser-patients');
+        Route::get('/canvasser-performance', [DashboardController::class, 'canvasserPerformance'])->name('canvasser-performance');
+        Route::get('/patient-verification', [DashboardController::class, 'patientVerification'])->name('patient-verification');
+        
+        // Security Monitoring
+        Route::get('/security', [\App\Http\Controllers\Admin\SecurityController::class, 'index'])
+            ->middleware('throttle:10,1')
+            ->name('security');
+        Route::get('/security/events', [\App\Http\Controllers\Admin\SecurityController::class, 'eventsByType'])
+            ->middleware('throttle:10,1')
+            ->name('security.events');
+        Route::get('/security/ip-analysis', [\App\Http\Controllers\Admin\SecurityController::class, 'ipAnalysis'])->name('security.ip-analysis');
+        Route::post('/security/block-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'blockIp'])->name('security.block-ip');
+        Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
+        Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
+        
+        // Doctor Payment Management
+        Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
+        Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
+        Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
+        Route::get('/doctor-payments/{id}/details', [DashboardController::class, 'getPaymentDetails'])->name('doctor-payments.details');
+        Route::post('/doctor-payments', [DashboardController::class, 'createDoctorPayment'])->name('doctor-payments.create');
+        Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
+        Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
+        Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
+        Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
+        Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
+    });
     
-    // Password Reset Routes
-    Route::get('/forgot-password', [AdminForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password', [AdminForgotPasswordController::class, 'sendResetLink'])->name('password.email');
-    Route::get('/reset-password/{token}', [AdminForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password', [AdminForgotPasswordController::class, 'resetPassword'])->name('password.update');
+    // Root route for admin subdomain - redirect to login
+    Route::get('/', function () {
+        return redirect()->route('admin.login');
+    });
 });
 
-// Admin Email Verification Route (No authentication required - public verification link)
-Route::get('/admin/email/verify/{id}/{hash}', [AdminVerificationController::class, 'verify'])
-    ->middleware(['signed'])
-    ->name('admin.verification.verify');
+// Development fallback: Allow admin routes on localhost (for local development)
+if (env('APP_ENV') !== 'production') {
+    // Admin Login Routes (No authentication required) - Development fallback
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
+        
+        // Password Reset Routes
+        Route::get('/forgot-password', [AdminForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+        Route::post('/forgot-password', [AdminForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+        Route::get('/reset-password/{token}', [AdminForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+        Route::post('/reset-password', [AdminForgotPasswordController::class, 'resetPassword'])->name('password.update');
+    });
 
-// Protected Admin Routes (Authentication required)
-Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.management'])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    
-    // Admin Email Verification Routes
-    Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
-    Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
-    
-    // Notifications
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
-        ->middleware('throttle:10,1')
-        ->name('notifications.unread-count');
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
-    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
-    Route::get('/consultations-livewire', function() {
-        return view('admin.consultations-livewire');
-    })->name('consultations.livewire');
-    Route::get('/consultation/{id}', [DashboardController::class, 'showConsultation'])->name('consultation.show');
-    Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
-    Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
-    Route::post('/consultation/{id}/reassign-doctor', [DashboardController::class, 'reassignDoctor'])->name('consultation.reassign-doctor');
-    Route::post('/consultation/{id}/query-doctor', [DashboardController::class, 'queryDoctor'])->name('consultation.query-doctor');
-    Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
-    Route::post('/consultation/{id}/mark-payment-paid', [DashboardController::class, 'markPaymentAsPaid'])->name('consultation.mark-payment-paid');
-    Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
-    Route::post('/consultations/{id}/resend-treatment-plan', [DashboardController::class, 'resendTreatmentPlan'])->name('consultation.resend-treatment-plan');
-    Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
-    Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
-    
-    // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
-    Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
-    Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
-    Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
-    Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
-    Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
-    Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
-    Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
-    Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
-    Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
-    Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
-    Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
-    Route::post('/doctors/send-campaign-notification', [DashboardController::class, 'sendCampaignNotification'])->name('doctors.send-campaign');
-    
-    // Doctor Registrations Approval
-    Route::get('/doctor-registrations', [DashboardController::class, 'doctorRegistrations'])->name('doctor-registrations');
-    Route::get('/doctor-registrations/{id}/view', [DashboardController::class, 'viewDoctorRegistration'])->name('doctor-registrations.view');
-    Route::post('/doctor-registrations/{id}/approve', [DashboardController::class, 'approveDoctorRegistration'])->name('doctor-registrations.approve');
-    Route::post('/doctor-registrations/{id}/reject', [DashboardController::class, 'rejectDoctorRegistration'])->name('doctor-registrations.reject');
-    Route::get('/doctors/{id}/certificate', [DashboardController::class, 'viewCertificate'])->name('doctors.certificate');
-    
-    // Settings
-    Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
-    Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
-    Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
-    
-    // Admin Users Management
-    Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
-    Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
-    Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
-    Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
-    Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
-    
-    // Canvassers Management
-    Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');
-    Route::post('/canvassers', [DashboardController::class, 'storeCanvasser'])->name('canvassers.store');
-    Route::put('/canvassers/{id}', [DashboardController::class, 'updateCanvasser'])->name('canvassers.update');
-    Route::post('/canvassers/{id}/toggle-status', [DashboardController::class, 'toggleCanvasserStatus'])->name('canvassers.toggle-status');
-    Route::delete('/canvassers/{id}', [DashboardController::class, 'deleteCanvasser'])->name('canvassers.delete');
-    
-    // Nurses Management
-    Route::get('/nurses', [DashboardController::class, 'nurses'])->name('nurses');
-    Route::post('/nurses', [DashboardController::class, 'storeNurse'])->name('nurses.store');
-    Route::put('/nurses/{id}', [DashboardController::class, 'updateNurse'])->name('nurses.update');
-    Route::post('/nurses/{id}/toggle-status', [DashboardController::class, 'toggleNurseStatus'])->name('nurses.toggle-status');
-    Route::delete('/nurses/{id}', [DashboardController::class, 'deleteNurse'])->name('nurses.delete');
-    
-    // Reviews Management
-    Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
-    Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
-    Route::post('/reviews/{id}/verify', [AdminReviewController::class, 'verify'])->name('reviews.verify');
-    Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
-    
-    // Canvasser Management
-    Route::get('/canvasser-patients', [DashboardController::class, 'canvasserPatients'])->name('canvasser-patients');
-    Route::get('/canvasser-performance', [DashboardController::class, 'canvasserPerformance'])->name('canvasser-performance');
-    Route::get('/patient-verification', [DashboardController::class, 'patientVerification'])->name('patient-verification');
-    
-    // Security Monitoring
-    Route::get('/security', [\App\Http\Controllers\Admin\SecurityController::class, 'index'])
-        ->middleware('throttle:10,1')
-        ->name('security');
-    Route::get('/security/events', [\App\Http\Controllers\Admin\SecurityController::class, 'eventsByType'])
-        ->middleware('throttle:10,1')
-        ->name('security.events');
-    Route::get('/security/ip-analysis', [\App\Http\Controllers\Admin\SecurityController::class, 'ipAnalysis'])->name('security.ip-analysis');
-    Route::post('/security/block-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'blockIp'])->name('security.block-ip');
-    Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
-    Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
-    
-    // Doctor Payment Management
-    Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
-    Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
-    Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
-    Route::get('/doctor-payments/{id}/details', [DashboardController::class, 'getPaymentDetails'])->name('doctor-payments.details');
-    Route::post('/doctor-payments', [DashboardController::class, 'createDoctorPayment'])->name('doctor-payments.create');
-    Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
-    Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
-    Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
-    Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
-    Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
-});
+    // Admin Email Verification Route - Development fallback
+    Route::get('/admin/email/verify/{id}/{hash}', [AdminVerificationController::class, 'verify'])
+        ->middleware(['signed'])
+        ->name('admin.verification.verify');
+
+    // Protected Admin Routes - Development fallback
+    Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.management'])->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        
+        // Admin Email Verification Routes
+        Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
+        Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
+        
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+            ->middleware('throttle:10,1')
+            ->name('notifications.unread-count');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
+        Route::get('/consultations-livewire', function() {
+            return view('admin.consultations-livewire');
+        })->name('consultations.livewire');
+        Route::get('/consultation/{id}', [DashboardController::class, 'showConsultation'])->name('consultation.show');
+        Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
+        Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');
+        Route::post('/consultation/{id}/reassign-doctor', [DashboardController::class, 'reassignDoctor'])->name('consultation.reassign-doctor');
+        Route::post('/consultation/{id}/query-doctor', [DashboardController::class, 'queryDoctor'])->name('consultation.query-doctor');
+        Route::post('/consultation/{id}/send-payment', [DashboardController::class, 'sendPaymentRequest'])->name('send-payment');
+        Route::post('/consultation/{id}/mark-payment-paid', [DashboardController::class, 'markPaymentAsPaid'])->name('consultation.mark-payment-paid');
+        Route::post('/consultation/{id}/forward-treatment-plan', [DashboardController::class, 'forwardTreatmentPlan'])->name('consultation.forward-treatment-plan');
+        Route::post('/consultations/{id}/resend-treatment-plan', [DashboardController::class, 'resendTreatmentPlan'])->name('consultation.resend-treatment-plan');
+        Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
+        Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
+        
+        // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
+        Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
+        Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
+        Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
+        Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
+        Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
+        Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
+        Route::get('/payments', [DashboardController::class, 'payments'])->name('payments');
+        Route::get('/doctors', [DashboardController::class, 'doctors'])->name('doctors');
+        Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
+        Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
+        Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
+        Route::post('/doctors/send-campaign-notification', [DashboardController::class, 'sendCampaignNotification'])->name('doctors.send-campaign');
+        
+        // Doctor Registrations Approval
+        Route::get('/doctor-registrations', [DashboardController::class, 'doctorRegistrations'])->name('doctor-registrations');
+        Route::get('/doctor-registrations/{id}/view', [DashboardController::class, 'viewDoctorRegistration'])->name('doctor-registrations.view');
+        Route::post('/doctor-registrations/{id}/approve', [DashboardController::class, 'approveDoctorRegistration'])->name('doctor-registrations.approve');
+        Route::post('/doctor-registrations/{id}/reject', [DashboardController::class, 'rejectDoctorRegistration'])->name('doctor-registrations.reject');
+        Route::get('/doctors/{id}/certificate', [DashboardController::class, 'viewCertificate'])->name('doctors.certificate');
+        
+        // Settings
+        Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
+        Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
+        
+        // Admin Users Management
+        Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
+        Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
+        Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
+        Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
+        Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
+        
+        // Canvassers Management
+        Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');
+        Route::post('/canvassers', [DashboardController::class, 'storeCanvasser'])->name('canvassers.store');
+        Route::put('/canvassers/{id}', [DashboardController::class, 'updateCanvasser'])->name('canvassers.update');
+        Route::post('/canvassers/{id}/toggle-status', [DashboardController::class, 'toggleCanvasserStatus'])->name('canvassers.toggle-status');
+        Route::delete('/canvassers/{id}', [DashboardController::class, 'deleteCanvasser'])->name('canvassers.delete');
+        
+        // Nurses Management
+        Route::get('/nurses', [DashboardController::class, 'nurses'])->name('nurses');
+        Route::post('/nurses', [DashboardController::class, 'storeNurse'])->name('nurses.store');
+        Route::put('/nurses/{id}', [DashboardController::class, 'updateNurse'])->name('nurses.update');
+        Route::post('/nurses/{id}/toggle-status', [DashboardController::class, 'toggleNurseStatus'])->name('nurses.toggle-status');
+        Route::delete('/nurses/{id}', [DashboardController::class, 'deleteNurse'])->name('nurses.delete');
+        
+        // Reviews Management
+        Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
+        Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
+        Route::post('/reviews/{id}/verify', [AdminReviewController::class, 'verify'])->name('reviews.verify');
+        Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+        
+        // Canvasser Management
+        Route::get('/canvasser-patients', [DashboardController::class, 'canvasserPatients'])->name('canvasser-patients');
+        Route::get('/canvasser-performance', [DashboardController::class, 'canvasserPerformance'])->name('canvasser-performance');
+        Route::get('/patient-verification', [DashboardController::class, 'patientVerification'])->name('patient-verification');
+        
+        // Security Monitoring
+        Route::get('/security', [\App\Http\Controllers\Admin\SecurityController::class, 'index'])
+            ->middleware('throttle:10,1')
+            ->name('security');
+        Route::get('/security/events', [\App\Http\Controllers\Admin\SecurityController::class, 'eventsByType'])
+            ->middleware('throttle:10,1')
+            ->name('security.events');
+        Route::get('/security/ip-analysis', [\App\Http\Controllers\Admin\SecurityController::class, 'ipAnalysis'])->name('security.ip-analysis');
+        Route::post('/security/block-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'blockIp'])->name('security.block-ip');
+        Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
+        Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
+        
+        // Doctor Payment Management
+        Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
+        Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
+        Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
+        Route::get('/doctor-payments/{id}/details', [DashboardController::class, 'getPaymentDetails'])->name('doctor-payments.details');
+        Route::post('/doctor-payments', [DashboardController::class, 'createDoctorPayment'])->name('doctor-payments.create');
+        Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
+        Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
+        Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
+        Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
+        Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
+    });
+}
+
+// Redirect admin routes from main domain to admin subdomain (production only)
+if (env('APP_ENV') === 'production') {
+    Route::prefix('admin')->group(function () {
+        Route::any('{any}', function ($any = '') {
+            $adminUrl = 'https://admin.doctorontap.com.ng/admin/' . $any;
+            $queryString = request()->getQueryString();
+            if ($queryString) {
+                $adminUrl .= '?' . $queryString;
+            }
+            return redirect($adminUrl, 301);
+        })->where('any', '.*');
+    });
+}
 
 // ==================== CANVASSER ROUTES ====================
 
