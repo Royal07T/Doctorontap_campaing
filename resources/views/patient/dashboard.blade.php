@@ -1453,18 +1453,77 @@
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                // Check if response is ok
+                if (!response.ok) {
+                    // If 422, parse validation errors
+                    if (response.status === 422) {
+                        return response.json().then(data => {
+                            // Extract validation error messages
+                            let errorMessages = [];
+                            if (data.errors) {
+                                Object.keys(data.errors).forEach(key => {
+                                    errorMessages.push(data.errors[key][0]);
+                                });
+                            } else if (data.message) {
+                                errorMessages.push(data.message);
+                            }
+                            
+                            const errorMessage = errorMessages.length > 0 
+                                ? errorMessages.join('\n') 
+                                : 'Validation failed. Please check your input.';
+                            
+                            if (typeof CustomAlert !== 'undefined') {
+                                CustomAlert.error(errorMessage, 'Validation Error');
+                            } else {
+                                alert(errorMessage);
+                            }
+                            throw new Error(errorMessage);
+                        });
+                    }
+                    // For other errors, try to parse JSON
+                    return response.json().then(data => {
+                        const errorMessage = data.error || data.message || 'An error occurred. Please try again.';
+                        if (typeof CustomAlert !== 'undefined') {
+                            CustomAlert.error(errorMessage);
+                        } else {
+                            alert(errorMessage);
+                        }
+                        throw new Error(errorMessage);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
+                    if (typeof CustomAlert !== 'undefined') {
+                        CustomAlert.success(data.message || 'Menstrual cycle recorded successfully.');
+                    }
+                    document.getElementById('cycleForm').reset();
                     document.getElementById('cycleModal').classList.add('hidden');
-                    location.reload();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
                 } else {
-                    CustomAlert.error(data.error || 'Failed to save cycle');
+                    const errorMessage = data.error || 'Failed to save cycle';
+                    if (typeof CustomAlert !== 'undefined') {
+                        CustomAlert.error(errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                CustomAlert.error('An error occurred. Please try again.');
+                // Only show alert if it's not already shown
+                if (!error.message || error.message.includes('Validation') || error.message.includes('error occurred')) {
+                    return; // Error already handled
+                }
+                if (typeof CustomAlert !== 'undefined') {
+                    CustomAlert.error('An error occurred. Please try again.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
             });
         }
 
