@@ -11,9 +11,38 @@
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
         }
+        .medical-info-blur {
+            position: relative;
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        .medical-info-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 0.75rem;
+        }
+        .medical-info-restricted {
+            text-align: center;
+            padding: 2rem;
+        }
+        .medical-info-restricted svg {
+            margin: 0 auto 1rem;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
@@ -219,7 +248,7 @@
                         </div>
 
                         <!-- Medical Information -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative">
                             <div class="mb-4 pb-4 border-b border-gray-200">
                                 <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
                                     <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +257,7 @@
                                     Medical Information
                                 </h2>
                             </div>
-                            <div class="space-y-4">
+                            <div class="space-y-4 medical-info-blur">
                                 @if($consultation->problem)
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Problem/Complaint</p>
@@ -289,6 +318,15 @@
                                 </div>
                                 @endif
                             </div>
+                            <div class="medical-info-overlay">
+                                <div class="medical-info-restricted">
+                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <h3 class="text-sm font-semibold text-gray-700 mb-1">Medical Information Restricted</h3>
+                                    <p class="text-xs text-gray-500">This information is confidential and only accessible to authorized medical personnel.</p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Consultation Details -->
@@ -340,7 +378,7 @@
 
                         <!-- Treatment Plan -->
                         @if($consultation->diagnosis || $consultation->treatment_plan || $consultation->prescribed_medications)
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative">
                             <div class="mb-4 pb-4 border-b border-gray-200">
                                 <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
                                     <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -349,7 +387,7 @@
                                     Treatment Plan
                                 </h2>
                             </div>
-                            <div class="space-y-4">
+                            <div class="space-y-4 medical-info-blur">
                                 @if($consultation->diagnosis)
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Diagnosis</p>
@@ -408,6 +446,15 @@
                                     <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $consultation->additional_notes }}</p>
                                 </div>
                                 @endif
+                            </div>
+                            <div class="medical-info-overlay">
+                                <div class="medical-info-restricted">
+                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <h3 class="text-sm font-semibold text-gray-700 mb-1">Treatment Plan Restricted</h3>
+                                    <p class="text-xs text-gray-500">This information is confidential and only accessible to authorized medical personnel.</p>
+                                </div>
                             </div>
                         </div>
                         @endif
@@ -511,6 +558,8 @@
             </main>
         </div>
     </div>
+
+    @include('customer-care.shared.preloader-scripts')
 </body>
 </html>
 

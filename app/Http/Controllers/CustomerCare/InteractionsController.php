@@ -10,6 +10,7 @@ use App\Models\Patient;
 use App\Services\CustomerInteractionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class InteractionsController extends Controller
 {
@@ -57,10 +58,24 @@ class InteractionsController extends Controller
     /**
      * Show the form for creating a new interaction
      */
-    public function create()
+    public function create(Request $request)
     {
-        $patients = Patient::orderBy('name')->get();
-        return view('customer-care.interactions.create', compact('patients'));
+        $query = Patient::query();
+        
+        // Search filter for customer names
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        $patients = $query->orderBy('name')->limit(100)->get();
+        $searchTerm = $request->get('search', '');
+        
+        return view('customer-care.interactions.create', compact('patients', 'searchTerm'));
     }
 
     /**
@@ -80,7 +95,13 @@ class InteractionsController extends Controller
      */
     public function show(CustomerInteraction $interaction)
     {
-        $this->authorize('view', $interaction);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can view all interactions
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $interaction->load(['user', 'agent', 'notes.creator']);
 
@@ -92,7 +113,7 @@ class InteractionsController extends Controller
      */
     public function end(CustomerInteraction $interaction)
     {
-        $this->authorize('update', $interaction);
+        Gate::authorize('update', $interaction);
 
         $this->interactionService->endInteraction($interaction);
 
@@ -106,7 +127,7 @@ class InteractionsController extends Controller
      */
     public function addNote(AddNoteRequest $request, CustomerInteraction $interaction)
     {
-        $this->authorize('update', $interaction);
+        Gate::authorize('update', $interaction);
 
         $this->interactionService->addNote(
             $interaction,

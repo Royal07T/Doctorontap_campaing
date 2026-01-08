@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar - Same as index -->
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
@@ -128,17 +128,58 @@
         <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
             <div class="max-w-2xl mx-auto">
                 <div class="bg-white rounded-lg shadow-sm p-6">
-                    <form method="POST" action="{{ route('customer-care.interactions.store') }}">
+                    <!-- Search Filter (Outside main form) -->
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Search Customer</label>
+                        <form method="GET" action="{{ route('customer-care.interactions.create') }}" class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input type="text" 
+                                       name="search" 
+                                       value="{{ $searchTerm ?? '' }}"
+                                       placeholder="Search by name, email, or phone..."
+                                       class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold">Search</button>
+                            @if($searchTerm)
+                            <a href="{{ route('customer-care.interactions.create') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-semibold">Clear</a>
+                            @endif
+                        </form>
+                    </div>
+
+                    <form method="POST" action="{{ route('customer-care.interactions.store') }}" id="interactionForm">
                         @csrf
                         
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Customer</label>
-                            <select name="user_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Customer <span class="text-red-500">*</span></label>
+                            
+                            <select name="user_id" 
+                                    id="customer-select"
+                                    required 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                                 <option value="">Select a customer</option>
                                 @foreach($patients as $patient)
-                                <option value="{{ $patient->id }}">{{ $patient->name }} ({{ $patient->email }})</option>
+                                <option value="{{ $patient->id }}" 
+                                        data-name="{{ strtolower($patient->name ?? '') }}"
+                                        data-email="{{ strtolower($patient->email ?? '') }}"
+                                        data-phone="{{ $patient->phone ?? '' }}">
+                                    {{ $patient->name }} 
+                                    @if($patient->email)
+                                        ({{ $patient->email }})
+                                    @endif
+                                    @if($patient->phone)
+                                        - {{ $patient->phone }}
+                                    @endif
+                                </option>
                                 @endforeach
                             </select>
+                            @if($patients->isEmpty() && $searchTerm)
+                            <p class="mt-2 text-sm text-gray-500">No customers found matching "{{ $searchTerm }}". <a href="{{ route('customer-care.interactions.create') }}" class="text-purple-600 hover:text-purple-700">Clear search</a></p>
+                            @elseif($patients->isEmpty())
+                            <p class="mt-2 text-sm text-gray-500">No customers available. Please search for a customer first.</p>
+                            @endif
                             @error('user_id')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -178,6 +219,61 @@
         </main>
         </div>
     </div>
+    
+    @include('customer-care.shared.preloader-scripts')
+
+    <script>
+        // Form validation and submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('interactionForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    const customerSelect = document.getElementById('customer-select');
+                    const summary = document.querySelector('textarea[name="summary"]');
+                    
+                    // Client-side validation
+                    let isValid = true;
+                    let errorMessage = '';
+                    
+                    if (!customerSelect || !customerSelect.value) {
+                        isValid = false;
+                        errorMessage = 'Please select a customer';
+                        customerSelect?.focus();
+                    } else if (!summary || !summary.value.trim()) {
+                        isValid = false;
+                        errorMessage = 'Please enter an interaction summary';
+                        summary?.focus();
+                    } else if (summary.value.trim().length < 10) {
+                        isValid = false;
+                        errorMessage = 'Summary must be at least 10 characters long';
+                        summary?.focus();
+                    }
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Hide preloader if validation fails
+                        if (typeof Alpine !== 'undefined' && Alpine.$data) {
+                            const alpineData = Alpine.$data(document.body);
+                            if (alpineData && typeof alpineData.pageLoading !== 'undefined') {
+                                alpineData.pageLoading = false;
+                            }
+                        }
+                        if (typeof CustomAlert !== 'undefined') {
+                            CustomAlert.error(errorMessage, 'Validation Error');
+                        } else {
+                            alert(errorMessage);
+                        }
+                        return false;
+                    }
+                    
+                    // If validation passes, allow form to submit normally
+                    // The preloader will show automatically via the form submit event listener
+                    // Don't prevent default - let the form submit
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 

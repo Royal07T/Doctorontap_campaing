@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
@@ -445,6 +445,8 @@
             </main>
         </div>
     </div>
+
+    @include('customer-care.shared.preloader-scripts')
 </body>
 </html>
 

@@ -12,6 +12,7 @@ use App\Models\Doctor;
 use App\Services\EscalationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class EscalationsController extends Controller
 {
@@ -52,7 +53,7 @@ class EscalationsController extends Controller
      */
     public function createFromTicket(SupportTicket $ticket)
     {
-        $this->authorize('view', $ticket);
+        Gate::authorize('view', $ticket);
 
         $admins = AdminUser::where('is_active', true)->get();
         $doctors = Doctor::where('is_active', true)->get();
@@ -65,7 +66,7 @@ class EscalationsController extends Controller
      */
     public function createFromInteraction(CustomerInteraction $interaction)
     {
-        $this->authorize('view', $interaction);
+        Gate::authorize('view', $interaction);
 
         $admins = AdminUser::where('is_active', true)->get();
         $doctors = Doctor::where('is_active', true)->get();
@@ -78,7 +79,7 @@ class EscalationsController extends Controller
      */
     public function escalateTicket(EscalateRequest $request, SupportTicket $ticket)
     {
-        $this->authorize('update', $ticket);
+        Gate::authorize('update', $ticket);
 
         $escalation = $this->escalationService->escalateTicket($ticket, $request->validated());
 
@@ -92,7 +93,7 @@ class EscalationsController extends Controller
      */
     public function escalateInteraction(EscalateRequest $request, CustomerInteraction $interaction)
     {
-        $this->authorize('update', $interaction);
+        Gate::authorize('update', $interaction);
 
         $escalation = $this->escalationService->escalateInteraction($interaction, $request->validated());
 
@@ -106,7 +107,7 @@ class EscalationsController extends Controller
      */
     public function show(Escalation $escalation)
     {
-        $this->authorize('view', $escalation);
+        Gate::authorize('view', $escalation);
 
         $escalation->load([
             'escalatedBy',

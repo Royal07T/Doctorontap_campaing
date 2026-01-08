@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Services\SupportTicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class TicketsController extends Controller
 {
@@ -88,7 +89,7 @@ class TicketsController extends Controller
      */
     public function show(SupportTicket $ticket)
     {
-        $this->authorize('view', $ticket);
+        Gate::authorize('view', $ticket);
 
         $ticket->load(['user', 'agent', 'escalations.escalatedBy']);
 
@@ -100,7 +101,7 @@ class TicketsController extends Controller
      */
     public function updateStatus(Request $request, SupportTicket $ticket)
     {
-        $this->authorize('update', $ticket);
+        Gate::authorize('update', $ticket);
 
         $request->validate([
             'status' => 'required|in:open,pending,resolved,escalated',

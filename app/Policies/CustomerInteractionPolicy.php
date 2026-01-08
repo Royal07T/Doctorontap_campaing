@@ -27,8 +27,8 @@ class CustomerInteractionPolicy
         }
 
         if ($user instanceof CustomerCare) {
-            // Customer care can view their own interactions or all if they have permission
-            return $customerInteraction->agent_id === $user->id;
+            // Customer care agents can view all interactions (for collaboration and handoffs)
+            return true;
         }
 
         return false;
