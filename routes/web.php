@@ -262,6 +262,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
         Route::get('/escalations/{escalation}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showEscalation'])->name('escalations.show');
         Route::get('/customers/{patient}/history', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'customerHistory'])->name('customers.history');
         Route::get('/agent-performance', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'agentPerformance'])->name('agent-performance');
+        Route::get('/agents/{agent}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'agentDetails'])->name('agents.show');
         Route::get('/frequent-issues', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'frequentIssues'])->name('frequent-issues');
     });
     

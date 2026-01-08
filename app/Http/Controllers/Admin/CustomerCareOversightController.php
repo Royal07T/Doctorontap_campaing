@@ -115,6 +115,11 @@ class CustomerCareOversightController extends Controller
     {
         $query = Escalation::with(['escalatedBy', 'supportTicket', 'customerInteraction']);
 
+        // Filter by agent (who escalated)
+        if ($request->has('agent_id') && $request->agent_id !== '') {
+            $query->where('escalated_by', $request->agent_id);
+        }
+
         // Filter by status
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
@@ -126,8 +131,9 @@ class CustomerCareOversightController extends Controller
         }
 
         $escalations = $query->latest()->paginate(20);
+        $agents = CustomerCare::where('is_active', true)->get();
 
-        return view('admin.customer-care.escalations', compact('escalations'));
+        return view('admin.customer-care.escalations', compact('escalations', 'agents'));
     }
 
     /**
@@ -225,6 +231,95 @@ class CustomerCareOversightController extends Controller
             'ticketCategories',
             'escalatedTickets',
             'agentEscalations'
+        ));
+    }
+
+    /**
+     * Display detailed view of a specific agent's activities
+     */
+    public function agentDetails(CustomerCare $agent, Request $request)
+    {
+        $interactionService = app(CustomerInteractionService::class);
+        $ticketService = app(SupportTicketService::class);
+        $escalationService = app(EscalationService::class);
+
+        // Get agent's interactions
+        $interactionsQuery = CustomerInteraction::where('agent_id', $agent->id)
+            ->with(['user']);
+        
+        if ($request->has('interaction_status') && $request->interaction_status !== '') {
+            $interactionsQuery->where('status', $request->interaction_status);
+        }
+        
+        $interactions = $interactionsQuery->latest()->paginate(10, ['*'], 'interactions_page');
+
+        // Get agent's tickets
+        $ticketsQuery = SupportTicket::where('agent_id', $agent->id)
+            ->with(['user']);
+        
+        if ($request->has('ticket_status') && $request->ticket_status !== '') {
+            $ticketsQuery->where('status', $request->ticket_status);
+        }
+        
+        $tickets = $ticketsQuery->latest()->paginate(10, ['*'], 'tickets_page');
+
+        // Get agent's escalations
+        $escalationsQuery = Escalation::where('escalated_by', $agent->id)
+            ->with(['supportTicket.user', 'customerInteraction.user']);
+        
+        if ($request->has('escalation_status') && $request->escalation_status !== '') {
+            $escalationsQuery->where('status', $request->escalation_status);
+        }
+        
+        $escalations = $escalationsQuery->latest()->paginate(10, ['*'], 'escalations_page');
+
+        // Calculate statistics
+        $stats = [
+            'total_interactions' => CustomerInteraction::where('agent_id', $agent->id)->count(),
+            'active_interactions' => CustomerInteraction::where('agent_id', $agent->id)->where('status', 'active')->count(),
+            'resolved_interactions' => CustomerInteraction::where('agent_id', $agent->id)->where('status', 'resolved')->count(),
+            'total_tickets' => SupportTicket::where('agent_id', $agent->id)->count(),
+            'open_tickets' => SupportTicket::where('agent_id', $agent->id)->where('status', 'open')->count(),
+            'resolved_tickets' => SupportTicket::where('agent_id', $agent->id)->where('status', 'resolved')->count(),
+            'pending_tickets' => SupportTicket::where('agent_id', $agent->id)->where('status', 'pending')->count(),
+            'total_escalations' => Escalation::where('escalated_by', $agent->id)->count(),
+            'pending_escalations' => Escalation::where('escalated_by', $agent->id)->where('status', 'pending')->count(),
+            'resolved_escalations' => Escalation::where('escalated_by', $agent->id)->where('status', 'resolved')->count(),
+            'avg_response_time' => $interactionService->getAverageResponseTime($agent->id),
+            'resolved_tickets_today' => $ticketService->getResolvedTodayCount($agent->id),
+        ];
+
+        // Get recent activity (last 7 days)
+        $recentInteractions = CustomerInteraction::where('agent_id', $agent->id)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->with(['user'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $recentTickets = SupportTicket::where('agent_id', $agent->id)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->with(['user'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $recentEscalations = Escalation::where('escalated_by', $agent->id)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->with(['supportTicket.user', 'customerInteraction.user'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('admin.customer-care.agent-details', compact(
+            'agent',
+            'interactions',
+            'tickets',
+            'escalations',
+            'stats',
+            'recentInteractions',
+            'recentTickets',
+            'recentEscalations'
         ));
     }
 }
