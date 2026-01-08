@@ -89,7 +89,13 @@ class TicketsController extends Controller
      */
     public function show(SupportTicket $ticket)
     {
-        Gate::authorize('view', $ticket);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can view all tickets
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $ticket->load(['user', 'agent', 'escalations.escalatedBy']);
 

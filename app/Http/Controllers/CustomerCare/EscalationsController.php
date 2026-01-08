@@ -53,10 +53,16 @@ class EscalationsController extends Controller
      */
     public function createFromTicket(SupportTicket $ticket)
     {
-        Gate::authorize('view', $ticket);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can escalate all tickets
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $admins = AdminUser::where('is_active', true)->get();
-        $doctors = Doctor::where('is_active', true)->get();
+        $doctors = Doctor::where('is_approved', true)->get();
 
         return view('customer-care.escalations.create-from-ticket', compact('ticket', 'admins', 'doctors'));
     }
@@ -66,10 +72,16 @@ class EscalationsController extends Controller
      */
     public function createFromInteraction(CustomerInteraction $interaction)
     {
-        Gate::authorize('view', $interaction);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can escalate all interactions
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $admins = AdminUser::where('is_active', true)->get();
-        $doctors = Doctor::where('is_active', true)->get();
+        $doctors = Doctor::where('is_approved', true)->get();
 
         return view('customer-care.escalations.create-from-interaction', compact('interaction', 'admins', 'doctors'));
     }
@@ -79,7 +91,13 @@ class EscalationsController extends Controller
      */
     public function escalateTicket(EscalateRequest $request, SupportTicket $ticket)
     {
-        Gate::authorize('update', $ticket);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can escalate all tickets
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $escalation = $this->escalationService->escalateTicket($ticket, $request->validated());
 
@@ -93,7 +111,13 @@ class EscalationsController extends Controller
      */
     public function escalateInteraction(EscalateRequest $request, CustomerInteraction $interaction)
     {
-        Gate::authorize('update', $interaction);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can escalate all interactions
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $escalation = $this->escalationService->escalateInteraction($interaction, $request->validated());
 
@@ -107,13 +131,26 @@ class EscalationsController extends Controller
      */
     public function show(Escalation $escalation)
     {
-        Gate::authorize('view', $escalation);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can view all escalations
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $escalation->load([
             'escalatedBy',
             'supportTicket.user',
             'customerInteraction.user'
         ]);
+
+        // Load the escalatedTo relationship based on type
+        if ($escalation->escalated_to_type === 'admin' && $escalation->escalated_to_id) {
+            $escalation->escalatedTo = AdminUser::find($escalation->escalated_to_id);
+        } elseif ($escalation->escalated_to_type === 'doctor' && $escalation->escalated_to_id) {
+            $escalation->escalatedTo = Doctor::find($escalation->escalated_to_id);
+        }
 
         return view('customer-care.escalations.show', compact('escalation'));
     }

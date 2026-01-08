@@ -27,8 +27,8 @@ class EscalationPolicy
         }
 
         if ($user instanceof CustomerCare) {
-            // Customer care can view escalations they created
-            return $escalation->escalated_by === $user->id;
+            // Customer care agents can view all escalations (for collaboration and handoffs)
+            return true;
         }
 
         return false;

@@ -27,8 +27,8 @@ class SupportTicketPolicy
         }
 
         if ($user instanceof CustomerCare) {
-            // Customer care can view tickets assigned to them or all if they have permission
-            return $supportTicket->agent_id === $user->id || $supportTicket->agent_id === null;
+            // Customer care agents can view all tickets (for collaboration and handoffs)
+            return true;
         }
 
         return false;
