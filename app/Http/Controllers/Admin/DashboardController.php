@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
 use App\Mail\TreatmentPlanNotification;
@@ -36,41 +37,49 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $stats = [
-            'total_consultations' => Consultation::count(),
-            'pending_consultations' => Consultation::where('status', 'pending')->count(),
-            'completed_consultations' => Consultation::where('status', 'completed')->count(),
-            'unpaid_consultations' => Consultation::where('payment_status', 'unpaid')->where('status', 'completed')->count(),
-            'paid_consultations' => Consultation::where('payment_status', 'paid')->count(),
-            'total_revenue' => Payment::where('status', 'success')->sum('amount'),
-            
-            // Canvasser and Nurse statistics
-            'total_canvassers' => Canvasser::count(),
-            'active_canvassers' => Canvasser::where('is_active', true)->count(),
-            'total_nurses' => Nurse::count(),
-            'active_nurses' => Nurse::where('is_active', true)->count(),
-            'total_patients' => \App\Models\Patient::count(),
-            'consulted_patients' => \App\Models\Patient::where('has_consulted', true)->count(),
-            'total_vital_records' => \App\Models\VitalSign::count(),
-        ];
+        // Cache dashboard statistics for 5 minutes
+        $stats = Cache::remember('admin_dashboard_stats', 300, function () {
+            return [
+                'total_consultations' => Consultation::count(),
+                'pending_consultations' => Consultation::where('status', 'pending')->count(),
+                'completed_consultations' => Consultation::where('status', 'completed')->count(),
+                'unpaid_consultations' => Consultation::where('payment_status', 'unpaid')->where('status', 'completed')->count(),
+                'paid_consultations' => Consultation::where('payment_status', 'paid')->count(),
+                'total_revenue' => Payment::where('status', 'success')->sum('amount'),
+                
+                // Canvasser and Nurse statistics
+                'total_canvassers' => Canvasser::count(),
+                'active_canvassers' => Canvasser::where('is_active', true)->count(),
+                'total_nurses' => Nurse::count(),
+                'active_nurses' => Nurse::where('is_active', true)->count(),
+                'total_patients' => \App\Models\Patient::count(),
+                'consulted_patients' => \App\Models\Patient::where('has_consulted', true)->count(),
+                'total_vital_records' => \App\Models\VitalSign::count(),
+            ];
+        });
 
-        // Top performing canvassers
-        $topCanvassers = Canvasser::withCount('patients')
-                                  ->orderBy('patients_count', 'desc')
-                                  ->limit(5)
-                                  ->get();
+        // Cache top performers for 5 minutes
+        $topCanvassers = Cache::remember('admin_top_canvassers', 300, function () {
+            return Canvasser::withCount('patients')
+                          ->orderBy('patients_count', 'desc')
+                          ->limit(5)
+                          ->get();
+        });
 
-        // Top performing nurses
-        $topNurses = Nurse::withCount('vitalSigns')
-                         ->orderBy('vital_signs_count', 'desc')
-                         ->limit(5)
-                         ->get();
+        $topNurses = Cache::remember('admin_top_nurses', 300, function () {
+            return Nurse::withCount('vitalSigns')
+                       ->orderBy('vital_signs_count', 'desc')
+                       ->limit(5)
+                       ->get();
+        });
 
-        // Recent patients
-        $recentPatients = \App\Models\Patient::with('canvasser')
-                                             ->latest()
-                                             ->limit(10)
-                                             ->get();
+        // Recent patients - cache for 1 minute (more dynamic)
+        $recentPatients = Cache::remember('admin_recent_patients', 60, function () {
+            return \App\Models\Patient::with('canvasser')
+                                     ->latest()
+                                     ->limit(10)
+                                     ->get();
+        });
 
         return view('admin.dashboard', compact('stats', 'topCanvassers', 'topNurses', 'recentPatients'));
     }
@@ -103,19 +112,23 @@ class DashboardController extends Controller
             ->orderBy('avg_rating', 'desc')
             ->paginate(20);
 
-        // Get all specializations for filter
-        $specializations = Doctor::whereNotNull('specialization')
-            ->distinct()
-            ->orderBy('specialization')
-            ->pluck('specialization');
+        // Get all specializations for filter - cache for 1 hour (rarely changes)
+        $specializations = Cache::remember('doctor_specializations', 3600, function () {
+            return Doctor::whereNotNull('specialization')
+                ->distinct()
+                ->orderBy('specialization')
+                ->pluck('specialization');
+        });
 
-        // Statistics
-        $stats = [
-            'total_doctors' => Doctor::count(),
-            'total_consultations' => Consultation::count(),
-            'total_reviews' => \App\Models\Review::where('reviewee_type', 'doctor')->where('is_published', true)->count(),
-            'avg_rating' => \App\Models\Review::where('reviewee_type', 'doctor')->where('is_published', true)->avg('rating'),
-        ];
+        // Statistics - cache for 5 minutes
+        $stats = Cache::remember('admin_doctors_stats', 300, function () {
+            return [
+                'total_doctors' => Doctor::count(),
+                'total_consultations' => Consultation::count(),
+                'total_reviews' => \App\Models\Review::where('reviewee_type', 'doctor')->where('is_published', true)->count(),
+                'avg_rating' => \App\Models\Review::where('reviewee_type', 'doctor')->where('is_published', true)->avg('rating'),
+            ];
+        });
 
         return view('admin.most-consulted-doctors', compact('doctors', 'specializations', 'stats'));
     }
@@ -3786,7 +3799,7 @@ class DashboardController extends Controller
     /**
      * Get doctor's unpaid consultations for payment creation
      */
-    public function getDoctorUnpaidConsultations($doctorId)
+    public function getDoctorUnpaidConsultations($doctorId, Request $request)
     {
         try {
             // Get all consultation IDs that are already included in pending/processing/completed payments
@@ -3814,16 +3827,29 @@ class DashboardController extends Controller
                 $query->whereNotIn('id', $excludedConsultationIds);
             }
 
-            $consultations = $query->with('payment')->latest()->get();
+            // Use pagination for performance (default 50 per page, max 100)
+            $perPage = min($request->get('per_page', 50), 100);
+            $consultations = $query->with('payment')->latest()->paginate($perPage);
 
             $doctor = Doctor::findOrFail($doctorId);
+
+            // Calculate total amount for all unpaid consultations (not just current page)
+            $totalUnpaidCount = Consultation::where('doctor_id', $doctorId)
+                ->where('status', 'completed')
+                ->where('payment_status', 'paid')
+                ->when(!empty($excludedConsultationIds), function($q) use ($excludedConsultationIds) {
+                    $q->whereNotIn('id', $excludedConsultationIds);
+                })
+                ->count();
+            
+            $totalAmount = $totalUnpaidCount * $doctor->effective_consultation_fee;
 
             // Log for debugging
             \Log::info('Loading paid consultations (unpaid to doctor)', [
                 'doctor_id' => $doctorId,
-                'total_consultations' => $consultations->count(),
+                'total_consultations' => $totalUnpaidCount,
+                'current_page_count' => $consultations->count(),
                 'excluded_ids_count' => count($excludedConsultationIds),
-                'excluded_ids' => $excludedConsultationIds,
                 'note' => 'Only consultations with payment_status = "paid" are included',
             ]);
 
@@ -3839,7 +3865,14 @@ class DashboardController extends Controller
                         'payment_status' => $c->payment_status,
                     ];
                 }),
-                'total_amount' => $consultations->count() * $doctor->effective_consultation_fee,
+                'pagination' => [
+                    'current_page' => $consultations->currentPage(),
+                    'per_page' => $consultations->perPage(),
+                    'total' => $consultations->total(),
+                    'last_page' => $consultations->lastPage(),
+                ],
+                'total_unpaid_count' => $totalUnpaidCount,
+                'total_amount' => $totalAmount,
             ]);
 
         } catch (\Exception $e) {

@@ -5,18 +5,20 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use App\Mail\ConsultationConfirmation;
-use App\Mail\ConsultationAdminAlert;
-use App\Mail\ConsultationDoctorNotification;
 use App\Mail\PaymentRequest;
 use App\Models\Doctor;
 use App\Models\Consultation;
-use App\Models\Patient;
-use App\Notifications\ConsultationSmsNotification;
+use App\Services\ConsultationService;
+use App\Http\Requests\ConsultationRequest;
 
 class ConsultationController extends Controller
 {
+    protected $consultationService;
+
+    public function __construct(ConsultationService $consultationService)
+    {
+        $this->consultationService = $consultationService;
+    }
     /**
      * Display the landing page with consultation form
      */
@@ -39,455 +41,34 @@ class ConsultationController extends Controller
     /**
      * Handle form submission
      */
-    public function store(Request $request)
+    public function store(ConsultationRequest $request)
     {
         try {
-            // Validate the form data
-            $validated = $request->validate([
-            // Personal Details
-            'first_name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[a-zA-Z\s\-\']+$/'],
-            'last_name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[a-zA-Z\s\-\']+$/'],
-            'gender' => 'required|in:male,female',
-            'age' => 'required|integer|min:1|max:120',
-            'mobile' => ['required', 'string', 'regex:/^(\+234|0)[0-9]{10}$/'],
-            'email' => 'required|email:rfc|max:255',
-            
-            // Triage Block
-            'problem' => 'required|string|min:10|max:500',
-            'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120', // Max 5MB per file
-            'severity' => 'required|in:mild,moderate,severe',
-            'emergency_symptoms' => 'nullable|array',
-            
-            // Doctor's Choice
-            'doctor' => 'nullable|string|max:255',
-            'consult_mode' => 'required|in:voice,video,chat',
-            
-            // Consent
-            'informed_consent' => 'required|accepted',
-            'data_privacy' => 'required|accepted',
-        ], [
-            // Custom error messages
-            'first_name.required' => 'First name is required.',
-            'first_name.min' => 'First name must be at least 2 characters.',
-            'first_name.regex' => 'First name can only contain letters, spaces, hyphens, and apostrophes.',
-            'last_name.required' => 'Last name is required.',
-            'last_name.min' => 'Last name must be at least 2 characters.',
-            'last_name.regex' => 'Last name can only contain letters, spaces, hyphens, and apostrophes.',
-            'gender.required' => 'Please select your gender.',
-            'gender.in' => 'Gender must be either Male or Female.',
-            'age.required' => 'Age is required.',
-            'age.integer' => 'Age must be a valid number.',
-            'age.min' => 'Age must be at least 1.',
-            'age.max' => 'Age cannot exceed 120.',
-            'mobile.required' => 'Mobile number is required.',
-            'mobile.regex' => 'Please enter a valid Nigerian phone number (e.g., +2348012345678 or 08012345678).',
-            'email.required' => 'Email address is required.',
-            'email.email' => 'Please enter a valid email address.',
-            'problem.required' => 'Please describe your medical problem.',
-            'problem.min' => 'Problem description must be at least 10 characters.',
-            'severity.required' => 'Please indicate the severity of your condition.',
-            'consult_mode.required' => 'Please select a consultation mode.',
-            'informed_consent.required' => 'You must accept the informed consent.',
-            'informed_consent.accepted' => 'You must accept the informed consent to proceed.',
-            'data_privacy.required' => 'You must accept the data privacy policy.',
-            'data_privacy.accepted' => 'You must accept the data privacy policy to proceed.',
-        ]);
+            $validated = $request->validated();
 
-        // Generate unique consultation reference
-        $reference = 'CONSULT-' . time() . '-' . Str::random(6);
-
-        // Handle medical document uploads - HIPAA: Store in private storage
-        $uploadedDocuments = [];
-        if ($request->hasFile('medical_documents')) {
-            try {
-                foreach ($request->file('medical_documents') as $file) {
-                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                    // Store in private storage (storage/app/private/medical_documents)
-                    $filePath = $file->storeAs('medical_documents', $fileName);
-                    
-                    $uploadedDocuments[] = [
-                        'original_name' => $file->getClientOriginalName(),
-                        'stored_name' => $fileName,
-                        'path' => $filePath,
-                        'size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType(),
-                    ];
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to upload medical documents: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                // Continue without documents rather than failing completely
-            }
-        }
-
-        // Get doctor details from ID if a doctor was selected
-        $doctorEmail = null;
-        $doctorId = null;
-        
-        if (!empty($validated['doctor'])) {
-            $doctor = Doctor::find($validated['doctor']);
-            if ($doctor) {
-                $validated['doctor_name'] = $doctor->name;
-                $validated['doctor_id'] = $validated['doctor'];
-                $validated['doctor'] = $doctor->name; // Replace ID with name for emails
-                $validated['doctor_fee'] = $doctor->effective_consultation_fee;
-                $doctorEmail = $doctor->email;
-                $doctorId = $doctor->id;
-            }
-        }
-
-        // Create or update patient record with all information
-        // Handle soft-deleted patients to avoid unique constraint violations
-        try {
-            // First, check if a soft-deleted patient exists with this email
-            $patient = Patient::withTrashed()->where('email', $validated['email'])->first();
-            
-            if ($patient) {
-                // Patient exists (soft-deleted or not)
-                if ($patient->trashed()) {
-                    // Restore the soft-deleted patient
-                    $patient->restore();
-                    \Log::info('Restored soft-deleted patient', [
-                        'patient_id' => $patient->id,
-                        'email' => $validated['email']
-                    ]);
-                }
-                
-                // Update the patient record
-                $patient->update([
-                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
-                    'phone' => $validated['mobile'],
-                    'gender' => $validated['gender'],
-                    'age' => $validated['age'],
-                ]);
-            } else {
-                // Create new patient
-                $patient = Patient::create([
-                    'email' => $validated['email'],
-                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
-                    'phone' => $validated['mobile'],
-                    'gender' => $validated['gender'],
-                    'age' => $validated['age'],
-                ]);
-                
-                // Send email verification notification for new patients
-                try {
-                    $patient->sendEmailVerificationNotification();
-                    \Log::info('Verification email sent to new patient', [
-                        'patient_id' => $patient->id,
-                        'email' => $patient->email
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send verification email: ' . $e->getMessage(), [
-                        'patient_id' => $patient->id,
-                        'email' => $patient->email
-                    ]);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Failed to create/update patient record: ' . $e->getMessage(), [
-                'email' => $validated['email'],
-                'error' => $e->getMessage()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to process your request. Please try again later or contact support.'
-            ], 500);
-        }
-
-        // Create consultation record
-        try {
-            $consultation = Consultation::create([
-                'reference' => $reference,
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'email' => $validated['email'],
-                'mobile' => $validated['mobile'],
-                'age' => $validated['age'],
-                'gender' => $validated['gender'],
-                'problem' => $validated['problem'],
-                'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
-                'severity' => $validated['severity'],
-                'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
-                'consult_mode' => $validated['consult_mode'],
-                'doctor_id' => $doctorId,
-                'status' => 'pending',
-                'payment_status' => 'unpaid',
-            ]);
-
-            // Create notifications for patient and doctor
-            try {
-                // Notification for patient (if authenticated)
-                if ($patient && $patient->id) {
-                    \App\Models\Notification::create([
-                        'user_type' => 'patient',
-                        'user_id' => $patient->id,
-                        'title' => 'Consultation Created',
-                        'message' => "Your consultation request (Ref: {$reference}) has been submitted successfully. " . ($doctorId ? "You have been assigned to Dr. {$validated['doctor_name']}." : "A doctor will be assigned shortly."),
-                        'type' => 'success',
-                        'action_url' => patient_url('consultations/' . $consultation->id),
-                        'data' => [
-                            'consultation_id' => $consultation->id,
-                            'consultation_reference' => $reference,
-                            'doctor_id' => $doctorId,
-                            'doctor_name' => $validated['doctor_name'] ?? null,
-                            'type' => 'consultation_created'
-                        ]
-                    ]);
-                }
-
-                // Notification for doctor (if assigned)
-                if ($doctorId) {
-                    $assignedDoctor = \App\Models\Doctor::find($doctorId);
-                    if ($assignedDoctor) {
-                        \App\Models\Notification::create([
-                            'user_type' => 'doctor',
-                            'user_id' => $doctorId,
-                            'title' => 'New Consultation Assigned',
-                            'message' => "A new consultation (Ref: {$reference}) has been assigned to you. Patient: {$validated['first_name']} {$validated['last_name']}",
-                            'type' => 'info',
-                            'action_url' => doctor_url('consultations/' . $consultation->id),
-                            'data' => [
-                                'consultation_id' => $consultation->id,
-                                'consultation_reference' => $reference,
-                                'patient_name' => $validated['first_name'] . ' ' . $validated['last_name'],
-                                'type' => 'new_consultation'
-                            ]
-                        ]);
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to create consultation notifications', [
-                    'consultation_id' => $consultation->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Failed to create consultation record: ' . $e->getMessage(), [
-                'reference' => $reference,
-                'email' => $validated['email'],
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to create consultation. Please try again later or contact support.'
-            ], 500);
-        }
-
-        // Update patient aggregates
-        try {
-            $patient->increment('consultations_count');
-            $patient->last_consultation_at = now();
-            $patient->save();
-        } catch (\Exception $e) {
-            \Log::warning('Failed to update patient aggregates: ' . $e->getMessage());
-            // Non-critical, continue anyway
-        }
-
-        // Add reference and documents to validated data for emails
-        $validated['consultation_reference'] = $reference;
-        $validated['has_documents'] = !empty($uploadedDocuments);
-        $validated['documents_count'] = count($uploadedDocuments);
-
-        // Send emails immediately (synchronous sending)
-        // Emails are non-critical - we continue even if they fail
-        
-        // Count emails to be sent
-        $emailsSent = 0;
-        // Use ADMIN_EMAIL from config (reads from env)
-        $adminEmail = config('mail.admin_email');
-        
-        try {
-            // Send confirmation email to the patient
-            Mail::to($validated['email'])->send(new ConsultationConfirmation($validated));
-            $emailsSent++;
-            \Log::info('Patient confirmation email sent successfully', [
-                'consultation_reference' => $reference,
-                'patient_email' => $validated['email']
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning('Failed to send patient confirmation email: ' . $e->getMessage(), [
-                'consultation_reference' => $reference,
-                'patient_email' => $validated['email']
-            ]);
-        }
-
-        // Send SMS confirmation to the patient
-        try {
-            $smsNotification = new ConsultationSmsNotification();
-            $smsResult = $smsNotification->sendConsultationConfirmation($validated);
-            
-            if ($smsResult['success']) {
-                \Log::info('Patient confirmation SMS sent successfully', [
-                    'consultation_reference' => $reference,
-                    'patient_mobile' => $validated['mobile']
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Failed to send patient confirmation SMS: ' . $e->getMessage(), [
-                'consultation_reference' => $reference,
-                'patient_mobile' => $validated['mobile'] ?? 'N/A'
-            ]);
-        }
-
-        try {
-            // Send alert email to admin
-            Mail::to($adminEmail)->send(new ConsultationAdminAlert($validated));
-            $emailsSent++;
-            \Log::info('Admin alert email sent successfully', [
-                'consultation_reference' => $reference,
-                'admin_email' => $adminEmail
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning('Failed to send admin alert email: ' . $e->getMessage(), [
-                'consultation_reference' => $reference,
-                'admin_email' => $adminEmail
-            ]);
-        }
-
-        try {
-            // Send notification email to the assigned doctor
-            if ($doctorEmail) {
-                Mail::to($doctorEmail)->send(new ConsultationDoctorNotification($validated));
-                $emailsSent++;
-                \Log::info('Doctor notification email sent successfully', [
-                    'consultation_reference' => $reference,
-                    'doctor_email' => $doctorEmail
-                ]);
-            } else {
-                \Log::warning('No doctor email available - skipping doctor notification', [
-                    'consultation_reference' => $reference
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Failed to send doctor notification email: ' . $e->getMessage(), [
-                'consultation_reference' => $reference,
-                'doctor_email' => $doctorEmail ?? 'N/A'
-            ]);
-        }
-
-        // Send SMS notification to the assigned doctor
-        if ($doctorId) {
-            try {
-                $smsNotification = new ConsultationSmsNotification();
-                $assignedDoctor = Doctor::find($doctorId);
-                
-                if ($assignedDoctor) {
-                    $smsResult = $smsNotification->sendDoctorNewConsultation($assignedDoctor, $validated);
-                    
-                    if ($smsResult['success']) {
-                        \Log::info('Doctor notification SMS sent successfully', [
-                            'consultation_reference' => $reference,
-                            'doctor_id' => $doctorId,
-                            'doctor_phone' => $assignedDoctor->phone
-                        ]);
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Failed to send doctor notification SMS: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'doctor_id' => $doctorId
-                ]);
-            }
-        }
-
-        // ============================================
-        // SEND WHATSAPP NOTIFICATIONS (More Reliable!)
-        // ============================================
-        
-        // Send WhatsApp notification to PATIENT (if enabled)
-        if (config('services.termii.whatsapp_enabled')) {
-            try {
-                $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
-                
-                $patientResult = $whatsapp->sendConsultationConfirmationTemplate(
-                    $validated,
-                    'patient_booking_confirmation' // Template ID from Termii dashboard
+            // Handle medical document uploads
+            $uploadedDocuments = [];
+            if ($request->hasFile('medical_documents')) {
+                $uploadedDocuments = $this->consultationService->handleDocumentUploads(
+                    $request->file('medical_documents')
                 );
-                
-                if ($patientResult['success']) {
-                    \Log::info('Patient WhatsApp notification sent successfully', [
-                        'consultation_reference' => $reference,
-                        'patient_phone' => $validated['mobile']
-                    ]);
-                } else {
-                    \Log::warning('Patient WhatsApp notification failed', [
-                        'consultation_reference' => $reference,
-                        'error' => $patientResult['message'] ?? 'Unknown error'
-                    ]);
-                }
-            } catch (\Exception $e) {
-                \Log::error('Patient WhatsApp notification error: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'phone' => $validated['mobile'] ?? 'N/A'
-                ]);
             }
-        }
-        
-        // Send WhatsApp notification to DOCTOR (if doctor assigned and WhatsApp enabled)
-        if (config('services.termii.whatsapp_enabled') && $doctorId) {
-            try {
-                $assignedDoctor = Doctor::find($doctorId);
-                
-                if ($assignedDoctor && $assignedDoctor->phone) {
-                    $whatsapp = new \App\Notifications\ConsultationWhatsAppNotification();
-                    
-                    $doctorResult = $whatsapp->sendDoctorNewConsultationTemplate(
-                        $assignedDoctor,
-                        $validated,
-                        'doctor_new_consultation' // Template ID from Termii dashboard
-                    );
-                    
-                    if ($doctorResult['success']) {
-                        \Log::info('Doctor WhatsApp notification sent successfully', [
-                            'consultation_reference' => $reference,
-                            'doctor_id' => $doctorId,
-                            'doctor_phone' => $assignedDoctor->phone
-                        ]);
-                    } else {
-                        \Log::warning('Doctor WhatsApp notification failed', [
-                            'consultation_reference' => $reference,
-                            'doctor_id' => $doctorId,
-                            'error' => $doctorResult['message'] ?? 'Unknown error'
-                        ]);
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::error('Doctor WhatsApp notification error: ' . $e->getMessage(), [
-                    'consultation_reference' => $reference,
-                    'doctor_id' => $doctorId
-                ]);
-            }
-        }
-        
-        \Log::info('Consultation booking completed - emails sent', [
-            'consultation_reference' => $reference,
-            'total_emails_sent' => $emailsSent,
-            'patient_email' => $validated['email'],
-            'admin_email' => $adminEmail,
-            'doctor_email' => $doctorEmail ?? 'N/A'
-        ]);
 
-        // Return success response immediately (NO PAYMENT REQUIRED UPFRONT)
-        // Emails will be sent in the background via queue
-        return response()->json([
-            'success' => true,
-            'message' => 'Thank you! Your consultation has been booked successfully. We will contact you shortly via WhatsApp to schedule your consultation. Remember: You only pay AFTER your consultation is complete.',
-            'consultation_reference' => $reference,
-        ]);
+            // Create consultation using service
+            $result = $this->consultationService->createConsultation($validated, $uploadedDocuments);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Thank you! Your consultation has been booked successfully. We will contact you shortly via WhatsApp to schedule your consultation. Remember: You only pay AFTER your consultation is complete.',
+                'consultation_reference' => $result['reference'],
+            ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Re-throw validation exceptions so they're handled by Laravel
             throw $e;
         } catch (\Exception $e) {
             // Catch-all for any unexpected errors
-            \Log::error('Unexpected error in consultation submission: ' . $e->getMessage(), [
+            Log::error('Unexpected error in consultation submission: ' . $e->getMessage(), [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->except(['medical_documents', '_token'])
