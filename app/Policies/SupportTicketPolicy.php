@@ -48,11 +48,12 @@ class SupportTicketPolicy
     public function update($user, SupportTicket $supportTicket): bool
     {
         if ($user instanceof AdminUser) {
-            return true;
+            return true; // Admins can update all tickets
         }
 
         if ($user instanceof CustomerCare) {
-            return $supportTicket->agent_id === $user->id || $supportTicket->agent_id === null;
+            // Customer care agents can update all tickets (for collaboration and handoffs)
+            return true;
         }
 
         return false;

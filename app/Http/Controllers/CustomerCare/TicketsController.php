@@ -9,7 +9,6 @@ use App\Models\Patient;
 use App\Services\SupportTicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class TicketsController extends Controller
 {
@@ -107,7 +106,13 @@ class TicketsController extends Controller
      */
     public function updateStatus(Request $request, SupportTicket $ticket)
     {
-        Gate::authorize('update', $ticket);
+        $user = Auth::guard('customer_care')->user();
+        
+        // Customer care agents can update all tickets
+        // Only check if user is authenticated
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $request->validate([
             'status' => 'required|in:open,pending,resolved,escalated',
