@@ -356,7 +356,19 @@
 </div>
 
 <script>
+let refreshInterval = null;
+let isRefreshing = false;
+let lastRefreshTime = 0;
+
 function refreshData() {
+    // Prevent rapid successive refreshes
+    const now = Date.now();
+    if (isRefreshing || (now - lastRefreshTime < 5000)) {
+        return;
+    }
+    
+    isRefreshing = true;
+    lastRefreshTime = now;
     location.reload();
 }
 
@@ -470,8 +482,17 @@ document.getElementById('blockIpForm').addEventListener('submit', function(e) {
     });
 });
 
-// Auto-refresh every 30 seconds
-setInterval(refreshData, 30000);
+// Optional auto-refresh every 90 seconds (disabled by default to prevent rapid requests)
+// Users can manually refresh using the refresh button
+// Uncomment the line below only if auto-refresh is truly needed
+// refreshInterval = setInterval(refreshData, 90000);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
 </script>
     <!-- Include Alert Modal Component -->
     @include('components.alert-modal')

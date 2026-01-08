@@ -148,18 +148,32 @@ function notificationComponent(routePrefix) {
         unreadCount: 0,
         loading: false,
         pollInterval: null,
+        isFetching: false,
+        lastFetchTime: 0,
 
         init() {
             this.fetchNotifications();
             this.fetchUnreadCount();
             
-            // Poll for new notifications every 30 seconds
+            // Poll for new notifications every 60 seconds to reduce server load
             this.pollInterval = setInterval(() => {
                 this.fetchUnreadCount();
                 if (this.dropdownOpen) {
                     this.fetchNotifications();
                 }
-            }, 30000);
+            }, 60000);
+            
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+                this.cleanup();
+            });
+        },
+        
+        cleanup() {
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
+                this.pollInterval = null;
+            }
         },
 
         toggleDropdown() {
@@ -184,12 +198,31 @@ function notificationComponent(routePrefix) {
         },
 
         async fetchUnreadCount() {
+            // Prevent rapid successive requests
+            const now = Date.now();
+            if (this.isFetching || (now - this.lastFetchTime < 5000)) {
+                return;
+            }
+            
+            this.isFetching = true;
+            this.lastFetchTime = now;
+            
             try {
-                const response = await fetch(`/${routePrefix}/notifications/unread-count`);
-                const data = await response.json();
-                this.unreadCount = data.count || 0;
+                const response = await fetch(`/${routePrefix}/notifications/unread-count`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.unreadCount = data.count || 0;
+                }
             } catch (error) {
-                console.error('Error fetching unread count:', error);
+                // Silently handle errors to avoid console spam
+            } finally {
+                this.isFetching = false;
             }
         },
 

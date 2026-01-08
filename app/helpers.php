@@ -76,7 +76,7 @@ if (!function_exists('create_notification')) {
      * @return \App\Models\Notification
      */
     function create_notification($userType, $userId, $title, $message, $type = 'info', $actionUrl = null, $data = null) {
-        return \App\Models\Notification::create([
+        $notification = \App\Models\Notification::create([
             'user_type' => $userType,
             'user_id' => $userId,
             'title' => $title,
@@ -85,6 +85,12 @@ if (!function_exists('create_notification')) {
             'action_url' => $actionUrl,
             'data' => $data,
         ]);
+        
+        // Clear cache for unread count when new notification is created
+        $cacheKey = "notifications.unread_count.{$userType}.{$userId}";
+        \Illuminate\Support\Facades\Cache::forget($cacheKey);
+        
+        return $notification;
     }
 }
 

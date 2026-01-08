@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class NotificationController extends Controller
 {
@@ -56,7 +57,13 @@ class NotificationController extends Controller
         $userType = $this->getUserType();
         $userId = $user->id;
 
-        $count = Notification::forUser($userType, $userId)->unread()->count();
+        // Cache key unique per user type and ID
+        $cacheKey = "notifications.unread_count.{$userType}.{$userId}";
+        
+        // Cache for 45 seconds to reduce database queries
+        $count = Cache::remember($cacheKey, 45, function () use ($userType, $userId) {
+            return Notification::forUser($userType, $userId)->unread()->count();
+        });
 
         return response()->json(['count' => $count]);
     }
@@ -79,6 +86,10 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
+        // Clear cache when notification is marked as read
+        $cacheKey = "notifications.unread_count.{$userType}.{$userId}";
+        Cache::forget($cacheKey);
+
         return response()->json(['success' => true]);
     }
 
@@ -98,6 +109,10 @@ class NotificationController extends Controller
         Notification::forUser($userType, $userId)
             ->unread()
             ->update(['read_at' => now()]);
+
+        // Clear cache when all notifications are marked as read
+        $cacheKey = "notifications.unread_count.{$userType}.{$userId}";
+        Cache::forget($cacheKey);
 
         return response()->json(['success' => true]);
     }

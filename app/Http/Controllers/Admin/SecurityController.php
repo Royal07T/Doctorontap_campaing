@@ -15,11 +15,19 @@ class SecurityController extends Controller
      */
     public function index()
     {
-        $securityStats = $this->getSecurityStats();
-        $recentEvents = $this->getRecentSecurityEvents();
-        $threatLevel = $this->calculateThreatLevel();
+        $userId = auth()->id();
+        $cacheKey = "admin.security.dashboard.{$userId}";
         
-        return view('admin.security', compact('securityStats', 'recentEvents', 'threatLevel'));
+        // Cache the entire dashboard data for 60 seconds to reduce database load
+        $data = Cache::remember($cacheKey, 60, function () {
+            return [
+                'securityStats' => $this->getSecurityStats(),
+                'recentEvents' => $this->getRecentSecurityEvents(),
+                'threatLevel' => $this->calculateThreatLevel(),
+            ];
+        });
+        
+        return view('admin.security', $data);
     }
     
     /**
@@ -115,38 +123,46 @@ class SecurityController extends Controller
         $severity = $request->get('severity', 'all');
         $hours = $request->get('hours', 24);
         
-        $events = [];
+        // Cache key based on filters
+        $cacheKey = "admin.security.events.{$eventType}.{$severity}.{$hours}";
         
-        for ($i = 0; $i < $hours; $i++) {
-            $hour = now()->subHours($i)->format('Y-m-d-H');
-            $hourEvents = Cache::get("security_events:{$hour}", []);
-            $events = array_merge($events, $hourEvents);
-        }
-        
-        // Filter by type
-        if ($eventType !== 'all') {
-            $events = array_filter($events, fn($e) => $e['event_type'] === $eventType);
-        }
-        
-        // Filter by severity
-        if ($severity !== 'all') {
-            $events = array_filter($events, fn($e) => $e['severity'] === $severity);
-        }
-        
-        // Sort by timestamp (newest first)
-        usort($events, function($a, $b) {
-            return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+        // Cache for 60 seconds to reduce processing load
+        $result = Cache::remember($cacheKey, 60, function () use ($eventType, $severity, $hours) {
+            $events = [];
+            
+            for ($i = 0; $i < $hours; $i++) {
+                $hour = now()->subHours($i)->format('Y-m-d-H');
+                $hourEvents = Cache::get("security_events:{$hour}", []);
+                $events = array_merge($events, $hourEvents);
+            }
+            
+            // Filter by type
+            if ($eventType !== 'all') {
+                $events = array_filter($events, fn($e) => $e['event_type'] === $eventType);
+            }
+            
+            // Filter by severity
+            if ($severity !== 'all') {
+                $events = array_filter($events, fn($e) => $e['severity'] === $severity);
+            }
+            
+            // Sort by timestamp (newest first)
+            usort($events, function($a, $b) {
+                return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+            });
+            
+            return [
+                'events' => array_values($events),
+                'total' => count($events),
+                'filters' => [
+                    'type' => $eventType,
+                    'severity' => $severity,
+                    'hours' => $hours
+                ]
+            ];
         });
         
-        return response()->json([
-            'events' => array_values($events),
-            'total' => count($events),
-            'filters' => [
-                'type' => $eventType,
-                'severity' => $severity,
-                'hours' => $hours
-            ]
-        ]);
+        return response()->json($result);
     }
     
     /**
