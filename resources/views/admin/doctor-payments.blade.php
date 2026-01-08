@@ -30,14 +30,22 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-                        <h1 class="text-xl font-bold text-white">Doctor Payments</h1>
+                        <div class="flex items-center space-x-3">
+                            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
+                            <h1 class="text-xl font-bold text-white">Doctor Payments</h1>
+                        </div>
                     </div>
-                    <button @click="showCreateModal = true" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                    <div class="flex items-center space-x-4">
+                        <!-- Notification Icon -->
+                        <x-notification-icon />
+                        <button @click="showCreateModal = true" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-purple-700 bg-opacity-80 rounded-lg hover:bg-opacity-100 transition border border-purple-500 border-opacity-50 shadow-md">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Create Payment</span>
-                    </button>
+                        <span class="text-white font-semibold">Create Payment</span>
+                        </button>
+                        <span class="text-sm text-white">{{ now()->format('l, F j, Y') }}</span>
+                    </div>
                 </div>
             </header>
 

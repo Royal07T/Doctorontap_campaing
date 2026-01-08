@@ -117,9 +117,13 @@
                     </button>
                     <h1 class="text-xl font-bold text-white">Create Support Ticket</h1>
                 </div>
-                <a href="{{ route('customer-care.tickets.index') }}" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
-                    ← Back
-                </a>
+                <div class="flex items-center space-x-4">
+                    <!-- Notification Icon -->
+                    <x-notification-icon />
+                    <a href="{{ route('customer-care.tickets.index') }}" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
+                        ← Back
+                    </a>
+                </div>
             </div>
         </header>
 

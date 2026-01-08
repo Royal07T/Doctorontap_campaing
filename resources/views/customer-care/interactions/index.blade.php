@@ -137,6 +137,8 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
+                        <!-- Notification Icon -->
+                        <x-notification-icon />
                         <a href="{{ route('customer-care.interactions.create') }}" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
                             + New Interaction
                         </a>

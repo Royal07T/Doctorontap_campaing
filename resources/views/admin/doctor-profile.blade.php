@@ -34,12 +34,16 @@
                             <p class="text-purple-200 text-sm">Dr. {{ $doctor->full_name }}</p>
                         </div>
                     </div>
-                    <a href="{{ route('admin.doctors') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        <span>Back to Doctors</span>
-                    </a>
+                    <div class="flex items-center space-x-4">
+                        <!-- Notification Icon -->
+                        <x-notification-icon />
+                        <a href="{{ route('admin.doctors') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            <span>Back to Doctors</span>
+                        </a>
+                    </div>
                 </div>
             </header>
 

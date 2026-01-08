@@ -136,6 +136,11 @@
                             <h1 class="text-xl font-bold text-white">Escalations</h1>
                         </div>
                     </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- Notification Icon -->
+                        <x-notification-icon />
+                        <span class="text-sm text-white hidden md:block">{{ now()->format('l, F j, Y') }}</span>
+                    </div>
                 </div>
             </header>
 

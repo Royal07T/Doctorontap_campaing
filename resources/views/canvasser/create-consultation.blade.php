@@ -109,6 +109,8 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
+                        <!-- Notification Icon -->
+                        <x-notification-icon />
                         <a href="{{ route('canvasser.patients') }}" class="text-white hover:text-purple-200 text-sm font-medium">
                             ← Back to Patients
                         </a>
