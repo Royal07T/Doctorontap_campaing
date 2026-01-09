@@ -8,6 +8,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -49,7 +50,22 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Ensure detailed exception logging in all environments
+        $exceptions->report(function (\Throwable $e) {
+            // Log full exception details including stack trace
+            \Illuminate\Support\Facades\Log::error('Exception occurred', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'code' => $e->getCode(),
+                'previous' => $e->getPrevious() ? [
+                    'message' => $e->getPrevious()->getMessage(),
+                    'file' => $e->getPrevious()->getFile(),
+                    'line' => $e->getPrevious()->getLine(),
+                ] : null,
+            ]);
+        });
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         // Ensure queue worker is running every minute

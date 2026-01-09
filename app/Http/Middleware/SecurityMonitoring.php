@@ -62,8 +62,37 @@ class SecurityMonitoring
         $ip = $request->ip();
         $userAgent = $request->userAgent();
         $url = $request->fullUrl();
+        $path = $request->path();
         
-        // Check for suspicious user agents
+        // Environment-based configuration
+        $isDevelopment = app()->environment('local', 'testing');
+        $localIps = ['127.0.0.1', '::1', 'localhost'];
+        $isLocalhost = in_array($ip, $localIps);
+        
+        // Legitimate polling endpoints that should be excluded from rapid request detection
+        $excludedPaths = [
+            'notifications/unread-count',
+            'service-worker.js',
+            'sw.js',
+            'api/notifications',
+            'health',
+            'up',
+        ];
+        
+        $isExcludedPath = false;
+        foreach ($excludedPaths as $excludedPath) {
+            if (str_contains($path, $excludedPath)) {
+                $isExcludedPath = true;
+                break;
+            }
+        }
+        
+        // In development: Skip monitoring for localhost completely
+        if ($isDevelopment && $isLocalhost) {
+            return;
+        }
+        
+        // Check for suspicious user agents (always check, even for excluded paths)
         $suspiciousUserAgents = [
             'sqlmap', 'nikto', 'nmap', 'masscan', 'zap', 'burp',
             'wget', 'curl', 'python-requests', 'bot', 'crawler',
@@ -82,19 +111,63 @@ class SecurityMonitoring
             }
         }
         
-        // Check for rapid requests from same IP
+        // Skip rapid request detection for excluded paths (legitimate polling)
+        if ($isExcludedPath) {
+            return;
+        }
+        
+        // Smart rapid request detection
+        // Different thresholds for different scenarios
         try {
             $key = "rapid_requests:{$ip}";
+            $alertKey = "rapid_requests_alerted:{$ip}";
             $requests = Cache::get($key, 0);
+            $alreadyAlerted = Cache::get($alertKey, false);
             
-            if ($requests > 100) { // More than 100 requests in 1 minute
-                $this->logSecurityEvent('rapid_requests', [
-                    'ip' => $ip,
-                    'user_agent' => $userAgent,
-                    'url' => $url,
-                    'request_count' => $requests,
-                    'severity' => 'high'
-                ]);
+            // Context-aware thresholds
+            // Production: Higher threshold (legitimate users with multiple tabs)
+            // Development: Even higher or disabled for localhost
+            if ($isDevelopment && $isLocalhost) {
+                $threshold = 1000; // Very high for localhost in dev
+            } elseif ($isDevelopment) {
+                $threshold = 500; // Higher for dev environment
+            } else {
+                $threshold = 300; // Production: 300 requests/minute per IP
+            }
+            
+            // Check if this looks like an attack pattern
+            // Attacks typically hit many different endpoints rapidly
+            $endpointKey = "rapid_requests_endpoints:{$ip}";
+            $endpoints = Cache::get($endpointKey, []);
+            $endpoints[] = $path;
+            
+            // Keep only unique endpoints from last minute
+            $endpoints = array_unique(array_slice($endpoints, -50));
+            Cache::put($endpointKey, $endpoints, 60);
+            
+            $uniqueEndpoints = count($endpoints);
+            
+            // More suspicious if hitting many different endpoints rapidly
+            // Legitimate polling hits same endpoint repeatedly
+            $isSuspiciousPattern = $uniqueEndpoints > 20 && $requests > ($threshold * 0.7);
+            
+            if ($requests > $threshold && !$alreadyAlerted) {
+                // Only alert if it's a suspicious pattern OR exceeds threshold significantly
+                if ($isSuspiciousPattern || $requests > ($threshold * 1.5)) {
+                    $this->logSecurityEvent('rapid_requests', [
+                        'ip' => $ip,
+                        'user_agent' => $userAgent,
+                        'url' => $url,
+                        'request_count' => $requests,
+                        'unique_endpoints' => $uniqueEndpoints,
+                        'threshold' => $threshold,
+                        'is_suspicious_pattern' => $isSuspiciousPattern,
+                        'severity' => $isSuspiciousPattern ? 'high' : 'medium'
+                    ]);
+                    
+                    // Mark as alerted to prevent spam
+                    Cache::put($alertKey, true, 60); // 1 minute
+                }
             }
             
             Cache::put($key, $requests + 1, 60); // 1 minute cache

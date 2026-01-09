@@ -1,29 +1,41 @@
 @php
     // Determine the route prefix based on the current guard
     $routePrefix = 'patient';
+    $userType = 'patient';
+    $userId = null;
     $isAuthenticated = false;
     
     if (Auth::guard('admin')->check()) {
         $routePrefix = 'admin';
+        $userType = 'admin';
+        $userId = Auth::guard('admin')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('doctor')->check()) {
         $routePrefix = 'doctor';
+        $userType = 'doctor';
+        $userId = Auth::guard('doctor')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('nurse')->check()) {
         $routePrefix = 'nurse';
+        $userType = 'nurse';
+        $userId = Auth::guard('nurse')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('canvasser')->check()) {
         $routePrefix = 'canvasser';
+        $userType = 'canvasser';
+        $userId = Auth::guard('canvasser')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('patient')->check()) {
         $routePrefix = 'patient';
+        $userType = 'patient';
+        $userId = Auth::guard('patient')->id();
         $isAuthenticated = true;
     }
 @endphp
 
 @if($isAuthenticated)
 
-<div x-data="notificationComponent('{{ $routePrefix }}')" 
+<div x-data="notificationComponent('{{ $routePrefix }}', '{{ $userType }}', {{ $userId }})" 
      class="relative"
      x-init="init()">
     <!-- Notification Icon Button -->
@@ -141,27 +153,23 @@
 </div>
 
 <script>
-function notificationComponent(routePrefix) {
+function notificationComponent(routePrefix, userType, userId) {
     return {
         dropdownOpen: false,
         notifications: [],
         unreadCount: 0,
         loading: false,
-        pollInterval: null,
-        isFetching: false,
-        lastFetchTime: 0,
+        echoChannel: null,
+        websocketConnected: false,
+        userType: userType,
+        userId: userId,
 
         init() {
+            // Initial fetch of notifications list (one-time only)
             this.fetchNotifications();
-            this.fetchUnreadCount();
             
-            // Poll for new notifications every 60 seconds to reduce server load
-            this.pollInterval = setInterval(() => {
-                this.fetchUnreadCount();
-                if (this.dropdownOpen) {
-                    this.fetchNotifications();
-                }
-            }, 60000);
+            // Set up WebSocket connection for real-time updates
+            this.setupWebSocket();
             
             // Cleanup on page unload
             window.addEventListener('beforeunload', () => {
@@ -169,10 +177,80 @@ function notificationComponent(routePrefix) {
             });
         },
         
+        setupWebSocket() {
+            // Check if Echo is available
+            if (typeof window.Echo === 'undefined') {
+                console.error('Laravel Echo not available. WebSocket connection required for notifications.');
+                this.websocketConnected = false;
+                return;
+            }
+            
+            try {
+                // Listen to private channel for this user
+                const channelName = `notifications.${this.userType}.${this.userId}`;
+                this.echoChannel = window.Echo.private(channelName);
+                
+                // Listen for new notifications via WebSocket
+                this.echoChannel.listen('.notification.created', (data) => {
+                    // Add new notification to the list
+                    this.notifications.unshift({
+                        id: data.id,
+                        title: data.title,
+                        message: data.message,
+                        type: data.type,
+                        action_url: data.action_url,
+                        read_at: data.read_at,
+                        created_at: data.created_at,
+                    });
+                    
+                    // Update unread count from WebSocket event (real-time)
+                    this.unreadCount = data.unread_count || (this.unreadCount + 1);
+                    
+                    // Show browser notification if permission granted
+                    this.showBrowserNotification(data);
+                });
+                
+                // Listen for connection status
+                this.echoChannel.subscribed(() => {
+                    this.websocketConnected = true;
+                    console.log('✅ WebSocket connected for real-time notifications');
+                });
+                
+                this.echoChannel.error((error) => {
+                    console.error('❌ WebSocket error:', error);
+                    this.websocketConnected = false;
+                });
+                
+            } catch (error) {
+                console.error('❌ Failed to set up WebSocket:', error);
+                this.websocketConnected = false;
+            }
+        },
+        
+        showBrowserNotification(data) {
+            // Request permission if not granted
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            
+            // Show notification if permission granted
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(data.title, {
+                    body: data.message,
+                    icon: '/img/whitelogo.png',
+                    tag: `notification-${data.id}`,
+                });
+            }
+        },
+        
         cleanup() {
-            if (this.pollInterval) {
-                clearInterval(this.pollInterval);
-                this.pollInterval = null;
+            // Disconnect WebSocket
+            if (this.echoChannel && typeof window.Echo !== 'undefined') {
+                try {
+                    window.Echo.leave(`notifications.${this.userType}.${this.userId}`);
+                } catch (e) {
+                    console.error('Error disconnecting WebSocket:', e);
+                }
             }
         },
 
@@ -197,34 +275,6 @@ function notificationComponent(routePrefix) {
             }
         },
 
-        async fetchUnreadCount() {
-            // Prevent rapid successive requests
-            const now = Date.now();
-            if (this.isFetching || (now - this.lastFetchTime < 5000)) {
-                return;
-            }
-            
-            this.isFetching = true;
-            this.lastFetchTime = now;
-            
-            try {
-                const response = await fetch(`/${routePrefix}/notifications/unread-count`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    this.unreadCount = data.count || 0;
-                }
-            } catch (error) {
-                // Silently handle errors to avoid console spam
-            } finally {
-                this.isFetching = false;
-            }
-        },
 
         async markAsRead(notificationId) {
             try {

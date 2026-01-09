@@ -90,6 +90,17 @@ if (!function_exists('create_notification')) {
         $cacheKey = "notifications.unread_count.{$userType}.{$userId}";
         \Illuminate\Support\Facades\Cache::forget($cacheKey);
         
+        // Broadcast the notification via WebSocket
+        try {
+            \App\Events\NotificationCreated::dispatch($notification);
+        } catch (\Exception $e) {
+            // Log error but don't break the application if broadcasting fails
+            \Illuminate\Support\Facades\Log::warning('Failed to broadcast notification', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notification->id,
+            ]);
+        }
+        
         return $notification;
     }
 }
