@@ -55,7 +55,7 @@
             @endif
 
             <!-- Login Form -->
-            <form method="POST" action="{{ route('admin.login.post') }}">
+            <form method="POST" action="{{ admin_route('admin.login.post') }}">
                 @csrf
 
                 <!-- Email -->
@@ -118,7 +118,7 @@
                             Keep me signed in
                         </label>
                     </div>
-                    <a href="{{ route('admin.password.request') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">
+                    <a href="{{ admin_route('admin.password.request') }}" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">
                         Forgot Password?
                     </a>
                 </div>

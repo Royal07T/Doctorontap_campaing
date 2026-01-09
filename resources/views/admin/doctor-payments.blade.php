@@ -114,7 +114,7 @@
                                 </svg>
                                 Filter
                             </button>
-                            <a href="{{ route('admin.doctor-payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                            <a href="{{ admin_route('admin.doctor-payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
@@ -162,7 +162,7 @@
                                 <div class="flex-1">
                                     <p class="text-sm font-semibold text-gray-900">Payment #{{ $payment->reference }}</p>
                                     <p class="text-xs text-gray-500 mt-0.5">
-                                        <a href="{{ route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
+                                        <a href="{{ admin_route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
                                             {{ $payment->doctor->full_name }}
                                         </a>
                                         • {{ $payment->total_consultations_count }} consultation(s)
@@ -221,7 +221,7 @@
                                 <div>
                                     <p class="font-medium text-gray-800 mb-1">Doctor Information:</p>
                                     <p><strong>Name:</strong> 
-                                        <a href="{{ route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-semibold">
+                                        <a href="{{ admin_route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-semibold">
                                             {{ $payment->doctor->full_name }}
                                         </a>
                                     </p>

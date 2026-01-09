@@ -34,7 +34,7 @@
                             <p class="text-purple-200 text-sm">Dr. {{ $doctor->full_name }}</p>
                         </div>
                     </div>
-                    <a href="{{ route('admin.doctors') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                    <a href="{{ admin_route('admin.doctors') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
@@ -236,7 +236,7 @@
                                 @endforeach
                             </div>
                             <div class="pt-3 border-t border-gray-200">
-                                <a href="{{ route('admin.doctor-payments.create') }}?doctor_id={{ $doctor->id }}" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                                <a href="{{ admin_route('admin.doctor-payments.create') }}?doctor_id={{ $doctor->id }}" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                     </svg>
@@ -297,7 +297,7 @@
                                     <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
                                         <div class="flex items-center justify-between">
                                             <div class="flex-1">
-                                                <a href="{{ route('admin.consultation.show', $consultation->id) }}" class="text-xs font-semibold text-purple-600 hover:text-purple-800 font-mono">
+                                                <a href="{{ admin_route('admin.consultation.show', $consultation->id) }}" class="text-xs font-semibold text-purple-600 hover:text-purple-800 font-mono">
                                                     {{ $consultation->reference }}
                                                 </a>
                                                 <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->full_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>

@@ -17,7 +17,7 @@ class VerificationController extends Controller
         $user = Auth::guard('admin')->user();
         
         if ($user && $user->hasVerifiedEmail()) {
-            return redirect()->route('admin.dashboard');
+            return redirect(admin_route('admin.dashboard'));
         }
         
         return view('admin.verify-email');
@@ -31,12 +31,12 @@ class VerificationController extends Controller
         $admin = \App\Models\AdminUser::findOrFail($id);
 
         if (! hash_equals((string) $hash, sha1($admin->getEmailForVerification()))) {
-            return redirect()->route('admin.verification.notice')
+            return redirect(admin_route('admin.verification.notice'))
                 ->with('error', 'Invalid verification link.');
         }
 
         if ($admin->hasVerifiedEmail()) {
-            return redirect()->route('admin.login')
+            return redirect(admin_route('admin.login'))
                 ->with('success', 'Your email is already verified. Please login.');
         }
 
@@ -44,7 +44,7 @@ class VerificationController extends Controller
             event(new Verified($admin));
         }
 
-        return redirect()->route('admin.login')
+        return redirect(admin_route('admin.login'))
             ->with('success', 'Your email has been verified! You can now login.');
     }
 
@@ -56,12 +56,12 @@ class VerificationController extends Controller
         $admin = Auth::guard('admin')->user();
         
         if (!$admin) {
-            return redirect()->route('admin.login')
+            return redirect(admin_route('admin.login'))
                 ->with('error', 'Please login to resend verification email.');
         }
 
         if ($admin->hasVerifiedEmail()) {
-            return redirect()->route('admin.dashboard');
+            return redirect(admin_route('admin.dashboard'));
         }
 
         $admin->sendEmailVerificationNotification();

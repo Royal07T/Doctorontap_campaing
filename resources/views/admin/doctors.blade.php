@@ -114,7 +114,7 @@
                     Search & Filter
                 </h2>
             </div>
-            <form method="GET" action="{{ route('admin.doctors') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <form method="GET" action="{{ admin_route('admin.doctors') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Search</label>
                     <input type="text" 
@@ -149,7 +149,7 @@
                         </svg>
                         Filter
                     </button>
-                    <a href="{{ route('admin.doctors') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                    <a href="{{ admin_route('admin.doctors') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -268,7 +268,7 @@
 
                             <!-- Action Buttons -->
                             <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
-                                <a href="{{ route('admin.doctors.profile', $doctor->id) }}" 
+                                <a href="{{ admin_route('admin.doctors.profile', $doctor->id) }}" 
                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -291,7 +291,7 @@
                     <div class="text-4xl mb-4">👨‍⚕️</div>
                     <h3 class="text-sm font-semibold text-gray-900 mb-2">No Doctors Found</h3>
                     @if(request()->hasAny(['search', 'is_available', 'gender']))
-                        <a href="{{ route('admin.doctors') }}" class="text-xs text-purple-600 hover:text-purple-800 mt-2 inline-block">
+                        <a href="{{ admin_route('admin.doctors') }}" class="text-xs text-purple-600 hover:text-purple-800 mt-2 inline-block">
                             Clear filters
                         </a>
                     @endif
@@ -495,7 +495,7 @@
             document.getElementById('formMethod').value = 'POST';
             document.getElementById('mdcn_license_current').value = 'no';
             document.getElementById('is_available').checked = true;
-            document.getElementById('doctorForm').action = '{{ route('admin.doctors.store') }}';
+            document.getElementById('doctorForm').action = '{{ admin_route('admin.doctors.store') }}';
             document.getElementById('submitBtnText').textContent = 'Save Doctor';
             document.getElementById('formMessage').classList.add('hidden');
             document.getElementById('doctorModal').style.display = 'flex';
@@ -803,7 +803,7 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
             
             try {
                 const formData = new FormData(this);
-                const response = await fetch('{{ route('admin.doctors.send-campaign') }}', {
+                const response = await fetch('{{ admin_route('admin.doctors.send-campaign') }}', {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

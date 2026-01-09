@@ -16,7 +16,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect(admin_route('admin.dashboard'));
         }
         
         return view('admin.login');
@@ -54,11 +54,11 @@ class AuthController extends Controller
             
             // Check if email is verified, if not redirect to verification page
             if (!$admin->hasVerifiedEmail()) {
-                return redirect()->route('admin.verification.notice')
+                return redirect(admin_route('admin.verification.notice'))
                     ->with('warning', 'Please verify your email address to access all features.');
             }
             
-            return redirect()->intended(route('admin.dashboard'))
+            return redirect()->intended(admin_route('admin.dashboard'))
                 ->with('success', 'Welcome back, ' . $admin->name . '!');
         }
 
@@ -77,7 +77,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login')
+        return redirect(admin_route('admin.login'))
             ->with('success', 'You have been logged out successfully.');
     }
 }

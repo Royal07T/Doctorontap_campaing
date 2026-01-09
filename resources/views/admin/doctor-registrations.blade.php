@@ -100,7 +100,7 @@
 
                 <!-- Filter and Search Bar -->
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-                    <form method="GET" action="{{ route('admin.doctor-registrations') }}" class="flex flex-col sm:flex-row gap-3">
+                    <form method="GET" action="{{ admin_route('admin.doctor-registrations') }}" class="flex flex-col sm:flex-row gap-3">
                         <div class="flex-1">
                             <input type="text"
                                    name="search"

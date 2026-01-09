@@ -43,7 +43,7 @@ class ForgotPasswordController extends Controller
         );
 
         // Send the reset email with our custom route
-        $resetUrl = route('admin.password.reset', ['token' => $token, 'email' => $admin->email]);
+        $resetUrl = admin_route('admin.password.reset', ['token' => $token, 'email' => $admin->email]);
         
         \Illuminate\Support\Facades\Mail::send('emails.password-reset', [
             'user' => $admin,
@@ -112,7 +112,7 @@ class ForgotPasswordController extends Controller
         // Delete the used token
         \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
-        return redirect()->route('admin.login')->with('status', 'Your password has been reset successfully.');
+        return redirect(admin_route('admin.login'))->with('status', 'Your password has been reset successfully.');
     }
 }
 

@@ -16,28 +16,33 @@ class SessionManagement
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check session timeout
-        if ($this->isSessionExpired($request)) {
-            $this->logSessionExpiry($request);
-            $this->clearUserSession();
-            return $this->redirectToLogin($request);
+        // Only check session management if user is authenticated
+        if (Auth::check()) {
+            // Check session timeout
+            if ($this->isSessionExpired($request)) {
+                $this->logSessionExpiry($request);
+                $this->clearUserSession();
+                return $this->redirectToLogin($request);
+            }
+            
+            // Check for concurrent sessions
+            if ($this->hasConcurrentSession($request)) {
+                $this->logConcurrentSession($request);
+                $this->clearUserSession();
+                return $this->redirectToLogin($request, 'Another session has been started. Please login again.');
+            }
+            
+            // Update last activity
+            $this->updateLastActivity($request);
         }
-        
-        // Check for concurrent sessions
-        if ($this->hasConcurrentSession($request)) {
-            $this->logConcurrentSession($request);
-            $this->clearUserSession();
-            return $this->redirectToLogin($request, 'Another session has been started. Please login again.');
-        }
-        
-        // Update last activity
-        $this->updateLastActivity($request);
         
         $response = $next($request);
         
         // Add security headers
-        $response->headers->set('X-Session-Timeout', config('session.lifetime', 120));
-        $response->headers->set('X-Session-Id', Session::getId());
+        if (Session::isStarted()) {
+            $response->headers->set('X-Session-Timeout', config('session.lifetime', 120));
+            $response->headers->set('X-Session-Id', Session::getId());
+        }
         
         return $response;
     }

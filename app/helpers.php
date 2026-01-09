@@ -94,3 +94,155 @@ if (!function_exists('create_notification')) {
     }
 }
 
+if (!function_exists('admin_route')) {
+    /**
+     * Generate admin route URL that's context-aware (works in development and production)
+     * 
+     * @param string $routeName The route name (e.g., 'admin.login', 'admin.dashboard')
+     * @param array|string|int $parameters Optional route parameters (can be array, string, or int)
+     * @return string The generated URL
+     */
+    function admin_route($routeName, $parameters = []) {
+        $request = request();
+        $host = $request->getHost();
+        $port = $request->getPort();
+        $scheme = $request->getScheme();
+        
+        // Normalize parameters to array
+        if (!is_array($parameters)) {
+            $parameters = $parameters ? [$parameters] : [];
+        }
+        
+        // In development, if accessing via localhost, generate localhost URL
+        if (app()->environment('local', 'testing') && 
+            in_array($host, ['localhost', '127.0.0.1', '::1'])) {
+            // Try to use Laravel's route helper first (works because dev routes mirror production routes)
+            try {
+                $routeUrl = route($routeName, $parameters, false); // Get relative URL
+                $url = $scheme . '://' . $host;
+                if ($port && !in_array($port, [80, 443])) {
+                    $url .= ':' . $port;
+                }
+                return $url . $routeUrl;
+            } catch (\Exception $e) {
+                // Fallback: convert route name to path if route doesn't exist
+                $path = '/' . str_replace('.', '/', $routeName);
+                
+                // Add parameters if any (handle query string parameters)
+                if (!empty($parameters)) {
+                    // Check if parameters contain query string params
+                    $queryParams = [];
+                    $pathParams = [];
+                    
+                    foreach ($parameters as $key => $value) {
+                        if (is_string($key)) {
+                            // Named parameter (query string)
+                            $queryParams[$key] = $value;
+                        } else {
+                            // Positional parameter (path)
+                            $pathParams[] = $value;
+                        }
+                    }
+                    
+                    // Add path parameters
+                    if (!empty($pathParams)) {
+                        $path .= '/' . implode('/', $pathParams);
+                    }
+                    
+                    // Add query string parameters
+                    if (!empty($queryParams)) {
+                        $path .= '?' . http_build_query($queryParams);
+                    }
+                }
+                
+                $url = $scheme . '://' . $host;
+                if ($port && !in_array($port, [80, 443])) {
+                    $url .= ':' . $port;
+                }
+                return $url . $path;
+            }
+        }
+        
+        // For subdomain requests, ensure we use the current request's scheme and port
+        if ($host === 'admin.doctorontap.com.ng') {
+            try {
+                $routeUrl = route($routeName, $parameters, false); // Get relative URL
+                // Build absolute URL using current request's scheme and host
+                $url = $scheme . '://' . $host;
+                if ($port && !in_array($port, [80, 443])) {
+                    $url .= ':' . $port;
+                }
+                return $url . $routeUrl;
+            } catch (\Exception $e) {
+                // Fallback if route doesn't exist
+                $path = '/' . str_replace('.', '/', $routeName);
+                if (!empty($parameters)) {
+                    // Handle both array and single parameter
+                    if (is_array($parameters)) {
+                        $queryParams = [];
+                        $pathParams = [];
+                        foreach ($parameters as $key => $value) {
+                            if (is_string($key)) {
+                                $queryParams[$key] = $value;
+                            } else {
+                                $pathParams[] = $value;
+                            }
+                        }
+                        if (!empty($pathParams)) {
+                            $path .= '/' . implode('/', $pathParams);
+                        }
+                        if (!empty($queryParams)) {
+                            $path .= '?' . http_build_query($queryParams);
+                        }
+                    } else {
+                        $path .= '/' . $parameters;
+                    }
+                }
+                $url = $scheme . '://' . $host;
+                if ($port && !in_array($port, [80, 443])) {
+                    $url .= ':' . $port;
+                }
+                return $url . $path;
+            }
+        }
+        
+        // Default: try to use route helper, fallback to URL generation
+        try {
+            $routeUrl = route($routeName, $parameters, false);
+            $url = $scheme . '://' . $host;
+            if ($port && !in_array($port, [80, 443])) {
+                $url .= ':' . $port;
+            }
+            return $url . $routeUrl;
+        } catch (\Exception $e) {
+            $path = '/' . str_replace('.', '/', $routeName);
+            if (!empty($parameters)) {
+                if (is_array($parameters)) {
+                    $queryParams = [];
+                    $pathParams = [];
+                    foreach ($parameters as $key => $value) {
+                        if (is_string($key)) {
+                            $queryParams[$key] = $value;
+                        } else {
+                            $pathParams[] = $value;
+                        }
+                    }
+                    if (!empty($pathParams)) {
+                        $path .= '/' . implode('/', $pathParams);
+                    }
+                    if (!empty($queryParams)) {
+                        $path .= '?' . http_build_query($queryParams);
+                    }
+                } else {
+                    $path .= '/' . $parameters;
+                }
+            }
+            $url = $scheme . '://' . $host;
+            if ($port && !in_array($port, [80, 443])) {
+                $url .= ':' . $port;
+            }
+            return $url . $path;
+        }
+    }
+}
+

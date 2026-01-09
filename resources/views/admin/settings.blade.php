@@ -82,7 +82,7 @@
                             </div>
                         </div>
 
-                        <form method="POST" action="{{ route('admin.settings.update') }}" class="p-5 space-y-4">
+                        <form method="POST" action="{{ admin_route('admin.settings.update') }}" class="p-5 space-y-4">
                             @csrf
                             <input type="hidden" name="form_type" value="pricing">
 
@@ -283,7 +283,7 @@
                             </div>
                         </div>
 
-                        <form method="POST" action="{{ route('admin.settings.update') }}" class="p-5 space-y-4">
+                        <form method="POST" action="{{ admin_route('admin.settings.update') }}" class="p-5 space-y-4">
                             @csrf
                             <input type="hidden" name="form_type" value="security_alerts">
 

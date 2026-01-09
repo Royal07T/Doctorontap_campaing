@@ -87,7 +87,7 @@
             </div>
 
             <!-- Resend Button -->
-            <form method="POST" action="{{ route('admin.verification.resend') }}">
+            <form method="POST" action="{{ admin_route('admin.verification.resend') }}">
                 @csrf
                 <button type="submit" 
                         class="w-full px-6 py-3 purple-gradient text-white font-semibold text-sm rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
@@ -100,7 +100,7 @@
 
             <!-- Logout Link -->
             <div class="mt-4 text-center">
-                <form method="POST" action="{{ route('admin.logout') }}" class="inline">
+                <form method="POST" action="{{ admin_route('admin.logout') }}" class="inline">
                     @csrf
                     <button type="submit" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">
                         Logout

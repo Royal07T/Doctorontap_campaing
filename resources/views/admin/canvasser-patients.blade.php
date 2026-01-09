@@ -100,7 +100,7 @@
 
                 <!-- Filters -->
                 <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <form method="GET" action="{{ route('admin.canvasser-patients') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <form method="GET" action="{{ admin_route('admin.canvasser-patients') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         <!-- Search -->
                         <div class="lg:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
@@ -139,7 +139,7 @@
                             <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">
                                 Apply Filters
                             </button>
-                            <a href="{{ route('admin.canvasser-patients') }}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors">
+                            <a href="{{ admin_route('admin.canvasser-patients') }}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors">
                                 Clear
                             </a>
                         </div>

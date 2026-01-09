@@ -59,7 +59,7 @@
             @endif
 
             <!-- Forgot Password Form -->
-            <form method="POST" action="{{ route('admin.password.email') }}">
+            <form method="POST" action="{{ admin_route('admin.password.email') }}">
                 @csrf
 
                 <!-- Email -->
@@ -94,7 +94,7 @@
             <div class="mt-4 text-center">
                 <p class="text-sm text-gray-600">
                     Remember your password?
-                    <a href="{{ route('admin.login') }}" class="text-purple-600 hover:text-purple-800 font-semibold">
+                    <a href="{{ admin_route('admin.login') }}" class="text-purple-600 hover:text-purple-800 font-semibold">
                         Back to Login
                     </a>
                 </p>

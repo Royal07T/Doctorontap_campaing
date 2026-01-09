@@ -49,7 +49,7 @@
                     Search & Filter
                 </h2>
             </div>
-            <form method="GET" action="{{ route('admin.payments') }}" class="space-y-3">
+            <form method="GET" action="{{ admin_route('admin.payments') }}" class="space-y-3">
                 <!-- Row 1 -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <!-- Search -->
@@ -131,7 +131,7 @@
                             </svg>
                             Filter
                         </button>
-                        <a href="{{ route('admin.payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        <a href="{{ admin_route('admin.payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>

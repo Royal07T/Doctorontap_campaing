@@ -29,7 +29,7 @@
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Back Button -->
                 <div class="mb-6">
-                    <a href="{{ route('admin.consultations') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                    <a href="{{ admin_route('admin.consultations') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
@@ -115,7 +115,7 @@
                                                 Relationship: {{ ucfirst(str_replace('_', ' ', $bp->relationship_to_payer)) }}
                                             </p>
                                             <p class="text-xs text-gray-500 mt-1">
-                                                Consultation: <a href="{{ route('admin.consultation.show', $bp->consultation->id) }}" class="text-purple-600 hover:underline font-semibold">{{ $bp->consultation->reference }}</a>
+                                                Consultation: <a href="{{ admin_route('admin.consultation.show', $bp->consultation->id) }}" class="text-purple-600 hover:underline font-semibold">{{ $bp->consultation->reference }}</a>
                                             </p>
                                         </div>
                                         <div class="text-right">

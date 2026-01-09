@@ -123,7 +123,7 @@
                 <!-- Filters -->
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                     <h2 class="text-lg font-bold text-gray-900 mb-4">Filters</h2>
-                    <form method="GET" action="{{ route('admin.vital-signs') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <form method="GET" action="{{ admin_route('admin.vital-signs') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         <!-- Search -->
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
@@ -190,7 +190,7 @@
                             <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">
                                 Apply Filters
                             </button>
-                            <a href="{{ route('admin.vital-signs') }}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                            <a href="{{ admin_route('admin.vital-signs') }}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
                                 Clear Filters
                             </a>
                         </div>

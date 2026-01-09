@@ -136,7 +136,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Manage Consultations -->
-                <a href="{{ route('admin.consultations') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 hover:border-purple-400 group">
+                <a href="{{ admin_route('admin.consultations') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 hover:border-purple-400 group">
                     <div class="flex items-center space-x-3">
                         <div class="purple-gradient p-3 rounded-xl group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +151,7 @@
                 </a>
 
                 <!-- View Payments -->
-                <a href="{{ route('admin.payments') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 hover:border-purple-400 group">
+                <a href="{{ admin_route('admin.payments') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 hover:border-purple-400 group">
                     <div class="flex items-center space-x-3">
                         <div class="purple-gradient p-3 rounded-xl group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@
                 </a>
 
                 <!-- View Doctors -->
-                <a href="{{ route('admin.doctors') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 hover:border-purple-400 group">
+                <a href="{{ admin_route('admin.doctors') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 hover:border-purple-400 group">
                     <div class="flex items-center space-x-3">
                         <div class="purple-gradient p-3 rounded-xl group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

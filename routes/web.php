@@ -114,10 +114,11 @@ Route::prefix('reviews')->name('reviews.')->group(function () {
 });
 
 // ==================== ADMIN SUBDOMAIN ROUTES ====================
-// All admin routes are now accessible via admin.doctorontap.com.ng subdomain
+// All admin routes are accessible via admin.doctorontap.com.ng subdomain
 // In production: only accessible via admin subdomain
-// In development: also accessible via localhost (for local development)
+// In development: also accessible via localhost/local domains
 
+// Production: Admin subdomain routes
 Route::domain('admin.doctorontap.com.ng')->group(function () {
     // Admin Login Routes (No authentication required)
     Route::prefix('admin')->name('admin.')->group(function () {
@@ -254,13 +255,16 @@ Route::domain('admin.doctorontap.com.ng')->group(function () {
     
     // Root route for admin subdomain - redirect to login
     Route::get('/', function () {
-        return redirect()->route('admin.login');
+        return redirect(admin_route('admin.login'));
     });
 });
 
-// Development fallback: Allow admin routes on localhost (for local development)
-if (env('APP_ENV') !== 'production') {
+// Development fallback: Allow admin routes on localhost/local domains (only in non-production)
+// Note: Route caching should NOT be used in development. Use 'php artisan route:clear' in dev.
+// This uses app()->environment() which works with route caching (reads from config, not env)
+if (!app()->environment('production')) {
     // Admin Login Routes (No authentication required) - Development fallback
+    // These routes have the same names as production routes but are only active in non-production
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
@@ -310,7 +314,7 @@ if (env('APP_ENV') !== 'production') {
         Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
         Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
         
-        // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
+        // Multi-Patient Bookings
         Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
         Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
         Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
@@ -395,7 +399,8 @@ if (env('APP_ENV') !== 'production') {
 }
 
 // Redirect admin routes from main domain to admin subdomain (production only)
-if (env('APP_ENV') === 'production') {
+// Uses app()->environment() which works with route caching
+if (app()->environment('production')) {
     Route::prefix('admin')->group(function () {
         Route::any('{any}', function ($any = '') {
             $adminUrl = 'https://admin.doctorontap.com.ng/admin/' . $any;
