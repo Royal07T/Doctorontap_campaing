@@ -3,6 +3,8 @@
 namespace App\Observers;
 
 use App\Models\Consultation;
+use App\Models\DoctorPayout;
+use App\Services\KorapayPayoutService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TreatmentPlanNotification;
@@ -12,6 +14,10 @@ class ConsultationObserver
 {
     /**
      * Handle the Consultation "updated" event.
+     * 
+     * Note: Payouts are NOT automatically triggered.
+     * Admin must manually create batch payouts via the admin panel,
+     * similar to the existing doctor-payments system.
      */
     public function updated(Consultation $consultation): void
     {

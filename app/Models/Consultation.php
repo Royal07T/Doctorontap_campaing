@@ -124,6 +124,15 @@ class Consultation extends Model
     }
 
     /**
+     * Get payouts that include this consultation
+     * Note: Uses JSON contains check since consultation_ids is a JSON array
+     */
+    public function payouts()
+    {
+        return DoctorPayout::whereJsonContains('consultation_ids', $this->id)->get();
+    }
+
+    /**
      * Get the patient this consultation belongs to
      */
     public function patient(): BelongsTo

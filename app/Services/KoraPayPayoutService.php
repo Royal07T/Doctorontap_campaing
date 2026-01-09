@@ -146,6 +146,18 @@ class KoraPayPayoutService
                 ];
             }
 
+            // Check bank availability (optional but recommended per KoraPay docs)
+            $availability = $this->checkBankAvailability($bankAccount->bank_code, 'NGN');
+            if (!$availability['success'] || !$availability['available']) {
+                Log::warning('Bank availability check failed or bank unavailable', [
+                    'bank_code' => $bankAccount->bank_code,
+                    'available' => $availability['available'] ?? false,
+                    'message' => $availability['message'] ?? 'Unknown',
+                ]);
+                // Continue anyway - availability check is optional
+                // But log the warning for monitoring
+            }
+
             // Generate unique reference for KoraPay
             // Note: Reference is required (despite docs saying optional, API returns error if missing)
             $korapayReference = 'KPY-D-' . strtoupper(Str::random(12));
@@ -610,6 +622,134 @@ class KoraPayPayoutService
                 'success' => false,
                 'data' => null,
                 'message' => 'Error querying bulk payouts: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Check bank or mobile money network availability
+     * 
+     * According to KoraPay documentation: https://developers.korapay.com/docs/payout-via-api
+     * Endpoint: GET /merchant/api/v1/misc/banks/availability?bank={bank_code}&currency={currency}
+     * 
+     * This is Step 3 in the payout workflow - Optional but recommended to check before initiating payout
+     * 
+     * @param string $bankCode Bank code (e.g., "033" for UBA, "044" for Access Bank)
+     * @param string $currency Currency code (default: "NGN")
+     * @return array ['success' => bool, 'data' => array, 'message' => string]
+     */
+    public function checkBankAvailability(string $bankCode, string $currency = 'NGN'): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->get($this->baseUrl . '/misc/banks/availability', [
+                'bank' => $bankCode,
+                'currency' => $currency,
+            ]);
+
+            $responseData = $response->json();
+
+            if ($response->successful() && ($responseData['status'] ?? false)) {
+                return [
+                    'success' => true,
+                    'data' => $responseData['data'] ?? [],
+                    'message' => $responseData['message'] ?? 'Bank availability checked successfully',
+                    'available' => $responseData['data']['available'] ?? true,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => $responseData['message'] ?? 'Failed to check bank availability',
+                'available' => false,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('KoraPay bank availability check failed', [
+                'error' => $e->getMessage(),
+                'bank_code' => $bankCode,
+                'currency' => $currency,
+            ]);
+
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => 'Bank availability check error: ' . $e->getMessage(),
+                'available' => false,
+            ];
+        }
+    }
+
+    /**
+     * Fetch payout history
+     * 
+     * According to KoraPay documentation: https://developers.korapay.com/docs/payout-via-api
+     * Endpoint: GET /merchant/api/v1/payouts
+     * 
+     * @param array $params Query parameters (currency, date_from, date_to, limit, starting_after, ending_before)
+     * @return array ['success' => bool, 'data' => array, 'message' => string]
+     */
+    public function fetchPayoutHistory(array $params = []): array
+    {
+        try {
+            $queryParams = [];
+            
+            if (isset($params['currency'])) {
+                $queryParams['currency'] = $params['currency'];
+            }
+            if (isset($params['date_from'])) {
+                $queryParams['date_from'] = $params['date_from']; // Format: YYYY-MM-DD-HH-MM-SS
+            }
+            if (isset($params['date_to'])) {
+                $queryParams['date_to'] = $params['date_to']; // Format: YYYY-MM-DD-HH-MM-SS
+            }
+            if (isset($params['limit'])) {
+                $queryParams['limit'] = $params['limit'];
+            }
+            if (isset($params['starting_after'])) {
+                $queryParams['starting_after'] = $params['starting_after'];
+            }
+            if (isset($params['ending_before'])) {
+                $queryParams['ending_before'] = $params['ending_before'];
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->get($this->baseUrl . '/payouts', $queryParams);
+
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'data' => $responseData['data'] ?? [],
+                    'has_more' => $responseData['has_more'] ?? false,
+                    'message' => $responseData['message'] ?? 'Payout history retrieved successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'data' => null,
+                'has_more' => false,
+                'message' => $responseData['message'] ?? 'Failed to fetch payout history',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('KoraPay payout history fetch failed', [
+                'error' => $e->getMessage(),
+                'params' => $params,
+            ]);
+
+            return [
+                'success' => false,
+                'data' => null,
+                'has_more' => false,
+                'message' => 'Payout history error: ' . $e->getMessage(),
             ];
         }
     }

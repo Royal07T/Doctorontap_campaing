@@ -95,12 +95,38 @@ Route::prefix('payment')->group(function () {
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
+// Doctor Payout API Routes
+Route::prefix('api')->group(function () {
+    Route::prefix('doctor-payouts')->name('doctor-payouts.')->group(function () {
+        // Get unpaid consultations for a doctor (like getDoctorUnpaidConsultations)
+        Route::get('/doctor/{doctorId}/unpaid-consultations', [\App\Http\Controllers\DoctorPayoutController::class, 'getUnpaidConsultations'])
+            ->name('unpaid-consultations');
+        
+        // Create batch payout for multiple consultations (like createDoctorPayment)
+        Route::post('/create-batch', [\App\Http\Controllers\DoctorPayoutController::class, 'createBatchPayout'])
+            ->name('create-batch');
+        
+        // Get payout history for a doctor
+        Route::get('/doctor/{doctorId}/history', [\App\Http\Controllers\DoctorPayoutController::class, 'getPayoutHistory'])
+            ->name('history');
+        
+        // Get payout details
+        Route::get('/{payoutId}', [\App\Http\Controllers\DoctorPayoutController::class, 'getPayout'])
+            ->name('show');
+    });
+});
+
 // WhatsApp Webhook Routes (Termii)
 Route::prefix('webhooks')->group(function () {
     // WhatsApp webhook endpoint - receives incoming messages, delivery status, read receipts
     Route::post('/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
         ->middleware('verify.termii.webhook')
         ->name('webhook.whatsapp');
+    
+    // Korapay Doctor Payout Webhook
+    Route::post('/korapay/payout', [\App\Http\Controllers\DoctorPayoutController::class, 'webhook'])
+        ->middleware('verify.korapay.webhook')
+        ->name('webhook.korapay.payout');
 });
 
 // ==================== REVIEW ROUTES ====================
