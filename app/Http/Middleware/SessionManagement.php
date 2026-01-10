@@ -16,30 +16,80 @@ class SessionManagement
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check session timeout
-        if ($this->isSessionExpired($request)) {
-            $this->logSessionExpiry($request);
-            $this->clearUserSession();
-            return $this->redirectToLogin($request);
+        // Skip session management for login, registration, and other public routes
+        if ($this->shouldSkipSessionManagement($request)) {
+            return $next($request);
         }
         
-        // Check for concurrent sessions
-        if ($this->hasConcurrentSession($request)) {
-            $this->logConcurrentSession($request);
-            $this->clearUserSession();
-            return $this->redirectToLogin($request, 'Another session has been started. Please login again.');
-        }
+        // Check if user is authenticated with any guard
+        $isAuthenticated = Auth::check() || 
+                          Auth::guard('admin')->check() || 
+                          Auth::guard('doctor')->check() || 
+                          Auth::guard('patient')->check() || 
+                          Auth::guard('nurse')->check() || 
+                          Auth::guard('canvasser')->check();
         
-        // Update last activity
-        $this->updateLastActivity($request);
+        // Only check session management if user is authenticated
+        if ($isAuthenticated) {
+            // Check session timeout
+            if ($this->isSessionExpired($request)) {
+                $this->logSessionExpiry($request);
+                $this->clearUserSession();
+                return $this->redirectToLogin($request);
+            }
+            
+            // Check for concurrent sessions
+            if ($this->hasConcurrentSession($request)) {
+                $this->logConcurrentSession($request);
+                $this->clearUserSession();
+                return $this->redirectToLogin($request, 'Another session has been started. Please login again.');
+            }
+            
+            // Update last activity
+            $this->updateLastActivity($request);
+        }
         
         $response = $next($request);
         
         // Add security headers
-        $response->headers->set('X-Session-Timeout', config('session.lifetime', 120));
-        $response->headers->set('X-Session-Id', Session::getId());
+        if (Session::isStarted()) {
+            $response->headers->set('X-Session-Timeout', config('session.lifetime', 120));
+            $response->headers->set('X-Session-Id', Session::getId());
+        }
         
         return $response;
+    }
+    
+    /**
+     * Check if session management should be skipped for this request
+     */
+    protected function shouldSkipSessionManagement(Request $request): bool
+    {
+        $path = $request->path();
+        
+        // Skip for login, registration, password reset, and other public routes
+        $skipPaths = [
+            'patient/login',
+            'doctor/login',
+            'admin/login',
+            'nurse/login',
+            'canvasser/login',
+            'patient/register',
+            'doctor/register',
+            'patient/forgot-password',
+            'patient/reset-password',
+            'patient/verify',
+            'doctor/verify',
+            'broadcasting/auth', // Skip for WebSocket authentication
+        ];
+        
+        foreach ($skipPaths as $skipPath) {
+            if (str_starts_with($path, $skipPath)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**

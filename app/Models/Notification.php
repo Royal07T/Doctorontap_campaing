@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Events\NotificationCreated;
 
 class Notification extends Model
 {
@@ -62,5 +63,23 @@ class Notification extends Model
     public function isRead(): bool
     {
         return !is_null($this->read_at);
+    }
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Notification $notification) {
+            // Dispatch broadcast event when notification is created
+            try {
+                event(new NotificationCreated($notification));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to broadcast notification', [
+                    'error' => $e->getMessage(),
+                    'notification_id' => $notification->id,
+                ]);
+            }
+        });
     }
 }

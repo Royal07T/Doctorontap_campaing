@@ -16,7 +16,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4" x-data="{ showPassword: false }">
+<body class="min-h-screen flex items-center justify-center px-4" x-data="{ showPassword: false, pageLoading: false }">
     <!-- Login Container -->
     <div class="w-full max-w-md">
         <!-- Logo -->
@@ -157,8 +157,33 @@
         </div>
     </div>
     
-    <!-- System Preloader -->
-    <x-system-preloader message="Loading..." subtext="Please wait while we process your request." />
+    <!-- System Preloader (hidden by default, shown only during form submission) -->
+    <x-system-preloader x-show="pageLoading" message="Signing in..." />
+    
+    <script>
+        // Hide preloader on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Alpine !== 'undefined') {
+                const body = Alpine.$data(document.body);
+                if (body) {
+                    body.pageLoading = false;
+                }
+            }
+        });
+        
+        // Show preloader on form submission
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form && form.tagName === 'FORM' && form.action.includes('/admin/login')) {
+                if (typeof Alpine !== 'undefined') {
+                    const body = Alpine.$data(document.body);
+                    if (body) {
+                        body.pageLoading = true;
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
 

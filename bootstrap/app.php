@@ -8,7 +8,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
+        then: function () {
+            // Register custom BroadcastController for broadcasting authentication
+            \Illuminate\Support\Facades\Route::post('/broadcasting/auth', [\App\Http\Controllers\BroadcastController::class, 'authenticate'])
+                ->middleware(['web']);
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Exclude webhook routes from CSRF protection

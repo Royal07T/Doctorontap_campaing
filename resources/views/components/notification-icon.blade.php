@@ -1,29 +1,41 @@
 @php
-    // Determine the route prefix based on the current guard
+    // Determine the route prefix and user info based on the current guard
     $routePrefix = 'patient';
+    $userType = 'patient';
+    $userId = null;
     $isAuthenticated = false;
     
     if (Auth::guard('admin')->check()) {
         $routePrefix = 'admin';
+        $userType = 'admin';
+        $userId = Auth::guard('admin')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('doctor')->check()) {
         $routePrefix = 'doctor';
+        $userType = 'doctor';
+        $userId = Auth::guard('doctor')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('nurse')->check()) {
         $routePrefix = 'nurse';
+        $userType = 'nurse';
+        $userId = Auth::guard('nurse')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('canvasser')->check()) {
         $routePrefix = 'canvasser';
+        $userType = 'canvasser';
+        $userId = Auth::guard('canvasser')->id();
         $isAuthenticated = true;
     } elseif (Auth::guard('patient')->check()) {
         $routePrefix = 'patient';
+        $userType = 'patient';
+        $userId = Auth::guard('patient')->id();
         $isAuthenticated = true;
     }
 @endphp
 
 @if($isAuthenticated)
 
-<div x-data="notificationComponent('{{ $routePrefix }}')" 
+<div x-data="notificationComponent('{{ $routePrefix }}', '{{ $userType }}', {{ $userId }})" 
      class="relative"
      x-init="init()">
     <!-- Notification Icon Button -->
@@ -141,25 +153,91 @@
 </div>
 
 <script>
-function notificationComponent(routePrefix) {
+function notificationComponent(routePrefix, userType, userId) {
     return {
         dropdownOpen: false,
         notifications: [],
         unreadCount: 0,
         loading: false,
-        pollInterval: null,
+        echoChannel: null,
+        websocketConnected: false,
+        userType: userType,
+        userId: userId,
 
         init() {
-            this.fetchNotifications();
-            this.fetchUnreadCount();
+            if (this.userId) {
+                this.fetchNotifications(); // One-time fetch
+                this.setupWebSocket();
+                window.addEventListener('beforeunload', () => {
+                    this.cleanup();
+                });
+            }
+        },
+
+        setupWebSocket() {
+            if (typeof window.Echo === 'undefined') {
+                console.error('Laravel Echo not available. WebSocket connection required for notifications.');
+                this.websocketConnected = false;
+                return;
+            }
             
-            // Poll for new notifications every 30 seconds
-            this.pollInterval = setInterval(() => {
-                this.fetchUnreadCount();
-                if (this.dropdownOpen) {
-                    this.fetchNotifications();
+            try {
+                const channelName = `notifications.${this.userType}.${this.userId}`;
+                this.echoChannel = window.Echo.private(channelName);
+
+                this.echoChannel.listen('.notification.created', (data) => {
+                    this.notifications.unshift({
+                        id: data.id,
+                        title: data.title,
+                        message: data.message,
+                        type: data.type,
+                        action_url: data.action_url,
+                        read_at: data.read_at,
+                        created_at: data.created_at,
+                    });
+                    this.unreadCount = data.unread_count || this.unreadCount + 1;
+                    this.showBrowserNotification(data);
+                });
+
+                this.echoChannel.subscribed(() => {
+                    this.websocketConnected = true;
+                    console.log('✅ WebSocket connected for real-time notifications');
+                });
+
+                this.echoChannel.error((error) => {
+                    console.error('❌ WebSocket error:', error);
+                    this.websocketConnected = false;
+                    if (error.status === 403) {
+                        console.error('Authentication failed. Please refresh the page or log in again.');
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Failed to set up WebSocket:', error);
+                this.websocketConnected = false;
+            }
+        },
+
+        showBrowserNotification(data) {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(data.title, {
+                    body: data.message,
+                    icon: '/img/whitelogo.png',
+                    tag: `notification-${data.id}`,
+                });
+            }
+        },
+
+        cleanup() {
+            if (this.echoChannel && typeof window.Echo !== 'undefined') {
+                try {
+                    window.Echo.leave(`notifications.${this.userType}.${this.userId}`);
+                } catch (e) {
+                    console.error('Error disconnecting WebSocket:', e);
                 }
-            }, 30000);
+            }
         },
 
         toggleDropdown() {
@@ -183,15 +261,6 @@ function notificationComponent(routePrefix) {
             }
         },
 
-        async fetchUnreadCount() {
-            try {
-                const response = await fetch(`/${routePrefix}/notifications/unread-count`);
-                const data = await response.json();
-                this.unreadCount = data.count || 0;
-            } catch (error) {
-                console.error('Error fetching unread count:', error);
-            }
-        },
 
         async markAsRead(notificationId) {
             try {
