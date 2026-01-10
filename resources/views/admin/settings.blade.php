@@ -569,8 +569,52 @@
         }
     </script>
     
-    <!-- System Preloader -->
-    <x-system-preloader message="Loading..." subtext="Please wait while we process your request." />
+    <!-- System Preloader (hidden by default, shown only during form submissions) -->
+    <x-system-preloader x-show="pageLoading" message="Processing..." />
+    
+    <script>
+        // Hide preloader on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Alpine !== 'undefined') {
+                const body = Alpine.$data(document.body);
+                if (body) {
+                    body.pageLoading = false;
+                }
+            }
+        });
+        
+        // Show preloader on form submissions
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form && form.tagName === 'FORM' && !form.hasAttribute('data-no-loader')) {
+                if (typeof Alpine !== 'undefined') {
+                    const body = Alpine.$data(document.body);
+                    if (body) {
+                        body.pageLoading = true;
+                    }
+                }
+            }
+        });
+        
+        // Hide preloader when page is fully loaded
+        if (document.readyState === 'complete') {
+            if (typeof Alpine !== 'undefined') {
+                const body = Alpine.$data(document.body);
+                if (body) {
+                    body.pageLoading = false;
+                }
+            }
+        } else {
+            window.addEventListener('load', function() {
+                if (typeof Alpine !== 'undefined') {
+                    const body = Alpine.$data(document.body);
+                    if (body) {
+                        body.pageLoading = false;
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
 
