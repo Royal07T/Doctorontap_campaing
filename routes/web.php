@@ -29,6 +29,13 @@ use App\Http\Controllers\MedicalDocumentController;
 use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\File;
 
+// Override Laravel's default broadcasting route with our custom controller
+// that supports multiple guards (admin, doctor, patient, nurse, canvasser)
+// Register before Laravel's automatic route to ensure it takes precedence
+Route::match(['get', 'post'], '/broadcasting/auth', [\App\Http\Controllers\BroadcastController::class, 'authenticate'])
+    ->middleware(['web'])
+    ->name('broadcasting.auth');
+
 // Service Worker Route - Handle both /sw.js and /service-worker.js
 Route::get('/service-worker.js', function () {
     $swPath = public_path('sw.js');

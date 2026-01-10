@@ -16,8 +16,21 @@ class SessionManagement
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip session management for broadcasting auth endpoint
+        if ($request->is('broadcasting/auth')) {
+            return $next($request);
+        }
+        
+        // Check if user is authenticated with any guard
+        $isAuthenticated = Auth::check() || 
+                          Auth::guard('admin')->check() || 
+                          Auth::guard('doctor')->check() || 
+                          Auth::guard('patient')->check() || 
+                          Auth::guard('nurse')->check() || 
+                          Auth::guard('canvasser')->check();
+        
         // Only check session management if user is authenticated
-        if (Auth::check()) {
+        if ($isAuthenticated) {
             // Check session timeout
             if ($this->isSessionExpired($request)) {
                 $this->logSessionExpiry($request);

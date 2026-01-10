@@ -14,7 +14,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override Laravel's default BroadcastController with our custom one
+        // that supports multiple guards
+        $this->app->bind(
+            \Illuminate\Broadcasting\BroadcastController::class,
+            \App\Http\Controllers\BroadcastController::class
+        );
     }
 
     /**

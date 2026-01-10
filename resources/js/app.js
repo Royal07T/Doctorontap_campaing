@@ -24,8 +24,16 @@ window.Echo = new Echo({
     authEndpoint: '/broadcasting/auth',
     auth: {
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'X-CSRF-TOKEN': () => {
+                const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!token) {
+                    console.warn('CSRF token not found in meta tag. Please refresh the page.');
+                }
+                return token || '';
+            },
+            'X-Requested-With': 'XMLHttpRequest',
         },
+        withCredentials: true, // Send cookies with the request
     },
 });
 

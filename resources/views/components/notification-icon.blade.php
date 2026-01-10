@@ -168,8 +168,15 @@ function notificationComponent(routePrefix, userType, userId) {
             // Initial fetch of notifications list (one-time only)
             this.fetchNotifications();
             
-            // Set up WebSocket connection for real-time updates
-            this.setupWebSocket();
+            // Set up WebSocket connection for real-time updates (only if user is authenticated)
+            if (this.userId && this.userType) {
+                // Delay WebSocket connection slightly to ensure session is ready
+                setTimeout(() => {
+                    this.setupWebSocket();
+                }, 500);
+            } else {
+                console.warn('Cannot set up WebSocket: User not authenticated');
+            }
             
             // Cleanup on page unload
             window.addEventListener('beforeunload', () => {
@@ -185,9 +192,17 @@ function notificationComponent(routePrefix, userType, userId) {
                 return;
             }
             
+            // Verify user is authenticated
+            if (!this.userId || !this.userType) {
+                console.warn('Cannot connect WebSocket: User not authenticated');
+                this.websocketConnected = false;
+                return;
+            }
+            
             try {
                 // Listen to private channel for this user
                 const channelName = `notifications.${this.userType}.${this.userId}`;
+                console.log('Attempting to connect to channel:', channelName);
                 this.echoChannel = window.Echo.private(channelName);
                 
                 // Listen for new notifications via WebSocket
@@ -219,6 +234,11 @@ function notificationComponent(routePrefix, userType, userId) {
                 this.echoChannel.error((error) => {
                     console.error('❌ WebSocket error:', error);
                     this.websocketConnected = false;
+                    
+                    // If it's an auth error, the user might need to refresh/login
+                    if (error.type === 'AuthError' || error.status === 403) {
+                        console.warn('Authentication failed. Please refresh the page or log in again.');
+                    }
                 });
                 
             } catch (error) {
