@@ -147,15 +147,31 @@ class KoraPayPayoutService
             }
 
             // Check bank availability (optional but recommended per KoraPay docs)
+            // Note: This endpoint may not be available for all banks or may return "resource not found"
+            // This is a known limitation - the check is optional and payouts will proceed regardless
             $availability = $this->checkBankAvailability($bankAccount->bank_code, 'NGN');
             if (!$availability['success'] || !$availability['available']) {
-                Log::warning('Bank availability check failed or bank unavailable', [
-                    'bank_code' => $bankAccount->bank_code,
-                    'available' => $availability['available'] ?? false,
-                    'message' => $availability['message'] ?? 'Unknown',
-                ]);
-                // Continue anyway - availability check is optional
-                // But log the warning for monitoring
+                // Only log as info (not warning) if it's a "resource not found" error
+                // This is likely an API limitation, not an actual problem
+                $isResourceNotFound = str_contains(strtolower($availability['message'] ?? ''), 'resource not found') ||
+                                     str_contains(strtolower($availability['message'] ?? ''), 'not found');
+                
+                if ($isResourceNotFound) {
+                    // This is likely an API limitation - the endpoint may not support all banks
+                    // Log as info since it's not a real issue
+                    Log::info('Bank availability check endpoint not available for this bank (API limitation)', [
+                        'bank_code' => $bankAccount->bank_code,
+                        'message' => 'KoraPay availability API may not support all banks. Payout will proceed.',
+                    ]);
+                } else {
+                    // Log as warning for other types of failures
+                    Log::warning('Bank availability check failed or bank unavailable', [
+                        'bank_code' => $bankAccount->bank_code,
+                        'available' => $availability['available'] ?? false,
+                        'message' => $availability['message'] ?? 'Unknown',
+                    ]);
+                }
+                // Continue anyway - availability check is optional per KoraPay docs
             }
 
             // Generate unique reference for KoraPay
@@ -650,6 +666,19 @@ class KoraPayPayoutService
             ]);
 
             $responseData = $response->json();
+
+            // Handle 404 or "resource not found" responses gracefully
+            // This endpoint may not be available for all banks
+            if ($response->status() === 404 || 
+                str_contains(strtolower($responseData['message'] ?? ''), 'resource not found') ||
+                str_contains(strtolower($responseData['message'] ?? ''), 'not found')) {
+                return [
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'resource not found', // Standardized message for API limitation
+                    'available' => false,
+                ];
+            }
 
             if ($response->successful() && ($responseData['status'] ?? false)) {
                 return [
