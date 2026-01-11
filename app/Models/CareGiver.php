@@ -63,6 +63,32 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
     {
         $this->notify(new \App\Notifications\CareGiverVerifyEmail);
     }
+
+    /**
+     * Get the email address that should be used for verification.
+     */
+    public function getEmailForVerification()
+    {
+        return $this->email;
+    }
+
+    /**
+     * Mark the email as verified.
+     */
+    public function markEmailAsVerified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Determine if the user has verified their email address.
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
     
     /**
      * Update last activity timestamp

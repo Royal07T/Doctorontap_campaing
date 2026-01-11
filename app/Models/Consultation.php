@@ -32,6 +32,7 @@ class Consultation extends Model
         'canvasser_id',
         'nurse_id',
         'customer_care_id',
+        'care_giver_id',
         'status',
         'payment_status',
         'payment_id',
@@ -134,6 +135,14 @@ class Consultation extends Model
     public function customerCare(): BelongsTo
     {
         return $this->belongsTo(CustomerCare::class);
+    }
+
+    /**
+     * Get the care giver assigned to this consultation
+     */
+    public function careGiver(): BelongsTo
+    {
+        return $this->belongsTo(CareGiver::class);
     }
 
     /**

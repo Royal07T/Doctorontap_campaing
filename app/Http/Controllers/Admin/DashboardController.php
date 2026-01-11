@@ -2460,22 +2460,22 @@ class DashboardController extends Controller
      */
     public function storeCareGiver(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:care_givers,email',
-            'phone' => 'nullable|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
-            'is_active' => 'nullable|boolean',
-        ]);
-
-        // Store plain password before hashing
-        $plainPassword = $validated['password'];
-        
-        $validated['password'] = bcrypt($validated['password']);
-        $validated['is_active'] = $request->has('is_active') ? true : false;
-        $validated['created_by'] = auth()->guard('admin')->id();
-
         try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:care_givers,email',
+                'phone' => 'nullable|string|max:20',
+                'password' => 'required|string|min:8|confirmed',
+                'is_active' => 'nullable|boolean',
+            ]);
+
+            // Store plain password before hashing
+            $plainPassword = $validated['password'];
+            
+            $validated['password'] = bcrypt($validated['password']);
+            $validated['is_active'] = $request->has('is_active') ? true : false;
+            $validated['created_by'] = auth()->guard('admin')->id();
+
             $careGiver = CareGiver::create($validated);
             
             // Get admin name
@@ -2488,6 +2488,12 @@ class DashboardController extends Controller
                 'success' => true,
                 'message' => 'Care Giver created successfully! An email with login credentials and verification link has been sent.'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Please check your input.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2497,36 +2503,42 @@ class DashboardController extends Controller
     }
 
     /**
-     * Update an existing care giver
+* Update an existing care giver
      */
     public function updateCareGiver(Request $request, $id)
     {
-        $careGiver = CareGiver::findOrFail($id);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:care_givers,email,' . $id,
-            'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
-            'is_active' => 'nullable|boolean',
-        ]);
-
-        // Only update password if provided
-        if (!empty($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
-        } else {
-            unset($validated['password']);
-        }
-
-        $validated['is_active'] = $request->has('is_active') ? true : false;
-
         try {
+            $careGiver = CareGiver::findOrFail($id);
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:care_givers,email,' . $id,
+                'phone' => 'nullable|string|max:20',
+                'password' => 'nullable|string|min:8|confirmed',
+                'is_active' => 'nullable|boolean',
+            ]);
+
+            // Only update password if provided
+            if (!empty($validated['password'])) {
+                $validated['password'] = bcrypt($validated['password']);
+            } else {
+                unset($validated['password']);
+            }
+
+            $validated['is_active'] = $request->has('is_active') ? true : false;
+
             $careGiver->update($validated);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Care Giver updated successfully!'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Please check your input.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

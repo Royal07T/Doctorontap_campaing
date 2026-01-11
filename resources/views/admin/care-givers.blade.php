@@ -467,10 +467,20 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                             },
                             body: JSON.stringify({ is_active: newStatus })
                         });
+
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const text = await response.text();
+                            console.error('Non-JSON response:', text.substring(0, 200));
+                            showAlertModal('Server returned an unexpected response. Please check the console for details.', 'error');
+                            return;
+                        }
 
                         const data = await response.json();
 
@@ -481,7 +491,7 @@
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        showAlertModal('A network error occurred', 'error');
+                        showAlertModal('A network error occurred: ' + error.message, 'error');
                     }
                 }
             );
@@ -497,9 +507,19 @@
                             method: 'DELETE',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                             }
                         });
+
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const text = await response.text();
+                            console.error('Non-JSON response:', text.substring(0, 200));
+                            showAlertModal('Server returned an unexpected response. Please check the console for details.', 'error');
+                            return;
+                        }
 
                         const data = await response.json();
 
@@ -510,7 +530,7 @@
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        showAlertModal('A network error occurred', 'error');
+                        showAlertModal('A network error occurred: ' + error.message, 'error');
                     }
                 }
             );
@@ -530,13 +550,30 @@
             
             try {
                 const formData = new FormData(this);
+                const method = document.getElementById('formMethod').value;
+                const recordId = document.getElementById('recordId').value;
+                
+                // Add _method for PUT requests
+                if (method === 'PUT') {
+                    formData.append('_method', 'PUT');
+                }
+                
                 const response = await fetch(this.action, {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     },
                     body: formData
                 });
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text.substring(0, 200));
+                    throw new Error('Server returned non-JSON response. Please check the console for details.');
+                }
                 
                 const data = await response.json();
                 
@@ -550,7 +587,15 @@
                     }, 1500);
                 } else {
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
-                    formMessage.textContent = data.message || 'An error occurred. Please try again.';
+                    
+                    // Handle validation errors
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat().join('<br>');
+                        formMessage.innerHTML = errorMessages;
+                    } else {
+                        formMessage.textContent = data.message || 'An error occurred. Please try again.';
+                    }
+                    
                     formMessage.classList.remove('hidden');
                     
                     submitBtn.disabled = false;
@@ -559,7 +604,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
-                formMessage.textContent = 'A network error occurred. Please try again.';
+                formMessage.textContent = error.message || 'A network error occurred. Please try again.';
                 formMessage.classList.remove('hidden');
                 
                 submitBtn.disabled = false;

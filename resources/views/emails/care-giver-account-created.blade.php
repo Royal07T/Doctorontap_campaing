@@ -225,7 +225,7 @@
 
             <!-- Verify Email Button -->
             <div style="text-align: center;">
-                <a href="{{ route('care_giver.verification.verify', ['id' => $careGiver->id, 'hash' => sha1($careGiver->email)]) }}" 
+                <a href="{{ route('care_giver.verification.verify', ['id' => $careGiver->id, 'hash' => sha1($careGiver->getEmailForVerification())]) }}" 
                    class="cta-button">
                     ✓ Verify Email Address
                 </a>

@@ -387,6 +387,31 @@ Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verifie
     Route::post('/vital-signs/{id}/send-email', [NurseDashboardController::class, 'sendVitalSignsEmail'])->name('vital-signs.send-email');
 });
 
+// ==================== CARE GIVER ROUTES ====================
+
+// Care Giver Login Routes (No authentication required)
+Route::prefix('care-giver')->name('care_giver.')->group(function () {
+    Route::get('/login', [\App\Http\Controllers\CareGiver\AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [\App\Http\Controllers\CareGiver\AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
+});
+
+// Care Giver Email Verification Routes
+Route::prefix('care-giver')->name('care_giver.')->middleware('auth:care_giver')->group(function () {
+    Route::get('/email/verify', [\App\Http\Controllers\CareGiver\VerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [\App\Http\Controllers\CareGiver\VerificationController::class, 'resend'])->name('verification.resend');
+});
+
+Route::get('/care-giver/email/verify/{id}/{hash}', [\App\Http\Controllers\CareGiver\VerificationController::class, 'verify'])
+    ->name('care_giver.verification.verify');
+
+// Protected Care Giver Routes (Authentication required)
+Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver', 'session.management'])->group(function () {
+    Route::post('/logout', [\App\Http\Controllers\CareGiver\AuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [\App\Http\Controllers\CareGiver\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Add more care-giver routes here as needed
+});
+
 // ==================== CUSTOMER CARE ROUTES ====================
 
 // Customer Care Login Routes (No authentication required)

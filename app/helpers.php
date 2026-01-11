@@ -147,6 +147,26 @@ if (!function_exists('email_logo_inline')) {
     }
 }
 
+if (!function_exists('app_url')) {
+    /**
+     * Get the application URL.
+     * Returns the base URL of the application.
+     *
+     * @param string $path Optional path to append
+     * @return string
+     */
+    function app_url(string $path = ''): string
+    {
+        $baseUrl = config('app.url');
+        
+        if ($path) {
+            return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
+        }
+        
+        return $baseUrl;
+    }
+}
+
 if (!function_exists('format_whatsapp_phone')) {
     /**
      * Format a phone number for WhatsApp URL (wa.me links).
