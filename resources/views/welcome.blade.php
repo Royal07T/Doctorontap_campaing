@@ -11,10 +11,20 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#7B3DE9">
     
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ asset('img/pwa/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/pwa/icon-192x192.png') }}">
+    
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Zoho SalesIQ Live Chat -->
+    @include('components.zoho-salesiq')
 </head>
 <body class="font-sans antialiased text-text-main bg-surface selection:bg-primary selection:text-white">
     <div class="relative min-h-screen overflow-hidden">
@@ -267,6 +277,44 @@
                 navbar.classList.remove('glass', 'shadow-sm');
             }
         });
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('ServiceWorker registered:', registration.scope);
+                    
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+                } catch (error) {
+                    console.log('ServiceWorker registration failed:', error);
+                }
+            });
+        }
+        
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+        
+        // Track if app is installed
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed successfully');
+            deferredPrompt = null;
+        });
+        
+        // Detect if running as PWA
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            console.log('Running as PWA');
+            document.body.classList.add('pwa-mode');
+        }
     </script>
 </body>
 </html>

@@ -7,12 +7,24 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="application-name" content="DoctorOnTap">
+    <meta name="theme-color" content="#9333EA">
     <title>DoctorOnTap - Speak with a Doctor Today</title>
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ asset('img/pwa/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/pwa/icon-192x192.png') }}">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Zoho SalesIQ Live Chat -->
+    @include('components.zoho-salesiq')
     
     <style>
         html {
@@ -2232,7 +2244,7 @@
         .whatsapp-float {
             position: fixed;
             bottom: 25px;
-            right: 25px;
+            left: 25px;
             z-index: 999;
             width: 60px;
             height: 60px;
@@ -2269,7 +2281,7 @@
         /* Tooltip */
         .whatsapp-tooltip {
             position: absolute;
-            right: 70px;
+            left: 70px;
             background: #fff;
             color: #333;
             padding: 10px 16px;
@@ -2280,7 +2292,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             opacity: 0;
             visibility: hidden;
-            transform: translateX(10px);
+            transform: translateX(-10px);
             transition: all 0.3s ease;
             pointer-events: none;
         }
@@ -2288,12 +2300,12 @@
         .whatsapp-tooltip::after {
             content: '';
             position: absolute;
-            right: -6px;
+            left: -6px;
             top: 50%;
             transform: translateY(-50%);
             width: 0;
             height: 0;
-            border-left: 6px solid #fff;
+            border-right: 6px solid #fff;
             border-top: 6px solid transparent;
             border-bottom: 6px solid transparent;
         }
@@ -2331,7 +2343,7 @@
                 width: 56px;
                 height: 56px;
                 bottom: 20px;
-                right: 20px;
+                left: 20px;
             }
 
             .whatsapp-icon {
@@ -2356,7 +2368,7 @@
         @media (max-height: 600px) {
             .whatsapp-float {
                 bottom: 15px;
-                right: 15px;
+                left: 15px;
                 width: 50px;
                 height: 50px;
             }
@@ -2876,5 +2888,43 @@
 
 
     <x-system-preloader x-show="isSubmitting" message="Submitting Consultation..." subtext="Please wait while we secure your booking." />
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('ServiceWorker registered:', registration.scope);
+                    
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+                } catch (error) {
+                    console.log('ServiceWorker registration failed:', error);
+                }
+            });
+        }
+        
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+        
+        // Track if app is installed
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed successfully');
+            deferredPrompt = null;
+        });
+        
+        // Detect if running as PWA
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            console.log('Running as PWA');
+            document.body.classList.add('pwa-mode');
+        }
+    </script>
 </body>
 </html>

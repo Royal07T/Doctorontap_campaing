@@ -6,7 +6,26 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Booking Confirmed - DoctorOnTap</title>
     
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="DoctorOnTap">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#9333EA">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ asset('img/pwa/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/pwa/icon-192x192.png') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Zoho SalesIQ Live Chat -->
+    @include('components.zoho-salesiq')
 </head>
 <body class="bg-surface font-sans antialiased text-text-main">
     <div class="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
@@ -79,5 +98,19 @@
             </div>
         </div>
     </div>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('ServiceWorker registered:', registration.scope);
+                } catch (error) {
+                    console.log('ServiceWorker registration failed:', error);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
