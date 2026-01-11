@@ -74,6 +74,7 @@ class SessionManagement
             'admin/login',
             'nurse/login',
             'canvasser/login',
+            'customer-care/login',
             'patient/register',
             'doctor/register',
             'patient/forgot-password',
@@ -181,7 +182,10 @@ class SessionManagement
     {
         $path = $request->path();
         
-        if (str_starts_with($path, 'admin')) {
+        // Check for super-admin paths first (they use admin guard)
+        if (str_starts_with($path, 'super-admin')) {
+            return 'admin.login';
+        } elseif (str_starts_with($path, 'admin')) {
             return 'admin.login';
         } elseif (str_starts_with($path, 'doctor')) {
             return 'doctor.login';
@@ -191,9 +195,21 @@ class SessionManagement
             return 'canvasser.login';
         } elseif (str_starts_with($path, 'patient')) {
             return 'patient.login';
+        } elseif (str_starts_with($path, 'customer-care')) {
+            return 'customer_care.login';
         }
         
-        return 'consultation.index';
+        // Default fallback - try to determine from authenticated guard
+        $guard = auth()->guard()->name ?? 'web';
+        return match($guard) {
+            'admin' => 'admin.login',
+            'doctor' => 'doctor.login',
+            'patient' => 'patient.login',
+            'nurse' => 'nurse.login',
+            'canvasser' => 'canvasser.login',
+            'customer_care' => 'customer_care.login',
+            default => 'consultation.index',
+        };
     }
     
     /**

@@ -32,12 +32,26 @@ class SessionTimeout
                     'timeout_duration' => $timeout,
                 ]);
 
+                // Get the guard name before logout
+                $guardName = auth()->guard()->name ?? 'web';
+                
                 // Logout the user
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
                 
-                return redirect()->route('login')
+                // Redirect to appropriate login route based on guard
+                $loginRoute = match($guardName) {
+                    'admin' => 'admin.login',
+                    'doctor' => 'doctor.login',
+                    'patient' => 'patient.login',
+                    'nurse' => 'nurse.login',
+                    'canvasser' => 'canvasser.login',
+                    'customer_care' => 'customer_care.login',
+                    default => 'admin.login', // Default to admin login
+                };
+                
+                return redirect()->route($loginRoute)
                     ->with('message', 'Your session has expired due to inactivity. Please log in again.');
             }
             

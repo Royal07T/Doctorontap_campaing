@@ -16,6 +16,11 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::guard('admin')->check()) {
+            $admin = Auth::guard('admin')->user();
+            // Redirect super admin to super admin dashboard, regular admin to admin dashboard
+            if ($admin->isSuperAdmin()) {
+                return redirect()->route('super-admin.dashboard');
+            }
             return redirect()->route('admin.dashboard');
         }
         
@@ -56,6 +61,12 @@ class AuthController extends Controller
             if (!$admin->hasVerifiedEmail()) {
                 return redirect()->route('admin.verification.notice')
                     ->with('warning', 'Please verify your email address to access all features.');
+            }
+            
+            // Redirect super admin to super admin dashboard, regular admin to admin dashboard
+            if ($admin->isSuperAdmin()) {
+                return redirect()->intended(route('super-admin.dashboard'))
+                    ->with('success', 'Welcome back, ' . $admin->name . '!');
             }
             
             return redirect()->intended(route('admin.dashboard'))

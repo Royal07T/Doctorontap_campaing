@@ -617,6 +617,9 @@ Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 's
     Route::get('/activity-logs/{id}', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'show'])->name('activity-logs.show');
     Route::get('/activity-logs/export/csv', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'export'])->name('activity-logs.export');
     
+    // Services Monitoring
+    Route::get('/services', [\App\Http\Controllers\SuperAdmin\ServicesController::class, 'index'])->name('services.index');
+    
     // System Health
     Route::get('/system-health', [\App\Http\Controllers\SuperAdmin\SystemHealthController::class, 'index'])->name('system-health.index');
     

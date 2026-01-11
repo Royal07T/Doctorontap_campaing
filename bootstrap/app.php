@@ -64,7 +64,37 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Handle route not found exceptions for 'login' route
+        $exceptions->render(function (\Symfony\Component\Routing\Exception\RouteNotFoundException $e, \Illuminate\Http\Request $request) {
+            if ($e->getMessage() === 'Route [login] not defined.') {
+                // Determine the correct login route based on the request path
+                $path = $request->path();
+                $loginRoute = match(true) {
+                    str_starts_with($path, 'super-admin') => 'admin.login',
+                    str_starts_with($path, 'admin') => 'admin.login',
+                    str_starts_with($path, 'doctor') => 'doctor.login',
+                    str_starts_with($path, 'nurse') => 'nurse.login',
+                    str_starts_with($path, 'canvasser') => 'canvasser.login',
+                    str_starts_with($path, 'patient') => 'patient.login',
+                    str_starts_with($path, 'customer-care') => 'customer_care.login',
+                    default => 'admin.login',
+                };
+                
+                // If it's an AJAX request, return JSON
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'message' => 'Authentication required',
+                        'redirect' => route($loginRoute)
+                    ], 401);
+                }
+                
+                // Otherwise redirect to the appropriate login page
+                return redirect()->route($loginRoute)
+                    ->with('error', 'Please login to continue.');
+            }
+            
+            return null; // Let Laravel handle other exceptions
+        });
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         // Ensure queue worker is running every minute
