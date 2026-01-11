@@ -43,3 +43,10 @@ Broadcast::channel('notifications.canvasser.{userId}', function ($user, $userId)
     return false;
 });
 
+Broadcast::channel('notifications.care_giver.{userId}', function ($user, $userId) {
+    if (Auth::guard('care_giver')->check()) {
+        return Auth::guard('care_giver')->id() == $userId;
+    }
+    return false;
+});
+

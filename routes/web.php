@@ -233,6 +233,13 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/customer-cares/{id}/toggle-status', [DashboardController::class, 'toggleCustomerCareStatus'])->name('customer-cares.toggle-status');
     Route::delete('/customer-cares/{id}', [DashboardController::class, 'deleteCustomerCare'])->name('customer-cares.delete');
     
+    // Care Giver Management
+    Route::get('/care-givers', [DashboardController::class, 'careGivers'])->name('care-givers');
+    Route::post('/care-givers', [DashboardController::class, 'storeCareGiver'])->name('care-givers.store');
+    Route::put('/care-givers/{id}', [DashboardController::class, 'updateCareGiver'])->name('care-givers.update');
+    Route::post('/care-givers/{id}/toggle-status', [DashboardController::class, 'toggleCareGiverStatus'])->name('care-givers.toggle-status');
+    Route::delete('/care-givers/{id}', [DashboardController::class, 'deleteCareGiver'])->name('care-givers.delete');
+    
     // Reviews Management
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
     Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');

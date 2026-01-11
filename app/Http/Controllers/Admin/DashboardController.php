@@ -20,6 +20,7 @@ use App\Models\AdminUser;
 use App\Models\Canvasser;
 use App\Models\Nurse;
 use App\Models\CustomerCare;
+use App\Models\CareGiver;
 use App\Models\Setting;
 use App\Models\VitalSign;
 use App\Models\Patient;
@@ -27,6 +28,7 @@ use App\Models\Notification;
 use App\Mail\CanvasserAccountCreated;
 use App\Mail\NurseAccountCreated;
 use App\Mail\CustomerCareAccountCreated;
+use App\Mail\CareGiverAccountCreated;
 use App\Notifications\ConsultationSmsNotification;
 use App\Notifications\ConsultationWhatsAppNotification;
 
@@ -2408,6 +2410,172 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete customer care: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ==================== CARE GIVER MANAGEMENT ====================
+
+    /**
+     * Display care givers list
+     */
+    public function careGivers(Request $request)
+    {
+        $query = CareGiver::with('createdBy')->withCount('consultations');
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+        
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $careGivers = $query->latest()->paginate(20);
+        
+        return view('admin.care-givers', compact('careGivers'));
+    }
+
+    /**
+     * Store a new care giver
+     */
+    public function storeCareGiver(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:care_givers,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        // Store plain password before hashing
+        $plainPassword = $validated['password'];
+        
+        $validated['password'] = bcrypt($validated['password']);
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['created_by'] = auth()->guard('admin')->id();
+
+        try {
+            $careGiver = CareGiver::create($validated);
+            
+            // Get admin name
+            $adminName = auth()->guard('admin')->user()->name;
+            
+            // Send account creation email with password and verification link
+            Mail::to($careGiver->email)->send(new CareGiverAccountCreated($careGiver, $plainPassword, $adminName));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Care Giver created successfully! An email with login credentials and verification link has been sent.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create care giver: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing care giver
+     */
+    public function updateCareGiver(Request $request, $id)
+    {
+        $careGiver = CareGiver::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:care_givers,email,' . $id,
+            'phone' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:8|confirmed',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        // Only update password if provided
+        if (!empty($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+
+        try {
+            $careGiver->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Care Giver updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update care giver: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle care giver status
+     */
+    public function toggleCareGiverStatus(Request $request, $id)
+    {
+        try {
+            $careGiver = CareGiver::findOrFail($id);
+            $careGiver->is_active = $request->input('is_active', false);
+            $careGiver->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Care Giver status updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete a care giver
+     */
+    public function deleteCareGiver($id)
+    {
+        try {
+            $careGiver = CareGiver::findOrFail($id);
+            
+            // Soft delete the care giver (consultations will remain with care_giver_id)
+            $careGiver->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Care Giver deleted successfully! The record has been archived and can be restored if needed.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete care giver: ' . $e->getMessage()
             ], 500);
         }
     }

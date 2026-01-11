@@ -45,6 +45,7 @@ class ActivityLog extends Model
             'nurse' => \App\Models\Nurse::find($this->user_id),
             'canvasser' => \App\Models\Canvasser::find($this->user_id),
             'customer_care' => \App\Models\CustomerCare::find($this->user_id),
+            'care_giver' => \App\Models\CareGiver::find($this->user_id),
             default => null,
         };
     }

@@ -22,7 +22,7 @@
 
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
                     <a href="{{ route('super-admin.users.index', ['type' => 'admin']) }}" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
                         <p class="text-xs text-gray-500 uppercase mb-1">Admins</p>
                         <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['admins']) }}</p>
@@ -47,6 +47,10 @@
                         <p class="text-xs text-gray-500 uppercase mb-1">Customer Care</p>
                         <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['customer_cares']) }}</p>
                     </a>
+                    <a href="{{ route('super-admin.users.index', ['type' => 'care_giver']) }}" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+                        <p class="text-xs text-gray-500 uppercase mb-1">Care Givers</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['care_givers'] ?? 0) }}</p>
+                    </a>
                 </div>
 
                 <!-- Filters -->
@@ -66,6 +70,7 @@
                                 <option value="canvasser" {{ $userType === 'canvasser' ? 'selected' : '' }}>Canvassers</option>
                                 <option value="nurse" {{ $userType === 'nurse' ? 'selected' : '' }}>Nurses</option>
                                 <option value="customer_care" {{ $userType === 'customer_care' ? 'selected' : '' }}>Customer Care</option>
+                                <option value="care_giver" {{ $userType === 'care_giver' ? 'selected' : '' }}>Care Givers</option>
                             </select>
                         </div>
                         <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">

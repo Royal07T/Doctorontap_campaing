@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\Canvasser;
 use App\Models\Nurse;
 use App\Models\CustomerCare;
+use App\Models\CareGiver;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -146,6 +147,7 @@ class ImpersonationController extends Controller
             'canvasser' => Canvasser::find($id),
             'nurse' => Nurse::find($id),
             'customer_care' => CustomerCare::find($id),
+            'care_giver' => CareGiver::find($id),
             default => null,
         };
     }

@@ -12,7 +12,7 @@ class BroadcastController extends BaseBroadcastController
     /**
      * Authenticate the request for channel access.
      * 
-     * Override to support multiple guards (admin, doctor, patient, nurse, canvasser)
+     * Override to support multiple guards (admin, doctor, patient, nurse, canvasser, customer_care, care_giver)
      */
     public function authenticate(Request $request)
     {
@@ -22,7 +22,7 @@ class BroadcastController extends BaseBroadcastController
         if (!$user) {
             if (app()->environment('local')) {
                 Log::warning('Broadcasting auth failed: No authenticated user found', [
-                    'guards_checked' => ['admin', 'doctor', 'patient', 'nurse', 'canvasser', 'web'],
+                    'guards_checked' => ['admin', 'doctor', 'patient', 'nurse', 'canvasser', 'customer_care', 'care_giver', 'web'],
                 ]);
             }
             return response()->json(['message' => 'Unauthenticated.'], 403);
@@ -61,7 +61,7 @@ class BroadcastController extends BaseBroadcastController
      */
     protected function getAuthenticatedUser()
     {
-        $guards = ['admin', 'doctor', 'patient', 'nurse', 'canvasser', 'web'];
+        $guards = ['admin', 'doctor', 'patient', 'nurse', 'canvasser', 'customer_care', 'care_giver', 'web'];
         
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {

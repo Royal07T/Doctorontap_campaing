@@ -70,6 +70,11 @@ return [
             'driver' => 'session',
             'provider' => 'customer_cares',
         ],
+        
+        'care_giver' => [
+            'driver' => 'session',
+            'provider' => 'care_givers',
+        ],
     ],
 
     /*
@@ -123,6 +128,11 @@ return [
         'customer_cares' => [
             'driver' => 'eloquent',
             'model' => App\Models\CustomerCare::class,
+        ],
+        
+        'care_givers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\CareGiver::class,
         ],
 
         // 'users' => [

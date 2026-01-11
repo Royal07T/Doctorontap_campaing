@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\Canvasser;
 use App\Models\Nurse;
 use App\Models\CustomerCare;
+use App\Models\CareGiver;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -52,6 +53,9 @@ class UserManagementController extends Controller
             case 'customer_care':
                 $users = $this->getCustomerCares($search);
                 break;
+            case 'care_giver':
+                $users = $this->getCareGivers($search);
+                break;
             default:
                 // Get counts for all types - no users to display
                 break;
@@ -64,6 +68,7 @@ class UserManagementController extends Controller
             'canvassers' => Canvasser::count(),
             'nurses' => Nurse::count(),
             'customer_cares' => CustomerCare::count(),
+            'care_givers' => CareGiver::count(),
         ];
 
         // Log access
@@ -183,6 +188,24 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Get care givers
+     */
+    private function getCareGivers(?string $search)
+    {
+        $query = CareGiver::query();
+        
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        
+        return $query->latest()->paginate(20);
+    }
+
+    /**
      * Toggle user active status
      */
     public function toggleStatus(Request $request, string $type, int $id)
@@ -252,6 +275,7 @@ class UserManagementController extends Controller
             'canvasser' => Canvasser::find($id),
             'nurse' => Nurse::find($id),
             'customer_care' => CustomerCare::find($id),
+            'care_giver' => CareGiver::find($id),
             default => null,
         };
     }
