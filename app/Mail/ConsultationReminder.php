@@ -4,12 +4,17 @@ namespace App\Mail;
 
 use App\Models\Consultation;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ConsultationReminder extends Mailable
+/**
+ * OPTIMIZATION: Implements ShouldQueue to prevent blocking HTTP requests
+ * Email will be sent asynchronously via queue, improving response times
+ */
+class ConsultationReminder extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

@@ -3,13 +3,15 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 
-class VitalSignsReport extends Mailable
+/** OPTIMIZATION: Implements ShouldQueue to prevent blocking HTTP requests */
+class VitalSignsReport extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

@@ -5,12 +5,14 @@ namespace App\Mail;
 use App\Models\Consultation;
 use App\Models\Payment;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class PaymentReceivedDoctorNotification extends Mailable
+/** OPTIMIZATION: Implements ShouldQueue to prevent blocking HTTP requests */
+class PaymentReceivedDoctorNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

@@ -3,12 +3,16 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class DoctorReassignmentNotification extends Mailable
+/**
+ * OPTIMIZATION: Implements ShouldQueue to prevent blocking HTTP requests
+ */
+class DoctorReassignmentNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

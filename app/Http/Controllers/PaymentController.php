@@ -37,18 +37,20 @@ class PaymentController extends Controller
             $doctor = Doctor::find($validated['doctor_id']);
         }
 
-        // Create payment record
-        $payment = Payment::create([
-            'reference' => $reference,
-            'customer_email' => $validated['customer_email'],
-            'customer_name' => $validated['customer_name'],
-            'customer_phone' => $validated['customer_phone'] ?? null,
-            'amount' => $validated['amount'],
-            'currency' => 'NGN',
-            'status' => 'pending',
-            'doctor_id' => $validated['doctor_id'] ?? null,
-            'metadata' => $validated['metadata'] ?? null,
-        ]);
+        // OPTIMIZATION: Wrap payment creation in transaction for data consistency
+        $payment = \Illuminate\Support\Facades\DB::transaction(function () use ($reference, $validated) {
+            return Payment::create([
+                'reference' => $reference,
+                'customer_email' => $validated['customer_email'],
+                'customer_name' => $validated['customer_name'],
+                'customer_phone' => $validated['customer_phone'] ?? null,
+                'amount' => $validated['amount'],
+                'currency' => 'NGN',
+                'status' => 'pending',
+                'doctor_id' => $validated['doctor_id'] ?? null,
+                'metadata' => $validated['metadata'] ?? null,
+            ]);
+        });
 
         // Prepare Korapay API request
         $payload = [

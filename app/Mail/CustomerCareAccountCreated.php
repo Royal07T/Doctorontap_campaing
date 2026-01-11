@@ -4,12 +4,16 @@ namespace App\Mail;
 
 use App\Models\CustomerCare;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class CustomerCareAccountCreated extends Mailable
+/**
+ * OPTIMIZATION: Implements ShouldQueue to prevent blocking HTTP requests
+ */
+class CustomerCareAccountCreated extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

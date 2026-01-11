@@ -5,10 +5,12 @@ namespace App\Mail;
 use App\Models\Booking;
 use App\Models\Patient;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class FeeAdjustmentAdminNotification extends Mailable
+/** OPTIMIZATION: Implements ShouldQueue to prevent blocking HTTP requests */
+class FeeAdjustmentAdminNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
