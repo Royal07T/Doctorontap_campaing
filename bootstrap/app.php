@@ -60,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'sanitize.input' => \App\Http\Middleware\SanitizeInput::class,
             'validate.route.params' => \App\Http\Middleware\ValidateRouteParameters::class,
             'domain.routing' => \App\Http\Middleware\DomainRouting::class,
+            'super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

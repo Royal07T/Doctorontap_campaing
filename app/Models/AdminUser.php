@@ -19,6 +19,10 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
         'is_active',
         'last_login_at',
         'email_verified_at',
+        'role',
+        'permissions',
+        'can_impersonate',
+        'last_impersonation_at',
     ];
 
     protected $hidden = [
@@ -32,6 +36,9 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
+        'permissions' => 'array',
+        'can_impersonate' => 'boolean',
+        'last_impersonation_at' => 'datetime',
     ];
     
     /**
@@ -74,5 +81,43 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\AdminVerifyEmail);
+    }
+
+    /**
+     * Check if user is a super admin
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    /**
+     * Check if user has a specific role
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Check if user has a specific permission
+     */
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true; // Super admins have all permissions
+        }
+
+        $permissions = $this->permissions ?? [];
+        return in_array($permission, $permissions);
+    }
+
+    /**
+     * Get activity logs for this admin
+     */
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class, 'user_id')
+                    ->where('user_type', 'admin');
     }
 }

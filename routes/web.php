@@ -601,3 +601,27 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::put('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateSexualHealthRecord'])->name('sexual-health.update');
     Route::delete('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteSexualHealthRecord'])->name('sexual-health.delete');
 });
+
+// Super Admin Routes
+Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 'super_admin', 'rate.limit'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
+    
+    // User Management
+    Route::get('/users', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'index'])->name('users.index');
+    Route::post('/users/{type}/{id}/toggle-status', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::post('/users/{type}/{id}/reset-password', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'resetPassword'])->name('users.reset-password');
+    
+    // Activity Logs
+    Route::get('/activity-logs', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::get('/activity-logs/{id}', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'show'])->name('activity-logs.show');
+    Route::get('/activity-logs/export/csv', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'export'])->name('activity-logs.export');
+    
+    // System Health
+    Route::get('/system-health', [\App\Http\Controllers\SuperAdmin\SystemHealthController::class, 'index'])->name('system-health.index');
+    
+    // Impersonation
+    Route::post('/impersonate/{type}/{id}/start', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'start'])->name('impersonate.start');
+    Route::post('/impersonate/stop', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
+    Route::get('/impersonate/status', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'status'])->name('impersonate.status');
+});
