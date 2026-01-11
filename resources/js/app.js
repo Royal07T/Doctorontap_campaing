@@ -13,29 +13,61 @@ window.Alpine = Alpine;
 // Initialize Laravel Echo for WebSocket connections
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-    authEndpoint: '/broadcasting/auth',
-    auth: {
-        headers: {
-            'X-CSRF-TOKEN': () => {
-                const token = document.querySelector('meta[name="csrf-token"]')?.content;
-                if (!token) {
-                    console.warn('CSRF token not found in meta tag. Please refresh the page.');
-                }
-                return token || '';
+// Only initialize Echo if Reverb configuration is available
+if (import.meta.env.VITE_REVERB_APP_KEY && import.meta.env.VITE_REVERB_HOST) {
+    try {
+        window.Echo = new Echo({
+            broadcaster: 'reverb',
+            key: import.meta.env.VITE_REVERB_APP_KEY,
+            wsHost: import.meta.env.VITE_REVERB_HOST,
+            wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+            wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+            forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+            enabledTransports: ['ws', 'wss'],
+            authEndpoint: '/broadcasting/auth',
+            auth: {
+                headers: {
+                    'X-CSRF-TOKEN': () => {
+                        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                        if (!token) {
+                            console.warn('CSRF token not found in meta tag. Please refresh the page.');
+                        }
+                        return token || '';
+                    },
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                withCredentials: true, // Send cookies with the request
             },
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        withCredentials: true, // Send cookies with the request
-    },
-});
+        });
+
+        // Handle connection errors gracefully
+        window.Echo.connector.pusher.connection.bind('error', (err) => {
+            console.warn('WebSocket connection error (non-critical):', err);
+            // App will continue to work with polling fallback
+        });
+
+        window.Echo.connector.pusher.connection.bind('disconnected', () => {
+            console.warn('WebSocket disconnected. Real-time features will use polling fallback.');
+        });
+
+        console.log('Laravel Echo initialized for WebSocket connections');
+    } catch (error) {
+        console.warn('Failed to initialize Laravel Echo:', error);
+        console.warn('Real-time features will use polling fallback');
+        // Create a dummy Echo object to prevent errors
+        window.Echo = {
+            private: () => ({ listen: () => {}, subscribed: () => {}, error: () => {} }),
+            leave: () => {},
+        };
+    }
+} else {
+    console.warn('Reverb configuration not found. WebSocket features disabled.');
+    // Create a dummy Echo object to prevent errors
+    window.Echo = {
+        private: () => ({ listen: () => {}, subscribed: () => {}, error: () => {} }),
+        leave: () => {},
+    };
+}
 
 // Start Alpine
 Alpine.start();
