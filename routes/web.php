@@ -41,6 +41,20 @@ Route::post('/vonage/webhook/inbound', [VonageWebhookController::class, 'handleI
 Route::post('/vonage/webhook/status', [VonageWebhookController::class, 'handleStatus'])
     ->name('vonage.webhook.status');
 
+// Vonage WhatsApp Webhooks (must be public, no CSRF protection)
+Route::post('/vonage/webhook/whatsapp/inbound', [VonageWebhookController::class, 'handleWhatsAppInbound'])
+    ->name('vonage.webhook.whatsapp.inbound');
+Route::post('/vonage/webhook/whatsapp/status', [VonageWebhookController::class, 'handleWhatsAppStatus'])
+    ->name('vonage.webhook.whatsapp.status');
+
+// Vonage Voice Webhooks (must be public, no CSRF protection)
+Route::post('/vonage/webhook/voice/answer', [\App\Http\Controllers\VonageVoiceWebhookController::class, 'handleAnswer'])
+    ->name('vonage.webhook.voice.answer');
+Route::post('/vonage/webhook/voice/event', [\App\Http\Controllers\VonageVoiceWebhookController::class, 'handleEvent'])
+    ->name('vonage.webhook.voice.event');
+Route::post('/vonage/webhook/voice/recording', [\App\Http\Controllers\VonageVoiceWebhookController::class, 'handleRecording'])
+    ->name('vonage.webhook.voice.recording');
+
 // Service Worker Route - Handle both /sw.js and /service-worker.js
 Route::get('/service-worker.js', function () {
     $swPath = public_path('sw.js');

@@ -168,6 +168,164 @@ class VonageWebhookController extends Controller
 
         return $statusMap[strtolower($vonageStatus)] ?? 'pending';
     }
+
+    /**
+     * Handle inbound WhatsApp messages from Vonage
+     * POST /vonage/webhook/whatsapp/inbound
+     */
+    public function handleWhatsAppInbound(Request $request)
+    {
+        Log::info('Vonage WhatsApp inbound webhook received', [
+            'data' => $request->all()
+        ]);
+
+        $data = $request->all();
+
+        // WhatsApp Messages API format: from, to, message, timestamp, message_uuid, channel, etc.
+        $from = $data['from'] ?? $data['from']['number'] ?? null;
+        $to = $data['to'] ?? $data['to']['number'] ?? null;
+        $message = $data['message'] ?? null;
+        $messageUuid = $data['message_uuid'] ?? null;
+        $timestamp = $data['timestamp'] ?? now();
+
+        // Extract message content based on type
+        $messageText = null;
+        $messageType = $data['message']['type'] ?? 'text';
+        
+        if ($messageType === 'text') {
+            $messageText = $message['text']['body'] ?? null;
+        } elseif ($messageType === 'image') {
+            $messageText = $message['image']['caption'] ?? '[Image]';
+        } elseif ($messageType === 'video') {
+            $messageText = $message['video']['caption'] ?? '[Video]';
+        } elseif ($messageType === 'document') {
+            $messageText = $message['document']['caption'] ?? '[Document]';
+        }
+
+        // Store inbound WhatsApp message
+        try {
+            DB::table('whatsapp_inbound_logs')->insert([
+                'from' => $from,
+                'to' => $to,
+                'message' => $messageText,
+                'message_type' => $messageType,
+                'message_uuid' => $messageUuid,
+                'timestamp' => $timestamp,
+                'raw_data' => json_encode($data),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Log::info('Vonage WhatsApp inbound message logged', [
+                'from' => $from,
+                'message_uuid' => $messageUuid,
+                'type' => $messageType
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log Vonage WhatsApp inbound message', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+        }
+
+        // Return 200 OK to acknowledge receipt
+        return response('OK', 200);
+    }
+
+    /**
+     * Handle WhatsApp delivery status updates from Vonage
+     * POST /vonage/webhook/whatsapp/status
+     */
+    public function handleWhatsAppStatus(Request $request)
+    {
+        Log::info('Vonage WhatsApp status webhook received', [
+            'data' => $request->all()
+        ]);
+
+        $data = $request->all();
+
+        // Messages API format: message_uuid, status, timestamp, channel, etc.
+        $messageUuid = $data['message_uuid'] ?? null;
+        $status = $data['status'] ?? null;
+        $errorCode = $data['error_code'] ?? null;
+        $channel = $data['channel'] ?? 'whatsapp';
+
+        // Map Vonage status to our internal status
+        $internalStatus = $this->mapWhatsAppStatus($status);
+
+        // Update notification tracking if message UUID exists
+        if ($messageUuid) {
+            try {
+                $updated = DB::table('notification_tracking_logs')
+                    ->where('external_message_id', $messageUuid)
+                    ->update([
+                        'status' => $internalStatus,
+                        'delivered_at' => $internalStatus === 'delivered' ? now() : null,
+                        'failed_at' => $internalStatus === 'failed' ? now() : null,
+                        'error_code' => $errorCode,
+                        'raw_response' => json_encode($data),
+                        'updated_at' => now(),
+                    ]);
+
+                if ($updated) {
+                    Log::info('Updated notification tracking from Vonage WhatsApp webhook', [
+                        'message_uuid' => $messageUuid,
+                        'status' => $internalStatus,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to update notification tracking from WhatsApp webhook', [
+                    'error' => $e->getMessage(),
+                    'message_uuid' => $messageUuid,
+                ]);
+            }
+        }
+
+        // Store status update in logs
+        try {
+            DB::table('whatsapp_status_logs')->insert([
+                'message_uuid' => $messageUuid,
+                'status' => $status,
+                'error_code' => $errorCode,
+                'channel' => $channel,
+                'raw_data' => json_encode($data),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log Vonage WhatsApp status update', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+        }
+
+        // Return 200 OK to acknowledge receipt
+        return response('OK', 200);
+    }
+
+    /**
+     * Map Vonage WhatsApp status to internal status
+     *
+     * @param string|null $vonageStatus
+     * @return string
+     */
+    protected function mapWhatsAppStatus(?string $vonageStatus): string
+    {
+        if (!$vonageStatus) {
+            return 'pending';
+        }
+
+        $statusMap = [
+            'submitted' => 'sent',
+            'delivered' => 'delivered',
+            'read' => 'read',
+            'rejected' => 'failed',
+            'undelivered' => 'failed',
+            'failed' => 'failed',
+        ];
+
+        return $statusMap[strtolower($vonageStatus)] ?? 'pending';
+    }
 }
 
 

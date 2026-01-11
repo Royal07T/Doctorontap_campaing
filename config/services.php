@@ -72,6 +72,15 @@ return [
         'brand_name' => env('VONAGE_BRAND_NAME', 'DoctorOnTap'),
         'api_method' => env('VONAGE_API_METHOD', 'legacy'), // 'legacy' or 'messages'
         'enabled' => env('VONAGE_ENABLED', false),
+        
+        // WhatsApp Configuration (requires Messages API)
+        'whatsapp_enabled' => env('VONAGE_WHATSAPP_ENABLED', false),
+        'whatsapp_number' => env('VONAGE_WHATSAPP_NUMBER'), // Your WhatsApp Business Number
+        
+        // Voice API Configuration
+        'voice_enabled' => env('VONAGE_VOICE_ENABLED', false),
+        'voice_number' => env('VONAGE_VOICE_NUMBER'), // Your Vonage phone number for outbound calls
+        'voice_webhook_url' => env('VONAGE_VOICE_WEBHOOK_URL'), // Base URL for voice webhooks
     ],
 
     /*
@@ -84,5 +93,17 @@ return [
     |
     */
     'sms_provider' => env('SMS_PROVIDER', 'termii'), // Options: 'termii' or 'vonage'
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Provider Selection
+    |--------------------------------------------------------------------------
+    |
+    | Choose which WhatsApp provider to use: 'termii' or 'vonage'
+    | The selected provider must be enabled in its respective config above.
+    | Note: Vonage WhatsApp requires Messages API (not Legacy SMS API)
+    |
+    */
+    'whatsapp_provider' => env('WHATSAPP_PROVIDER', 'termii'), // Options: 'termii' or 'vonage'
 
 ];

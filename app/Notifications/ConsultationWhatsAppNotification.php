@@ -3,20 +3,27 @@
 namespace App\Notifications;
 
 use App\Services\TermiiService;
+use App\Services\VonageService;
 use Illuminate\Support\Facades\Log;
 
 class ConsultationWhatsAppNotification
 {
-    protected TermiiService $termiiService;
+    protected $whatsappService;
+    protected string $provider;
 
     /**
      * Constructor with dependency injection
-     *
-     * @param TermiiService|null $termiiService
+     * Automatically selects the configured WhatsApp provider
      */
-    public function __construct(?TermiiService $termiiService = null)
+    public function __construct()
     {
-        $this->termiiService = $termiiService ?? app(TermiiService::class);
+        $this->provider = config('services.whatsapp_provider', 'termii');
+        
+        if ($this->provider === 'vonage') {
+            $this->whatsappService = app(VonageService::class);
+        } else {
+            $this->whatsappService = app(TermiiService::class);
+        }
     }
 
     // ============================================
@@ -28,10 +35,10 @@ class ConsultationWhatsAppNotification
      * Send consultation confirmation via WhatsApp (Template)
      *
      * @param array $data Consultation data
-     * @param string $templateId Template ID from Termii dashboard
+     * @param string $templateIdOrName Template ID (Termii) or Template Name (Vonage)
      * @return array Result of WhatsApp sending
      */
-    public function sendConsultationConfirmationTemplate(array $data, string $templateId): array
+    public function sendConsultationConfirmationTemplate(array $data, string $templateIdOrName): array
     {
         $phone = $data['mobile'] ?? null;
         $reference = $data['consultation_reference'] ?? 'N/A';
@@ -55,7 +62,7 @@ class ConsultationWhatsAppNotification
         
         return $this->sendWhatsAppTemplateWithLogging(
             $phone,
-            $templateId,
+            $templateIdOrName,
             $templateData,
             'consultation_confirmation_whatsapp',
             ['consultation_reference' => $reference, 'phone' => $phone]
@@ -67,10 +74,10 @@ class ConsultationWhatsAppNotification
      *
      * @param \App\Models\Doctor $doctor
      * @param array $consultationData
-     * @param string $templateId
+     * @param string $templateIdOrName Template ID (Termii) or Template Name (Vonage)
      * @return array Result of WhatsApp sending
      */
-    public function sendDoctorNewConsultationTemplate($doctor, array $consultationData, string $templateId): array
+    public function sendDoctorNewConsultationTemplate($doctor, array $consultationData, string $templateIdOrName): array
     {
         $phone = $doctor->phone;
         $reference = $consultationData['consultation_reference'] ?? 'N/A';
@@ -93,7 +100,7 @@ class ConsultationWhatsAppNotification
         
         return $this->sendWhatsAppTemplateWithLogging(
             $phone,
-            $templateId,
+            $templateIdOrName,
             $templateData,
             'doctor_notification_whatsapp',
             [
@@ -263,7 +270,7 @@ class ConsultationWhatsAppNotification
      * Send WhatsApp template with logging
      *
      * @param string $phone
-     * @param string $templateId
+     * @param string $templateIdOrName Template ID (Termii) or Template Name (Vonage)
      * @param array $templateData
      * @param string $type
      * @param array $context
@@ -271,15 +278,26 @@ class ConsultationWhatsAppNotification
      */
     private function sendWhatsAppTemplateWithLogging(
         string $phone,
-        string $templateId,
+        string $templateIdOrName,
         array $templateData,
         string $type,
         array $context = []
     ): array {
-        $normalizedPhone = $this->normalizePhoneNumber($phone);
-
         try {
-            $result = $this->termiiService->sendWhatsAppTemplate($normalizedPhone, $templateId, $templateData);
+            if ($this->provider === 'vonage') {
+                // Vonage uses template names and requires Messages API
+                // Format: template name, language, and parameters
+                $result = $this->whatsappService->sendWhatsAppTemplate(
+                    $phone,
+                    $templateIdOrName, // Template name
+                    'en', // Language code (can be made configurable)
+                    $this->convertTemplateDataForVonage($templateData)
+                );
+            } else {
+                // Termii uses template IDs
+                $normalizedPhone = $this->normalizePhoneNumber($phone);
+                $result = $this->whatsappService->sendWhatsAppTemplate($normalizedPhone, $templateIdOrName, $templateData);
+            }
 
             if ($result['success']) {
                 $this->logSuccess($type, $context, $result);
@@ -312,10 +330,16 @@ class ConsultationWhatsAppNotification
         string $type,
         array $context = []
     ): array {
-        $normalizedPhone = $this->normalizePhoneNumber($phone);
-
         try {
-            $result = $this->termiiService->sendWhatsAppMessage($normalizedPhone, $message, $mediaUrl, $caption);
+            if ($this->provider === 'vonage') {
+                // Vonage WhatsApp text messages (within 24-hour window)
+                // Note: Media support can be added later if needed
+                $result = $this->whatsappService->sendWhatsAppMessage($phone, $message);
+            } else {
+                // Termii WhatsApp messages
+                $normalizedPhone = $this->normalizePhoneNumber($phone);
+                $result = $this->whatsappService->sendWhatsAppMessage($normalizedPhone, $message, $mediaUrl, $caption);
+            }
 
             if ($result['success']) {
                 $this->logSuccess($type, $context, $result);
@@ -521,6 +545,29 @@ class ConsultationWhatsAppNotification
         }
 
         return $message;
+    }
+
+    /**
+     * Convert template data format for Vonage WhatsApp
+     * Vonage uses a different parameter structure than Termii
+     *
+     * @param array $templateData
+     * @return array
+     */
+    protected function convertTemplateDataForVonage(array $templateData): array
+    {
+        // Vonage expects parameters in a specific format
+        // This is a basic conversion - you may need to adjust based on your template structure
+        $parameters = [];
+        
+        foreach ($templateData as $key => $value) {
+            $parameters[] = [
+                'type' => 'text',
+                'text' => (string) $value
+            ];
+        }
+        
+        return $parameters;
     }
 }
 

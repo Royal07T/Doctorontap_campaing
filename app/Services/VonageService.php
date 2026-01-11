@@ -9,6 +9,8 @@ use Vonage\Client\Credentials\Keypair;
 use Vonage\SMS\Message\SMS;
 use Vonage\Messages\MessageObjects\TextObject;
 use Vonage\Messages\Channel\SMS\SMSText;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppText;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppTemplate;
 
 class VonageService
 {
@@ -19,6 +21,8 @@ class VonageService
     protected $brandName;
     protected $apiMethod;
     protected $enabled;
+    protected $whatsappEnabled;
+    protected $whatsappNumber;
 
     public function __construct()
     {
@@ -29,6 +33,8 @@ class VonageService
         $this->brandName = config('services.vonage.brand_name', 'DoctorOnTap');
         $this->apiMethod = config('services.vonage.api_method', 'legacy');
         $this->enabled = config('services.vonage.enabled', true);
+        $this->whatsappEnabled = config('services.vonage.whatsapp_enabled', false);
+        $this->whatsappNumber = config('services.vonage.whatsapp_number');
     }
 
     /**
@@ -445,6 +451,289 @@ class VonageService
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    // ==================== WHATSAPP METHODS ====================
+
+    /**
+     * Send WhatsApp text message (within 24-hour customer care window)
+     * Supports both JWT (Application ID + Private Key) and Basic (API Key + Secret) authentication
+     *
+     * @param string $to Phone number in international format (e.g., +2348012345678)
+     * @param string $message The WhatsApp message content
+     * @return array Response with success status and data
+     */
+    public function sendWhatsAppMessage(string $to, string $message): array
+    {
+        // Check if WhatsApp is enabled
+        if (!$this->whatsappEnabled) {
+            Log::info('Vonage WhatsApp skipped (disabled in config)', [
+                'to' => $to,
+                'message' => $message
+            ]);
+            
+            return [
+                'success' => true,
+                'message' => 'WhatsApp sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        if (empty($this->whatsappNumber)) {
+            Log::error('Vonage WhatsApp number not configured');
+            
+            return [
+                'success' => false,
+                'message' => 'WhatsApp number not configured. Set VONAGE_WHATSAPP_NUMBER in .env',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        // Check authentication method - prefer JWT, fallback to Basic
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            Log::error('Vonage WhatsApp requires authentication credentials', [
+                'has_jwt' => $useJWT,
+                'has_basic' => $useBasic
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires either JWT (VONAGE_APPLICATION_ID + VONAGE_PRIVATE_KEY) or Basic (VONAGE_API_KEY + VONAGE_API_SECRET) credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        // Format phone number (E.164 format with +)
+        $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
+
+        try {
+            set_time_limit(30);
+            
+            // Choose authentication method
+            if ($useJWT) {
+                $credentials = new Keypair($this->privateKey, $this->applicationId);
+                Log::debug('Using JWT authentication for WhatsApp');
+            } else {
+                $credentials = new Basic($this->apiKey, $this->apiSecret);
+                Log::debug('Using Basic authentication for WhatsApp');
+            }
+            
+            $client = new Client($credentials);
+
+            // Create WhatsApp text message
+            $whatsappMessage = new WhatsAppText(
+                $formattedPhone,
+                $this->whatsappNumber,
+                $message
+            );
+
+            $response = $client->messages()->send($whatsappMessage);
+            $messageUuid = $response->getMessageUuid();
+            
+            Log::info('Vonage WhatsApp message sent successfully', [
+                'to' => $formattedPhone,
+                'message_uuid' => $messageUuid,
+                'auth_method' => $useJWT ? 'JWT' : 'Basic'
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp message sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Vonage\Client\Exception\Request $e) {
+            Log::error('Vonage WhatsApp request exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'auth_method' => $useJWT ? 'JWT' : 'Basic'
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp API request failed',
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp message',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send WhatsApp template message (outside 24-hour window)
+     * Supports both JWT (Application ID + Private Key) and Basic (API Key + Secret) authentication
+     *
+     * @param string $to Phone number in international format
+     * @param string $templateName Template name (must be approved in WhatsApp Manager)
+     * @param string $templateLanguage Language code (e.g., 'en', 'en_US')
+     * @param array $templateParameters Template parameters/components
+     * @return array Response with success status and data
+     */
+    public function sendWhatsAppTemplate(
+        string $to,
+        string $templateName,
+        string $templateLanguage = 'en',
+        array $templateParameters = []
+    ): array {
+        // Check if WhatsApp is enabled
+        if (!$this->whatsappEnabled) {
+            Log::info('Vonage WhatsApp template skipped (disabled in config)', [
+                'to' => $to,
+                'template_name' => $templateName
+            ]);
+            
+            return [
+                'success' => true,
+                'message' => 'WhatsApp sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        if (empty($this->whatsappNumber)) {
+            Log::error('Vonage WhatsApp number not configured');
+            
+            return [
+                'success' => false,
+                'message' => 'WhatsApp number not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        // Check authentication method - prefer JWT, fallback to Basic
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            Log::error('Vonage WhatsApp requires authentication credentials');
+            
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires either JWT (VONAGE_APPLICATION_ID + VONAGE_PRIVATE_KEY) or Basic (VONAGE_API_KEY + VONAGE_API_SECRET) credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        // Format phone number
+        $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
+
+        try {
+            set_time_limit(30);
+            
+            // Choose authentication method
+            if ($useJWT) {
+                $credentials = new Keypair($this->privateKey, $this->applicationId);
+                Log::debug('Using JWT authentication for WhatsApp template');
+            } else {
+                $credentials = new Basic($this->apiKey, $this->apiSecret);
+                Log::debug('Using Basic authentication for WhatsApp template');
+            }
+            
+            $client = new Client($credentials);
+
+            // Create WhatsApp template message
+            $whatsappTemplate = new WhatsAppTemplate(
+                $formattedPhone,
+                $this->whatsappNumber,
+                $templateName,
+                $templateLanguage,
+                $templateParameters
+            );
+
+            $response = $client->messages()->send($whatsappTemplate);
+            $messageUuid = $response->getMessageUuid();
+            
+            Log::info('Vonage WhatsApp template sent successfully', [
+                'to' => $formattedPhone,
+                'template_name' => $templateName,
+                'message_uuid' => $messageUuid,
+                'auth_method' => $useJWT ? 'JWT' : 'Basic'
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp template sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone,
+                    'template_name' => $templateName
+                ]
+            ];
+        } catch (\Vonage\Client\Exception\Request $e) {
+            Log::error('Vonage WhatsApp template request exception', [
+                'to' => $formattedPhone,
+                'template_name' => $templateName,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'auth_method' => $useJWT ? 'JWT' : 'Basic'
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp template API request failed',
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp template exception', [
+                'to' => $formattedPhone,
+                'template_name' => $templateName,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp template',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Format phone number for WhatsApp (E.164 format with +)
+     *
+     * @param string $phone Phone number in any format
+     * @return string Phone number in E.164 format (e.g., +2347081114942)
+     */
+    protected function formatPhoneNumberForWhatsApp(string $phone): string
+    {
+        // Remove spaces, hyphens, parentheses
+        $phone = preg_replace('/[\s\-\(\)]/', '', $phone);
+
+        // If starts with 0, replace with +234 (Nigeria country code)
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '+234' . substr($phone, 1);
+        }
+
+        // If doesn't start with +, add it
+        if (substr($phone, 0, 1) !== '+') {
+            // If starts with 234, add +
+            if (substr($phone, 0, 3) === '234') {
+                $phone = '+' . $phone;
+            } else {
+                // Assume Nigeria if no country code
+                $phone = '+234' . $phone;
+            }
+        }
+
+        return $phone;
     }
 }
 
