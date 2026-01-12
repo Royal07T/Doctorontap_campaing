@@ -555,6 +555,9 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     // Availability
     Route::get('/availability', [DoctorDashboardController::class, 'availability'])->name('availability');
     Route::post('/availability', [DoctorDashboardController::class, 'updateAvailability'])->name('availability.update');
+    
+    // Support Tickets
+    Route::resource('support-tickets', \App\Http\Controllers\Doctor\SupportTicketController::class)->only(['index', 'create', 'store', 'show']);
 });
 
 // ==================== PATIENT ROUTES ====================
@@ -629,6 +632,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/payments', [\App\Http\Controllers\Patient\DashboardController::class, 'payments'])->name('payments');
     Route::post('/consultations/{id}/pay', [\App\Http\Controllers\Patient\DashboardController::class, 'initiatePayment'])->name('consultation.pay');
     Route::get('/consultations/{id}/receipt', [\App\Http\Controllers\Patient\DashboardController::class, 'viewReceipt'])->name('consultation.receipt');
+    
+    // Support Tickets
+    Route::resource('support-tickets', \App\Http\Controllers\Patient\SupportTicketController::class)->only(['index', 'create', 'store', 'show']);
     
     // Doctors
     Route::get('/doctors', [\App\Http\Controllers\Patient\DashboardController::class, 'doctors'])->name('doctors');

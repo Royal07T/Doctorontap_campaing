@@ -27,7 +27,7 @@ class TicketsController extends Controller
         $agent = Auth::guard('customer_care')->user();
 
         $query = SupportTicket::where('agent_id', $agent->id)
-            ->with(['user', 'agent']);
+            ->with(['user', 'doctor', 'agent']);
 
         // Filter by status
         if ($request->has('status') && $request->status !== '') {
@@ -53,6 +53,10 @@ class TicketsController extends Controller
                   ->orWhereHas('user', function($userQuery) use ($search) {
                       $userQuery->where('name', 'like', "%{$search}%")
                                 ->orWhere('email', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('doctor', function($doctorQuery) use ($search) {
+                      $doctorQuery->where('name', 'like', "%{$search}%")
+                                  ->orWhere('email', 'like', "%{$search}%");
                   });
             });
         }
@@ -96,7 +100,7 @@ class TicketsController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $ticket->load(['user', 'agent', 'escalations.escalatedBy']);
+        $ticket->load(['user', 'doctor', 'agent', 'escalations.escalatedBy']);
 
         return view('customer-care.tickets.show', compact('ticket'));
     }

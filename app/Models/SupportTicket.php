@@ -15,6 +15,8 @@ class SupportTicket extends Model
     protected $fillable = [
         'ticket_number',
         'user_id',
+        'user_type',
+        'doctor_id',
         'agent_id',
         'category',
         'subject',
@@ -61,6 +63,25 @@ class SupportTicket extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(Patient::class, 'user_id');
+    }
+
+    /**
+     * Get the doctor who created this ticket
+     */
+    public function doctor(): BelongsTo
+    {
+        return $this->belongsTo(Doctor::class, 'doctor_id');
+    }
+
+    /**
+     * Get the creator (patient or doctor) based on user_type
+     */
+    public function creator()
+    {
+        if ($this->user_type === 'doctor') {
+            return $this->doctor;
+        }
+        return $this->user;
     }
 
     /**

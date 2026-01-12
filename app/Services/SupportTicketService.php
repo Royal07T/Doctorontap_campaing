@@ -12,17 +12,26 @@ class SupportTicketService
      */
     public function createTicket(array $data): SupportTicket
     {
-        $agentId = $data['agent_id'] ?? Auth::guard('customer_care')->id();
+        $agentId = $data['agent_id'] ?? (Auth::guard('customer_care')->check() ? Auth::guard('customer_care')->id() : null);
 
-        $ticket = SupportTicket::create([
-            'user_id' => $data['user_id'],
+        $ticketData = [
+            'user_type' => $data['user_type'] ?? 'patient',
             'agent_id' => $agentId,
             'category' => $data['category'],
             'subject' => $data['subject'],
             'description' => $data['description'],
             'status' => $data['status'] ?? 'open',
             'priority' => $data['priority'] ?? 'medium',
-        ]);
+        ];
+
+        // Set user_id or doctor_id based on user_type
+        if (($data['user_type'] ?? 'patient') === 'doctor') {
+            $ticketData['doctor_id'] = $data['doctor_id'] ?? $data['user_id'];
+        } else {
+            $ticketData['user_id'] = $data['user_id'];
+        }
+
+        $ticket = SupportTicket::create($ticketData);
 
         return $ticket;
     }
