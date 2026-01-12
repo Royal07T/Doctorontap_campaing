@@ -46,6 +46,7 @@ class ActivityLogService
             ?? Auth::guard('nurse')->user()
             ?? Auth::guard('canvasser')->user()
             ?? Auth::guard('customer_care')->user()
+            ?? Auth::guard('care_giver')->user()
             ?? Auth::user();
 
         $userType = $this->getUserType($user);
@@ -124,6 +125,48 @@ class ActivityLogService
     }
 
     /**
+     * Log caregiver action with explicit user context
+     * Used by policies to log access attempts
+     *
+     * @param string $action
+     * @param int $userId
+     * @param string $userType
+     * @param int|null $modelId
+     * @param array|null $metadata
+     * @return ActivityLog
+     */
+    public function logCaregiverAction(
+        string $action,
+        int $userId,
+        string $userType,
+        ?int $modelId = null,
+        ?array $metadata = null
+    ): ActivityLog {
+        try {
+            return ActivityLog::create([
+                'user_type' => $userType,
+                'user_id' => $userId,
+                'action' => $action,
+                'model_type' => $metadata['model_type'] ?? null,
+                'model_id' => $modelId,
+                'changes' => null,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'route' => request()->route()?->getName(),
+                'metadata' => $this->maskSensitiveFields($metadata ?? []),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to create caregiver activity log', [
+                'error' => $e->getMessage(),
+                'action' => $action,
+                'user_type' => $userType,
+                'user_id' => $userId,
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Get user type string from user model
      *
      * @param mixed $user
@@ -154,6 +197,9 @@ class ActivityLogService
         }
         if (str_contains($class, 'CustomerCare')) {
             return 'customer_care';
+        }
+        if (str_contains($class, 'CareGiver')) {
+            return 'caregiver';
         }
 
         return 'unknown';

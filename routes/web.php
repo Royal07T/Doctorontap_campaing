@@ -404,12 +404,20 @@ Route::prefix('care-giver')->name('care_giver.')->middleware('auth:care_giver')-
 Route::get('/care-giver/email/verify/{id}/{hash}', [\App\Http\Controllers\CareGiver\VerificationController::class, 'verify'])
     ->name('care_giver.verification.verify');
 
-// Protected Care Giver Routes (Authentication required)
-Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver', 'session.management'])->group(function () {
+// PIN Verification Routes (Authentication required, but PIN not yet verified)
+Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver'])->group(function () {
+    Route::get('/pin/verify', [\App\Http\Controllers\CareGiver\PinVerificationController::class, 'show'])->name('pin.verify');
+    Route::post('/pin/verify', [\App\Http\Controllers\CareGiver\PinVerificationController::class, 'verify'])->name('pin.verify.post');
+});
+
+// Protected Care Giver Routes (Authentication + PIN verification required)
+Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver', 'care_giver.pin', 'session.management'])->group(function () {
     Route::post('/logout', [\App\Http\Controllers\CareGiver\AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [\App\Http\Controllers\CareGiver\DashboardController::class, 'index'])->name('dashboard');
     
-    // Add more care-giver routes here as needed
+    // Patient routes
+    Route::get('/patients', [\App\Http\Controllers\CareGiver\PatientController::class, 'index'])->name('patients.index');
+    Route::get('/patients/{patient}', [\App\Http\Controllers\CareGiver\PatientController::class, 'show'])->name('patients.show');
 });
 
 // ==================== CUSTOMER CARE ROUTES ====================

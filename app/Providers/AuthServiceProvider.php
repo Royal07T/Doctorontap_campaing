@@ -5,12 +5,14 @@ namespace App\Providers;
 use App\Models\Consultation;
 use App\Models\Patient;
 use App\Models\VitalSign;
+use App\Models\CareGiver;
 use App\Models\CustomerInteraction;
 use App\Models\SupportTicket;
 use App\Models\Escalation;
 use App\Policies\ConsultationPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\VitalSignPolicy;
+use App\Policies\CareGiverPolicy;
 use App\Policies\CustomerInteractionPolicy;
 use App\Policies\SupportTicketPolicy;
 use App\Policies\EscalationPolicy;
@@ -28,6 +30,7 @@ class AuthServiceProvider extends ServiceProvider
         Consultation::class => ConsultationPolicy::class,
         Patient::class => PatientPolicy::class,
         VitalSign::class => VitalSignPolicy::class,
+        CareGiver::class => CareGiverPolicy::class,
         CustomerInteraction::class => CustomerInteractionPolicy::class,
         SupportTicket::class => SupportTicketPolicy::class,
         Escalation::class => EscalationPolicy::class,
@@ -40,11 +43,12 @@ class AuthServiceProvider extends ServiceProvider
     {
         // Define a gate for checking any authenticated healthcare user
         Gate::define('access-healthcare-system', function ($user) {
-            return $user instanceof \App\Models\Admin
+            return $user instanceof \App\Models\AdminUser
                 || $user instanceof \App\Models\Doctor
                 || $user instanceof \App\Models\Nurse
                 || $user instanceof \App\Models\Patient
-                || $user instanceof \App\Models\Canvasser;
+                || $user instanceof \App\Models\Canvasser
+                || $user instanceof \App\Models\CareGiver;
         });
     }
 }

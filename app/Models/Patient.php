@@ -384,4 +384,47 @@ class Patient extends Authenticatable
     {
         return $this->hasMany(SupportTicket::class, 'user_id');
     }
+
+    /**
+     * Get all caregivers assigned to this patient
+     */
+    public function assignedCaregivers(): BelongsToMany
+    {
+        return $this->belongsToMany(CareGiver::class, 'caregiver_patient_assignments', 'patient_id', 'caregiver_id')
+            ->withPivot(['role', 'status', 'care_plan_id', 'assigned_by'])
+            ->withTimestamps()
+            ->wherePivot('status', 'active');
+    }
+
+    /**
+     * Get all caregiver assignments (including inactive)
+     */
+    public function caregiverAssignments(): HasMany
+    {
+        return $this->hasMany(CaregiverPatientAssignment::class, 'patient_id');
+    }
+
+    /**
+     * Check if a specific caregiver is assigned to this patient
+     */
+    public function hasCaregiver(int $caregiverId, string $role = null): bool
+    {
+        $query = $this->assignedCaregivers()->where('care_givers.id', $caregiverId);
+        
+        if ($role) {
+            $query->wherePivot('role', $role);
+        }
+        
+        return $query->exists();
+    }
+
+    /**
+     * Get primary caregiver for this patient
+     */
+    public function primaryCaregiver()
+    {
+        return $this->assignedCaregivers()
+            ->wherePivot('role', 'primary')
+            ->first();
+    }
 }

@@ -6,10 +6,12 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Hash;
 
 class CareGiver extends Authenticatable implements MustVerifyEmail
 {
@@ -22,6 +24,7 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
         'email',
         'phone',
         'password',
+        'pin_hash',
         'is_active',
         'created_by',
         'last_login_at',
@@ -54,6 +57,94 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(AdminUser::class, 'created_by');
+    }
+
+    /**
+     * Get all patients assigned to this caregiver
+     */
+    public function assignedPatients(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Patient::class, 
+            'caregiver_patient_assignments', 
+            'caregiver_id',  // Foreign key on caregiver_patient_assignments table
+            'patient_id'     // Related key on patients table
+        )
+            ->withPivot(['role', 'status', 'care_plan_id', 'assigned_by'])
+            ->withTimestamps()
+            ->wherePivot('status', 'active');
+    }
+
+    /**
+     * Get all patient assignments (including inactive)
+     */
+    public function patientAssignments(): HasMany
+    {
+        return $this->hasMany(CaregiverPatientAssignment::class, 'caregiver_id');
+    }
+
+    /**
+     * Get vital signs recorded by this caregiver
+     */
+    public function vitalSigns(): HasMany
+    {
+        return $this->hasMany(VitalSign::class, 'caregiver_id');
+    }
+
+    /**
+     * Check if caregiver is assigned to a specific patient
+     */
+    public function isAssignedToPatient(int $patientId, string $role = null): bool
+    {
+        $query = $this->assignedPatients()->where('patients.id', $patientId);
+        
+        if ($role) {
+            $query->wherePivot('role', $role);
+        }
+        
+        return $query->exists();
+    }
+
+    /**
+     * Get assignment role for a specific patient
+     */
+    public function getAssignmentRoleForPatient(int $patientId): ?string
+    {
+        $assignment = $this->patientAssignments()
+            ->where('patient_id', $patientId)
+            ->where('status', 'active')
+            ->first();
+            
+        return $assignment ? $assignment->role : null;
+    }
+
+    /**
+     * Set PIN (hashed)
+     */
+    public function setPin(string $pin): void
+    {
+        $this->pin_hash = Hash::make($pin);
+        $this->save();
+    }
+
+    /**
+     * Verify PIN
+     */
+    public function verifyPin(string $pin): bool
+    {
+        if (!$this->pin_hash) {
+            return false;
+        }
+        
+        return Hash::check($pin, $this->pin_hash);
+    }
+
+    /**
+     * Check if PIN is set
+     */
+    public function hasPin(): bool
+    {
+        return !is_null($this->pin_hash);
     }
 
     /**

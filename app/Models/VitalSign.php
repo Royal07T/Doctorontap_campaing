@@ -14,6 +14,7 @@ class VitalSign extends Model
     protected $fillable = [
         'patient_id',
         'nurse_id',
+        'caregiver_id',
         'blood_pressure',
         'oxygen_saturation',
         'temperature',
@@ -53,6 +54,14 @@ class VitalSign extends Model
     public function nurse(): BelongsTo
     {
         return $this->belongsTo(Nurse::class);
+    }
+
+    /**
+     * Get the caregiver who recorded these vital signs
+     */
+    public function caregiver(): BelongsTo
+    {
+        return $this->belongsTo(CareGiver::class, 'caregiver_id');
     }
 
     /**
