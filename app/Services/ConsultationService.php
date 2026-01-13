@@ -88,18 +88,29 @@ class ConsultationService
 
         // Create Vonage session if consultation is in-app mode (voice, video, or chat)
         // Only create session if doctor is assigned
+        // FIX 5: Graceful fallback - consultation creation never fails due to Vonage issues
         if ($consultation->isInAppMode() && $doctorId) {
             try {
                 $sessionService = app(\App\Services\ConsultationSessionService::class);
                 $sessionResult = $sessionService->createSession($consultation);
                 
                 if (!$sessionResult['success']) {
-                    Log::warning('Failed to create consultation session', [
-                        'consultation_id' => $consultation->id,
-                        'mode' => $consultationMode,
-                        'error' => $sessionResult['error'] ?? 'unknown'
-                    ]);
-                    // Don't fail consultation creation if session creation fails
+                    // Check if this is a graceful failure (Vonage disabled)
+                    if (isset($sessionResult['graceful_failure']) && $sessionResult['graceful_failure'] === true) {
+                        Log::info('Consultation created without Vonage session (service disabled)', [
+                            'consultation_id' => $consultation->id,
+                            'mode' => $consultationMode,
+                            'error' => $sessionResult['error'] ?? 'vonage_disabled',
+                            'message' => 'Consultation can proceed, but in-app features unavailable'
+                        ]);
+                    } else {
+                        Log::warning('Failed to create consultation session', [
+                            'consultation_id' => $consultation->id,
+                            'mode' => $consultationMode,
+                            'error' => $sessionResult['error'] ?? 'unknown'
+                        ]);
+                    }
+                    // Never fail consultation creation if session creation fails
                 }
             } catch (\Exception $e) {
                 Log::error('Exception while creating consultation session', [
@@ -107,7 +118,7 @@ class ConsultationService
                     'mode' => $consultationMode,
                     'error' => $e->getMessage()
                 ]);
-                // Don't fail consultation creation if session creation fails
+                // Never fail consultation creation if session creation fails
             }
         }
 

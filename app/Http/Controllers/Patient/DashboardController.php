@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Mail\ConsultationConfirmation;
 use App\Mail\ConsultationAdminAlert;
@@ -1273,17 +1274,28 @@ class DashboardController extends Controller
         }
 
         // Check for conflicts with existing consultations
-        $conflict = Consultation::where('doctor_id', $doctor->id)
-            ->whereIn('status', ['pending', 'scheduled'])
-            ->whereNotNull('scheduled_at')
-            ->where('scheduled_at', '>=', now())
-            ->whereBetween('scheduled_at', [
-                $scheduledAt->copy()->subMinutes(29), // 30-minute buffer
-                $scheduledAt->copy()->addMinutes(29)
-            ])
-            ->exists();
+        // Use lockForUpdate to prevent race conditions when checking availability
+        $conflict = DB::transaction(function() use ($doctor, $scheduledAt) {
+            return Consultation::where('doctor_id', $doctor->id)
+                ->whereIn('status', ['pending', 'scheduled'])
+                ->whereNotNull('scheduled_at')
+                ->where('scheduled_at', '>=', now())
+                ->whereBetween('scheduled_at', [
+                    $scheduledAt->copy()->subMinutes(29), // 30-minute buffer
+                    $scheduledAt->copy()->addMinutes(29)
+                ])
+                ->lockForUpdate() // Prevent concurrent bookings
+                ->exists();
+        });
 
         if ($conflict) {
+            Log::info('Time slot conflict detected during availability check', [
+                'event_type' => 'time_slot_conflict_check',
+                'doctor_id' => $doctor->id,
+                'scheduled_at' => $scheduledAt->toIso8601String(),
+                'timestamp' => now()->toIso8601String()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'available' => false,
@@ -1340,124 +1352,332 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        // Check for conflicts
-        $conflict = Consultation::where('doctor_id', $doctor->id)
-            ->whereIn('status', ['pending', 'scheduled'])
-            ->whereNotNull('scheduled_at')
-            ->where('scheduled_at', '>=', now())
-            ->whereBetween('scheduled_at', [
-                $scheduledAt->copy()->subMinutes(29),
-                $scheduledAt->copy()->addMinutes(29)
-            ])
-            ->exists();
+        // CONCURRENCY PROTECTION: Use database-level locking to prevent time conflicts
+        // This ensures no two patients can book the same time slot simultaneously
+        try {
+            DB::beginTransaction();
+            
+            // Lock consultations for this doctor in the time window to prevent race conditions
+            $conflict = Consultation::where('doctor_id', $doctor->id)
+                ->whereIn('status', ['pending', 'scheduled'])
+                ->whereNotNull('scheduled_at')
+                ->where('scheduled_at', '>=', now())
+                ->whereBetween('scheduled_at', [
+                    $scheduledAt->copy()->subMinutes(29),
+                    $scheduledAt->copy()->addMinutes(29)
+                ])
+                ->lockForUpdate() // Database-level lock to prevent concurrent bookings
+                ->exists();
 
-        if ($conflict) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This time slot is already booked. Please choose another time.'
-            ], 400);
-        }
+            if ($conflict) {
+                DB::rollBack();
+                
+                Log::warning('Booking conflict detected', [
+                    'event_type' => 'booking_conflict',
+                    'doctor_id' => $doctor->id,
+                    'patient_id' => $patient->id,
+                    'scheduled_at' => $scheduledAt->toIso8601String(),
+                    'timestamp' => now()->toIso8601String()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This time slot was just booked by another patient. Please choose another time.',
+                    'error' => 'time_slot_conflict'
+                ], 409); // 409 Conflict
+            }
 
-        // Handle medical document uploads - HIPAA: Store in private storage
-        $uploadedDocuments = [];
-        if ($request->hasFile('medical_documents')) {
-            try {
-                foreach ($request->file('medical_documents') as $file) {
-                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                    // Store in private storage (storage/app/private/medical_documents)
-                    $filePath = $file->storeAs('medical_documents', $fileName);
+            // Handle medical document uploads - HIPAA: Store in private storage
+            $uploadedDocuments = [];
+            if ($request->hasFile('medical_documents')) {
+                try {
+                    foreach ($request->file('medical_documents') as $file) {
+                        $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                        // Store in private storage (storage/app/private/medical_documents)
+                        $filePath = $file->storeAs('medical_documents', $fileName);
+                        
+                        $uploadedDocuments[] = [
+                            'original_name' => $file->getClientOriginalName(),
+                            'stored_name' => $fileName,
+                            'path' => $filePath,
+                            'size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to upload medical documents', [
+                        'event_type' => 'medical_document_upload_failed',
+                        'patient_id' => $patient->id,
+                        'doctor_id' => $doctor->id,
+                        'error' => $e->getMessage(),
+                        'timestamp' => now()->toIso8601String()
+                    ]);
+                    // Continue without documents rather than failing completely
+                }
+            }
+
+            // Map consult_mode to consultation_mode enum
+            $consultMode = $validated['consult_mode'];
+            $consultationMode = in_array($consultMode, ['voice', 'video', 'chat']) ? $consultMode : 'whatsapp';
+            
+            // Create consultation with proper consultation_mode
+            $consultation = Consultation::create([
+                'reference' => 'CONS-' . strtoupper(Str::random(8)),
+                'patient_id' => $patient->id,
+                'doctor_id' => $doctor->id,
+                'first_name' => $patient->first_name,
+                'last_name' => $patient->last_name,
+                'email' => $patient->email,
+                'mobile' => $patient->phone,
+                'age' => $patient->age,
+                'gender' => $patient->gender,
+                'problem' => $validated['problem'],
+                'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
+                'severity' => $validated['severity'],
+                'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
+                'consult_mode' => $consultMode, // Legacy field
+                'consultation_mode' => $consultationMode, // New enum field
+                'status' => 'scheduled',
+                'session_status' => 'scheduled', // For in-app consultations
+                'payment_status' => 'unpaid',
+                'scheduled_at' => $scheduledAt,
+                'consultation_type' => 'pay_later', // Scheduled appointments use pay_later by default
+            ]);
+            
+            // Create Vonage session if consultation is in-app mode
+            if ($consultation->isInAppMode()) {
+                try {
+                    $sessionService = app(\App\Services\ConsultationSessionService::class);
+                    $sessionResult = $sessionService->createSession($consultation);
                     
-                    $uploadedDocuments[] = [
-                        'original_name' => $file->getClientOriginalName(),
-                        'stored_name' => $fileName,
-                        'path' => $filePath,
-                        'size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType(),
+                    if (!$sessionResult['success']) {
+                        Log::warning('Failed to create consultation session during booking', [
+                            'event_type' => 'session_creation_failed_booking',
+                            'consultation_id' => $consultation->id,
+                            'mode' => $consultationMode,
+                            'error' => $sessionResult['error'] ?? 'unknown',
+                            'timestamp' => now()->toIso8601String()
+                        ]);
+                        // Don't fail booking if session creation fails
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Exception creating session during booking', [
+                        'event_type' => 'session_creation_exception_booking',
+                        'consultation_id' => $consultation->id,
+                        'error' => $e->getMessage(),
+                        'timestamp' => now()->toIso8601String()
+                    ]);
+                    // Don't fail booking if session creation fails
+                }
+            }
+            
+            DB::commit();
+            
+            // Create notifications for both patient and doctor
+            try {
+                // Notification for patient - personalized message
+                $patientNotification = \App\Models\Notification::create([
+                    'user_type' => 'patient',
+                    'user_id' => $patient->id,
+                    'title' => '✅ Appointment Booked Successfully',
+                    'message' => "Your appointment with Dr. {$doctor->name} has been scheduled for " . $scheduledAt->format('M d, Y h:i A') . ". Consultation Reference: {$consultation->reference}. Please arrive on time.",
+                    'type' => 'success',
+                    'action_url' => route('patient.consultation.view', ['id' => $consultation->id]),
+                    'data' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $consultation->reference,
+                        'doctor_name' => $doctor->name,
+                        'doctor_specialization' => $doctor->specialization,
+                        'scheduled_at' => $scheduledAt->toDateTimeString(),
+                        'consultation_mode' => $consultationMode,
+                        'type' => 'appointment_booked',
+                        'notification_for' => 'patient'
+                    ]
+                ]);
+
+                Log::info('Patient notification created for booking', [
+                    'event_type' => 'patient_notification_created',
+                    'notification_id' => $patientNotification->id,
+                    'user_type' => 'patient',
+                    'user_id' => $patient->id,
+                    'consultation_id' => $consultation->id,
+                    'message_preview' => substr($patientNotification->message, 0, 50),
+                    'timestamp' => now()->toIso8601String()
+                ]);
+
+                // Notification for doctor - personalized message
+                $patientFullName = trim($patient->first_name . ' ' . $patient->last_name) ?: $patient->name;
+                $doctorNotification = \App\Models\Notification::create([
+                    'user_type' => 'doctor',
+                    'user_id' => $doctor->id,
+                    'title' => '📅 New Patient Appointment',
+                    'message' => "Patient {$patientFullName} has booked a consultation with you scheduled for " . $scheduledAt->format('M d, Y h:i A') . ". Consultation Reference: {$consultation->reference}. Please review the consultation details.",
+                    'type' => 'info',
+                    'action_url' => route('doctor.consultations.view', ['id' => $consultation->id]),
+                    'data' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $consultation->reference,
+                        'patient_name' => $patientFullName,
+                        'patient_id' => $patient->id,
+                        'scheduled_at' => $scheduledAt->toDateTimeString(),
+                        'consultation_mode' => $consultationMode,
+                        'type' => 'new_appointment',
+                        'notification_for' => 'doctor'
+                    ]
+                ]);
+
+                Log::info('Doctor notification created for booking', [
+                    'event_type' => 'doctor_notification_created',
+                    'notification_id' => $doctorNotification->id,
+                    'user_type' => 'doctor',
+                    'user_id' => $doctor->id,
+                    'consultation_id' => $consultation->id,
+                    'message_preview' => substr($doctorNotification->message, 0, 50),
+                    'timestamp' => now()->toIso8601String()
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to create booking notifications', [
+                    'event_type' => 'notification_creation_failed',
+                    'consultation_id' => $consultation->id,
+                    'error' => $e->getMessage(),
+                    'timestamp' => now()->toIso8601String()
+                ]);
+            }
+
+            // Send confirmation emails to both patient and doctor
+            try {
+                // Prepare patient email data
+                $patientEmailData = [
+                    'consultation_reference' => $consultation->reference,
+                    'first_name' => $patient->first_name,
+                    'last_name' => $patient->last_name,
+                    'email' => $patient->email,
+                    'mobile' => $patient->phone,
+                    'age' => $patient->age,
+                    'gender' => $patient->gender,
+                    'problem' => $validated['problem'],
+                    'severity' => $validated['severity'],
+                    'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
+                    'consult_mode' => $consultMode,
+                    'consultation_mode' => $consultationMode,
+                    'has_documents' => !empty($uploadedDocuments),
+                    'documents_count' => count($uploadedDocuments),
+                    'doctor_name' => $doctor->name,
+                    'doctor_specialization' => $doctor->specialization,
+                    'scheduled_at' => $scheduledAt->format('M d, Y h:i A'),
+                    'scheduled_at_datetime' => $scheduledAt->toDateTimeString(),
+                    'is_scheduled' => true,
+                ];
+
+                // Send confirmation email to patient
+                Mail::to($patient->email)->send(new ConsultationConfirmation($patientEmailData));
+                
+                Log::info('Patient confirmation email sent successfully', [
+                    'event_type' => 'patient_confirmation_email_sent',
+                    'consultation_id' => $consultation->id,
+                    'consultation_reference' => $consultation->reference,
+                    'patient_email' => $patient->email,
+                    'timestamp' => now()->toIso8601String()
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to send patient confirmation email', [
+                    'event_type' => 'patient_email_send_failed',
+                    'consultation_id' => $consultation->id,
+                    'patient_email' => $patient->email ?? 'N/A',
+                    'error' => $e->getMessage(),
+                    'timestamp' => now()->toIso8601String()
+                ]);
+                // Don't fail booking if email fails
+            }
+
+            // Send notification email to doctor
+            try {
+                if ($doctor->email) {
+                    $doctorEmailData = [
+                        'consultation_reference' => $consultation->reference,
+                        'patient_name' => $patient->name,
+                        'patient_first_name' => $patient->first_name,
+                        'patient_last_name' => $patient->last_name,
+                        'patient_email' => $patient->email,
+                        'patient_mobile' => $patient->phone,
+                        'patient_age' => $patient->age,
+                        'patient_gender' => $patient->gender,
+                        'problem' => $validated['problem'],
+                        'severity' => $validated['severity'],
+                        'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
+                        'consult_mode' => $consultMode,
+                        'consultation_mode' => $consultationMode,
+                        'has_documents' => !empty($uploadedDocuments),
+                        'documents_count' => count($uploadedDocuments),
+                        'doctor_name' => $doctor->name,
+                        'scheduled_at' => $scheduledAt->format('M d, Y h:i A'),
+                        'scheduled_at_datetime' => $scheduledAt->toDateTimeString(),
+                        'is_scheduled' => true,
                     ];
+
+                    Mail::to($doctor->email)->send(new ConsultationDoctorNotification($doctorEmailData));
+                    
+                    Log::info('Doctor notification email sent successfully', [
+                        'event_type' => 'doctor_notification_email_sent',
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $consultation->reference,
+                        'doctor_email' => $doctor->email,
+                        'timestamp' => now()->toIso8601String()
+                    ]);
                 }
             } catch (\Exception $e) {
-                \Log::error('Failed to upload medical documents: ' . $e->getMessage(), [
-                    'patient_id' => $patient->id,
-                    'doctor_id' => $doctor->id,
+                Log::warning('Failed to send doctor notification email', [
+                    'event_type' => 'doctor_email_send_failed',
+                    'consultation_id' => $consultation->id,
+                    'doctor_email' => $doctor->email ?? 'N/A',
                     'error' => $e->getMessage(),
+                    'timestamp' => now()->toIso8601String()
                 ]);
-                // Continue without documents rather than failing completely
+                // Don't fail booking if email fails
             }
-        }
 
-        // Create consultation
-        $consultation = Consultation::create([
-            'reference' => 'CONS-' . strtoupper(Str::random(8)),
-            'patient_id' => $patient->id,
-            'doctor_id' => $doctor->id,
-            'first_name' => $patient->first_name,
-            'last_name' => $patient->last_name,
-            'email' => $patient->email,
-            'mobile' => $patient->phone,
-            'age' => $patient->age,
-            'gender' => $patient->gender,
-            'problem' => $validated['problem'],
-            'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
-            'severity' => $validated['severity'],
-            'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
-            'consult_mode' => $validated['consult_mode'],
-            'status' => 'scheduled',
-            'payment_status' => 'unpaid',
-            'scheduled_at' => $scheduledAt,
-            'consultation_type' => 'pay_later', // Scheduled appointments use pay_later by default
-        ]);
-
-        // Create notifications for both patient and doctor
-        try {
-            // Notification for patient
-            \App\Models\Notification::create([
-                'user_type' => 'patient',
-                'user_id' => $patient->id,
-                'title' => 'Appointment Booked Successfully',
-                'message' => "Your appointment with Dr. {$doctor->name} has been booked for " . $scheduledAt->format('M d, Y h:i A') . ". Reference: {$consultation->reference}",
-                'type' => 'success',
-                'action_url' => patient_url('consultations/' . $consultation->id),
-                'data' => [
-                    'consultation_id' => $consultation->id,
-                    'consultation_reference' => $consultation->reference,
-                    'doctor_name' => $doctor->name,
-                    'scheduled_at' => $scheduledAt->toDateTimeString(),
-                    'type' => 'appointment_booked'
-                ]
-            ]);
-
-            // Notification for doctor
-            \App\Models\Notification::create([
-                'user_type' => 'doctor',
-                'user_id' => $doctor->id,
-                'title' => 'New Appointment Booked',
-                'message' => "{$patient->name} has booked an appointment with you for " . $scheduledAt->format('M d, Y h:i A') . ". Reference: {$consultation->reference}",
-                'type' => 'info',
-                'action_url' => doctor_url('consultations/' . $consultation->id),
-                'data' => [
-                    'consultation_id' => $consultation->id,
-                    'consultation_reference' => $consultation->reference,
-                    'patient_name' => $patient->name,
-                    'scheduled_at' => $scheduledAt->toDateTimeString(),
-                    'type' => 'new_appointment'
-                ]
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Failed to create booking notifications', [
+            Log::info('Scheduled consultation created successfully', [
+                'event_type' => 'consultation_scheduled',
                 'consultation_id' => $consultation->id,
-                'error' => $e->getMessage()
+                'consultation_reference' => $consultation->reference,
+                'doctor_id' => $doctor->id,
+                'patient_id' => $patient->id,
+                'scheduled_at' => $scheduledAt->toIso8601String(),
+                'consultation_mode' => $consultationMode,
+                'timestamp' => now()->toIso8601String()
             ]);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Appointment booked successfully!',
-            'consultation' => [
-                'id' => $consultation->id,
-                'reference' => $consultation->reference,
-                'scheduled_at' => $consultation->scheduled_at->format('Y-m-d H:i:s'),
-            ]
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment booked successfully! Reference: ' . $consultation->reference,
+                'consultation' => [
+                    'id' => $consultation->id,
+                    'reference' => $consultation->reference,
+                    'scheduled_at' => $consultation->scheduled_at->format('Y-m-d H:i:s'),
+                    'consultation_mode' => $consultationMode,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to create scheduled consultation', [
+                'event_type' => 'consultation_booking_failed',
+                'doctor_id' => $doctor->id ?? null,
+                'patient_id' => $patient->id ?? null,
+                'scheduled_at' => $scheduledAt->toIso8601String() ?? null,
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+                'timestamp' => now()->toIso8601String()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to book appointment. Please try again or contact support.',
+                'error' => 'booking_failed'
+            ], 500);
+        }
     }
 
     /**

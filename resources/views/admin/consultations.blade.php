@@ -213,7 +213,7 @@
                                             {{ ucfirst($consultation->payment_status) }}
                                         </span>
                                     </div>
-                                    <p class="text-xs text-gray-600">{{ $consultation->full_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>
+                                    <p class="text-xs text-gray-600">{{ $consultation->full_name }} • {{ $consultation->scheduled_at ? $consultation->scheduled_at->format('M d, Y') : $consultation->created_at->format('M d, Y') }}</p>
                                 </div>
                             </div>
                             <div class="flex-shrink-0 ml-4">
@@ -263,7 +263,11 @@
                                     <p class="text-xs text-gray-700 leading-relaxed">{{ $consultation->problem }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Scheduled At</p>
+                                    <p class="text-xs text-gray-900">{{ $consultation->scheduled_at ? $consultation->scheduled_at->format('M d, Y h:i A') : 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date Created</p>
                                     <p class="text-xs text-gray-900">{{ $consultation->created_at->format('M d, Y h:i A') }}</p>
                                 </div>
                                 <div>

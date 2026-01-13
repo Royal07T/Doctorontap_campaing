@@ -12,12 +12,36 @@ if (!function_exists('domain_url')) {
     function domain_url(string $domainType, string $path = '', array $parameters = []): string
     {
         if (!config('domains.enabled')) {
+            // When domains are not enabled, prepend the route prefix
+            $prefix = $domainType === 'admin' ? 'admin' : 
+                     ($domainType === 'patient' ? 'patient' : 
+                     ($domainType === 'doctor' ? 'doctor' : 
+                     ($domainType === 'nurse' ? 'nurse' : 
+                     ($domainType === 'canvasser' ? 'canvasser' : 
+                     ($domainType === 'customer_care' ? 'customer-care' : '')))));
+            
+            if ($prefix && $path) {
+                $path = $prefix . '/' . ltrim($path, '/');
+            }
+            
             return url($path, $parameters);
         }
 
         $domain = config("domains.domains.{$domainType}");
         
         if (!$domain) {
+            // Fallback: prepend route prefix when domain config is missing
+            $prefix = $domainType === 'admin' ? 'admin' : 
+                     ($domainType === 'patient' ? 'patient' : 
+                     ($domainType === 'doctor' ? 'doctor' : 
+                     ($domainType === 'nurse' ? 'nurse' : 
+                     ($domainType === 'canvasser' ? 'canvasser' : 
+                     ($domainType === 'customer_care' ? 'customer-care' : '')))));
+            
+            if ($prefix && $path) {
+                $path = $prefix . '/' . ltrim($path, '/');
+            }
+            
             return url($path, $parameters);
         }
 

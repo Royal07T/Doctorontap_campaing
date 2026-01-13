@@ -73,6 +73,10 @@ class BookingService
                 $patient = $this->findOrCreatePatient($patientData, $data['payer_email'], $data['payer_mobile']);
 
                 // 3b. Create consultation record for this patient
+                // Map consult_mode to consultation_mode enum
+                $consultMode = $booking->consult_mode ?? 'chat';
+                $consultationMode = in_array($consultMode, ['voice', 'video', 'chat']) ? $consultMode : 'whatsapp';
+                
                 $consultationData = [
                     'reference' => $this->generateConsultationReference(),
                     'booking_id' => $booking->id,
@@ -88,7 +92,8 @@ class BookingService
                     'medical_documents' => $patientData['medical_documents'] ?? null,
                     'severity' => $patientData['severity'] ?? 'moderate',
                     'emergency_symptoms' => $patientData['emergency_symptoms'] ?? null,
-                    'consult_mode' => $booking->consult_mode,
+                    'consult_mode' => $consultMode, // Legacy field
+                    'consultation_mode' => $consultationMode, // New enum field
                     'doctor_id' => $booking->doctor_id,
                     'canvasser_id' => $booking->canvasser_id,
                     'nurse_id' => $booking->nurse_id,
@@ -106,6 +111,35 @@ class BookingService
                 }
                 
                 $consultation = Consultation::create($consultationData);
+                
+                // Create Vonage session if consultation is in-app mode and doctor is assigned
+                if ($consultation->isInAppMode() && $booking->doctor_id) {
+                    try {
+                        $sessionService = app(\App\Services\ConsultationSessionService::class);
+                        $sessionResult = $sessionService->createSession($consultation);
+                        
+                        if (!$sessionResult['success']) {
+                            \Log::warning('Failed to create consultation session for multi-patient booking', [
+                                'event_type' => 'session_creation_failed_booking',
+                                'consultation_id' => $consultation->id,
+                                'booking_id' => $booking->id,
+                                'mode' => $consultationMode,
+                                'error' => $sessionResult['error'] ?? 'unknown',
+                                'timestamp' => now()->toIso8601String()
+                            ]);
+                            // Don't fail booking if session creation fails
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Exception creating session for multi-patient booking', [
+                            'event_type' => 'session_creation_exception_booking',
+                            'consultation_id' => $consultation->id,
+                            'booking_id' => $booking->id,
+                            'error' => $e->getMessage(),
+                            'timestamp' => now()->toIso8601String()
+                        ]);
+                        // Don't fail booking if session creation fails
+                    }
+                }
 
                 // Create notifications for patient and doctor
                 try {

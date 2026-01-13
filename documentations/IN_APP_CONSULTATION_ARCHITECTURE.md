@@ -103,6 +103,8 @@ This document describes the implementation of in-app consultation support using 
 
 **Key Methods**:
 - `createSession($consultation)`: Creates session based on mode (voice/video/chat)
+  - **Single Active Session Guarantee**: Checks for existing active session before creating new one
+  - **Graceful Fallback**: Handles Vonage service disabled state gracefully
 - `getSessionToken($session, $userType, $userId)`: Returns token if user is authorized
 - `startSession($session)`: Marks session as active
 - `endSession($session)`: Marks session as ended
@@ -111,6 +113,8 @@ This document describes the implementation of in-app consultation support using 
 - Verifies doctor assignment before creating session
 - Verifies user authorization before returning tokens
 - Tokens are encrypted before storage
+- **Single Active Session**: Only one active session per consultation (prevents duplicates)
+- **Graceful Degradation**: Consultation creation never fails due to Vonage issues
 
 ---
 
@@ -122,13 +126,17 @@ This document describes the implementation of in-app consultation support using 
 
 **Endpoints**:
 
-1. **GET `/doctor/consultations/{consultation}/session/token`**
+1. **POST `/doctor/consultations/{consultation}/session/token`**
    - Returns Vonage token for doctor to join session
    - **Authorization**: Only assigned doctor can access
+   - **Security**: Uses POST method to prevent token exposure in URLs/logs
+   - **Rate Limiting**: 10 requests per minute per user (`throttle:10,1`)
 
-2. **GET `/patient/consultations/{consultation}/session/token`**
+2. **POST `/patient/consultations/{consultation}/session/token`**
    - Returns Vonage token for patient to join session
    - **Authorization**: Only consultation owner can access
+   - **Security**: Uses POST method to prevent token exposure in URLs/logs
+   - **Rate Limiting**: 10 requests per minute per user (`throttle:10,1`)
 
 3. **POST `/doctor|patient/consultations/{consultation}/session/start`**
    - Marks session as active
@@ -148,7 +156,9 @@ This document describes the implementation of in-app consultation support using 
 **Changes**:
 - When creating consultation with `consultation_mode` in `['voice', 'video', 'chat']`:
   - Automatically creates Vonage session if doctor is assigned
-  - Session creation failure does not block consultation creation (logged as warning)
+  - **Graceful Fallback**: Session creation failure never blocks consultation creation
+  - **Vonage Disabled**: If Vonage service is disabled, consultation still succeeds (logged as info)
+  - All session creation errors are logged but do not prevent consultation creation
 
 ---
 
@@ -288,17 +298,23 @@ php artisan migrate
 ### Joining Session Flow
 
 ```
-1. Doctor/Patient requests token: GET /consultations/{id}/session/token
+1. Doctor/Patient requests token: POST /consultations/{id}/session/token
    ↓
-2. ConsultationSessionController verifies authorization
+2. Rate limiting middleware checks (10 requests/minute)
    ↓
-3. ConsultationSessionService.getSessionToken() is called
+3. ConsultationSessionController verifies authorization
    ↓
-4. Token is decrypted and returned (if authorized)
+4. ConsultationSessionService checks for existing active session
    ↓
-5. Frontend uses token to initialize Vonage SDK
+5. If no active session exists, creates new one (or returns existing)
    ↓
-6. User joins session
+6. ConsultationSessionService.getSessionToken() is called
+   ↓
+7. Token is decrypted and returned (if authorized)
+   ↓
+8. Frontend uses token to initialize Vonage SDK
+   ↓
+9. User joins session
 ```
 
 ---
@@ -310,6 +326,27 @@ php artisan migrate
 3. **Token Expiration**: Tokens expire after 24 hours (configurable)
 4. **Session Isolation**: Each consultation has its own session
 5. **Access Control**: Only assigned doctor and consultation owner can access
+6. **Rate Limiting**: Token endpoints are rate-limited to 10 requests per minute per user
+7. **POST Method**: Token endpoints use POST instead of GET to prevent token exposure in URLs, logs, or browser history
+8. **Single Active Session**: Only one active session per consultation (prevents duplicate sessions)
+
+## Resilience & Reliability
+
+1. **Graceful Fallback**: When Vonage services are disabled:
+   - Consultation creation always succeeds
+   - Session creation returns graceful failure (503 Service Unavailable)
+   - User receives helpful error message
+   - System continues to function normally
+
+2. **Single Active Session Guarantee**:
+   - System checks for existing active session before creating new one
+   - Returns existing session if found
+   - Prevents duplicate active sessions per consultation
+
+3. **Non-Blocking Consultation Creation**:
+   - Consultation creation never fails due to session creation issues
+   - All session errors are logged but don't block consultation
+   - WhatsApp consultations remain unaffected
 
 ---
 
@@ -365,6 +402,7 @@ php artisan migrate
 
 ### Configuration
 - `config/services.php` (extended with video/conversation config)
+- `config/consultation.php` (new - documents voice mode implementation)
 
 ---
 
@@ -382,6 +420,10 @@ php artisan migrate
 - [ ] Session can be started
 - [ ] Session can be ended
 - [ ] Session status is tracked correctly
+- [ ] Rate limiting works on token endpoints (10 requests/minute)
+- [ ] Only one active session per consultation (no duplicates)
+- [ ] Consultation creation succeeds when Vonage is disabled
+- [ ] Graceful error messages when Vonage service unavailable
 
 ---
 
@@ -395,6 +437,37 @@ For issues or questions:
 
 ---
 
+---
+
+## Critical Fixes & Improvements
+
+### Fix 1: Voice Mode Ambiguity
+- **Issue**: Voice mode could be mistaken for Vonage Voice API (telephony)
+- **Solution**: Documented in `config/consultation.php` that voice uses Vonage Video API in audio-only mode
+- **Impact**: Clear documentation prevents confusion
+
+### Fix 2: Unsafe GET Token Endpoints
+- **Issue**: GET method exposed tokens in URLs, logs, and browser history
+- **Solution**: Changed to POST method for all token endpoints
+- **Impact**: Tokens are no longer exposed in URLs or server logs
+
+### Fix 3: Rate Limiting
+- **Issue**: Token endpoints could be abused
+- **Solution**: Added `throttle:10,1` middleware (10 requests per minute)
+- **Impact**: Prevents token abuse and brute force attempts
+
+### Fix 4: Single Active Session Guarantee
+- **Issue**: Multiple active sessions could be created for same consultation
+- **Solution**: Check for existing active session before creating new one
+- **Impact**: Ensures data integrity and prevents duplicate sessions
+
+### Fix 5: Graceful Fallback When Vonage Disabled
+- **Issue**: System could fail when Vonage services are disabled
+- **Solution**: Graceful error handling with 503 Service Unavailable
+- **Impact**: Consultation creation never fails, system remains functional
+
+---
+
 **Last Updated**: 2026-01-13
-**Version**: 1.0.0
+**Version**: 1.1.0
 

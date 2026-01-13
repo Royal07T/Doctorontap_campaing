@@ -218,7 +218,7 @@
                                                     <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Unpaid</span>
                                                 @endif
                                             </div>
-                                            <p class="text-xs text-gray-600">{{ $consultation->full_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>
+                                            <p class="text-xs text-gray-600">{{ $consultation->full_name }} • {{ $consultation->scheduled_at ? $consultation->scheduled_at->format('M d, Y') : $consultation->created_at->format('M d, Y') }}</p>
                                         </div>
                                     </div>
                                     <div class="flex-shrink-0 ml-4">
@@ -260,7 +260,11 @@
                                             <p class="text-xs text-gray-600">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>
+                                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Scheduled At</p>
+                                            <p class="text-xs text-gray-900">{{ $consultation->scheduled_at ? $consultation->scheduled_at->format('M d, Y h:i A') : 'N/A' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date Created</p>
                                             <p class="text-xs text-gray-900">{{ $consultation->created_at->format('M d, Y') }}</p>
                                             <p class="text-xs text-gray-600">{{ $consultation->created_at->format('h:i A') }}</p>
                                         </div>

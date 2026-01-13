@@ -181,7 +181,7 @@
                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-rose-100 text-rose-700">Unpaid</span>
                                     @endif
                                 </div>
-                                <p class="text-xs text-gray-600">Dr. {{ $consultation->doctor->name ?? 'N/A' }} • {{ $consultation->created_at->format('M d, Y') }}</p>
+                                <p class="text-xs text-gray-600">Dr. {{ $consultation->doctor->name ?? 'N/A' }} • {{ $consultation->scheduled_at ? $consultation->scheduled_at->format('M d, Y') : $consultation->created_at->format('M d, Y') }}</p>
                             </div>
                         </div>
                         
@@ -217,7 +217,11 @@
                                 <p class="text-xs text-gray-900 font-mono">{{ $consultation->reference }}</p>
                             </div>
                             <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Scheduled At</p>
+                                <p class="text-xs text-gray-900">{{ $consultation->scheduled_at ? $consultation->scheduled_at->format('F d, Y h:i A') : $consultation->created_at->format('F d, Y h:i A') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date Created</p>
                                 <p class="text-xs text-gray-900">{{ $consultation->created_at->format('F d, Y') }}</p>
                             </div>
                             <div>

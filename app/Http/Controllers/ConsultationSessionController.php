@@ -30,7 +30,14 @@ class ConsultationSessionController extends Controller
     /**
      * Get session token for joining consultation
      * 
-     * SECURITY: Verifies user authorization before returning token
+     * SECURITY:
+     * - Uses POST method to prevent token exposure in logs, browser history, or URL parameters
+     * - Verifies user authorization before returning token
+     * - Rate limited to prevent abuse (10 requests per minute)
+     * - Tokens are encrypted at rest and only decrypted for authorized users
+     * 
+     * NOTE: This endpoint was changed from GET to POST for security reasons.
+     * Tokens should never be exposed in URLs or server logs.
      */
     public function getToken(Request $request, Consultation $consultation)
     {
@@ -82,6 +89,18 @@ class ConsultationSessionController extends Controller
             // Create new session
             $result = $this->sessionService->createSession($consultation);
             if (!$result['success']) {
+                // FIX 5: Graceful fallback when Vonage is disabled
+                // Don't block user if Vonage service is disabled - return helpful message
+                if (isset($result['graceful_failure']) && $result['graceful_failure'] === true) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $result['message'] ?? 'Vonage service is currently unavailable. Please contact support or use WhatsApp consultation mode.',
+                        'error' => 'vonage_disabled',
+                        'graceful_failure' => true
+                    ], 503); // 503 Service Unavailable - indicates temporary unavailability
+                }
+                
+                // For other errors, return 500
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to create session: ' . ($result['message'] ?? 'Unknown error')

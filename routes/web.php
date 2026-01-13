@@ -55,6 +55,11 @@ Route::post('/vonage/webhook/voice/event', [\App\Http\Controllers\VonageVoiceWeb
 Route::post('/vonage/webhook/voice/recording', [\App\Http\Controllers\VonageVoiceWebhookController::class, 'handleRecording'])
     ->name('vonage.webhook.voice.recording');
 
+// Vonage Session Webhooks (for in-app consultations - video/voice/chat)
+// SECURITY: Webhook signature validation is performed in controller
+Route::post('/vonage/webhook/session', [\App\Http\Controllers\VonageSessionWebhookController::class, 'handleSessionEvent'])
+    ->name('vonage.webhook.session');
+
 // Service Worker Route - Handle both /sw.js and /service-worker.js
 Route::get('/service-worker.js', function () {
     $swPath = public_path('sw.js');
@@ -561,8 +566,11 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::resource('support-tickets', \App\Http\Controllers\Doctor\SupportTicketController::class)->only(['index', 'create', 'store', 'show']);
     
     // Consultation Sessions (In-App Consultations)
+    // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
-        Route::get('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])->name('session.token');
+        Route::post('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])
+            ->middleware('throttle:10,1') // Rate limit: 10 requests per minute
+            ->name('session.token');
         Route::post('/session/start', [\App\Http\Controllers\ConsultationSessionController::class, 'startSession'])->name('session.start');
         Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
         Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
@@ -635,8 +643,11 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::put('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'updateProfile'])->name('profile.update');
     
     // Consultation Sessions (In-App Consultations)
+    // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
-        Route::get('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])->name('session.token');
+        Route::post('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])
+            ->middleware('throttle:10,1') // Rate limit: 10 requests per minute
+            ->name('session.token');
         Route::post('/session/start', [\App\Http\Controllers\ConsultationSessionController::class, 'startSession'])->name('session.start');
         Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
         Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');

@@ -326,24 +326,41 @@
 
                     <!-- Time Slot Selection -->
                     <div class="mb-4" x-show="selectedDate && availableSlots.length > 0">
-                        <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Select Time *</label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Select Time *</label>
+                            <button type="button" 
+                                    @click="loadTimeSlots()" 
+                                    class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
                         <div class="grid grid-cols-4 gap-2">
                             <template x-for="slot in availableSlots" :key="slot.value">
                                 <button type="button"
                                         @click="selectedTime = slot.value; checkSlotAvailability()"
                                         :class="{
-                                            'bg-blue-600 text-white border-blue-600': selectedTime === slot.value && !slot.booked,
-                                            'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed': slot.booked,
-                                            'bg-white text-gray-700 border-gray-300 hover:border-blue-500': selectedTime !== slot.value && !slot.booked
+                                            'bg-blue-600 text-white border-blue-600 shadow-md': selectedTime === slot.value && !slot.booked,
+                                            'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed opacity-60': slot.booked,
+                                            'bg-white text-gray-700 border-gray-300 hover:border-blue-500 hover:bg-blue-50': selectedTime !== slot.value && !slot.booked
                                         }"
                                         :disabled="slot.booked"
-                                        class="px-3 py-2 text-xs font-medium rounded-lg border transition">
+                                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-all relative">
                                     <span x-text="slot.label"></span>
-                                    <span x-show="slot.booked" class="block text-[10px] mt-0.5">Booked</span>
+                                    <span x-show="slot.booked" class="block text-[10px] mt-0.5 text-red-600 font-semibold">Booked</span>
+                                    <span x-show="selectedTime === slot.value && !slot.booked" class="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full"></span>
                                 </button>
                             </template>
                         </div>
                         <p class="text-xs text-gray-500 mt-2" x-show="selectedDate && availableSlots.length === 0">No available time slots for this date</p>
+                        <p class="text-xs text-blue-600 mt-2 flex items-center gap-1" x-show="selectedDate && availableSlots.length > 0">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Slots are checked in real-time to prevent conflicts</span>
+                        </p>
                     </div>
                 </div>
 
@@ -732,7 +749,8 @@ function bookingModal() {
                 const response = await fetch(`/patient/doctors/${this.doctorId}/availability`, {
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache' // Get fresh availability data
                     }
                 });
                 const data = await response.json();
@@ -744,7 +762,7 @@ function bookingModal() {
             }
         },
 
-        loadTimeSlots() {
+        async loadTimeSlots() {
             if (!this.selectedDate) return;
             
             this.selectedTime = '';
@@ -753,16 +771,21 @@ function bookingModal() {
             const selectedDateObj = new Date(this.selectedDate);
             const dayOfWeek = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
             
-            // Load doctor availability for this day
-            fetch(`/patient/doctors/${this.doctorId}/availability`, {
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                // Load doctor availability for this day (refresh to get latest booked slots)
+                const response = await fetch(`/patient/doctors/${this.doctorId}/availability`, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache' // Prevent caching to get fresh data
+                    }
+                });
+                
+                const data = await response.json();
                 if (data.success) {
+                    // Update booked slots with latest data
+                    this.bookedSlots = data.booked_slots || [];
+                    
                     const schedule = data.availability_schedule || {};
                     const daySchedule = schedule[dayOfWeek];
                     
@@ -782,11 +805,13 @@ function bookingModal() {
                         const timeStr = current.toTimeString().slice(0, 5);
                         const slotDateTime = `${this.selectedDate} ${timeStr}`;
                         
-                        // Check if this slot is booked
+                        // Check if this slot is booked (with 30-minute buffer)
+                        const slotDateTimeObj = new Date(`${this.selectedDate}T${timeStr}`);
                         const isBooked = this.bookedSlots.some(booked => {
-                            const bookedDate = booked.date;
-                            const bookedTime = booked.time;
-                            return bookedDate === this.selectedDate && bookedTime === timeStr;
+                            const bookedDateTime = new Date(`${booked.date}T${booked.time}`);
+                            const timeDiff = Math.abs(slotDateTimeObj - bookedDateTime) / 1000 / 60; // minutes
+                            // Consider booked if within 30 minutes
+                            return timeDiff < 30;
                         });
                         
                         slots.push({
@@ -799,12 +824,15 @@ function bookingModal() {
                     }
                     
                     this.availableSlots = slots;
+                } else {
+                    this.dateError = 'Error loading doctor availability';
+                    this.availableSlots = [];
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error loading time slots:', error);
-                this.dateError = 'Error loading available time slots';
-            });
+                this.dateError = 'Error loading available time slots. Please refresh the page.';
+                this.availableSlots = [];
+            }
         },
 
         async checkSlotAvailability() {
@@ -830,11 +858,14 @@ function bookingModal() {
                 if (!data.success || !data.available) {
                     this.errorMessage = data.message || 'This time slot is not available';
                     this.selectedTime = '';
+                    // Refresh availability to show updated booked slots
+                    this.loadTimeSlots();
                 } else {
                     this.errorMessage = '';
                 }
             } catch (error) {
                 console.error('Error checking slot:', error);
+                this.errorMessage = 'Error checking slot availability. Please try again.';
             }
         },
 
@@ -890,6 +921,16 @@ function bookingModal() {
                     return;
                 }
                 
+                // Handle time slot conflicts (409 Conflict)
+                if (response.status === 409 || data.error === 'time_slot_conflict') {
+                    this.errorMessage = data.message || 'This time slot was just booked by another patient. Please select a different time.';
+                    this.selectedTime = '';
+                    // Refresh availability to show updated booked slots
+                    this.loadTimeSlots();
+                    this.isSubmitting = false;
+                    return;
+                }
+                
                 if (data.success) {
                     this.successMessage = data.message || 'Appointment booked successfully!';
                     setTimeout(() => {
@@ -897,6 +938,7 @@ function bookingModal() {
                     }, 1500);
                 } else {
                     this.errorMessage = data.message || 'Failed to book appointment. Please try again.';
+                    this.isSubmitting = false;
                 }
             } catch (error) {
                 console.error('Error booking appointment:', error);
