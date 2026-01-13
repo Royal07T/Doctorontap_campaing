@@ -25,6 +25,11 @@
         $userType = 'canvasser';
         $userId = Auth::guard('canvasser')->id();
         $isAuthenticated = true;
+    } elseif (Auth::guard('customer_care')->check()) {
+        $routePrefix = 'customer-care';
+        $userType = 'customer_care';
+        $userId = Auth::guard('customer_care')->id();
+        $isAuthenticated = true;
     } elseif (Auth::guard('patient')->check()) {
         $routePrefix = 'patient';
         $userType = 'patient';

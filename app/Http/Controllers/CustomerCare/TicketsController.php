@@ -26,7 +26,12 @@ class TicketsController extends Controller
     {
         $agent = Auth::guard('customer_care')->user();
 
-        $query = SupportTicket::where('agent_id', $agent->id)
+        // Show all tickets - both assigned to this agent and unassigned tickets
+        // This allows agents to see and claim unassigned tickets created by patients/doctors
+        $query = SupportTicket::where(function($q) use ($agent) {
+                $q->where('agent_id', $agent->id)  // Tickets assigned to this agent
+                  ->orWhereNull('agent_id');        // Unassigned tickets (created by patients/doctors)
+            })
             ->with(['user', 'doctor', 'agent']);
 
         // Filter by status
@@ -127,5 +132,30 @@ class TicketsController extends Controller
         return redirect()
             ->route('customer-care.tickets.show', $ticket)
             ->with('success', 'Ticket status updated successfully.');
+    }
+
+    /**
+     * Assign ticket to current agent
+     */
+    public function assignToMe(SupportTicket $ticket)
+    {
+        $agent = Auth::guard('customer_care')->user();
+        
+        if (!$agent) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Only allow assignment if ticket is unassigned
+        if ($ticket->agent_id) {
+            return redirect()
+                ->route('customer-care.tickets.show', $ticket)
+                ->with('error', 'This ticket is already assigned to another agent.');
+        }
+
+        $this->ticketService->assignTicket($ticket, $agent->id);
+
+        return redirect()
+            ->route('customer-care.tickets.show', $ticket)
+            ->with('success', 'Ticket assigned to you successfully.');
     }
 }

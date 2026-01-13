@@ -161,30 +161,39 @@ class ConsultationObserver
                         'trigger' => $paymentStatusChanged ? 'payment_status_change' : 'treatment_plan_created'
                     ]);
 
-                    // Create in-app notification (bell icon) for patient when payment is made
-                    if ($paymentStatusChanged && $consultation->patient_id) {
+                    // Create in-app notification (bell icon) for patient
+                    // When payment is made OR when treatment plan is created and payment already exists
+                    if (($paymentStatusChanged || ($treatmentPlanCreated && $consultation->isPaid())) && $consultation->patient_id) {
                         try {
+                            $notificationTitle = $paymentStatusChanged 
+                                ? 'Treatment Plan Sent' 
+                                : 'Treatment Plan Ready';
+                            $notificationMessage = $paymentStatusChanged
+                                ? "Your treatment plan for consultation (Ref: {$consultation->reference}) has been sent to your email. Please check your inbox."
+                                : "Your treatment plan for consultation (Ref: {$consultation->reference}) is ready! You can view it now.";
+                            
                             Notification::create([
                                 'user_type' => 'patient',
                                 'user_id' => $consultation->patient_id,
-                                'title' => 'Treatment Plan Sent',
-                                'message' => "Your treatment plan for consultation (Ref: {$consultation->reference}) has been sent to your email. Please check your inbox.",
+                                'title' => $notificationTitle,
+                                'message' => $notificationMessage,
                                 'type' => 'success',
                                 'action_url' => patient_url('consultations/' . $consultation->id),
                                 'data' => [
                                     'consultation_id' => $consultation->id,
                                     'consultation_reference' => $consultation->reference,
-                                    'type' => 'treatment_plan_sent',
+                                    'type' => 'treatment_plan_ready',
                                     'email' => $recipientEmail
                                 ]
                             ]);
-                            Log::info('Treatment plan sent notification created for patient', [
+                            Log::info('Treatment plan ready notification created for patient', [
                                 'consultation_id' => $consultation->id,
                                 'patient_id' => $consultation->patient_id,
-                                'reference' => $consultation->reference
+                                'reference' => $consultation->reference,
+                                'trigger' => $paymentStatusChanged ? 'payment_made' : 'treatment_plan_created'
                             ]);
                         } catch (\Exception $e) {
-                            Log::error('Failed to create treatment plan sent notification', [
+                            Log::error('Failed to create treatment plan ready notification', [
                                 'consultation_id' => $consultation->id,
                                 'patient_id' => $consultation->patient_id,
                                 'error' => $e->getMessage()

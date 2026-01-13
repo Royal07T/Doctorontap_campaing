@@ -3807,6 +3807,30 @@ class DashboardController extends Controller
                     'payment_method' => 'korapay_bank_transfer',
                     'admin_notes' => 'Payout initiated via KoraPay by ' . $admin->name,
                 ]);
+                
+                // Send notification to doctor that payment is being processed
+                try {
+                    \App\Models\Notification::create([
+                        'user_type' => 'doctor',
+                        'user_id' => $payment->doctor_id,
+                        'title' => 'Payment Processing',
+                        'message' => "Your payment of ₦" . number_format($payment->doctor_amount, 2) . " is being processed. Reference: {$payment->reference}",
+                        'type' => 'info',
+                        'action_url' => doctor_url('payment-history'),
+                        'data' => [
+                            'payment_id' => $payment->id,
+                            'payment_reference' => $payment->reference,
+                            'amount' => $payment->doctor_amount,
+                            'type' => 'doctor_payment_processing'
+                        ]
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create doctor payment processing notification', [
+                        'payment_id' => $payment->id,
+                        'doctor_id' => $payment->doctor_id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
 
                 return response()->json([
                     'success' => true,
@@ -3918,6 +3942,8 @@ class DashboardController extends Controller
                 ];
 
                 if ($korapayStatus === 'success') {
+                    $wasCompleted = $payment->status === 'completed';
+                    
                     $updateData['paid_at'] = now();
                     $updateData['payout_completed_at'] = now();
                     $updateData['transaction_reference'] = $payment->korapay_reference;
@@ -3928,6 +3954,33 @@ class DashboardController extends Controller
                 }
 
                 $payment->update($updateData);
+                
+                // Send notification if payment was just completed
+                if ($korapayStatus === 'success' && !$wasCompleted && $payment->doctor_id) {
+                    try {
+                        \App\Models\Notification::create([
+                            'user_type' => 'doctor',
+                            'user_id' => $payment->doctor_id,
+                            'title' => 'Payment Completed',
+                            'message' => "Your payment of ₦" . number_format($payment->doctor_amount, 2) . " has been successfully transferred to your bank account. Reference: {$payment->reference}",
+                            'type' => 'success',
+                            'action_url' => doctor_url('payment-history'),
+                            'data' => [
+                                'payment_id' => $payment->id,
+                                'payment_reference' => $payment->reference,
+                                'amount' => $payment->doctor_amount,
+                                'transaction_reference' => $payment->korapay_reference,
+                                'type' => 'doctor_payment_completed'
+                            ]
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to create doctor payment completion notification', [
+                            'payment_id' => $payment->id,
+                            'doctor_id' => $payment->doctor_id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
 
                 return response()->json([
                     'success' => true,

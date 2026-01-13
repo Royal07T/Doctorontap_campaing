@@ -372,6 +372,14 @@
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                             <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Actions</h3>
                             <div class="space-y-3">
+                                @if(!$ticket->agent_id)
+                                <form method="POST" action="{{ route('customer-care.tickets.assign-to-me', $ticket) }}">
+                                    @csrf
+                                    <button type="submit" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-semibold">
+                                        📌 Assign to Me
+                                    </button>
+                                </form>
+                                @endif
                                 @if($ticket->status !== 'resolved')
                                 <form method="POST" action="{{ route('customer-care.tickets.update-status', $ticket) }}" id="updateStatusForm">
                                     @csrf

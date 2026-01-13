@@ -615,13 +615,14 @@ class PaymentController extends Controller
                             'reference' => $reference
                         ]);
 
-                        // Optionally send failure notification email
+                        // Send failure notification email and in-app notification
                         try {
+                            // Email notification
                             \Illuminate\Support\Facades\Mail::to($consultation->email)->send(
                                 new \App\Mail\PaymentFailedNotification($consultation, $payment, $data['failure_message'] ?? 'Payment could not be processed')
                             );
                             
-                            Log::info('Payment failure notification sent', [
+                            Log::info('Payment failure email sent', [
                                 'consultation_id' => $consultation->id,
                                 'email' => $consultation->email
                             ]);
@@ -631,11 +632,43 @@ class PaymentController extends Controller
                                 'error' => $e->getMessage()
                             ]);
                         }
+                        
+                        // In-app notification for patient
+                        if ($consultation->patient_id) {
+                            try {
+                                \App\Models\Notification::create([
+                                    'user_type' => 'patient',
+                                    'user_id' => $consultation->patient_id,
+                                    'title' => 'Payment Failed',
+                                    'message' => "Your payment for consultation (Ref: {$consultation->reference}) failed. " . ($data['failure_message'] ?? 'Please try again or contact support.'),
+                                    'type' => 'error',
+                                    'action_url' => patient_url('consultations/' . $consultation->id),
+                                    'data' => [
+                                        'consultation_id' => $consultation->id,
+                                        'consultation_reference' => $consultation->reference,
+                                        'payment_id' => $payment->id,
+                                        'failure_message' => $data['failure_message'] ?? null,
+                                        'type' => 'payment_failed'
+                                    ]
+                                ]);
+                                
+                                Log::info('Payment failure in-app notification created for patient', [
+                                    'consultation_id' => $consultation->id,
+                                    'patient_id' => $consultation->patient_id
+                                ]);
+                            } catch (\Exception $e) {
+                                Log::error('Failed to create payment failure notification', [
+                                    'consultation_id' => $consultation->id,
+                                    'patient_id' => $consultation->patient_id,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
+                        }
                     }
                 }
                 // Update booking payment status to failed
                 elseif ($payment->metadata && isset($payment->metadata['booking_id'])) {
-                    $booking = Booking::find($payment->metadata['booking_id']);
+                    $booking = Booking::with('consultations.patient')->find($payment->metadata['booking_id']);
                     
                     if ($booking) {
                         $booking->update(['payment_status' => 'failed']);
@@ -645,6 +678,36 @@ class PaymentController extends Controller
                         Log::info('Booking payment status updated to FAILED', [
                             'booking_id' => $booking->id
                         ]);
+                        
+                        // Send notifications to all patients in the booking
+                        foreach ($booking->consultations as $consultation) {
+                            if ($consultation->patient_id) {
+                                try {
+                                    \App\Models\Notification::create([
+                                        'user_type' => 'patient',
+                                        'user_id' => $consultation->patient_id,
+                                        'title' => 'Payment Failed',
+                                        'message' => "Your payment for consultation (Ref: {$consultation->reference}) failed. " . ($data['failure_message'] ?? 'Please try again or contact support.'),
+                                        'type' => 'error',
+                                        'action_url' => patient_url('consultations/' . $consultation->id),
+                                        'data' => [
+                                            'consultation_id' => $consultation->id,
+                                            'consultation_reference' => $consultation->reference,
+                                            'booking_id' => $booking->id,
+                                            'payment_id' => $payment->id,
+                                            'failure_message' => $data['failure_message'] ?? null,
+                                            'type' => 'payment_failed'
+                                        ]
+                                    ]);
+                                } catch (\Exception $e) {
+                                    Log::error('Failed to create booking payment failure notification', [
+                                        'consultation_id' => $consultation->id,
+                                        'patient_id' => $consultation->patient_id,
+                                        'error' => $e->getMessage()
+                                    ]);
+                                }
+                            }
+                        }
                     }
                 }
 

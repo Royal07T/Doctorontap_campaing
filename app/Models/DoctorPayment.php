@@ -152,6 +152,8 @@ class DoctorPayment extends Model
      */
     public function markAsCompleted($adminId, $paymentMethod = null, $transactionRef = null, $notes = null): void
     {
+        $wasCompleted = $this->status === 'completed';
+        
         $this->update([
             'status' => 'completed',
             'paid_at' => now(),
@@ -160,6 +162,39 @@ class DoctorPayment extends Model
             'transaction_reference' => $transactionRef,
             'payment_notes' => $notes,
         ]);
+        
+        // Send notification to doctor if this is a new completion
+        if (!$wasCompleted && $this->doctor_id) {
+            try {
+                \App\Models\Notification::create([
+                    'user_type' => 'doctor',
+                    'user_id' => $this->doctor_id,
+                    'title' => 'Payment Received',
+                    'message' => "Your payment of ₦" . number_format($this->doctor_amount, 2) . " has been completed. Reference: {$this->reference}",
+                    'type' => 'success',
+                    'action_url' => doctor_url('payment-history'),
+                    'data' => [
+                        'payment_id' => $this->id,
+                        'payment_reference' => $this->reference,
+                        'amount' => $this->doctor_amount,
+                        'consultation_count' => $this->total_consultations_count,
+                        'type' => 'doctor_payment_completed'
+                    ]
+                ]);
+                
+                \Illuminate\Support\Facades\Log::info('Doctor payment completion notification created', [
+                    'payment_id' => $this->id,
+                    'doctor_id' => $this->doctor_id,
+                    'amount' => $this->doctor_amount
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to create doctor payment completion notification', [
+                    'payment_id' => $this->id,
+                    'doctor_id' => $this->doctor_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
     }
 
     /**

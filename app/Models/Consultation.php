@@ -28,6 +28,10 @@ class Consultation extends Model
         'severity',
         'emergency_symptoms',
         'consult_mode',
+        'consultation_mode',
+        'session_status',
+        'started_at',
+        'ended_at',
         'doctor_id',
         'canvasser_id',
         'nurse_id',
@@ -95,6 +99,8 @@ class Consultation extends Model
         'treatment_plan_unlocked_at' => 'datetime',
         'treatment_plan_email_sent' => 'boolean',
         'treatment_plan_email_sent_at' => 'datetime',
+        'started_at' => 'datetime',
+        'ended_at' => 'datetime',
     ];
 
     /**
@@ -162,6 +168,22 @@ class Consultation extends Model
     }
 
     /**
+     * Get all consultation sessions for this consultation
+     */
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(ConsultationSession::class);
+    }
+
+    /**
+     * Get the active session for this consultation
+     */
+    public function activeSession()
+    {
+        return $this->sessions()->where('status', 'active')->latest()->first();
+    }
+
+    /**
      * Get all notification logs for this consultation
      */
     public function notificationLogs(): HasMany
@@ -201,6 +223,31 @@ class Consultation extends Model
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
+    }
+
+    /**
+     * Check if consultation is using WhatsApp mode
+     */
+    public function isWhatsAppMode(): bool
+    {
+        return $this->consultation_mode === 'whatsapp' || 
+               ($this->consultation_mode === null && $this->consult_mode !== null);
+    }
+
+    /**
+     * Check if consultation is using in-app mode (voice, video, or chat)
+     */
+    public function isInAppMode(): bool
+    {
+        return in_array($this->consultation_mode, ['voice', 'video', 'chat']);
+    }
+
+    /**
+     * Check if session is active
+     */
+    public function hasActiveSession(): bool
+    {
+        return $this->session_status === 'active' && $this->activeSession() !== null;
     }
 
     /**

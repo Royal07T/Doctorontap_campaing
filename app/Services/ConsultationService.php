@@ -54,9 +54,18 @@ class ConsultationService
         // Create or update patient record
         $patient = $this->findOrCreatePatient($validated);
 
+        // Determine consultation_mode (new field) from consult_mode (legacy field)
+        $consultationMode = $validated['consult_mode'] ?? 'whatsapp';
+        // Map legacy consult_mode to new consultation_mode enum
+        if (!in_array($consultationMode, ['whatsapp', 'voice', 'video', 'chat'])) {
+            // If it's an old value, map it appropriately
+            $consultationMode = in_array($consultationMode, ['voice', 'video', 'chat']) ? $consultationMode : 'whatsapp';
+        }
+
         // Create consultation record
         $consultation = Consultation::create([
             'reference' => $reference,
+            'patient_id' => $patient->id, // Link consultation to patient
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
@@ -67,7 +76,8 @@ class ConsultationService
             'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
             'severity' => $validated['severity'],
             'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
-            'consult_mode' => $validated['consult_mode'],
+            'consult_mode' => $validated['consult_mode'], // Keep legacy field
+            'consultation_mode' => $consultationMode, // New enum field
             'doctor_id' => $doctorId,
             'status' => 'pending',
             'payment_status' => 'unpaid',
@@ -75,6 +85,31 @@ class ConsultationService
 
         // Create notifications for patient and doctor
         $this->createNotifications($consultation, $patient, $validated, $reference, $doctorId, $doctorName);
+
+        // Create Vonage session if consultation is in-app mode (voice, video, or chat)
+        // Only create session if doctor is assigned
+        if ($consultation->isInAppMode() && $doctorId) {
+            try {
+                $sessionService = app(\App\Services\ConsultationSessionService::class);
+                $sessionResult = $sessionService->createSession($consultation);
+                
+                if (!$sessionResult['success']) {
+                    Log::warning('Failed to create consultation session', [
+                        'consultation_id' => $consultation->id,
+                        'mode' => $consultationMode,
+                        'error' => $sessionResult['error'] ?? 'unknown'
+                    ]);
+                    // Don't fail consultation creation if session creation fails
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception while creating consultation session', [
+                    'consultation_id' => $consultation->id,
+                    'mode' => $consultationMode,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail consultation creation if session creation fails
+            }
+        }
 
         // Update patient aggregates
         $this->updatePatientAggregates($patient);
@@ -172,14 +207,17 @@ class ConsultationService
         ?string $doctorName
     ): void {
         try {
-            // Notification for patient (if authenticated)
+            // Notification for patient - always send if patient exists
             if ($patient && $patient->id) {
+                $patientMessage = $doctorId 
+                    ? "You have successfully booked a consultation with Dr. {$doctorName}. Reference: {$reference}"
+                    : "Your consultation request (Ref: {$reference}) has been submitted successfully. A doctor will be assigned shortly.";
+                
                 Notification::create([
                     'user_type' => 'patient',
                     'user_id' => $patient->id,
-                    'title' => 'Consultation Created',
-                    'message' => "Your consultation request (Ref: {$reference}) has been submitted successfully. " . 
-                        ($doctorId ? "You have been assigned to Dr. {$doctorName}." : "A doctor will be assigned shortly."),
+                    'title' => $doctorId ? 'Consultation Booked' : 'Consultation Created',
+                    'message' => $patientMessage,
                     'type' => 'success',
                     'action_url' => patient_url('consultations/' . $consultation->id),
                     'data' => [
@@ -187,35 +225,61 @@ class ConsultationService
                         'consultation_reference' => $reference,
                         'doctor_id' => $doctorId,
                         'doctor_name' => $doctorName,
-                        'type' => 'consultation_created'
+                        'type' => $doctorId ? 'consultation_booked' : 'consultation_created'
                     ]
+                ]);
+                
+                Log::info('Patient notification created for consultation', [
+                    'consultation_id' => $consultation->id,
+                    'patient_id' => $patient->id,
+                    'reference' => $reference,
+                    'doctor_id' => $doctorId
                 ]);
             }
 
-            // Notification for doctor (if assigned)
+            // Notification for doctor - always send if doctor is assigned
             if ($doctorId) {
                 $assignedDoctor = Doctor::find($doctorId);
                 if ($assignedDoctor) {
+                    $patientFullName = trim(($validated['first_name'] ?? '') . ' ' . ($validated['last_name'] ?? ''));
+                    $doctorMessage = "A new consultation has been booked with you. Patient: {$patientFullName}. Reference: {$reference}";
+                    
                     Notification::create([
                         'user_type' => 'doctor',
                         'user_id' => $doctorId,
-                        'title' => 'New Consultation Assigned',
-                        'message' => "A new consultation (Ref: {$reference}) has been assigned to you. Patient: {$validated['first_name']} {$validated['last_name']}",
+                        'title' => 'New Consultation Booked',
+                        'message' => $doctorMessage,
                         'type' => 'info',
                         'action_url' => doctor_url('consultations/' . $consultation->id),
                         'data' => [
                             'consultation_id' => $consultation->id,
                             'consultation_reference' => $reference,
-                            'patient_name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                            'patient_id' => $patient->id ?? null,
+                            'patient_name' => $patientFullName,
                             'type' => 'new_consultation'
                         ]
+                    ]);
+                    
+                    Log::info('Doctor notification created for consultation', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctorId,
+                        'reference' => $reference,
+                        'patient_id' => $patient->id ?? null
+                    ]);
+                } else {
+                    Log::warning('Doctor not found for notification', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctorId
                     ]);
                 }
             }
         } catch (\Exception $e) {
             Log::error('Failed to create consultation notifications', [
                 'consultation_id' => $consultation->id,
-                'error' => $e->getMessage()
+                'patient_id' => $patient->id ?? null,
+                'doctor_id' => $doctorId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

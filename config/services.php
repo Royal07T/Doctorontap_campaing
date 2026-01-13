@@ -81,6 +81,13 @@ return [
         'voice_enabled' => env('VONAGE_VOICE_ENABLED', false),
         'voice_number' => env('VONAGE_VOICE_NUMBER'), // Your Vonage phone number for outbound calls
         'voice_webhook_url' => env('VONAGE_VOICE_WEBHOOK_URL'), // Base URL for voice webhooks
+        
+        // Video API Configuration (for in-app video consultations)
+        'video_enabled' => env('VONAGE_VIDEO_ENABLED', false),
+        'video_location' => env('VONAGE_VIDEO_LOCATION', 'us'), // Data center location: us, eu, ap, etc.
+        
+        // Conversations API Configuration (for in-app chat consultations)
+        'conversation_enabled' => env('VONAGE_CONVERSATION_ENABLED', false),
     ],
 
     /*

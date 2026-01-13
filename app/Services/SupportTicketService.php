@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\SupportTicket;
+use App\Models\CustomerCare;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class SupportTicketService
 {
@@ -32,8 +35,95 @@ class SupportTicketService
         }
 
         $ticket = SupportTicket::create($ticketData);
+        
+        // Load relationships to get creator info
+        $ticket->load(['user', 'doctor', 'agent']);
+        
+        // Send notification to customer care agents
+        $this->notifyCustomerCareAgents($ticket);
 
         return $ticket;
+    }
+    
+    /**
+     * Notify customer care agents about new ticket
+     */
+    protected function notifyCustomerCareAgents(SupportTicket $ticket): void
+    {
+        try {
+            // Get creator name
+            $creatorName = $ticket->user_type === 'doctor' 
+                ? ($ticket->doctor ? 'Dr. ' . $ticket->doctor->name : 'A Doctor')
+                : ($ticket->user ? $ticket->user->name : 'A Patient');
+            
+            $priorityBadge = match($ticket->priority) {
+                'urgent' => '🔴',
+                'high' => '🟠',
+                'medium' => '🟡',
+                'low' => '🟢',
+                default => '📋'
+            };
+            
+            $message = "{$priorityBadge} New {$ticket->priority} priority ticket from {$creatorName}: {$ticket->subject}";
+            
+            // If ticket is assigned to a specific agent, notify only that agent
+            if ($ticket->agent_id) {
+                Notification::create([
+                    'user_type' => 'customer_care',
+                    'user_id' => $ticket->agent_id,
+                    'title' => 'New Support Ticket Assigned',
+                    'message' => $message,
+                    'type' => $ticket->priority === 'urgent' ? 'error' : ($ticket->priority === 'high' ? 'warning' : 'info'),
+                    'action_url' => route('customer-care.tickets.show', $ticket),
+                    'data' => [
+                        'ticket_id' => $ticket->id,
+                        'ticket_number' => $ticket->ticket_number,
+                        'category' => $ticket->category,
+                        'priority' => $ticket->priority,
+                        'user_type' => $ticket->user_type,
+                    ]
+                ]);
+                
+                Log::info('Support ticket notification sent to assigned agent', [
+                    'ticket_id' => $ticket->id,
+                    'ticket_number' => $ticket->ticket_number,
+                    'agent_id' => $ticket->agent_id,
+                ]);
+            } else {
+                // If no agent assigned, notify all active customer care agents
+                $activeAgents = CustomerCare::where('is_active', true)->get();
+                
+                foreach ($activeAgents as $agent) {
+                    Notification::create([
+                        'user_type' => 'customer_care',
+                        'user_id' => $agent->id,
+                        'title' => 'New Support Ticket Created',
+                        'message' => $message,
+                        'type' => $ticket->priority === 'urgent' ? 'error' : ($ticket->priority === 'high' ? 'warning' : 'info'),
+                        'action_url' => route('customer-care.tickets.show', $ticket),
+                        'data' => [
+                            'ticket_id' => $ticket->id,
+                            'ticket_number' => $ticket->ticket_number,
+                            'category' => $ticket->category,
+                            'priority' => $ticket->priority,
+                            'user_type' => $ticket->user_type,
+                        ]
+                    ]);
+                }
+                
+                Log::info('Support ticket notification sent to all active agents', [
+                    'ticket_id' => $ticket->id,
+                    'ticket_number' => $ticket->ticket_number,
+                    'agents_notified' => $activeAgents->count(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send support ticket notification', [
+                'ticket_id' => $ticket->id,
+                'ticket_number' => $ticket->ticket_number,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

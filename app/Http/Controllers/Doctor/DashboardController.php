@@ -573,6 +573,32 @@ class DashboardController extends Controller
                                 'email' => $recipientEmail
                             ]);
                             
+                            // Create in-app notification for patient
+                            if ($consultation->patient_id) {
+                                try {
+                                    \App\Models\Notification::create([
+                                        'user_type' => 'patient',
+                                        'user_id' => $consultation->patient_id,
+                                        'title' => 'Treatment Plan Ready',
+                                        'message' => "Your treatment plan for consultation (Ref: {$consultation->reference}) is ready! You can view it now.",
+                                        'type' => 'success',
+                                        'action_url' => patient_url('consultations/' . $consultation->id),
+                                        'data' => [
+                                            'consultation_id' => $consultation->id,
+                                            'consultation_reference' => $consultation->reference,
+                                            'type' => 'treatment_plan_ready',
+                                            'email' => $recipientEmail
+                                        ]
+                                    ]);
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error('Failed to create treatment plan ready notification', [
+                                        'consultation_id' => $consultation->id,
+                                        'patient_id' => $consultation->patient_id,
+                                        'error' => $e->getMessage()
+                                    ]);
+                                }
+                            }
+                            
                             // Send Review Request email
                             try {
                                 \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\ReviewRequest($consultation));

@@ -215,6 +215,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -226,8 +227,17 @@
                                         <div class="text-sm font-medium text-gray-900">{{ $ticket->ticket_number }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ $ticket->user->name ?? 'N/A' }}</div>
-                                        <div class="text-sm text-gray-500">{{ $ticket->user->email ?? '' }}</div>
+                                        @if($ticket->user_type === 'doctor' && $ticket->doctor)
+                                            <div class="text-sm font-medium text-gray-900">Dr. {{ $ticket->doctor->name }}</div>
+                                            <div class="text-sm text-gray-500">{{ $ticket->doctor->email ?? '' }}</div>
+                                            <div class="text-xs text-purple-600 mt-1">Doctor</div>
+                                        @elseif($ticket->user_type === 'patient' && $ticket->user)
+                                            <div class="text-sm font-medium text-gray-900">{{ $ticket->user->name }}</div>
+                                            <div class="text-sm text-gray-500">{{ $ticket->user->email ?? '' }}</div>
+                                            <div class="text-xs text-blue-600 mt-1">Patient</div>
+                                        @else
+                                            <div class="text-sm font-medium text-gray-500">Unknown</div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900">{{ Str::limit($ticket->subject, 50) }}</div>
@@ -254,6 +264,18 @@
                                             {{ $ticket->status == 'escalated' ? 'bg-red-100 text-red-800' : '' }}">
                                             {{ ucfirst($ticket->status) }}
                                         </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if($ticket->agent_id && $ticket->agent)
+                                            <div class="text-sm text-gray-900">{{ $ticket->agent->name }}</div>
+                                            @if($ticket->agent_id == Auth::guard('customer_care')->id())
+                                                <div class="text-xs text-purple-600 font-semibold">You</div>
+                                            @endif
+                                        @else
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+                                                Unassigned
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $ticket->created_at->format('M d, Y') }}

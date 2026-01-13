@@ -109,46 +109,84 @@ class BookingService
 
                 // Create notifications for patient and doctor
                 try {
-                    // Notification for patient (if authenticated)
+                    // Notification for patient - always send if patient exists
                     if ($patient && $patient->id) {
+                        $doctor = $booking->doctor_id ? \App\Models\Doctor::find($booking->doctor_id) : null;
+                        $doctorName = $doctor ? $doctor->name : null;
+                        
+                        $patientMessage = $booking->doctor_id && $doctorName
+                            ? "You have successfully booked a consultation with Dr. {$doctorName}. Reference: {$consultation->reference}"
+                            : "Your consultation (Ref: {$consultation->reference}) has been created. A doctor will be assigned shortly.";
+                        
                         \App\Models\Notification::create([
                             'user_type' => 'patient',
                             'user_id' => $patient->id,
-                            'title' => 'Consultation Created',
-                            'message' => "Your consultation (Ref: {$consultation->reference}) has been created. " . ($booking->doctor_id ? "You have been assigned to a doctor." : "A doctor will be assigned shortly."),
+                            'title' => $booking->doctor_id ? 'Consultation Booked' : 'Consultation Created',
+                            'message' => $patientMessage,
                             'type' => 'success',
                             'action_url' => patient_url('consultations/' . $consultation->id),
                             'data' => [
                                 'consultation_id' => $consultation->id,
                                 'consultation_reference' => $consultation->reference,
                                 'booking_id' => $booking->id,
-                                'type' => 'consultation_created'
+                                'doctor_id' => $booking->doctor_id,
+                                'doctor_name' => $doctorName,
+                                'type' => $booking->doctor_id ? 'consultation_booked' : 'consultation_created'
                             ]
+                        ]);
+                        
+                        \Log::info('Patient notification created for booking consultation', [
+                            'consultation_id' => $consultation->id,
+                            'patient_id' => $patient->id,
+                            'reference' => $consultation->reference,
+                            'doctor_id' => $booking->doctor_id
                         ]);
                     }
 
-                    // Notification for doctor (if assigned)
+                    // Notification for doctor - always send if doctor is assigned
                     if ($booking->doctor_id) {
-                        \App\Models\Notification::create([
-                            'user_type' => 'doctor',
-                            'user_id' => $booking->doctor_id,
-                            'title' => 'New Consultation Assigned',
-                            'message' => "A new consultation (Ref: {$consultation->reference}) has been assigned to you. Patient: {$consultationData['first_name']} {$consultationData['last_name']}",
-                            'type' => 'info',
-                            'action_url' => doctor_url('consultations/' . $consultation->id),
-                            'data' => [
+                        $assignedDoctor = \App\Models\Doctor::find($booking->doctor_id);
+                        if ($assignedDoctor) {
+                            $patientFullName = trim(($consultationData['first_name'] ?? '') . ' ' . ($consultationData['last_name'] ?? ''));
+                            $doctorMessage = "A new consultation has been booked with you. Patient: {$patientFullName}. Reference: {$consultation->reference}";
+                            
+                            \App\Models\Notification::create([
+                                'user_type' => 'doctor',
+                                'user_id' => $booking->doctor_id,
+                                'title' => 'New Consultation Booked',
+                                'message' => $doctorMessage,
+                                'type' => 'info',
+                                'action_url' => doctor_url('consultations/' . $consultation->id),
+                                'data' => [
+                                    'consultation_id' => $consultation->id,
+                                    'consultation_reference' => $consultation->reference,
+                                    'patient_id' => $patient->id ?? null,
+                                    'patient_name' => $patientFullName,
+                                    'booking_id' => $booking->id,
+                                    'type' => 'new_consultation'
+                                ]
+                            ]);
+                            
+                            \Log::info('Doctor notification created for booking consultation', [
                                 'consultation_id' => $consultation->id,
-                                'consultation_reference' => $consultation->reference,
-                                'patient_name' => $consultationData['first_name'] . ' ' . $consultationData['last_name'],
-                                'booking_id' => $booking->id,
-                                'type' => 'new_consultation'
-                            ]
-                        ]);
+                                'doctor_id' => $booking->doctor_id,
+                                'reference' => $consultation->reference,
+                                'patient_id' => $patient->id ?? null
+                            ]);
+                        } else {
+                            \Log::warning('Doctor not found for booking notification', [
+                                'consultation_id' => $consultation->id,
+                                'doctor_id' => $booking->doctor_id
+                            ]);
+                        }
                     }
                 } catch (\Exception $e) {
                     \Log::error('Failed to create booking consultation notifications', [
                         'consultation_id' => $consultation->id,
-                        'error' => $e->getMessage()
+                        'patient_id' => $patient->id ?? null,
+                        'doctor_id' => $booking->doctor_id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
                     ]);
                 }
 

@@ -107,7 +107,7 @@ class NotificationController extends Controller
      */
     private function getAuthenticatedUser()
     {
-        $guards = ['patient', 'doctor', 'admin', 'nurse', 'canvasser'];
+        $guards = ['patient', 'doctor', 'admin', 'nurse', 'canvasser', 'customer_care'];
         
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
@@ -123,7 +123,7 @@ class NotificationController extends Controller
      */
     private function getUserType(): string
     {
-        $guards = ['patient', 'doctor', 'admin', 'nurse', 'canvasser'];
+        $guards = ['patient', 'doctor', 'admin', 'nurse', 'canvasser', 'customer_care'];
         
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {

@@ -467,6 +467,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     // Support Tickets
     Route::resource('tickets', \App\Http\Controllers\CustomerCare\TicketsController::class);
     Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'updateStatus'])->name('tickets.update-status');
+    Route::post('/tickets/{ticket}/assign-to-me', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'assignToMe'])->name('tickets.assign-to-me');
     
     // Escalations
     Route::resource('escalations', \App\Http\Controllers\CustomerCare\EscalationsController::class)->only(['index', 'show']);
@@ -558,6 +559,14 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     
     // Support Tickets
     Route::resource('support-tickets', \App\Http\Controllers\Doctor\SupportTicketController::class)->only(['index', 'create', 'store', 'show']);
+    
+    // Consultation Sessions (In-App Consultations)
+    Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
+        Route::get('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])->name('session.token');
+        Route::post('/session/start', [\App\Http\Controllers\ConsultationSessionController::class, 'startSession'])->name('session.start');
+        Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
+        Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
+    });
 });
 
 // ==================== PATIENT ROUTES ====================
@@ -624,6 +633,14 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     // Profile
     Route::get('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'updateProfile'])->name('profile.update');
+    
+    // Consultation Sessions (In-App Consultations)
+    Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
+        Route::get('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])->name('session.token');
+        Route::post('/session/start', [\App\Http\Controllers\ConsultationSessionController::class, 'startSession'])->name('session.start');
+        Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
+        Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
+    });
     
     // Dependents
     Route::get('/dependents', [\App\Http\Controllers\Patient\DashboardController::class, 'dependents'])->name('dependents');

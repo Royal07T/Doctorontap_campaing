@@ -50,3 +50,10 @@ Broadcast::channel('notifications.care_giver.{userId}', function ($user, $userId
     return false;
 });
 
+Broadcast::channel('notifications.customer_care.{userId}', function ($user, $userId) {
+    if (Auth::guard('customer_care')->check()) {
+        return Auth::guard('customer_care')->id() == $userId;
+    }
+    return false;
+});
+

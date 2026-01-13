@@ -269,49 +269,79 @@ class DashboardController extends Controller
 
         // Create notifications for patient and doctor
         try {
-            // Notification for patient
+            // Notification for patient - always send if patient exists
             if ($patient && $patient->id) {
+                $doctorName = $validated['doctor_name'] ?? null;
+                $patientMessage = $doctorId && $doctorName
+                    ? "You have successfully booked a consultation with Dr. {$doctorName}. Reference: {$reference}"
+                    : "Your consultation request (Ref: {$reference}) has been submitted successfully. A doctor will be assigned shortly.";
+                
                 \App\Models\Notification::create([
                     'user_type' => 'patient',
                     'user_id' => $patient->id,
-                    'title' => 'Consultation Created',
-                    'message' => "Your consultation request (Ref: {$reference}) has been submitted successfully. " . ($doctorId ? "You have been assigned to Dr. {$validated['doctor_name']}." : "A doctor will be assigned shortly."),
+                    'title' => $doctorId ? 'Consultation Booked' : 'Consultation Created',
+                    'message' => $patientMessage,
                     'type' => 'success',
                     'action_url' => patient_url('consultations/' . $consultation->id),
                     'data' => [
                         'consultation_id' => $consultation->id,
                         'consultation_reference' => $reference,
                         'doctor_id' => $doctorId,
-                        'doctor_name' => $validated['doctor_name'] ?? null,
-                        'type' => 'consultation_created'
+                        'doctor_name' => $doctorName,
+                        'type' => $doctorId ? 'consultation_booked' : 'consultation_created'
                     ]
+                ]);
+                
+                \Log::info('Patient notification created for canvasser consultation', [
+                    'consultation_id' => $consultation->id,
+                    'patient_id' => $patient->id,
+                    'reference' => $reference,
+                    'doctor_id' => $doctorId
                 ]);
             }
 
-            // Notification for doctor (if assigned)
+            // Notification for doctor - always send if doctor is assigned
             if ($doctorId) {
                 $assignedDoctor = \App\Models\Doctor::find($doctorId);
                 if ($assignedDoctor) {
+                    $doctorMessage = "A new consultation has been booked with you. Patient: {$patient->name}. Reference: {$reference}";
+                    
                     \App\Models\Notification::create([
                         'user_type' => 'doctor',
                         'user_id' => $doctorId,
-                        'title' => 'New Consultation Assigned',
-                        'message' => "A new consultation (Ref: {$reference}) has been assigned to you. Patient: {$patient->name}",
+                        'title' => 'New Consultation Booked',
+                        'message' => $doctorMessage,
                         'type' => 'info',
                         'action_url' => doctor_url('consultations/' . $consultation->id),
                         'data' => [
                             'consultation_id' => $consultation->id,
                             'consultation_reference' => $reference,
+                            'patient_id' => $patient->id ?? null,
                             'patient_name' => $patient->name,
                             'type' => 'new_consultation'
                         ]
+                    ]);
+                    
+                    \Log::info('Doctor notification created for canvasser consultation', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctorId,
+                        'reference' => $reference,
+                        'patient_id' => $patient->id ?? null
+                    ]);
+                } else {
+                    \Log::warning('Doctor not found for canvasser notification', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctorId
                     ]);
                 }
             }
         } catch (\Exception $e) {
             \Log::error('Failed to create canvasser consultation notifications', [
                 'consultation_id' => $consultation->id,
-                'error' => $e->getMessage()
+                'patient_id' => $patient->id ?? null,
+                'doctor_id' => $doctorId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
 
