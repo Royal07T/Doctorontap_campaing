@@ -18,7 +18,8 @@ if (!function_exists('domain_url')) {
                      ($domainType === 'doctor' ? 'doctor' : 
                      ($domainType === 'nurse' ? 'nurse' : 
                      ($domainType === 'canvasser' ? 'canvasser' : 
-                     ($domainType === 'customer_care' ? 'customer-care' : '')))));
+                     ($domainType === 'caregiver' ? 'care-giver' : 
+                     ($domainType === 'customer_care' ? 'customer-care' : ''))))));
             
             if ($prefix && $path) {
                 $path = $prefix . '/' . ltrim($path, '/');
@@ -36,7 +37,8 @@ if (!function_exists('domain_url')) {
                      ($domainType === 'doctor' ? 'doctor' : 
                      ($domainType === 'nurse' ? 'nurse' : 
                      ($domainType === 'canvasser' ? 'canvasser' : 
-                     ($domainType === 'customer_care' ? 'customer-care' : '')))));
+                     ($domainType === 'caregiver' ? 'care-giver' : 
+                     ($domainType === 'customer_care' ? 'customer-care' : ''))))));
             
             if ($prefix && $path) {
                 $path = $prefix . '/' . ltrim($path, '/');

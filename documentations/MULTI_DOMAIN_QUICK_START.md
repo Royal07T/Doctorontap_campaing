@@ -7,7 +7,7 @@
 ```env
 MULTI_DOMAIN_ENABLED=true
 ADMIN_DOMAIN=admin.doctorontap.com.ng
-PATIENT_DOMAIN=app.doctorontap.com.ng
+PATIENT_DOMAIN=patient.doctorontap.com.ng
 DOCTOR_DOMAIN=doctor.doctorontap.com.ng
 CANVASSER_DOMAIN=canvasser.doctorontap.com.ng
 NURSE_DOMAIN=nurse.doctorontap.com.ng
@@ -20,7 +20,7 @@ COOKIE_DOMAIN=.doctorontap.com.ng
 
 Point all domains to your server IP:
 - `admin.doctorontap.com.ng` → YOUR_SERVER_IP
-- `app.doctorontap.com.ng` → YOUR_SERVER_IP
+- `patient.doctorontap.com.ng` → YOUR_SERVER_IP
 - `doctor.doctorontap.com.ng` → YOUR_SERVER_IP
 - etc.
 

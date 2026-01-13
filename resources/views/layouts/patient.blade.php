@@ -12,15 +12,35 @@
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
         }
         [x-cloak] { display: none !important; }
+        
+        /* Ensure sidebar navigation is scrollable */
+        .sidebar-nav {
+            scrollbar-width: thin;
+            scrollbar-color: #9333EA #f3f4f6;
+        }
+        .sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background-color: #9333EA;
+            border-radius: 3px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background-color: #7E22CE;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+               style="height: 100vh; max-height: 100vh; display: flex; flex-direction: column;">
             <!-- Sidebar Header -->
-            <div class="purple-gradient p-5 flex items-center justify-between flex-shrink-0">
+            <div class="purple-gradient p-5 flex items-center justify-between flex-shrink-0" style="flex-shrink: 0;">
                 <div class="flex items-center space-x-3">
                     <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 w-auto">
                 </div>
@@ -32,7 +52,7 @@
             </div>
 
             <!-- User Info -->
-            <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100 flex-shrink-0">
+            <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100 flex-shrink-0" style="flex-shrink: 0;">
                 <div class="flex items-center space-x-3">
                     @php
                         $patient = Auth::guard('patient')->user();
@@ -42,7 +62,7 @@
                     @else
                         <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
                             {{ substr($patient->name, 0, 1) }}
-                    </div>
+                        </div>
                     @endif
                     <div class="flex-1">
                         <p class="font-semibold text-gray-800 text-sm">{{ $patient->name }}</p>
@@ -52,7 +72,7 @@
             </div>
 
             <!-- Navigation -->
-            <nav class="p-4 space-y-2 overflow-y-auto flex-1 overflow-x-visible">
+            <nav class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2 sidebar-nav" style="min-height: 0; flex: 1 1 auto; -webkit-overflow-scrolling: touch;">
                 <a href="{{ route('patient.dashboard') }}" 
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all {{ request()->routeIs('patient.dashboard') ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,9 +148,10 @@
                     <span>Menstrual Cycle</span>
                 </a>
                 @endif
-
-                <div class="border-t border-gray-200 my-2"></div>
-
+            </nav>
+            
+            <!-- Fixed Bottom Section (Logout) -->
+            <div class="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
                 <form method="POST" action="{{ route('patient.logout') }}">
                     @csrf
                     <button type="submit" class="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all">
@@ -140,7 +161,7 @@
                         <span>Logout</span>
                     </button>
                 </form>
-            </nav>
+            </div>
         </aside>
 
         <!-- Overlay for mobile sidebar -->

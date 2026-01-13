@@ -12,7 +12,7 @@ return [
     |
     | Example:
     | - Admin: admin.doctorontap.com.ng
-    | - Patients: app.doctorontap.com.ng or patient.doctorontap.com.ng
+    | - Patients: patient.doctorontap.com.ng or patient.doctorontap.com.ng
     | - Doctors: doctor.doctorontap.com.ng
     | - Public: www.doctorontap.com.ng or doctorontap.com.ng
     |
@@ -22,10 +22,11 @@ return [
 
     'domains' => [
         'admin' => env('ADMIN_DOMAIN', 'admin.doctorontap.com.ng'),
-        'patient' => env('PATIENT_DOMAIN', 'app.doctorontap.com.ng'),
+        'patient' => env('PATIENT_DOMAIN', 'patient.doctorontap.com.ng'),
         'doctor' => env('DOCTOR_DOMAIN', 'doctor.doctorontap.com.ng'),
         'canvasser' => env('CANVASSER_DOMAIN', 'canvasser.doctorontap.com.ng'),
         'nurse' => env('NURSE_DOMAIN', 'nurse.doctorontap.com.ng'),
+        'caregiver' => env('CAREGIVER_DOMAIN', 'caregiver.doctorontap.com.ng'),
         'customercare' => env('CUSTOMERCARE_DOMAIN', 'customercare.doctorontap.com.ng'),
         'public' => env('PUBLIC_DOMAIN', 'www.doctorontap.com.ng'),
     ],
@@ -43,10 +44,11 @@ return [
 
     'route_mappings' => [
         'admin' => env('ADMIN_DOMAIN', 'admin.doctorontap.com.ng'),
-        'patient' => env('PATIENT_DOMAIN', 'app.doctorontap.com.ng'),
+        'patient' => env('PATIENT_DOMAIN', 'patient.doctorontap.com.ng'),
         'doctor' => env('DOCTOR_DOMAIN', 'doctor.doctorontap.com.ng'),
         'canvasser' => env('CANVASSER_DOMAIN', 'canvasser.doctorontap.com.ng'),
         'nurse' => env('NURSE_DOMAIN', 'nurse.doctorontap.com.ng'),
+        'caregiver' => env('CAREGIVER_DOMAIN', 'caregiver.doctorontap.com.ng'),
         'customercare' => env('CUSTOMERCARE_DOMAIN', 'customercare.doctorontap.com.ng'),
     ],
 
