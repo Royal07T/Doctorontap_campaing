@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
@@ -14,12 +14,12 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $this->getAuthenticatedUser();
+        $user = Auth::user();
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $userType = $this->getUserType();
+        $userType = $this->getUserType($user);
         $userId = $user->id;
 
         $query = Notification::forUser($userType, $userId)
@@ -38,8 +38,11 @@ class NotificationController extends Controller
         $notifications = $query->limit($limit)->get();
 
         return response()->json([
-            'notifications' => $notifications,
-            'unread_count' => Notification::forUser($userType, $userId)->unread()->count(),
+            'success' => true,
+            'data' => [
+                'notifications' => $notifications,
+                'unread_count' => Notification::forUser($userType, $userId)->unread()->count(),
+            ]
         ]);
     }
 
@@ -48,17 +51,20 @@ class NotificationController extends Controller
      */
     public function unreadCount()
     {
-        $user = $this->getAuthenticatedUser();
+        $user = Auth::user();
         if (!$user) {
             return response()->json(['count' => 0]);
         }
 
-        $userType = $this->getUserType();
+        $userType = $this->getUserType($user);
         $userId = $user->id;
 
         $count = Notification::forUser($userType, $userId)->unread()->count();
 
-        return response()->json(['count' => $count]);
+        return response()->json([
+            'success' => true,
+            'data' => ['count' => $count]
+        ]);
     }
 
     /**
@@ -66,12 +72,12 @@ class NotificationController extends Controller
      */
     public function markAsRead($id)
     {
-        $user = $this->getAuthenticatedUser();
+        $user = Auth::user();
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $userType = $this->getUserType();
+        $userType = $this->getUserType($user);
         $userId = $user->id;
 
         $notification = Notification::forUser($userType, $userId)
@@ -79,7 +85,10 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read'
+        ]);
     }
 
     /**
@@ -87,50 +96,39 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
-        $user = $this->getAuthenticatedUser();
+        $user = Auth::user();
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $userType = $this->getUserType();
+        $userType = $this->getUserType($user);
         $userId = $user->id;
 
         Notification::forUser($userType, $userId)
             ->unread()
             ->update(['read_at' => now()]);
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'message' => 'All notifications marked as read'
+        ]);
     }
 
     /**
-     * Get authenticated user based on guard
+     * Get user type based on model class
      */
-    private function getAuthenticatedUser()
+    private function getUserType($user): string
     {
-        $guards = ['patient', 'doctor', 'admin', 'nurse', 'canvasser', 'customer_care'];
-        
-        foreach ($guards as $guard) {
-            if (Auth::guard($guard)->check()) {
-                return Auth::guard($guard)->user();
-            }
-        }
-        
-        return null;
-    }
+        $class = get_class($user);
+        $typeMap = [
+            \App\Models\Patient::class => 'patient',
+            \App\Models\Doctor::class => 'doctor',
+            \App\Models\AdminUser::class => 'admin',
+            \App\Models\Nurse::class => 'nurse',
+            \App\Models\Canvasser::class => 'canvasser',
+            \App\Models\CustomerCare::class => 'customer_care',
+        ];
 
-    /**
-     * Get user type based on current guard
-     */
-    private function getUserType(): string
-    {
-        $guards = ['patient', 'doctor', 'admin', 'nurse', 'canvasser', 'customer_care'];
-        
-        foreach ($guards as $guard) {
-            if (Auth::guard($guard)->check()) {
-                return $guard;
-            }
-        }
-        
-        return 'patient'; // default
+        return $typeMap[$class] ?? 'patient';
     }
 }

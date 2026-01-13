@@ -7,10 +7,11 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 class Doctor extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, SoftDeletes, Auditable;
+    use Notifiable, SoftDeletes, Auditable, HasApiTokens;
     
     protected $appends = ['average_rating', 'total_reviews', 'full_name', 'effective_consultation_fee'];
 

@@ -10,10 +10,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 class Patient extends Authenticatable
 {
-    use Notifiable, MustVerifyEmail, SoftDeletes, Auditable;
+    use Notifiable, MustVerifyEmail, SoftDeletes, Auditable, HasApiTokens;
 
     protected $fillable = [
         'name',

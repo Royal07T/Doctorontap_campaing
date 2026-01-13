@@ -31,7 +31,7 @@ use App\Http\Controllers\Admin\VerificationController as AdminVerificationContro
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
-use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\VonageWebhookController;
 use Illuminate\Support\Facades\File;
 

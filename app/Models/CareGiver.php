@@ -12,10 +12,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\HasApiTokens;
 
 class CareGiver extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, SoftDeletes, Auditable;
+    use Notifiable, SoftDeletes, Auditable, HasApiTokens;
 
     protected $table = 'care_givers';
 
