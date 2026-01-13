@@ -176,17 +176,36 @@ class DashboardController extends Controller
             $validated = $request->validate([
                 'status' => 'required|in:pending,scheduled,completed,cancelled',
                 'notes' => 'nullable|string|max:1000',
+                // NOTE: consultation_mode is NOT in validation - it is set by patient and cannot be changed by doctors
             ]);
             
             \Log::info('Validation passed', ['validated_data' => $validated]);
             
             $newStatus = $validated['status'];
             
+            // IMPORTANT: Only update status and notes - consultation_mode is set by patient and cannot be changed
             $consultation->update([
                 'status' => $newStatus,
                 'doctor_notes' => $validated['notes'] ?? $consultation->doctor_notes,
                 'consultation_completed_at' => $newStatus === 'completed' ? now() : $consultation->consultation_completed_at,
+                // NOTE: consultation_mode is NOT included - it is set by patient during booking and cannot be changed
             ]);
+            
+            // If consultation is marked as completed, check for missed consultations
+            // (This ensures doctors who complete consultations don't get penalized)
+            if ($newStatus === 'completed') {
+                try {
+                    $penaltyService = app(\App\Services\DoctorPenaltyService::class);
+                    $penaltyService->checkMissedConsultations($doctor);
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to check missed consultations after status update', [
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $doctor->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the request if penalty check fails
+                }
+            }
             
             return response()->json([
                 'success' => true,
@@ -411,6 +430,8 @@ class DashboardController extends Controller
             }
             
             // Update consultation with treatment plan
+            // IMPORTANT: consultation_mode is set by the patient during booking and cannot be changed by doctors
+            // It is intentionally NOT included in the update data to prevent modification
             $updateData = [
                 // Medical Format Fields
                 'presenting_complaint' => $validated['presenting_complaint'],
@@ -431,6 +452,7 @@ class DashboardController extends Controller
                 'additional_notes' => $validated['additional_notes'] ?? null,
                 'treatment_plan_attachments' => !empty($attachments) ? $attachments : null,
                 'treatment_plan_created' => true,
+                // NOTE: consultation_mode is NOT included - it is set by patient and cannot be changed
             ];
             
             // Only set these on first create, not on update
@@ -673,6 +695,109 @@ class DashboardController extends Controller
     }
 
     /**
+     * Delete a treatment plan attachment
+     * 
+     * @param Request $request
+     * @param int $id Consultation ID
+     * @param string $file Stored filename
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteTreatmentPlanAttachment(Request $request, $id, $file)
+    {
+        try {
+            $doctor = Auth::guard('doctor')->user();
+            
+            $consultation = Consultation::where('id', $id)
+                                       ->where('doctor_id', $doctor->id)
+                                       ->firstOrFail();
+            
+            // Prevent deletion if treatment plan is locked
+            if ($consultation->treatment_plan_created) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete attachments from a finalized treatment plan.'
+                ], 403);
+            }
+            
+            $attachments = $consultation->treatment_plan_attachments ?? [];
+            $attachmentIndex = null;
+            $attachmentToDelete = null;
+            
+            // Find the attachment to delete
+            foreach ($attachments as $index => $attachment) {
+                $storedName = $attachment['stored_name'] ?? basename($attachment['path'] ?? '');
+                if ($storedName === $file) {
+                    $attachmentIndex = $index;
+                    $attachmentToDelete = $attachment;
+                    break;
+                }
+            }
+            
+            if ($attachmentIndex === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Attachment not found.'
+                ], 404);
+            }
+            
+            // Delete the file from storage
+            if (isset($attachmentToDelete['path'])) {
+                try {
+                    \Illuminate\Support\Facades\Storage::delete($attachmentToDelete['path']);
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to delete treatment plan attachment file from storage', [
+                        'consultation_id' => $consultation->id,
+                        'file' => $file,
+                        'path' => $attachmentToDelete['path'],
+                        'error' => $e->getMessage()
+                    ]);
+                    // Continue with database update even if file deletion fails
+                }
+            }
+            
+            // Remove from attachments array
+            unset($attachments[$attachmentIndex]);
+            $attachments = array_values($attachments); // Re-index array
+            
+            // Update consultation
+            $consultation->update([
+                'treatment_plan_attachments' => !empty($attachments) ? $attachments : null
+            ]);
+            
+            \Log::info('Treatment plan attachment deleted', [
+                'consultation_id' => $consultation->id,
+                'doctor_id' => $doctor->id,
+                'file' => $file,
+                'original_name' => $attachmentToDelete['original_name'] ?? 'N/A'
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Attachment deleted successfully.',
+                'remaining_attachments' => count($attachments)
+            ]);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Consultation not found or you do not have permission to modify it.'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete treatment plan attachment', [
+                'consultation_id' => $id,
+                'file' => $file,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the attachment. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
      * Auto-save treatment plan (draft mode)
      */
     public function autoSaveTreatmentPlan(Request $request, $id)
@@ -694,6 +819,8 @@ class DashboardController extends Controller
             }
             
             // Save whatever data is provided (no validation for drafts)
+            // IMPORTANT: consultation_mode is set by the patient during booking and cannot be changed by doctors
+            // It is intentionally NOT included in the allowed fields to prevent modification
             $data = $request->only([
                 'presenting_complaint',
                 'history_of_complaint',
@@ -710,6 +837,7 @@ class DashboardController extends Controller
                 'referrals',
                 'next_appointment_date',
                 'additional_notes',
+                // NOTE: consultation_mode is NOT included - it is set by patient and cannot be changed
             ]);
             
             $consultation->update($data);
@@ -1219,6 +1347,56 @@ class DashboardController extends Controller
     {
         $doctor = Auth::guard('doctor')->user();
 
+        // SECURITY: Prevent doctors from setting themselves to available if they are auto-unavailable due to penalties
+        // Only admins can reset penalties and set doctors back to available
+        if ($doctor->is_auto_unavailable) {
+            $requestedAvailable = $request->has('is_available') ? true : false;
+            
+            // If doctor is trying to set themselves to available, reject it
+            if ($requestedAvailable) {
+                return redirect()->back()->with('error', 'You cannot set yourself to available. You have been automatically set to unavailable due to missed consultations. Please contact an administrator to resolve this issue.');
+            }
+            
+            // Allow doctors to update schedule even when auto-unavailable, but keep them unavailable
+            // Process availability schedule
+            $schedule = [];
+            $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            
+            foreach ($days as $day) {
+                $enabled = $request->has("availability_schedule.{$day}.enabled");
+                $start = $request->input("availability_schedule.{$day}.start", '09:00');
+                $end = $request->input("availability_schedule.{$day}.end", '17:00');
+                
+                // Validate time format
+                if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $start)) {
+                    $start = '09:00';
+                }
+                if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $end)) {
+                    $end = '17:00';
+                }
+                
+                // Ensure end time is after start time
+                if (strtotime($end) <= strtotime($start)) {
+                    $end = date('H:i', strtotime($start . ' +8 hours'));
+                }
+                
+                $schedule[$day] = [
+                    'enabled' => $enabled,
+                    'start' => $start,
+                    'end' => $end,
+                ];
+            }
+
+            // Update only schedule, keep is_available as false
+            $doctor->update([
+                'availability_schedule' => $schedule,
+                // is_available remains false - cannot be changed by doctor
+            ]);
+
+            return redirect()->back()->with('success', 'Schedule updated. Note: Your availability status cannot be changed due to missed consultations. Please contact an administrator.');
+        }
+
+        // Normal flow for doctors who are not auto-unavailable
         // Handle is_available checkbox
         $isAvailable = $request->has('is_available') ? true : false;
 

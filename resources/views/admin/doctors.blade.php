@@ -86,6 +86,23 @@
                     </div>
                 </div>
             </div>
+
+            @if($stats['with_penalties'] > 0)
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-red-500">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">With Penalties</p>
+                        <p class="text-xl font-bold text-red-600 mb-1">{{ $stats['with_penalties'] }}</p>
+                        <p class="text-xs text-gray-500">Auto-Unavailable</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-xl flex-shrink-0">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
 
         <!-- Action Buttons -->
@@ -173,11 +190,23 @@
                                     </div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1">
+                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
                                         <h3 class="text-sm font-semibold text-gray-900">{{ $doctor->full_name }}</h3>
                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full font-mono bg-gray-100 text-gray-700">
                                             #{{ $doctor->order }}
                                         </span>
+                                        @if($doctor->is_auto_unavailable)
+                                            <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold flex items-center gap-1" title="Auto-set unavailable due to {{ $doctor->missed_consultations_count ?? 0 }} missed consultations">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                Penalty Applied
+                                            </span>
+                                        @elseif($doctor->missed_consultations_count > 0)
+                                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold" title="{{ $doctor->missed_consultations_count }} missed consultation(s)">
+                                                ⚠️ {{ $doctor->missed_consultations_count }} Missed
+                                            </span>
+                                        @endif
                                         @if($doctor->is_available)
                                             <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
                                                 Available
@@ -264,6 +293,43 @@
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultation Fee</p>
                                     <p class="text-xs font-bold text-emerald-600">NGN {{ number_format($doctor->consultation_fee, 2) }}</p>
                                 </div>
+                                @if($doctor->is_auto_unavailable || $doctor->missed_consultations_count > 0)
+                                <div class="md:col-span-2">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Missed Consultations</p>
+                                    <div class="p-3 rounded-lg {{ $doctor->is_auto_unavailable ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200' }}">
+                                        @if($doctor->is_auto_unavailable)
+                                            <div class="flex items-start gap-2">
+                                                <svg class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div>
+                                                    <p class="text-xs font-semibold text-red-800 mb-1">Penalty Applied - Auto-Unavailable</p>
+                                                    <p class="text-xs text-red-700">{{ $doctor->missed_consultations_count ?? 0 }} missed consultation(s). Threshold: 3.</p>
+                                                    @if($doctor->unavailable_reason)
+                                                        <p class="text-xs text-red-600 mt-1 italic">{{ $doctor->unavailable_reason }}</p>
+                                                    @endif
+                                                    @if($doctor->penalty_applied_at)
+                                                        <p class="text-xs text-red-500 mt-1">Applied: {{ $doctor->penalty_applied_at->format('M d, Y h:i A') }}</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="flex items-start gap-2">
+                                                <svg class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div>
+                                                    <p class="text-xs font-semibold text-yellow-800 mb-1">Warning: {{ $doctor->missed_consultations_count }} Missed Consultation(s)</p>
+                                                    <p class="text-xs text-yellow-700">If this doctor misses 3 consultations, they will be automatically set to unavailable.</p>
+                                                    @if($doctor->last_missed_consultation_at)
+                                                        <p class="text-xs text-yellow-600 mt-1">Last missed: {{ $doctor->last_missed_consultation_at->format('M d, Y h:i A') }}</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endif
                             </div>
 
                             <!-- Action Buttons -->

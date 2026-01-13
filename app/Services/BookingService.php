@@ -184,22 +184,22 @@ class BookingService
                             $patientFullName = trim(($consultationData['first_name'] ?? '') . ' ' . ($consultationData['last_name'] ?? ''));
                             $doctorMessage = "A new consultation has been booked with you. Patient: {$patientFullName}. Reference: {$consultation->reference}";
                             
-                            \App\Models\Notification::create([
-                                'user_type' => 'doctor',
-                                'user_id' => $booking->doctor_id,
+                        \App\Models\Notification::create([
+                            'user_type' => 'doctor',
+                            'user_id' => $booking->doctor_id,
                                 'title' => 'New Consultation Booked',
                                 'message' => $doctorMessage,
-                                'type' => 'info',
-                                'action_url' => doctor_url('consultations/' . $consultation->id),
-                                'data' => [
-                                    'consultation_id' => $consultation->id,
-                                    'consultation_reference' => $consultation->reference,
+                            'type' => 'info',
+                            'action_url' => doctor_url('consultations/' . $consultation->id),
+                            'data' => [
+                                'consultation_id' => $consultation->id,
+                                'consultation_reference' => $consultation->reference,
                                     'patient_id' => $patient->id ?? null,
                                     'patient_name' => $patientFullName,
-                                    'booking_id' => $booking->id,
-                                    'type' => 'new_consultation'
-                                ]
-                            ]);
+                                'booking_id' => $booking->id,
+                                'type' => 'new_consultation'
+                            ]
+                        ]);
                             
                             \Log::info('Doctor notification created for booking consultation', [
                                 'consultation_id' => $consultation->id,

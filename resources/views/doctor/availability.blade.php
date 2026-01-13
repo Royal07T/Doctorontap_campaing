@@ -52,10 +52,57 @@
                                     <p class="text-xs text-gray-500">Toggle your overall availability status</p>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="is_available" value="1" {{ $doctor->is_available ? 'checked' : '' }} class="sr-only peer">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    <input type="checkbox" name="is_available" value="1" {{ $doctor->is_available ? 'checked' : '' }} 
+                                           {{ $doctor->is_auto_unavailable ? 'disabled' : '' }} 
+                                           class="sr-only peer" 
+                                           {{ $doctor->is_auto_unavailable ? 'title="You are currently auto-set to unavailable due to missed consultations. Please contact support."' : '' }}>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 {{ $doctor->is_auto_unavailable ? 'opacity-50 cursor-not-allowed' : '' }}"></div>
                                 </label>
                             </div>
+                            
+                            @if($doctor->is_auto_unavailable)
+                            <div class="p-3 bg-red-50 rounded-lg border border-red-200 mb-3">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-xs font-semibold text-red-800 mb-1">Auto-Set to Unavailable</p>
+                                        <p class="text-xs text-red-700 leading-relaxed">
+                                            You have been automatically set to unavailable due to {{ $doctor->missed_consultations_count ?? 0 }} missed consultation(s). 
+                                            @if($doctor->unavailable_reason)
+                                                {{ $doctor->unavailable_reason }}
+                                            @else
+                                                Please contact support to resolve this issue.
+                                            @endif
+                                        </p>
+                                        @if($doctor->penalty_applied_at)
+                                        <p class="text-xs text-red-600 mt-1 italic">
+                                            Penalty applied: {{ $doctor->penalty_applied_at->format('M d, Y h:i A') }}
+                                        </p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($doctor->missed_consultations_count > 0 && !$doctor->is_auto_unavailable)
+                            <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200 mb-3">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-xs font-semibold text-yellow-800 mb-1">Warning: Missed Consultations</p>
+                                        <p class="text-xs text-yellow-700 leading-relaxed">
+                                            You have {{ $doctor->missed_consultations_count }} missed consultation(s). 
+                                            If you miss 3 consultations, you will be automatically set to unavailable.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
                             <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
                                 <p class="text-xs text-blue-700 leading-relaxed">
                                     <strong>Note:</strong> When enabled, patients can see you in the doctor listings and book appointments with you. When disabled, you won't appear in search results.

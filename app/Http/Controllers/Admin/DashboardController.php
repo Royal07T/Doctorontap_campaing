@@ -1514,6 +1514,8 @@ class DashboardController extends Controller
             'available' => Doctor::where('is_available', true)->count(),
             'unavailable' => Doctor::where('is_available', false)->count(),
             'total_consultations' => Consultation::whereNotNull('doctor_id')->count(),
+            'with_penalties' => Doctor::where('is_auto_unavailable', true)->count(),
+            'with_missed' => Doctor::where('missed_consultations_count', '>', 0)->count(),
         ];
 
         return view('admin.doctors', compact('doctors', 'stats'));
@@ -3461,6 +3463,72 @@ class DashboardController extends Controller
     }
 
     /**
+     * Reset doctor penalty and set to available (Admin only)
+     * 
+     * Only admins can reset penalties and set doctors back to available
+     * after they have been auto-set to unavailable due to missed consultations.
+     */
+    public function resetDoctorPenalty(Request $request, $id)
+    {
+        try {
+            $doctor = Doctor::findOrFail($id);
+            $admin = auth()->guard('admin')->user();
+
+            // Check if doctor is actually auto-unavailable
+            if (!$doctor->is_auto_unavailable) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This doctor is not under penalty. No action needed.'
+                ], 400);
+            }
+
+            // Reset penalty using the service
+            $penaltyService = app(\App\Services\DoctorPenaltyService::class);
+            $penaltyService->resetMissedCount($doctor);
+
+            // Set doctor back to available
+            $doctor->is_available = true;
+            $doctor->save();
+
+            // Log the action for audit trail
+            \Log::info('Admin reset doctor penalty and set to available', [
+                'admin_id' => $admin->id,
+                'admin_name' => $admin->name,
+                'doctor_id' => $doctor->id,
+                'doctor_name' => $doctor->name,
+                'missed_count_before' => $doctor->missed_consultations_count,
+                'penalty_applied_at' => $doctor->penalty_applied_at?->toIso8601String(),
+                'reset_at' => now()->toIso8601String()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Doctor {$doctor->name} has been set back to available. Penalty has been reset.",
+                'doctor' => [
+                    'id' => $doctor->id,
+                    'name' => $doctor->name,
+                    'is_available' => $doctor->is_available,
+                    'is_auto_unavailable' => $doctor->is_auto_unavailable,
+                    'missed_consultations_count' => $doctor->missed_consultations_count
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to reset doctor penalty', [
+                'doctor_id' => $id,
+                'admin_id' => auth()->guard('admin')->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset penalty: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Verify doctor bank account
      */
     public function verifyBankAccount(Request $request, $id)
@@ -3807,7 +3875,7 @@ class DashboardController extends Controller
                     'payment_method' => 'korapay_bank_transfer',
                     'admin_notes' => 'Payout initiated via KoraPay by ' . $admin->name,
                 ]);
-                
+
                 // Send notification to doctor that payment is being processed
                 try {
                     \App\Models\Notification::create([

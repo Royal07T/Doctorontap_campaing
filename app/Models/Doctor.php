@@ -47,6 +47,11 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'mdcn_certificate_verified_at',
         'mdcn_certificate_verified_by',
         'is_available',
+        'is_auto_unavailable',
+        'missed_consultations_count',
+        'last_missed_consultation_at',
+        'penalty_applied_at',
+        'unavailable_reason',
         'is_approved',
         'approved_by',
         'approved_at',
@@ -62,6 +67,10 @@ class Doctor extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'is_available' => 'boolean',
+        'is_auto_unavailable' => 'boolean',
+        'missed_consultations_count' => 'integer',
+        'last_missed_consultation_at' => 'datetime',
+        'penalty_applied_at' => 'datetime',
         'is_approved' => 'boolean',
         'mdcn_license_current' => 'boolean',
         'mdcn_certificate_verified' => 'boolean',

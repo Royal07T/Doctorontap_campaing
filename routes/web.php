@@ -294,6 +294,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     
     // Doctor Payment Management
     Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
+    Route::post('/doctors/{id}/reset-penalty', [DashboardController::class, 'resetDoctorPenalty'])->name('doctors.reset-penalty');
     Route::post('/doctors/bank-accounts/{id}/verify', [DashboardController::class, 'verifyBankAccount'])->name('doctors.bank-accounts.verify');
     Route::get('/doctor-payments', [DashboardController::class, 'doctorPayments'])->name('doctor-payments');
     Route::get('/doctor-payments/{id}/details', [DashboardController::class, 'getPaymentDetails'])->name('doctor-payments.details');
@@ -531,6 +532,8 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::post('/consultations/{id}/update-status', [DoctorDashboardController::class, 'updateConsultationStatus'])->name('consultations.update-status');
     Route::post('/consultations/{id}/treatment-plan', [DoctorDashboardController::class, 'updateTreatmentPlan'])->name('consultations.treatment-plan');
     Route::post('/consultations/{id}/auto-save-treatment-plan', [DoctorDashboardController::class, 'autoSaveTreatmentPlan'])->name('consultations.auto-save-treatment-plan');
+    Route::get('/consultations/{id}/attachments/{file}', [\App\Http\Controllers\MedicalDocumentController::class, 'downloadTreatmentPlanAttachment'])->name('consultations.attachment');
+    Route::delete('/consultations/{id}/treatment-plan-attachments/{file}', [DoctorDashboardController::class, 'deleteTreatmentPlanAttachment'])->name('consultations.treatment-plan-attachment.delete');
     Route::get('/consultations/{id}/patient-history', [DoctorDashboardController::class, 'getPatientHistory'])->name('consultations.patient-history');
     Route::post('/consultations/{id}/refer', [DoctorDashboardController::class, 'referPatient'])->name('consultations.refer');
     

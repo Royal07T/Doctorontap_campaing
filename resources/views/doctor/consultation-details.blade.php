@@ -249,6 +249,8 @@ consultationPage()
 @endpush
 
 @section('content')
+    <!-- Consultation Lifecycle Banner (In-App Consultations Only) -->
+    <x-consultation.partials.lifecycle-banner :consultation="$consultation" userType="doctor" />
     <!-- Back Button -->
                 <div class="mb-6">
                     <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 transition">
@@ -295,8 +297,29 @@ consultationPage()
                             <p class="text-sm text-gray-900 capitalize">{{ $consultation->gender }}</p>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultation Mode</label>
-                            <p class="text-sm text-gray-900 capitalize">{{ str_replace('_', ' ', $consultation->consult_mode) }}</p>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+                                Consultation Mode
+                                <span class="text-gray-400 normal-case text-[10px] ml-1">(Selected by Patient)</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                @php
+                                    $mode = $consultation->consultation_mode ?? $consultation->consult_mode ?? 'whatsapp';
+                                @endphp
+                                @if($mode === 'voice')
+                                    <span class="text-lg">🎤</span>
+                                    <p class="text-sm text-gray-900 font-semibold">Voice Call</p>
+                                @elseif($mode === 'video')
+                                    <span class="text-lg">🎥</span>
+                                    <p class="text-sm text-gray-900 font-semibold">Video Call</p>
+                                @elseif($mode === 'chat')
+                                    <span class="text-lg">💬</span>
+                                    <p class="text-sm text-gray-900 font-semibold">Chat</p>
+                                @else
+                                    <span class="text-lg">📱</span>
+                                    <p class="text-sm text-gray-900 font-semibold">WhatsApp</p>
+                                @endif
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 italic">This mode was selected by the patient during booking and cannot be changed.</p>
                         </div>
                     </div>
                 </div>

@@ -105,4 +105,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Send fertility notifications daily (1 day before fertile window)
         $schedule->command('fertility:notify --days-before=1')->daily()->at('09:00');
+        
+        // Check for missed consultations every hour and apply penalties
+        $schedule->command('consultations:check-missed')->hourly()->withoutOverlapping();
     })->create();

@@ -150,17 +150,64 @@
         @if($consultation->treatment_plan_attachments && count($consultation->treatment_plan_attachments) > 0)
             <div class="mt-4">
                 <p class="text-sm font-medium text-gray-700 mb-2">Current Attachments:</p>
-                <div class="space-y-2">
-                    @foreach($consultation->treatment_plan_attachments as $attachment)
-                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <div class="flex items-center gap-3">
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">{{ $attachment['original_name'] ?? 'File' }}</p>
-                                    <p class="text-xs text-gray-500">{{ isset($attachment['size']) ? number_format($attachment['size'] / 1024, 2) . ' KB' : '' }}</p>
+                <div class="space-y-2" id="attachmentsList">
+                    @foreach($consultation->treatment_plan_attachments as $index => $attachment)
+                        @php
+                            $storedName = $attachment['stored_name'] ?? basename($attachment['path'] ?? '');
+                            $fileExtension = strtolower(pathinfo($attachment['original_name'] ?? 'file', PATHINFO_EXTENSION));
+                            $isImage = in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif']);
+                            $isPdf = $fileExtension === 'pdf';
+                        @endphp
+                        <div class="attachment-item flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors" data-file="{{ $storedName }}">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                @if($isImage)
+                                    <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                @elseif($isPdf)
+                                    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                @else
+                                    <svg class="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                @endif
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ route('doctor.consultations.attachment', ['id' => $consultation->id, 'file' => $storedName]) }}" 
+                                       target="_blank"
+                                       class="text-sm font-medium text-gray-900 hover:text-purple-600 transition-colors block truncate"
+                                       title="{{ $attachment['original_name'] ?? 'File' }}">
+                                        {{ $attachment['original_name'] ?? 'File' }}
+                                    </a>
+                                    <p class="text-xs text-gray-500">
+                                        {{ isset($attachment['size']) ? number_format($attachment['size'] / 1024, 2) . ' KB' : '' }}
+                                        @if(isset($attachment['uploaded_at']))
+                                            • Uploaded {{ \Carbon\Carbon::parse($attachment['uploaded_at'])->diffForHumans() }}
+                                        @endif
+                                    </p>
                                 </div>
+                            </div>
+                            <div class="flex items-center gap-2 ml-3">
+                                <a href="{{ route('doctor.consultations.attachment', ['id' => $consultation->id, 'file' => $storedName]) }}" 
+                                   target="_blank"
+                                   class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                   title="Download">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                </a>
+                                @if(!$isLocked)
+                                    <button type="button" 
+                                            class="delete-attachment p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            data-file="{{ $storedName }}"
+                                            data-filename="{{ $attachment['original_name'] ?? 'File' }}"
+                                            title="Delete">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -660,6 +707,106 @@ document.addEventListener('DOMContentLoaded', function() {
             // Let the form submit handler take care of it
         });
     }
+    
+    // Handle attachment deletion
+    document.addEventListener('click', async function(e) {
+        if (e.target.closest('.delete-attachment')) {
+            const button = e.target.closest('.delete-attachment');
+            const file = button.getAttribute('data-file');
+            const filename = button.getAttribute('data-filename');
+            
+            if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+                return;
+            }
+            
+            const attachmentItem = button.closest('.attachment-item');
+            const originalContent = attachmentItem.innerHTML;
+            
+            // Show loading state
+            attachmentItem.style.opacity = '0.5';
+            attachmentItem.style.pointerEvents = 'none';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(`{{ route('doctor.consultations.treatment-plan-attachment.delete', ['id' => $consultation->id, 'file' => '__FILE__']) }}`.replace('__FILE__', encodeURIComponent(file)), {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remove the attachment item from DOM
+                    attachmentItem.style.transition = 'opacity 0.3s ease-out';
+                    attachmentItem.style.opacity = '0';
+                    setTimeout(() => {
+                        attachmentItem.remove();
+                        
+                        // Show message if no attachments remain
+                        const attachmentsList = document.getElementById('attachmentsList');
+                        if (!attachmentsList || attachmentsList.children.length === 0) {
+                            const attachmentsSection = document.querySelector('.mt-4');
+                            if (attachmentsSection) {
+                                attachmentsSection.remove();
+                            }
+                        }
+                    }, 300);
+                    
+                    // Show success message
+                    const alpineElement = document.querySelector('[x-data*="consultationPage"]');
+                    if (alpineElement && window.Alpine) {
+                        const alpineData = window.Alpine.$data(alpineElement);
+                        if (alpineData && typeof alpineData.showMessage === 'function') {
+                            alpineData.showMessage('success', 'Success', data.message || 'Attachment deleted successfully.');
+                        }
+                    } else if (typeof showAlertModal === 'function') {
+                        showAlertModal(data.message || 'Attachment deleted successfully.', 'success');
+                    }
+                } else {
+                    // Restore original state
+                    attachmentItem.style.opacity = '1';
+                    attachmentItem.style.pointerEvents = 'auto';
+                    button.disabled = false;
+                    
+                    // Show error message
+                    const alpineElement = document.querySelector('[x-data*="consultationPage"]');
+                    if (alpineElement && window.Alpine) {
+                        const alpineData = window.Alpine.$data(alpineElement);
+                        if (alpineData && typeof alpineData.showMessage === 'function') {
+                            alpineData.showMessage('error', 'Error', data.message || 'Failed to delete attachment.');
+                        }
+                    } else if (typeof showAlertModal === 'function') {
+                        showAlertModal(data.message || 'Failed to delete attachment.', 'error');
+                    } else {
+                        alert(data.message || 'Failed to delete attachment.');
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting attachment:', error);
+                
+                // Restore original state
+                attachmentItem.style.opacity = '1';
+                attachmentItem.style.pointerEvents = 'auto';
+                button.disabled = false;
+                
+                // Show error message
+                const alpineElement = document.querySelector('[x-data*="consultationPage"]');
+                if (alpineElement && window.Alpine) {
+                    const alpineData = window.Alpine.$data(alpineElement);
+                    if (alpineData && typeof alpineData.showMessage === 'function') {
+                        alpineData.showMessage('error', 'Error', 'An error occurred while deleting the attachment.');
+                    }
+                } else if (typeof showAlertModal === 'function') {
+                    showAlertModal('An error occurred while deleting the attachment.', 'error');
+                } else {
+                    alert('An error occurred while deleting the attachment.');
+                }
+            }
+        }
+    });
 });
 </script>
 

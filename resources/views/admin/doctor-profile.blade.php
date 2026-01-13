@@ -113,8 +113,81 @@
                                         {{ $doctor->is_approved ? 'Approved' : 'Pending' }}
                                     </span>
                                 </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Availability</p>
+                                    <span class="inline-block px-2 py-0.5 text-xs rounded-full font-semibold {{ $doctor->is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">
+                                        {{ $doctor->is_available ? 'Available' : 'Unavailable' }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Penalty Information & Reset (Admin Only) -->
+                        @if($doctor->is_auto_unavailable || $doctor->missed_consultations_count > 0)
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 {{ $doctor->is_auto_unavailable ? 'border-red-300' : 'border-yellow-300' }}">
+                            <div class="mb-4 pb-4 border-b border-gray-200">
+                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <svg class="w-4 h-4 {{ $doctor->is_auto_unavailable ? 'text-red-600' : 'text-yellow-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Missed Consultations & Penalty
+                                </h2>
+                            </div>
+                            
+                            @if($doctor->is_auto_unavailable)
+                            <div class="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
+                                <div class="flex items-start gap-2 mb-3">
+                                    <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="text-xs font-semibold text-red-800 mb-1">Penalty Applied - Auto-Unavailable</p>
+                                        <p class="text-xs text-red-700 mb-2">
+                                            This doctor has been automatically set to unavailable due to <strong>{{ $doctor->missed_consultations_count ?? 0 }} missed consultation(s)</strong>. 
+                                            The threshold is 3 missed consultations.
+                                        </p>
+                                        @if($doctor->unavailable_reason)
+                                            <p class="text-xs text-red-600 italic mb-2">{{ $doctor->unavailable_reason }}</p>
+                                        @endif
+                                        @if($doctor->penalty_applied_at)
+                                            <p class="text-xs text-red-500">Penalty applied: {{ $doctor->penalty_applied_at->format('M d, Y h:i A') }}</p>
+                                        @endif
+                                        @if($doctor->last_missed_consultation_at)
+                                            <p class="text-xs text-red-500">Last missed: {{ $doctor->last_missed_consultation_at->format('M d, Y h:i A') }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                <!-- Admin Reset Button -->
+                                <button onclick="resetPenalty({{ $doctor->id }})" 
+                                        id="resetPenaltyBtn"
+                                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Reset Penalty & Set to Available
+                                </button>
+                            </div>
+                            @elseif($doctor->missed_consultations_count > 0)
+                            <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-xs font-semibold text-yellow-800 mb-1">Warning: {{ $doctor->missed_consultations_count }} Missed Consultation(s)</p>
+                                        <p class="text-xs text-yellow-700">
+                                            If this doctor misses 3 consultations, they will be automatically set to unavailable.
+                                        </p>
+                                        @if($doctor->last_missed_consultation_at)
+                                            <p class="text-xs text-yellow-600 mt-1">Last missed: {{ $doctor->last_missed_consultation_at->format('M d, Y h:i A') }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        @endif
 
                         <!-- Bank Accounts -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -327,6 +400,49 @@
         </div>
     </div>
 
+    <script>
+        /**
+         * Reset doctor penalty and set to available (Admin only)
+         */
+        async function resetPenalty(doctorId) {
+            if (!confirm('Are you sure you want to reset the penalty and set this doctor back to available? This will clear the missed consultations count and allow the doctor to receive new bookings.')) {
+                return;
+            }
+
+            const btn = document.getElementById('resetPenaltyBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Resetting...';
+
+            try {
+                const response = await fetch(`/admin/doctors/${doctorId}/reset-penalty`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Penalty reset successfully! Doctor has been set back to available.');
+                    // Reload page to reflect changes
+                    window.location.reload();
+                } else {
+                    alert('Failed to reset penalty: ' + (data.message || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Error resetting penalty:', error);
+                alert('An error occurred while resetting the penalty. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    </script>
     <script>
         function verifyBankAccount(accountId) {
             // Use custom confirm modal

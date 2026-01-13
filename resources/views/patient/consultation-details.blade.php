@@ -34,6 +34,9 @@
         </div>
     </div>
 
+    <!-- Consultation Lifecycle Banner (In-App Consultations Only) -->
+    <x-consultation.partials.lifecycle-banner :consultation="$consultation" userType="patient" />
+
     <!-- Consultation Information -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
         <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Consultation Information</h2>

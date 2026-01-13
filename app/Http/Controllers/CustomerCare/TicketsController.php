@@ -61,7 +61,7 @@ class TicketsController extends Controller
                   })
                   ->orWhereHas('doctor', function($doctorQuery) use ($search) {
                       $doctorQuery->where('name', 'like', "%{$search}%")
-                                  ->orWhere('email', 'like', "%{$search}%");
+                                ->orWhere('email', 'like', "%{$search}%");
                   });
             });
         }

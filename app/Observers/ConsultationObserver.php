@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Consultation;
 use App\Models\Notification;
+use App\Services\DoctorPenaltyService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TreatmentPlanNotification;
@@ -279,6 +280,27 @@ class ConsultationObserver
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference
             ]);
+        }
+        
+        // Check for missed consultations when consultation is updated
+        // This runs in the background and doesn't block the request
+        if ($consultation->doctor_id && $consultation->scheduled_at) {
+            try {
+                $penaltyService = app(DoctorPenaltyService::class);
+                // Only check if consultation time has passed and status hasn't changed to completed
+                if ($consultation->scheduled_at->isPast() && 
+                    !in_array($consultation->status, ['completed', 'cancelled']) &&
+                    ($consultation->wasChanged('status') || $consultation->wasChanged('session_status'))) {
+                    $penaltyService->checkMissedConsultations($consultation->doctor);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to check missed consultations in observer', [
+                    'consultation_id' => $consultation->id,
+                    'doctor_id' => $consultation->doctor_id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the request if penalty check fails
+            }
         }
     }
 }

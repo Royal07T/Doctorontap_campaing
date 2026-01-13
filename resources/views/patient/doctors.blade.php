@@ -339,19 +339,39 @@
                         </div>
                         <div class="grid grid-cols-4 gap-2">
                             <template x-for="slot in availableSlots" :key="slot.value">
+                                <div class="relative group">
                                 <button type="button"
                                         @click="selectedTime = slot.value; checkSlotAvailability()"
                                         :class="{
-                                            'bg-blue-600 text-white border-blue-600 shadow-md': selectedTime === slot.value && !slot.booked,
-                                            'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed opacity-60': slot.booked,
-                                            'bg-white text-gray-700 border-gray-300 hover:border-blue-500 hover:bg-blue-50': selectedTime !== slot.value && !slot.booked
+                                                'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-200': selectedTime === slot.value && !slot.booked && !slot.conflict,
+                                                'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': slot.booked,
+                                                'bg-yellow-50 text-yellow-700 border-yellow-300 ring-2 ring-yellow-100': slot.conflict,
+                                                'bg-white text-gray-700 border-gray-300 hover:border-blue-500 hover:bg-blue-50': selectedTime !== slot.value && !slot.booked && !slot.conflict
                                         }"
-                                        :disabled="slot.booked"
-                                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-all relative">
+                                            :disabled="slot.booked || slot.conflict"
+                                            class="w-full px-2 py-2 text-xs font-medium rounded-lg border transition-all relative flex flex-col items-center justify-center min-h-[3rem]">
                                     <span x-text="slot.label"></span>
-                                    <span x-show="slot.booked" class="block text-[10px] mt-0.5 text-red-600 font-semibold">Booked</span>
-                                    <span x-show="selectedTime === slot.value && !slot.booked" class="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full"></span>
+                                        
+                                        <!-- Status Badges -->
+                                        <span x-show="slot.booked" class="text-[9px] mt-0.5 text-red-500 font-semibold uppercase tracking-wider">Booked</span>
+                                        <span x-show="slot.conflict" class="text-[9px] mt-0.5 text-yellow-600 font-semibold uppercase tracking-wider">Taken</span>
+                                        
+                                        <!-- Selected Indicator -->
+                                        <span x-show="selectedTime === slot.value && !slot.booked && !slot.conflict" 
+                                              class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm flex items-center justify-center">
+                                            <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </span>
                                 </button>
+                                    
+                                    <!-- Tooltip for conflict -->
+                                    <div x-show="slot.conflict" 
+                                         class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-[10px] rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                        Selected but conflict detected
+                                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                                    </div>
+                                </div>
                             </template>
                         </div>
                         <p class="text-xs text-gray-500 mt-2" x-show="selectedDate && availableSlots.length === 0">No available time slots for this date</p>
@@ -618,22 +638,40 @@
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">
+                        <!-- Voice -->
                         <button type="button" @click="consultMode = 'voice'" 
-                                :class="consultMode === 'voice' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
-                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                                :class="consultMode === 'voice' ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-200' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500 hover:bg-purple-50'"
+                                class="flex flex-col items-center justify-center px-4 py-3 text-xs font-medium rounded-lg border transition-all duration-200">
+                            <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                            </svg>
                             Voice Call
                         </button>
+                        <!-- Video -->
                         <button type="button" @click="consultMode = 'video'" 
-                                :class="consultMode === 'video' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
-                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                                :class="consultMode === 'video' ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-200' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500 hover:bg-purple-50'"
+                                class="flex flex-col items-center justify-center px-4 py-3 text-xs font-medium rounded-lg border transition-all duration-200">
+                            <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
                             Video Call
                         </button>
+                        <!-- Chat -->
                         <button type="button" @click="consultMode = 'chat'" 
-                                :class="consultMode === 'chat' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500'"
-                                class="px-4 py-2 text-xs font-medium rounded-lg border transition">
+                                :class="consultMode === 'chat' ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-200' : 'bg-white text-gray-700 border-gray-300 hover:border-purple-500 hover:bg-purple-50'"
+                                class="flex flex-col items-center justify-center px-4 py-3 text-xs font-medium rounded-lg border transition-all duration-200">
+                            <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
                             Chat
                         </button>
                     </div>
+                    <p class="text-[10px] text-gray-500 mt-3 text-center flex items-center justify-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        All modes use secure in-app consultation
+                    </p>
                 </div>
 
                 <!-- Error Message -->
@@ -774,11 +812,11 @@ function bookingModal() {
             try {
                 // Load doctor availability for this day (refresh to get latest booked slots)
                 const response = await fetch(`/patient/doctors/${this.doctorId}/availability`, {
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json',
                         'Cache-Control': 'no-cache' // Prevent caching to get fresh data
-                    }
+                }
                 });
                 
                 const data = await response.json();
@@ -817,7 +855,8 @@ function bookingModal() {
                         slots.push({
                             value: timeStr,
                             label: current.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-                            booked: isBooked
+                            booked: isBooked,
+                            conflict: false // Initial state
                         });
                         
                         current.setMinutes(current.getMinutes() + 30);
@@ -857,11 +896,20 @@ function bookingModal() {
                 const data = await response.json();
                 if (!data.success || !data.available) {
                     this.errorMessage = data.message || 'This time slot is not available';
+                    
+                    // Find the slot and mark as conflict instead of just clearing
+                    const conflictingSlotIndex = this.availableSlots.findIndex(s => s.value === this.selectedTime);
+                    if (conflictingSlotIndex !== -1) {
+                        this.availableSlots[conflictingSlotIndex].conflict = true;
+                    }
+                    
                     this.selectedTime = '';
-                    // Refresh availability to show updated booked slots
-                    this.loadTimeSlots();
+                    
+                    // Optional: Refresh availability in background to get definitive booked status
+                    // this.loadTimeSlots(); 
                 } else {
                     this.errorMessage = '';
+                    // Clear any previous conflict flags if we found a good slot (or just rely on re-rendering)
                 }
             } catch (error) {
                 console.error('Error checking slot:', error);

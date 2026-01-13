@@ -233,7 +233,7 @@
                                             <div class="text-xs text-purple-600 mt-1">Doctor</div>
                                         @elseif($ticket->user_type === 'patient' && $ticket->user)
                                             <div class="text-sm font-medium text-gray-900">{{ $ticket->user->name }}</div>
-                                            <div class="text-sm text-gray-500">{{ $ticket->user->email ?? '' }}</div>
+                                        <div class="text-sm text-gray-500">{{ $ticket->user->email ?? '' }}</div>
                                             <div class="text-xs text-blue-600 mt-1">Patient</div>
                                         @else
                                             <div class="text-sm font-medium text-gray-500">Unknown</div>
