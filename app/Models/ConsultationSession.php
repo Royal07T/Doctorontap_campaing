@@ -34,6 +34,14 @@ class ConsultationSession extends Model
     {
         return $this->belongsTo(Consultation::class);
     }
+    
+    /**
+     * Get chat messages for this session
+     */
+    public function chatMessages()
+    {
+        return $this->hasMany(ConsultationChatMessage::class);
+    }
 
     /**
      * Valid state transitions

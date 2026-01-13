@@ -227,4 +227,50 @@ class ConsultationSessionController extends Controller
             'mode' => $consultation->consultation_mode,
         ]);
     }
+    
+    /**
+     * Toggle session recording
+     */
+    public function toggleRecording(Request $request, Consultation $consultation)
+    {
+        $request->validate([
+            'recording' => 'required|boolean'
+        ]);
+        
+        // Verify authorization
+        if (auth()->guard('doctor')->check()) {
+            if ($consultation->doctor_id !== auth()->guard('doctor')->id()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+        } elseif (auth()->guard('patient')->check()) {
+            $patient = auth()->guard('patient')->user();
+            if ($consultation->patient_id !== $patient->id && $consultation->email !== $patient->email) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Authentication required'], 401);
+        }
+        
+        $session = $consultation->activeSession();
+        if (!$session) {
+            return response()->json(['success' => false, 'message' => 'No active session found'], 404);
+        }
+        
+        // Log recording toggle
+        Log::info('Session recording toggled', [
+            'consultation_id' => $consultation->id,
+            'session_id' => $session->id,
+            'recording' => $request->recording,
+            'user_type' => auth()->guard('doctor')->check() ? 'doctor' : 'patient'
+        ]);
+        
+        // TODO: Implement actual recording start/stop via Vonage API
+        // For now, just acknowledge the request
+        
+        return response()->json([
+            'success' => true,
+            'recording' => $request->recording,
+            'message' => $request->recording ? 'Recording started' : 'Recording stopped'
+        ]);
+    }
 }

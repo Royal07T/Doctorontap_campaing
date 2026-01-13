@@ -13,6 +13,7 @@
         "laravel/reverb": "^1.7",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
+        "opentok/opentok": "^4.0",
         "vonage/client": "*"
     },
     "require-dev": {

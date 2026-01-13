@@ -165,10 +165,14 @@
     <!-- Livewire Scripts (must load before Alpine) -->
     @livewireScripts
     
-    <!-- Vonage Client SDK (CDN) - Load after Livewire and Alpine -->
-    <!-- Vonage Client SDK CDN - adjust URL based on actual SDK availability -->
-    <script src="https://unpkg.com/@vonage/client-sdk@latest/dist/vonageClientSDK.js" 
-            onerror="console.error('Failed to load Vonage Client SDK from CDN. Please check the CDN URL.')"></script>
+    <!-- Vonage Video API SDK (OpenTok.js) - Load after Livewire and Alpine -->
+    <!-- OpenTok.js is the official SDK for Vonage Video API (formerly TokBox) -->
+    <script src="https://static.opentok.com/v2/js/opentok.min.js" 
+            onerror="console.error('Failed to load OpenTok.js SDK from CDN. Please check your internet connection.')"></script>
+    
+    <!-- Vonage Conversations SDK - For chat consultations -->
+    <script src="https://unpkg.com/@vonage/conversation-client@latest/dist/conversationClient.js" 
+            onerror="console.error('Failed to load Vonage Conversations SDK from CDN. Please check your internet connection.')"></script>
     
     <!-- Page-specific scripts -->
     @stack('scripts')

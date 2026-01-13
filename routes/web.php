@@ -577,6 +577,11 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
         Route::post('/session/start', [\App\Http\Controllers\ConsultationSessionController::class, 'startSession'])->name('session.start');
         Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
         Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
+        Route::post('/session/recording', [\App\Http\Controllers\ConsultationSessionController::class, 'toggleRecording'])->name('session.recording');
+        
+        // Chat Messages
+        Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
+        Route::post('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'store'])->name('chat.messages.store');
     });
 });
 
@@ -654,6 +659,11 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
         Route::post('/session/start', [\App\Http\Controllers\ConsultationSessionController::class, 'startSession'])->name('session.start');
         Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
         Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
+        Route::post('/session/recording', [\App\Http\Controllers\ConsultationSessionController::class, 'toggleRecording'])->name('session.recording');
+        
+        // Chat Messages
+        Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
+        Route::post('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'store'])->name('chat.messages.store');
     });
     
     // Dependents
