@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InboundMessage;
+use App\Models\Consultation;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -172,6 +175,8 @@ class VonageWebhookController extends Controller
     /**
      * Handle inbound WhatsApp messages from Vonage
      * POST /vonage/webhook/whatsapp/inbound
+     * 
+     * Handles all WhatsApp message types: text, image, video, audio, file, location, contact
      */
     public function handleWhatsAppInbound(Request $request)
     {
@@ -181,49 +186,116 @@ class VonageWebhookController extends Controller
 
         $data = $request->all();
 
-        // WhatsApp Messages API format: from, to, message, timestamp, message_uuid, channel, etc.
-        $from = $data['from'] ?? $data['from']['number'] ?? null;
-        $to = $data['to'] ?? $data['to']['number'] ?? null;
-        $message = $data['message'] ?? null;
-        $messageUuid = $data['message_uuid'] ?? null;
-        $timestamp = $data['timestamp'] ?? now();
-
-        // Extract message content based on type
-        $messageText = null;
-        $messageType = $data['message']['type'] ?? 'text';
-        
-        if ($messageType === 'text') {
-            $messageText = $message['text']['body'] ?? null;
-        } elseif ($messageType === 'image') {
-            $messageText = $message['image']['caption'] ?? '[Image]';
-        } elseif ($messageType === 'video') {
-            $messageText = $message['video']['caption'] ?? '[Video]';
-        } elseif ($messageType === 'document') {
-            $messageText = $message['document']['caption'] ?? '[Document]';
-        }
-
-        // Store inbound WhatsApp message
         try {
-            DB::table('whatsapp_inbound_logs')->insert([
-                'from' => $from,
-                'to' => $to,
-                'message' => $messageText,
+            // WhatsApp Messages API format
+            $from = $data['from']['number'] ?? $data['from'] ?? null;
+            $to = $data['to']['number'] ?? $data['to'] ?? null;
+            $messageUuid = $data['message_uuid'] ?? null;
+            $timestamp = $data['timestamp'] ?? now();
+            
+            // Extract message content
+            $messageData = $data['message'] ?? [];
+            $messageType = $messageData['type'] ?? 'text';
+            $messageText = null;
+            $mediaUrl = null;
+            $mediaType = null;
+            $mediaCaption = null;
+            $mediaName = null;
+            $latitude = null;
+            $longitude = null;
+            $locationName = null;
+            $locationAddress = null;
+            $contactData = null;
+            
+            switch ($messageType) {
+                case 'text':
+                    $messageText = $messageData['text']['body'] ?? null;
+                    break;
+                case 'image':
+                    $messageText = $messageData['image']['caption'] ?? '[Image]';
+                    $mediaUrl = $messageData['image']['url'] ?? null;
+                    $mediaType = $messageData['image']['content_type'] ?? 'image/jpeg';
+                    $mediaCaption = $messageData['image']['caption'] ?? null;
+                    break;
+                case 'video':
+                    $messageText = $messageData['video']['caption'] ?? '[Video]';
+                    $mediaUrl = $messageData['video']['url'] ?? null;
+                    $mediaType = $messageData['video']['content_type'] ?? 'video/mp4';
+                    $mediaCaption = $messageData['video']['caption'] ?? null;
+                    break;
+                case 'audio':
+                    $messageText = '[Audio]';
+                    $mediaUrl = $messageData['audio']['url'] ?? null;
+                    $mediaType = $messageData['audio']['content_type'] ?? 'audio/mpeg';
+                    break;
+                case 'file':
+                case 'document':
+                    $messageText = $messageData['file']['caption'] ?? $messageData['document']['caption'] ?? '[File]';
+                    $mediaUrl = $messageData['file']['url'] ?? $messageData['document']['url'] ?? null;
+                    $mediaType = $messageData['file']['content_type'] ?? $messageData['document']['content_type'] ?? 'application/octet-stream';
+                    $mediaCaption = $messageData['file']['caption'] ?? $messageData['document']['caption'] ?? null;
+                    $mediaName = $messageData['file']['name'] ?? $messageData['document']['filename'] ?? null;
+                    break;
+                case 'location':
+                    $messageText = '[Location]';
+                    $latitude = $messageData['location']['latitude'] ?? null;
+                    $longitude = $messageData['location']['longitude'] ?? null;
+                    $locationName = $messageData['location']['name'] ?? null;
+                    $locationAddress = $messageData['location']['address'] ?? null;
+                    break;
+                case 'contact':
+                    $messageText = '[Contact Card]';
+                    $contactData = $messageData['contact'] ?? null;
+                    break;
+                case 'sticker':
+                    $messageText = '[Sticker]';
+                    $mediaUrl = $messageData['sticker']['url'] ?? null;
+                    $mediaType = 'image/webp';
+                    break;
+            }
+            
+            // Try to link to patient/consultation
+            $patient = $this->findPatientByPhone($from);
+            $consultation = $patient ? $this->findActiveConsultation($patient->id) : null;
+            
+            // Create inbound message record
+            $inboundMessage = InboundMessage::create([
+                'message_uuid' => $messageUuid,
+                'channel' => 'whatsapp',
                 'message_type' => $messageType,
-                'message_uuid' => $messageUuid,
-                'timestamp' => $timestamp,
-                'raw_data' => json_encode($data),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'from_number' => $from,
+                'to_number' => $to,
+                'message_text' => $messageText,
+                'media_url' => $mediaUrl ?? null,
+                'media_type' => $mediaType ?? null,
+                'media_caption' => $mediaCaption ?? null,
+                'media_name' => $mediaName ?? null,
+                'latitude' => $latitude ?? null,
+                'longitude' => $longitude ?? null,
+                'location_name' => $locationName ?? null,
+                'location_address' => $locationAddress ?? null,
+                'contact_data' => $contactData ?? null,
+                'status' => 'received',
+                'received_at' => $timestamp,
+                'raw_data' => $data,
+                'consultation_id' => $consultation?->id,
+                'patient_id' => $patient?->id,
             ]);
-
-            Log::info('Vonage WhatsApp inbound message logged', [
+            
+            Log::info('Vonage WhatsApp inbound message stored', [
+                'message_uuid' => $messageUuid,
                 'from' => $from,
-                'message_uuid' => $messageUuid,
-                'type' => $messageType
+                'type' => $messageType,
+                'has_media' => !empty($mediaUrl)
             ]);
+            
+            // Process the message
+            $this->processInboundMessage($inboundMessage);
+            
         } catch (\Exception $e) {
-            Log::error('Failed to log Vonage WhatsApp inbound message', [
+            Log::error('Failed to process Vonage WhatsApp inbound message', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'data' => $data
             ]);
         }
@@ -325,6 +397,53 @@ class VonageWebhookController extends Controller
         ];
 
         return $statusMap[strtolower($vonageStatus)] ?? 'pending';
+    }
+    
+    /**
+     * Process inbound message (customize based on your needs)
+     */
+    protected function processInboundMessage(InboundMessage $message): void
+    {
+        // Example: Auto-reply logic, notification triggers, etc.
+        // This is where you'd add your business logic
+        
+        Log::info('Processing inbound message', [
+            'message_id' => $message->id,
+            'from' => $message->from_number,
+            'type' => $message->message_type
+        ]);
+        
+        // Mark as processed
+        $message->markAsProcessed();
+    }
+    
+    /**
+     * Find patient by phone number
+     */
+    protected function findPatientByPhone(?string $phone): ?Patient
+    {
+        if (!$phone) {
+            return null;
+        }
+        
+        // Normalize phone number
+        $normalized = preg_replace('/[\s\-\(\)\+]/', '', $phone);
+        
+        // Try to find patient by mobile number
+        return Patient::where('mobile', 'like', "%{$normalized}%")
+            ->orWhere('mobile', 'like', "%{$phone}%")
+            ->first();
+    }
+    
+    /**
+     * Find active consultation for patient
+     */
+    protected function findActiveConsultation(int $patientId): ?Consultation
+    {
+        return Consultation::where('patient_id', $patientId)
+            ->whereIn('status', ['pending', 'scheduled', 'active'])
+            ->latest()
+            ->first();
     }
 }
 

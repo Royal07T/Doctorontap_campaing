@@ -82,6 +82,9 @@ return [
         'voice_number' => env('VONAGE_VOICE_NUMBER'), // Your Vonage phone number for outbound calls
         'voice_webhook_url' => env('VONAGE_VOICE_WEBHOOK_URL'), // Base URL for voice webhooks
         
+        // MMS Configuration (for SMS with media)
+        'mms_number' => env('VONAGE_MMS_NUMBER'), // Your Vonage phone number for MMS (can use same as voice_number)
+        
         // Video API Configuration (for in-app video consultations)
         'video_enabled' => env('VONAGE_VIDEO_ENABLED', false),
         'video_location' => env('VONAGE_VIDEO_LOCATION', 'us'), // Data center location: us, eu, ap, etc.
@@ -111,6 +114,6 @@ return [
     | Note: Vonage WhatsApp requires Messages API (not Legacy SMS API)
     |
     */
-    'whatsapp_provider' => env('WHATSAPP_PROVIDER', 'termii'), // Options: 'termii' or 'vonage'
+    'whatsapp_provider' => env('WHATSAPP_PROVIDER', 'vonage'), // Options: 'termii' or 'vonage'
 
 ];

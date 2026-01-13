@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,19 +9,18 @@ use Illuminate\Support\Facades\Auth;
 class NotificationController extends Controller
 {
     /**
-     * Get notifications for the authenticated user
+     * Get notifications for the authenticated user (Web version)
      */
     public function index(Request $request)
     {
-        // For API routes, use Sanctum authentication
-        $user = Auth::guard('sanctum')->user();
-        if (!$user) {
-            // Fallback to regular auth for backward compatibility
-            $user = Auth::user();
-        }
+        // Check all possible guards to find authenticated user
+        $user = $this->getAuthenticatedUser();
         
         if (!$user) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+            return redirect()->route('admin.login');
         }
 
         $userType = $this->getUserType($user);
@@ -43,6 +41,18 @@ class NotificationController extends Controller
         $limit = $request->get('limit', 20);
         $notifications = $query->limit($limit)->get();
 
+        // Return JSON for AJAX requests
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'notifications' => $notifications,
+                    'unread_count' => Notification::forUser($userType, $userId)->unread()->count(),
+                ]
+            ]);
+        }
+
+        // For regular web requests, return view (if needed)
         return response()->json([
             'success' => true,
             'data' => [
@@ -57,13 +67,7 @@ class NotificationController extends Controller
      */
     public function unreadCount()
     {
-        // For API routes, use Sanctum authentication
-        $user = Auth::guard('sanctum')->user();
-        if (!$user) {
-            // Fallback to regular auth for backward compatibility
-            $user = Auth::user();
-        }
-        
+        $user = $this->getAuthenticatedUser();
         if (!$user) {
             return response()->json(['count' => 0]);
         }
@@ -84,13 +88,7 @@ class NotificationController extends Controller
      */
     public function markAsRead($id)
     {
-        // For API routes, use Sanctum authentication
-        $user = Auth::guard('sanctum')->user();
-        if (!$user) {
-            // Fallback to regular auth for backward compatibility
-            $user = Auth::user();
-        }
-        
+        $user = $this->getAuthenticatedUser();
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -114,13 +112,7 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
-        // For API routes, use Sanctum authentication
-        $user = Auth::guard('sanctum')->user();
-        if (!$user) {
-            // Fallback to regular auth for backward compatibility
-            $user = Auth::user();
-        }
-        
+        $user = $this->getAuthenticatedUser();
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -136,6 +128,24 @@ class NotificationController extends Controller
             'success' => true,
             'message' => 'All notifications marked as read'
         ]);
+    }
+
+    /**
+     * Get authenticated user from any guard
+     */
+    private function getAuthenticatedUser()
+    {
+        // Check all possible guards in order of likelihood
+        $guards = ['admin', 'doctor', 'patient', 'nurse', 'canvasser', 'customer_care', 'care_giver', 'web'];
+        
+        foreach ($guards as $guard) {
+            if (Auth::guard($guard)->check()) {
+                return Auth::guard($guard)->user();
+            }
+        }
+        
+        // Fallback to default guard
+        return Auth::user();
     }
 
     /**
@@ -156,3 +166,4 @@ class NotificationController extends Controller
         return $typeMap[$class] ?? 'patient';
     }
 }
+

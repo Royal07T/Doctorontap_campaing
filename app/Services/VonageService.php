@@ -11,6 +11,17 @@ use Vonage\Messages\MessageObjects\TextObject;
 use Vonage\Messages\Channel\SMS\SMSText;
 use Vonage\Messages\Channel\WhatsApp\WhatsAppText;
 use Vonage\Messages\Channel\WhatsApp\WhatsAppTemplate;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppImage;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppVideo;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppAudio;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppFile;
+use Vonage\Messages\Channel\MMS\MMSImage;
+use Vonage\Messages\Channel\MMS\MMSVideo;
+use Vonage\Messages\Channel\MMS\MMSAudio;
+use Vonage\Messages\MessageObjects\ImageObject;
+use Vonage\Messages\MessageObjects\VideoObject;
+use Vonage\Messages\MessageObjects\AudioObject;
+use Vonage\Messages\MessageObjects\FileObject;
 
 class VonageService
 {
@@ -707,6 +718,327 @@ class VonageService
     }
 
     /**
+     * Send WhatsApp image message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $imageUrl Publicly accessible URL to the image
+     * @param string $caption Optional caption for the image
+     * @return array Response with success status and data
+     */
+    public function sendWhatsAppImage(string $to, string $imageUrl, string $caption = ''): array
+    {
+        if (!$this->whatsappEnabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        if (empty($this->whatsappNumber)) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp number not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $imageObject = new ImageObject($imageUrl, $caption);
+            $whatsappImage = new WhatsAppImage($formattedPhone, $this->whatsappNumber, $imageObject);
+
+            $response = $client->messages()->send($whatsappImage);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage WhatsApp image sent successfully', [
+                'to' => $formattedPhone,
+                'image_url' => $imageUrl,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp image sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp image exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp image',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send WhatsApp video message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $videoUrl Publicly accessible URL to the video
+     * @param string $caption Optional caption for the video
+     * @return array Response with success status and data
+     */
+    public function sendWhatsAppVideo(string $to, string $videoUrl, string $caption = ''): array
+    {
+        if (!$this->whatsappEnabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        if (empty($this->whatsappNumber)) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp number not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $videoObject = new VideoObject($videoUrl, $caption);
+            $whatsappVideo = new WhatsAppVideo($formattedPhone, $this->whatsappNumber, $videoObject);
+
+            $response = $client->messages()->send($whatsappVideo);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage WhatsApp video sent successfully', [
+                'to' => $formattedPhone,
+                'video_url' => $videoUrl,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp video sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp video exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp video',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send WhatsApp audio message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $audioUrl Publicly accessible URL to the audio file
+     * @return array Response with success status and data
+     */
+    public function sendWhatsAppAudio(string $to, string $audioUrl): array
+    {
+        if (!$this->whatsappEnabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        if (empty($this->whatsappNumber)) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp number not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $audioObject = new AudioObject($audioUrl);
+            $whatsappAudio = new WhatsAppAudio($formattedPhone, $this->whatsappNumber, $audioObject);
+
+            $response = $client->messages()->send($whatsappAudio);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage WhatsApp audio sent successfully', [
+                'to' => $formattedPhone,
+                'audio_url' => $audioUrl,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp audio sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp audio exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp audio',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send WhatsApp file/document message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $fileUrl Publicly accessible URL to the file
+     * @param string $caption Optional caption for the file
+     * @param string|null $fileName Optional filename
+     * @return array Response with success status and data
+     */
+    public function sendWhatsAppFile(string $to, string $fileUrl, string $caption = '', ?string $fileName = null): array
+    {
+        if (!$this->whatsappEnabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp sending disabled',
+                'skipped' => true
+            ];
+        }
+
+        if (empty($this->whatsappNumber)) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp number not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $fileObject = new FileObject($fileUrl, $caption, $fileName);
+            $whatsappFile = new WhatsAppFile($formattedPhone, $this->whatsappNumber, $fileObject);
+
+            $response = $client->messages()->send($whatsappFile);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage WhatsApp file sent successfully', [
+                'to' => $formattedPhone,
+                'file_url' => $fileUrl,
+                'file_name' => $fileName,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp file sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp file exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp file',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Format phone number for WhatsApp (E.164 format with +)
      *
      * @param string $phone Phone number in any format
@@ -734,6 +1066,259 @@ class VonageService
         }
 
         return $phone;
+    }
+
+    // ==================== MMS METHODS ====================
+
+    /**
+     * Send MMS image message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $imageUrl Publicly accessible URL to the image
+     * @param string $caption Optional caption for the image
+     * @param string|null $fromNumber Your Vonage phone number (required for MMS)
+     * @return array Response with success status and data
+     */
+    public function sendMMSImage(string $to, string $imageUrl, string $caption = '', ?string $fromNumber = null): array
+    {
+        if (!$this->enabled) {
+            return [
+                'success' => false,
+                'message' => 'Vonage service disabled',
+                'skipped' => true
+            ];
+        }
+
+        $fromNumber = $fromNumber ?? config('services.vonage.mms_number') ?? config('services.vonage.voice_number');
+        if (empty($fromNumber)) {
+            return [
+                'success' => false,
+                'message' => 'MMS requires a phone number. Set VONAGE_MMS_NUMBER or VONAGE_VOICE_NUMBER in .env',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage MMS requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumber($to);
+        $formattedFrom = $this->formatPhoneNumber($fromNumber);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $imageObject = new ImageObject($imageUrl, $caption);
+            $mmsImage = new MMSImage($formattedPhone, $formattedFrom, $imageObject);
+
+            $response = $client->messages()->send($mmsImage);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage MMS image sent successfully', [
+                'to' => $formattedPhone,
+                'from' => $formattedFrom,
+                'image_url' => $imageUrl,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'MMS image sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage MMS image exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending MMS image',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send MMS video message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $videoUrl Publicly accessible URL to the video
+     * @param string $caption Optional caption for the video
+     * @param string|null $fromNumber Your Vonage phone number (required for MMS)
+     * @return array Response with success status and data
+     */
+    public function sendMMSVideo(string $to, string $videoUrl, string $caption = '', ?string $fromNumber = null): array
+    {
+        if (!$this->enabled) {
+            return [
+                'success' => false,
+                'message' => 'Vonage service disabled',
+                'skipped' => true
+            ];
+        }
+
+        $fromNumber = $fromNumber ?? config('services.vonage.mms_number') ?? config('services.vonage.voice_number');
+        if (empty($fromNumber)) {
+            return [
+                'success' => false,
+                'message' => 'MMS requires a phone number. Set VONAGE_MMS_NUMBER or VONAGE_VOICE_NUMBER in .env',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage MMS requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumber($to);
+        $formattedFrom = $this->formatPhoneNumber($fromNumber);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $videoObject = new VideoObject($videoUrl, $caption);
+            $mmsVideo = new MMSVideo($formattedPhone, $formattedFrom, $videoObject);
+
+            $response = $client->messages()->send($mmsVideo);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage MMS video sent successfully', [
+                'to' => $formattedPhone,
+                'from' => $formattedFrom,
+                'video_url' => $videoUrl,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'MMS video sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage MMS video exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending MMS video',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send MMS audio message
+     * 
+     * @param string $to Phone number in international format
+     * @param string $audioUrl Publicly accessible URL to the audio file
+     * @param string|null $fromNumber Your Vonage phone number (required for MMS)
+     * @return array Response with success status and data
+     */
+    public function sendMMSAudio(string $to, string $audioUrl, ?string $fromNumber = null): array
+    {
+        if (!$this->enabled) {
+            return [
+                'success' => false,
+                'message' => 'Vonage service disabled',
+                'skipped' => true
+            ];
+        }
+
+        $fromNumber = $fromNumber ?? config('services.vonage.mms_number') ?? config('services.vonage.voice_number');
+        if (empty($fromNumber)) {
+            return [
+                'success' => false,
+                'message' => 'MMS requires a phone number. Set VONAGE_MMS_NUMBER or VONAGE_VOICE_NUMBER in .env',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage MMS requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumber($to);
+        $formattedFrom = $this->formatPhoneNumber($fromNumber);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $audioObject = new AudioObject($audioUrl);
+            $mmsAudio = new MMSAudio($formattedPhone, $formattedFrom, $audioObject);
+
+            $response = $client->messages()->send($mmsAudio);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage MMS audio sent successfully', [
+                'to' => $formattedPhone,
+                'from' => $formattedFrom,
+                'audio_url' => $audioUrl,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'MMS audio sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage MMS audio exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending MMS audio',
+                'error' => $e->getMessage()
+            ];
+        }
     }
 }
 
