@@ -33,7 +33,9 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
-    <!-- Page-specific styles -->
+    <!-- Livewire Styles -->
+    @livewireStyles
+    
     <!-- Page-specific styles -->
     @stack('styles')
 </head>
@@ -160,6 +162,14 @@
         </div>
     </div>
 
+    <!-- Livewire Scripts (must load before Alpine) -->
+    @livewireScripts
+    
+    <!-- Vonage Client SDK (CDN) - Load after Livewire and Alpine -->
+    <!-- Vonage Client SDK CDN - adjust URL based on actual SDK availability -->
+    <script src="https://unpkg.com/@vonage/client-sdk@latest/dist/vonageClientSDK.js" 
+            onerror="console.error('Failed to load Vonage Client SDK from CDN. Please check the CDN URL.')"></script>
+    
     <!-- Page-specific scripts -->
     @stack('scripts')
     

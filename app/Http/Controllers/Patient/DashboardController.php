@@ -351,29 +351,30 @@ class DashboardController extends Controller
     {
         // Map symptoms to specializations (using database specialty names)
         $symptomMap = [
-            'period-doubts-or-pregnancy' => ['Obstetrician & Gynecologist (OB-GYN)', 'Obstetrics & Gynecology (OB/GYN)', 'Reproductive Health Specialist'],
-            'acne-pimple-or-skin-issues' => ['Dermatologist', 'Dermatology', 'Cosmetic Dermatologist'],
+            'period-doubts-or-pregnancy' => ['Obstetrics & Gynecology (OB/GYN)', 'Obstetrician & Gynecologist (OB-GYN)'],
+            'acne-pimple-or-skin-issues' => ['Dermatologist', 'Dermatology'],
             'performance-issues-in-bed' => ['Urologist', 'Urology'],
-            'cold-cough-or-fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)', 'Internal Medicine Physician', 'Family Medicine Physician'],
-            'child-not-feeling-well' => ['Pediatrician', 'Pediatrics'],
-            'depression-or-anxiety' => ['Psychiatrist', 'Psychiatry', 'Clinical Psychologist'],
+            'cold-cough-or-fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)', 'General Practice', 'General Practitioner', 'Internal Medicine'],
+            'child-not-feeling-well' => ['Pediatrics', 'Pediatrician'],
+            'depression-or-anxiety' => ['Psychiatrist', 'Psychiatry', 'Therapist'],
             'headache' => ['Neurologist', 'Neurology'],
             'stomach-pain' => ['Gastroenterologist', 'Gastroenterology'],
             'back-pain' => ['Orthopedic Specialist', 'Orthopaedics'],
-            'eye-problems' => ['Ophthalmologist', 'Ophthalmology', 'Optometrist'],
+            'eye-problems' => ['Ophthalmologist', 'Ophthalmology'],
             'ear-pain' => ['ENT Specialist (Otolaryngologist)', 'ENT (Otolaryngology)'],
-            'joint-pain' => ['Rheumatologist', 'Orthopedic Specialist', 'Orthopaedics'],
+            'joint-pain' => ['Orthopedic Specialist', 'Orthopaedics', 'Rheumatologist'],
             'chest-pain' => ['Cardiologist', 'Cardiology'],
             // Legacy mappings for backward compatibility
-            'menstruation-flow' => ['Obstetrician & Gynecologist (OB-GYN)', 'Obstetrics & Gynecology (OB/GYN)'],
+            'menstruation-flow' => ['Obstetrics & Gynecology (OB/GYN)', 'Obstetrician & Gynecologist (OB-GYN)'],
             'rashes' => ['Dermatologist', 'Dermatology'],
-            'cough' => ['General Practitioner (GP)', 'Internal Medicine'],
-            'fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)'],
+            'cough' => ['General Practitioner (GP)', 'General Practice (Family Medicine)', 'Internal Medicine'],
+            'fever' => ['General Practitioner (GP)', 'General Practice (Family Medicine)', 'Internal Medicine'],
             'skin-issues' => ['Dermatologist', 'Dermatology'],
         ];
         
-        // Normalize the symptom slug
-        $symptom = strtolower(str_replace(' ', '-', $symptom));
+        // Normalize the symptom slug: handle commas, spaces, and other special characters
+        $symptom = strtolower(preg_replace('/[^a-z0-9]+/', '-', str_replace([' ', ','], '-', $symptom)));
+        $symptom = trim($symptom, '-'); // Remove leading/trailing hyphens
 
         $specializations = $symptomMap[$symptom] ?? null;
         
@@ -381,13 +382,19 @@ class DashboardController extends Controller
             abort(404, 'Symptom not found');
         }
 
-        // Query doctors with any of the mapped specializations
+        // Query doctors with any of the mapped specializations (case-insensitive, trimmed)
         $doctors = \App\Models\Doctor::where(function($query) use ($specializations) {
                 foreach ($specializations as $index => $specialization) {
                     if ($index === 0) {
-                        $query->where('specialization', $specialization);
+                        // Exact match
+                        $query->where('specialization', $specialization)
+                              // Case-insensitive match
+                              ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($specialization))]);
                     } else {
-                        $query->orWhere('specialization', $specialization);
+                        // Exact match
+                        $query->orWhere('specialization', $specialization)
+                              // Case-insensitive match
+                              ->orWhereRaw('LOWER(TRIM(specialization)) = ?', [strtolower(trim($specialization))]);
                     }
                 }
             })
@@ -399,7 +406,10 @@ class DashboardController extends Controller
         // Use the first specialization for display
         $specialization = $specializations[0];
 
+        // Format symptom name: replace hyphens with spaces, handle "or" properly
         $symptomName = ucwords(str_replace('-', ' ', $symptom));
+        // Fix common patterns
+        $symptomName = str_replace(' Or ', ' or ', $symptomName);
 
         return view('patient.doctors-by-specialization', compact('doctors', 'specialization', 'symptomName'));
     }

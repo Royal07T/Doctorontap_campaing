@@ -432,7 +432,12 @@
                             <div class="flex space-x-3 animate-scroll-symptoms" style="--symptom-count: {{ count($symptoms) }};">
                                 @foreach($symptoms as $symptom)
                                     @php
-                                        $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
+                                        // Generate slug: lowercase first, then replace spaces/commas with hyphens, remove other special chars
+                                        $symptomSlug = strtolower($symptom['name']);
+                                        $symptomSlug = str_replace([' ', ','], '-', $symptomSlug);
+                                        $symptomSlug = preg_replace('/[^a-z0-9]+/', '-', $symptomSlug);
+                                        $symptomSlug = preg_replace('/-+/', '-', $symptomSlug); // Replace multiple hyphens with single
+                                        $symptomSlug = trim($symptomSlug, '-'); // Remove leading/trailing hyphens
                                         $symptomName = $symptom['name'];
                                         $symptomColor = $symptom['color'] ?? '#9333EA';
                                         $iconName = $symptom['icon'] ?? 'default';
@@ -587,7 +592,12 @@
                                 <!-- Duplicate items for seamless loop -->
                                 @foreach($symptoms as $symptom)
                                     @php
-                                        $symptomSlug = strtolower(str_replace(' ', '-', $symptom['name']));
+                                        // Generate slug: lowercase first, then replace spaces/commas with hyphens, remove other special chars
+                                        $symptomSlug = strtolower($symptom['name']);
+                                        $symptomSlug = str_replace([' ', ','], '-', $symptomSlug);
+                                        $symptomSlug = preg_replace('/[^a-z0-9]+/', '-', $symptomSlug);
+                                        $symptomSlug = preg_replace('/-+/', '-', $symptomSlug); // Replace multiple hyphens with single
+                                        $symptomSlug = trim($symptomSlug, '-'); // Remove leading/trailing hyphens
                                         $symptomName = $symptom['name'];
                                         $symptomColor = $symptom['color'] ?? '#9333EA';
                                         $iconName = $symptom['icon'] ?? 'default';
