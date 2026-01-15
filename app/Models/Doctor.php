@@ -23,6 +23,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'email',
         'gender',
         'password',
+        'user_id',
         'specialization',
         'consultation_fee',
         'min_consultation_fee',
@@ -84,6 +85,14 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'availability_schedule' => 'array',
     ];
+
+    /**
+     * Get the user associated with this doctor
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Get the admin who approved this doctor
@@ -284,6 +293,32 @@ class Doctor extends Authenticatable implements MustVerifyEmail
               ->orWhereRaw('LOWER(specialization) = ?', ['general practitioner'])
               ->orWhereRaw('LOWER(specialization) = ?', ['general practice']);
         });
+    }
+
+    /**
+     * Get the email address that should be used for verification
+     * Prefers user email (source of truth) if user relationship exists
+     */
+    public function getEmailForVerification()
+    {
+        // Use user email if available (source of truth), otherwise fallback to direct email
+        if ($this->user_id && $this->relationLoaded('user') && $this->user) {
+            return $this->user->email;
+        }
+        
+        // Fallback to direct email field for backward compatibility
+        return $this->attributes['email'] ?? null;
+    }
+
+    /**
+     * Get email from user relationship if available, otherwise from direct field
+     */
+    public function getEmailFromUser()
+    {
+        if ($this->user_id && $this->user) {
+            return $this->user->email;
+        }
+        return $this->attributes['email'] ?? null;
     }
 
     /**

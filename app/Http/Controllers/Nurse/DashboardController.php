@@ -242,8 +242,9 @@ class DashboardController extends Controller
 
             $pdfContent = $pdf->output();
 
-            // Send email with PDF attachment
-            Mail::to($patient->email)->send(new VitalSignsReport(
+            // Send email with PDF attachment (prefer user email as source of truth)
+            $patientEmail = $patient->user?->email ?? $patient->email;
+            Mail::to($patientEmail)->send(new VitalSignsReport(
                 $patient,
                 $vitalSign,
                 $nurse,

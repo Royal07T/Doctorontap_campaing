@@ -17,6 +17,7 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'user_id',
         'is_active',
         'last_login_at',
         'email_verified_at',
@@ -70,10 +71,29 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the email address that should be used for verification.
+     * Prefers user email (source of truth) if user relationship exists
      */
     public function getEmailForVerification()
     {
-        return $this->email;
+        // Use user email if available (source of truth), otherwise fallback to direct email
+        if ($this->user_id && $this->relationLoaded('user') && $this->user) {
+            return $this->user->email;
+        }
+        
+        // Fallback to direct email field for backward compatibility
+        return $this->attributes['email'] ?? null;
+    }
+
+    /**
+     * Get email from user relationship if available, otherwise from direct field
+     * This is a helper method to access email via user relationship
+     */
+    public function getEmailFromUser()
+    {
+        if ($this->user_id && $this->user) {
+            return $this->user->email;
+        }
+        return $this->attributes['email'] ?? null;
     }
 
     /**
@@ -111,6 +131,14 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
 
         $permissions = $this->permissions ?? [];
         return in_array($permission, $permissions);
+    }
+
+    /**
+     * Get the user associated with this admin
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

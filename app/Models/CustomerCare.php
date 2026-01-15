@@ -20,6 +20,7 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
         'email',
         'phone',
         'password',
+        'user_id',
         'is_active',
         'created_by',
         'last_login_at',
@@ -44,6 +45,14 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
     public function consultations(): HasMany
     {
         return $this->hasMany(Consultation::class, 'customer_care_id');
+    }
+
+    /**
+     * Get the user associated with this customer care
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -84,6 +93,32 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
     public function interactionNotes(): HasMany
     {
         return $this->hasMany(InteractionNote::class, 'created_by');
+    }
+
+    /**
+     * Get the email address that should be used for verification
+     * Prefers user email (source of truth) if user relationship exists
+     */
+    public function getEmailForVerification()
+    {
+        // Use user email if available (source of truth), otherwise fallback to direct email
+        if ($this->user_id && $this->relationLoaded('user') && $this->user) {
+            return $this->user->email;
+        }
+        
+        // Fallback to direct email field for backward compatibility
+        return $this->attributes['email'] ?? null;
+    }
+
+    /**
+     * Get email from user relationship if available, otherwise from direct field
+     */
+    public function getEmailFromUser()
+    {
+        if ($this->user_id && $this->user) {
+            return $this->user->email;
+        }
+        return $this->attributes['email'] ?? null;
     }
 
     /**

@@ -20,6 +20,7 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
         'email',
         'phone',
         'password',
+        'user_id',
         'is_active',
         'created_by',
         'last_login_at',
@@ -55,11 +56,45 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the user associated with this canvasser
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Get the admin who created this canvasser
      */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(AdminUser::class, 'created_by');
+    }
+
+    /**
+     * Get the email address that should be used for verification
+     * Prefers user email (source of truth) if user relationship exists
+     */
+    public function getEmailForVerification()
+    {
+        // Use user email if available (source of truth), otherwise fallback to direct email
+        if ($this->user_id && $this->relationLoaded('user') && $this->user) {
+            return $this->user->email;
+        }
+        
+        // Fallback to direct email field for backward compatibility
+        return $this->attributes['email'] ?? null;
+    }
+
+    /**
+     * Get email from user relationship if available, otherwise from direct field
+     */
+    public function getEmailFromUser()
+    {
+        if ($this->user_id && $this->user) {
+            return $this->user->email;
+        }
+        return $this->attributes['email'] ?? null;
     }
 
     /**

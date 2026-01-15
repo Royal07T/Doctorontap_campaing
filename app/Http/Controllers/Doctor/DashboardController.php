@@ -498,14 +498,17 @@ class DashboardController extends Controller
                             'email' => $recipientEmail
                         ]);
                     }
-                    // 2. Try patient relationship email
-                    elseif ($consultation->patient && !empty($consultation->patient->email)) {
-                        $recipientEmail = $consultation->patient->email;
-                        \Illuminate\Support\Facades\Log::info('Using patient email for payment request', [
-                            'consultation_id' => $consultation->id,
-                            'patient_id' => $consultation->patient_id,
-                            'email' => $recipientEmail
-                        ]);
+                    // 2. Try patient relationship email (prefer user email as source of truth)
+                    elseif ($consultation->patient) {
+                        $patientEmail = $consultation->patient->user?->email ?? $consultation->patient->email;
+                        if (!empty($patientEmail)) {
+                            $recipientEmail = $patientEmail;
+                            \Illuminate\Support\Facades\Log::info('Using patient email for payment request', [
+                                'consultation_id' => $consultation->id,
+                                'patient_id' => $consultation->patient_id,
+                                'email' => $recipientEmail
+                            ]);
+                        }
                     }
                     // 3. Try booking payer email (for multi-patient bookings)
                     elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {

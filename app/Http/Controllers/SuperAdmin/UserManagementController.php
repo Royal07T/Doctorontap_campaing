@@ -11,6 +11,7 @@ use App\Models\Nurse;
 use App\Models\CustomerCare;
 use App\Models\CareGiver;
 use App\Services\ActivityLogService;
+use App\Services\UnifiedUserUpdateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -18,10 +19,14 @@ use Illuminate\Support\Facades\DB;
 class UserManagementController extends Controller
 {
     protected ActivityLogService $activityLogService;
+    protected UnifiedUserUpdateService $userUpdateService;
 
-    public function __construct(ActivityLogService $activityLogService)
-    {
+    public function __construct(
+        ActivityLogService $activityLogService,
+        UnifiedUserUpdateService $userUpdateService
+    ) {
         $this->activityLogService = $activityLogService;
+        $this->userUpdateService = $userUpdateService;
     }
 
     /**
@@ -235,7 +240,80 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Update user information (email, name, password, role-specific data)
+     * 
+     * This method updates both the users table (source of truth) and role-specific table
+     */
+    public function updateUser(Request $request, string $type, int $id)
+    {
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255',
+            'password' => 'sometimes|string|min:8|confirmed',
+            // Role-specific fields can be added here based on type
+        ]);
+
+        $result = $this->userUpdateService->updateUser($type, $id, $request->only([
+            'name', 'email', 'password'
+        ]));
+
+        if (!$result['success']) {
+            return response()->json([
+                'message' => $result['message']
+            ], 400);
+        }
+
+        // Log the update
+        $this->activityLogService->log(
+            'updated',
+            get_class($result['roleModel']),
+            $result['roleModel']->id,
+            $request->only(['name', 'email']),
+            ['action' => 'user_update', 'user_id' => $result['user']->id]
+        );
+
+        return response()->json([
+            'message' => $result['message'],
+            'user' => $result['user'],
+            'role_model' => $result['roleModel'],
+        ]);
+    }
+
+    /**
+     * Update user email only
+     */
+    public function updateEmail(Request $request, string $type, int $id)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $result = $this->userUpdateService->updateEmail($type, $id, $request->email);
+
+        if (!$result['success']) {
+            return response()->json([
+                'message' => $result['message']
+            ], 400);
+        }
+
+        $this->activityLogService->log(
+            'updated',
+            get_class($result['roleModel']),
+            $result['roleModel']->id,
+            ['email' => $request->email],
+            ['action' => 'email_update', 'user_id' => $result['user']->id]
+        );
+
+        return response()->json([
+            'message' => 'Email updated successfully',
+            'user' => $result['user'],
+        ]);
+    }
+
+    /**
      * Reset user password
+     * 
+     * Updated to use unified user system
      */
     public function resetPassword(Request $request, string $type, int $id)
     {
@@ -243,24 +321,40 @@ class UserManagementController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = $this->getUserByType($type, $id);
-        
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
+        $result = $this->userUpdateService->updatePassword($type, $id, $request->password);
 
-        $user->password = Hash::make($request->password);
-        $user->save();
+        if (!$result['success']) {
+            return response()->json([
+                'message' => $result['message']
+            ], 400);
+        }
 
         $this->activityLogService->log(
             'updated',
-            get_class($user),
-            $user->id,
+            get_class($result['roleModel']),
+            $result['roleModel']->id,
             null,
-            ['action' => 'password_reset']
+            ['action' => 'password_reset', 'user_id' => $result['user']->id]
         );
 
-        return response()->json(['message' => 'Password reset successfully']);
+        return response()->json([
+            'message' => 'Password reset successfully',
+            'user' => $result['user'],
+        ]);
+    }
+
+    /**
+     * Get user information including unified user data
+     */
+    public function getUserInfo(string $type, int $id)
+    {
+        $info = $this->userUpdateService->getUserInfo($type, $id);
+
+        if (!$info) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        return response()->json($info);
     }
 
     /**

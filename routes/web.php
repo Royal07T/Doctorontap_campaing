@@ -710,6 +710,8 @@ Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 's
     
     // User Management
     Route::get('/users', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'index'])->name('users.index');
+    Route::put('/users/{type}/{id}', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'updateUser'])->name('users.update');
+    Route::put('/users/{type}/{id}/email', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'updateEmail'])->name('users.update-email');
     Route::post('/users/{type}/{id}/toggle-status', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'toggleStatus'])->name('users.toggle-status');
     Route::post('/users/{type}/{id}/reset-password', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'resetPassword'])->name('users.reset-password');
     

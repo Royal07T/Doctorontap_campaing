@@ -1140,10 +1140,13 @@ class DashboardController extends Controller
         if (!empty($consultation->email)) {
             $recipientEmail = $consultation->email;
         }
-        // 2. Try patient relationship email
-        elseif ($consultation->patient && !empty($consultation->patient->email)) {
-            $recipientEmail = $consultation->patient->email;
-            $recipientName = $consultation->patient->full_name ?? $recipientName;
+        // 2. Try patient relationship email (prefer user email as source of truth)
+        elseif ($consultation->patient) {
+            $patientEmail = $consultation->patient->user?->email ?? $consultation->patient->email;
+            if (!empty($patientEmail)) {
+                $recipientEmail = $patientEmail;
+                $recipientName = $consultation->patient->full_name ?? $recipientName;
+            }
         }
         // 3. Try booking payer email (for multi-patient bookings)
         elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
@@ -1813,40 +1816,52 @@ class DashboardController extends Controller
 
     /**
      * Update an existing admin user
+     * 
+     * Updated to use unified user system - updates both users table and admin_users table
      */
     public function updateAdminUser(Request $request, $id)
     {
-        $admin = AdminUser::findOrFail($id);
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:admin_users,email,' . $id,
+            'email' => 'required|email|max:255', // Email uniqueness checked in service
             'password' => 'nullable|string|min:8|confirmed',
             'is_active' => 'nullable|boolean',
         ]);
 
-        // Only update password if provided
+        // Use UnifiedUserUpdateService to update both users and admin_users tables
+        $userUpdateService = app(\App\Services\UnifiedUserUpdateService::class);
+        
+        // Prepare data for unified update
+        $updateData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ];
+
         if (!empty($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
-        } else {
-            unset($validated['password']);
+            $updateData['password'] = $validated['password'];
         }
 
-        $validated['is_active'] = $request->has('is_active') ? true : false;
+        // Update unified user (email, password, name in users table)
+        $result = $userUpdateService->updateUser('admin', $id, $updateData);
 
-        try {
-            $admin->update($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Admin user updated successfully!'
-            ]);
-        } catch (\Exception $e) {
+        if (!$result['success']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update admin: ' . $e->getMessage()
-            ], 500);
+                'message' => $result['message']
+            ], 400);
         }
+
+        // Update admin-specific fields (is_active)
+        $admin = $result['roleModel'];
+        $admin->is_active = $request->has('is_active') ? true : false;
+        $admin->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin user updated successfully!',
+            'user' => $result['user'],
+            'admin' => $admin,
+        ]);
     }
 
     /**

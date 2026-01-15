@@ -20,6 +20,7 @@ class Patient extends Authenticatable
         'name',
         'email',
         'password',
+        'user_id',
         'phone',
         'gender',
         'photo',
@@ -67,6 +68,14 @@ class Patient extends Authenticatable
         'is_verified' => 'boolean',
         'verification_sent_at' => 'datetime',
     ];
+
+    /**
+     * Get the user associated with this patient
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Get the canvasser who registered this patient
@@ -222,10 +231,29 @@ class Patient extends Authenticatable
 
     /**
      * Get the email address that should be used for verification
+     * Prefers user email (source of truth) if user relationship exists
      */
     public function getEmailForVerification()
     {
-        return $this->email;
+        // Use user email if available (source of truth), otherwise fallback to direct email
+        if ($this->user_id && $this->relationLoaded('user') && $this->user) {
+            return $this->user->email;
+        }
+        
+        // Fallback to direct email field for backward compatibility
+        return $this->attributes['email'] ?? null;
+    }
+
+    /**
+     * Get email from user relationship if available, otherwise from direct field
+     * This is a helper method to access email via user relationship
+     */
+    public function getEmailFromUser()
+    {
+        if ($this->user_id && $this->user) {
+            return $this->user->email;
+        }
+        return $this->attributes['email'] ?? null;
     }
 
     /**

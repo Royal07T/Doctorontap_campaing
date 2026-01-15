@@ -100,36 +100,52 @@ return [
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
         
+        // NOTE: In the unified user architecture, admin_users should use User model
+        // with role='admin'. Keeping AdminUser for backward compatibility during migration.
+        // TODO: Update to use User model with role filtering after full migration.
         'admin_users' => [
             'driver' => 'eloquent',
             'model' => App\Models\AdminUser::class,
         ],
         
+        // NOTE: In the unified user architecture, canvassers should use User model
+        // with role='canvasser'. Keeping Canvasser for backward compatibility during migration.
         'canvassers' => [
             'driver' => 'eloquent',
             'model' => App\Models\Canvasser::class,
         ],
         
+        // NOTE: In the unified user architecture, nurses should use User model
+        // with role='nurse'. Keeping Nurse for backward compatibility during migration.
         'nurses' => [
             'driver' => 'eloquent',
             'model' => App\Models\Nurse::class,
         ],
         
+        // NOTE: In the unified user architecture, doctors should use User model
+        // with role='doctor'. Keeping Doctor for backward compatibility during migration.
         'doctors' => [
             'driver' => 'eloquent',
             'model' => App\Models\Doctor::class,
         ],
         
+        // NOTE: In the unified user architecture, patients should use User model
+        // with role='patient'. Keeping Patient for backward compatibility during migration.
+        // TODO: Update to use User model with role filtering after full migration.
         'patients' => [
             'driver' => 'eloquent',
             'model' => App\Models\Patient::class,
         ],
         
+        // NOTE: In the unified user architecture, customer_cares should use User model
+        // with role='customer_care'. Keeping CustomerCare for backward compatibility during migration.
         'customer_cares' => [
             'driver' => 'eloquent',
             'model' => App\Models\CustomerCare::class,
         ],
         
+        // NOTE: In the unified user architecture, care_givers should use User model
+        // with role='care_giver'. Keeping CareGiver for backward compatibility during migration.
         'care_givers' => [
             'driver' => 'eloquent',
             'model' => App\Models\CareGiver::class,

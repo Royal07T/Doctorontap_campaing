@@ -169,6 +169,13 @@
 
                                     <!-- Action Buttons -->
                                     <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
+                                            <button onclick="editPatient({{ $patient->id }}, {{ json_encode($patient) }})" 
+                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                Edit
+                                            </button>
                                             <a href="{{ route('admin.consultation.show', $patient->id) }}" 
                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,6 +249,89 @@
             <button onclick="closeAlertModal()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors">
                 OK
             </button>
+        </div>
+    </div>
+
+    <!-- Edit Patient Modal -->
+    <div id="editPatientModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Edit Patient</h3>
+                    <button onclick="closeEditPatientModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="editPatientForm" onsubmit="handleEditPatient(event)">
+                    <input type="hidden" id="editPatientId" name="id">
+                    
+                    <!-- Name Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                            <input type="text" id="editPatientFirstName" name="first_name" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                            <input type="text" id="editPatientLastName" name="last_name" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+
+                    <!-- Contact Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                            <input type="email" id="editPatientEmail" name="email" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                            <input type="text" id="editPatientPhone" name="mobile" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+
+                    <!-- Demographics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                            <input type="date" id="editPatientDob" name="date_of_birth" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                            <select id="editPatientGender" name="gender" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                        <textarea id="editPatientAddress" name="address" rows="2" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeEditPatientModal()" 
+                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -324,6 +414,79 @@
         function closeAlertModal() {
             document.getElementById('alertModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
+        }
+
+        // Edit Patient Functions
+        function editPatient(id, patientData) {
+            // Set patient ID
+            document.getElementById('editPatientId').value = id;
+            
+            // Populate form fields
+            document.getElementById('editPatientFirstName').value = patientData.first_name || '';
+            document.getElementById('editPatientLastName').value = patientData.last_name || '';
+            document.getElementById('editPatientEmail').value = patientData.email || '';
+            document.getElementById('editPatientPhone').value = patientData.mobile || '';
+            document.getElementById('editPatientDob').value = patientData.date_of_birth || '';
+            document.getElementById('editPatientGender').value = patientData.gender || '';
+            document.getElementById('editPatientAddress').value = patientData.address || '';
+            
+            // Show modal
+            document.getElementById('editPatientModal').classList.remove('hidden');
+        }
+
+        function closeEditPatientModal() {
+            document.getElementById('editPatientModal').classList.add('hidden');
+            document.getElementById('editPatientForm').reset();
+        }
+
+        async function handleEditPatient(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const id = formData.get('id');
+            
+            // Build update data object
+            const updateData = {
+                first_name: formData.get('first_name'),
+                last_name: formData.get('last_name'),
+                email: formData.get('email'),
+                mobile: formData.get('mobile'),
+                date_of_birth: formData.get('date_of_birth'),
+                gender: formData.get('gender'),
+                address: formData.get('address')
+            };
+            
+            // Remove empty values
+            Object.keys(updateData).forEach(key => {
+                if (updateData[key] === '' || updateData[key] === null) {
+                    delete updateData[key];
+                }
+            });
+
+            try {
+                const response = await fetch(`/super-admin/users/patient/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const data = await response.json();
+
+                if (data.message) {
+                    if (data.user) {
+                        showAlertModal(data.message, 'success');
+                        closeEditPatientModal();
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showAlertModal(data.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlertModal('An error occurred while updating the patient', 'error');
+            }
         }
     </script>
     @include('admin.shared.preloader')
