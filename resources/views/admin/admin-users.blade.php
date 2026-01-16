@@ -231,13 +231,7 @@
 
                                     <!-- Action Buttons -->
                                     <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
-                                        <button onclick='openEditAdminModal(@json($admin))' 
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                            Edit
-                                        </button>
+                                        {{-- Edit functionality removed per user request --}}
                                         @if($admin->id !== Auth::guard('admin')->id())
                                             <button onclick="toggleAdminStatus({{ $admin->id }}, {{ $admin->is_active ? 'false' : 'true' }})" 
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white {{ $admin->is_active ? 'bg-gray-600' : 'bg-emerald-600' }} rounded-lg hover:opacity-90 transition">
@@ -393,25 +387,8 @@
             document.body.style.overflow = 'hidden';
         }
 
-        // Open Edit Admin Modal
-        function openEditAdminModal(admin) {
-            document.getElementById('modalTitle').textContent = 'Edit Admin User';
-            document.getElementById('adminId').value = admin.id;
-            document.getElementById('formMethod').value = 'PUT';
-            document.getElementById('name').value = admin.name || '';
-            document.getElementById('email').value = admin.email || '';
-            document.getElementById('password').value = '';
-            document.getElementById('password_confirmation').value = '';
-            document.getElementById('password').required = false;
-            document.getElementById('passwordRequired').style.display = 'none';
-            document.getElementById('passwordOptional').style.display = 'inline';
-            document.getElementById('is_active').checked = admin.is_active;
-            document.getElementById('adminForm').action = `/admin/admin-users/${admin.id}`;
-            document.getElementById('submitBtnText').textContent = 'Update Admin';
-            document.getElementById('formMessage').classList.add('hidden');
-            document.getElementById('adminModal').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
+        // Open Edit Admin Modal functionality removed per user request
+        // function openEditAdminModal(admin) { ... }
 
         // Close Modal
         function closeAdminModal() {

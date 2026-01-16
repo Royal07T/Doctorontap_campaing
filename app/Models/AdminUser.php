@@ -13,6 +13,7 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
     use Notifiable, SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'password',
@@ -33,6 +34,22 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
     ];
+    
+    /**
+     * Get the user record associated with this admin
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get email from user relationship (preferred) or fallback to admin email
+     */
+    public function getEmailFromUser()
+    {
+        return $this->user?->email ?? $this->email;
+    }
     
     /**
      * Update last activity timestamp
@@ -65,7 +82,7 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
      */
     public function getEmailForVerification()
     {
-        return $this->email;
+        return $this->user?->email ?? $this->email;
     }
 
     /**

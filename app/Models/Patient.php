@@ -16,6 +16,7 @@ class Patient extends Authenticatable
     use Notifiable, MustVerifyEmail, SoftDeletes, Auditable;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'password',
@@ -52,6 +53,22 @@ class Patient extends Authenticatable
         'is_verified' => 'boolean',
         'verification_sent_at' => 'datetime',
     ];
+
+    /**
+     * Get the user record associated with this patient
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get email from user relationship (preferred) or fallback to patient email
+     */
+    public function getEmailFromUser()
+    {
+        return $this->user?->email ?? $this->email;
+    }
 
     /**
      * Get the canvasser who registered this patient
@@ -210,7 +227,7 @@ class Patient extends Authenticatable
      */
     public function getEmailForVerification()
     {
-        return $this->email;
+        return $this->user?->email ?? $this->email;
     }
 
     /**

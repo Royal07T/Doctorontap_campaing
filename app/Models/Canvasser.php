@@ -15,6 +15,7 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
     use Notifiable, SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
@@ -36,6 +37,22 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
     ];
+
+    /**
+     * Get the user record associated with this canvasser
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get email from user relationship (preferred) or fallback to canvasser email
+     */
+    public function getEmailFromUser()
+    {
+        return $this->user?->email ?? $this->email;
+    }
 
     /**
      * Get consultations registered by this canvasser
@@ -67,6 +84,14 @@ class Canvasser extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\CanvasserVerifyEmail);
+    }
+
+    /**
+     * Get the email address that should be used for verification.
+     */
+    public function getEmailForVerification()
+    {
+        return $this->user?->email ?? $this->email;
     }
     
     /**

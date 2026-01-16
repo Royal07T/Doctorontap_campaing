@@ -11,6 +11,13 @@ return [
     | reset "broker" for your application. You may change these values
     | as required, but they're a perfect start for most applications.
     |
+    | UNIFIED USER ARCHITECTURE:
+    | After the user unification migration, all authentication uses the
+    | 'users' table as the source of truth for identity (email/password).
+    | Role-specific tables (patients, admin_users, doctors, nurses, canvassers)
+    | reference users via user_id foreign key. The role-specific guards below
+    | are maintained for backward compatibility during the migration period.
+    |
     */
 
     'defaults' => [

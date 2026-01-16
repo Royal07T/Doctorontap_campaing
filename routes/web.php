@@ -207,6 +207,8 @@ Route::domain('admin.doctorontap.com.ng')->group(function () {
         Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
         Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
         Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
+        Route::post('/patients', [DashboardController::class, 'storePatient'])->name('patients.store');
+        Route::put('/patients/{id}', [DashboardController::class, 'updatePatient'])->name('patients.update');
         Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
         Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
         Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
@@ -232,7 +234,7 @@ Route::domain('admin.doctorontap.com.ng')->group(function () {
         // Admin Users Management
         Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
         Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
-        Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
+        // Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
         Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
         Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
         
@@ -284,6 +286,11 @@ Route::domain('admin.doctorontap.com.ng')->group(function () {
         Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
         Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
         Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
+        
+        // Unified User Management (leverages user unification architecture)
+        Route::get('/users', [DashboardController::class, 'users'])->name('users');
+        Route::put('/users/{id}', [DashboardController::class, 'updateUser'])->name('users.update');
+        Route::delete('/users/{id}', [DashboardController::class, 'deleteUser'])->name('users.delete');
     });
     
     // Root route for admin subdomain - redirect to login
@@ -351,6 +358,8 @@ if (!app()->environment('production')) {
         Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
         Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
         Route::get('/patients', [DashboardController::class, 'patients'])->name('patients');
+        Route::post('/patients', [DashboardController::class, 'storePatient'])->name('patients.store');
+        Route::put('/patients/{id}', [DashboardController::class, 'updatePatient'])->name('patients.update');
         Route::delete('/patients/{id}', [DashboardController::class, 'deletePatient'])->name('patients.delete');
         Route::get('/vital-signs', [DashboardController::class, 'vitalSigns'])->name('vital-signs');
         Route::delete('/vital-signs/{id}', [DashboardController::class, 'deleteVitalSign'])->name('vital-signs.delete');
@@ -376,7 +385,7 @@ if (!app()->environment('production')) {
         // Admin Users Management
         Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
         Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
-        Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
+        // Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
         Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
         Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
         
@@ -428,6 +437,11 @@ if (!app()->environment('production')) {
         Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
         Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
         Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
+        
+        // Unified User Management (leverages user unification architecture)
+        Route::get('/users', [DashboardController::class, 'users'])->name('users');
+        Route::put('/users/{id}', [DashboardController::class, 'updateUser'])->name('users.update');
+        Route::delete('/users/{id}', [DashboardController::class, 'deleteUser'])->name('users.delete');
     });
 }
 

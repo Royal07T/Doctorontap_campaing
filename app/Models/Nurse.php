@@ -16,6 +16,7 @@ class Nurse extends Authenticatable implements MustVerifyEmail
     use Notifiable, SoftDeletes, Auditable;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
@@ -37,6 +38,22 @@ class Nurse extends Authenticatable implements MustVerifyEmail
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
     ];
+
+    /**
+     * Get the user record associated with this nurse
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get email from user relationship (preferred) or fallback to nurse email
+     */
+    public function getEmailFromUser()
+    {
+        return $this->user?->email ?? $this->email;
+    }
 
     /**
      * Get consultations attended by this nurse
@@ -68,6 +85,14 @@ class Nurse extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\NurseVerifyEmail);
+    }
+
+    /**
+     * Get the email address that should be used for verification.
+     */
+    public function getEmailForVerification()
+    {
+        return $this->user?->email ?? $this->email;
     }
     
     /**

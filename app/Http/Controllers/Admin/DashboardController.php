@@ -18,6 +18,7 @@ use App\Models\Nurse;
 use App\Models\Setting;
 use App\Models\VitalSign;
 use App\Models\Patient;
+use App\Models\User;
 use App\Mail\CanvasserAccountCreated;
 use App\Mail\NurseAccountCreated;
 
@@ -151,52 +152,26 @@ class DashboardController extends Controller
         return view('admin.consultations', compact('consultations', 'nurses', 'doctors', 'canvassers'));
     }
 
-    /**
-     * Display all patient records
+        /**
+     * Display all patient records from the unified patients table
      */
     public function patients(Request $request)
     {
-        $query = Consultation::with(['doctor', 'canvasser', 'nurse'])
-            ->select('first_name', 'last_name', 'email', 'mobile', 'age', 'gender', 'id', 'reference', 'created_at', 'status', 'doctor_id', 'canvasser_id', 'nurse_id')
-            ->selectRaw('(SELECT COUNT(*) FROM consultations c2 WHERE c2.email = consultations.email) as total_consultations');
+        $query = Patient::with(['canvasser', 'user', 'latestVitalSigns']);
 
         // Search functionality
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('mobile', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%")
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-                
-                // If search contains a space, also try searching first and last name separately
-                if (strpos($search, ' ') !== false) {
-                    $parts = explode(' ', trim($search), 2);
-                    if (count($parts) == 2) {
-                        $q->orWhere(function($subQ) use ($parts) {
-                            $subQ->where('first_name', 'like', "%{$parts[0]}%")
-                                 ->where('last_name', 'like', "%{$parts[1]}%");
-                        });
-                        // Also try reversed in case user typed "last first"
-                        $q->orWhere(function($subQ) use ($parts) {
-                            $subQ->where('first_name', 'like', "%{$parts[1]}%")
-                                 ->where('last_name', 'like', "%{$parts[0]}%");
-                        });
-                    }
-                }
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
         // Filter by gender
-        if ($request->has('gender') && $request->gender != '') {
+        if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
-        }
-        
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
         }
         
         // Filter by canvasser
@@ -212,7 +187,6 @@ class DashboardController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // Get all patients, grouped by email to avoid duplicates in view
         $patients = $query->latest()->paginate(20);
         
         // Get canvassers for filter dropdown
@@ -1202,44 +1176,7 @@ class DashboardController extends Controller
         }
     }
 
-    /**
-     * Update an existing admin user
-     */
-    public function updateAdminUser(Request $request, $id)
-    {
-        $admin = AdminUser::findOrFail($id);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:admin_users,email,' . $id,
-            'password' => 'nullable|string|min:8|confirmed',
-            'is_active' => 'nullable|boolean',
-        ]);
-
-        // Only update password if provided
-        if (!empty($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
-        } else {
-            unset($validated['password']);
-        }
-
-        $validated['is_active'] = $request->has('is_active') ? true : false;
-
-        try {
-            $admin->update($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Admin user updated successfully!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update admin: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
+    // updateAdminUser method removed per user request to disable admin editing functionality
     /**
      * Toggle admin user status
      */
@@ -2322,6 +2259,134 @@ class DashboardController extends Controller
     }
 
     /**
+     * Store a new patient
+     * Creates both user and patient records for unified authentication
+     */
+    public function storePatient(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|max:20',
+            'gender' => 'required|in:Male,Female',
+            'age' => 'nullable|integer|min:0|max:150',
+            'date_of_birth' => 'nullable|date',
+            'password' => 'required|string|min:8',
+        ]);
+
+        try {
+            // Create user record first
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => \Hash::make($validated['password']),
+                'role' => 'patient',
+            ]);
+
+            // Create patient record linked to user
+            $patient = Patient::create([
+                'user_id' => $user->id,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => \Hash::make($validated['password']),
+                'phone' => $validated['phone'],
+                'gender' => $validated['gender'],
+                'age' => $validated['age'] ?? null,
+                'date_of_birth' => $validated['date_of_birth'] ?? null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Patient created successfully!',
+                'patient' => $patient->fresh('user')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create patient: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing patient
+     * Updates both user and patient records for data consistency
+     */
+    public function updatePatient(Request $request, $id)
+    {
+        $patient = Patient::with('user')->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . ($patient->user_id ?? 'NULL') . '|unique:patients,email,' . $id,
+            'phone' => 'required|string|max:20',
+            'gender' => 'required|in:Male,Female',
+            'age' => 'nullable|integer|min:0|max:150',
+            'date_of_birth' => 'nullable|date',
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        try {
+            // Prepare patient data
+            $patientData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'gender' => $validated['gender'],
+                'age' => $validated['age'] ?? $patient->age,
+                'date_of_birth' => $validated['date_of_birth'] ?? $patient->date_of_birth,
+            ];
+
+            // Add password if provided
+            if (!empty($validated['password'])) {
+                $patientData['password'] = \Hash::make($validated['password']);
+            }
+
+            // Update patient record
+            $patient->update($patientData);
+
+            // Update user record if it exists
+            if ($patient->user) {
+                $userData = [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                ];
+
+                if (!empty($validated['password'])) {
+                    $userData['password'] = \Hash::make($validated['password']);
+                }
+
+                $patient->user->update($userData);
+            } else {
+                // Create user record if it doesn't exist (for legacy patients)
+            $userPassword = !empty($validated['password']) 
+                ? \Hash::make($validated['password']) 
+                : ($patient->password ?: \Hash::make(\Illuminate\Support\Str::random(12)));
+
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $userPassword,
+                'role' => 'patient',
+            ]);
+
+            $patient->update(['user_id' => $user->id]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Patient updated successfully!',
+                'patient' => $patient->fresh('user')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update patient: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Soft delete a vital sign record
      */
     public function deleteVitalSign($id)
@@ -3042,5 +3107,146 @@ class DashboardController extends Controller
         ])->findOrFail($id);
 
         return view('admin.booking-details', compact('booking'));
+    }
+
+    /**
+     * Display all users from the unified users table
+     * This leverages the new user unification architecture
+     */
+    public function users(Request $request)
+    {
+        $query = User::with(['patient', 'adminUser', 'doctor', 'nurse', 'canvasser']);
+
+        // Search
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by role
+        if ($request->has('role') && $request->role != '') {
+            $query->where('role', $request->role);
+        }
+
+        // Date range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Filter by email verification status
+        if ($request->filled('email_verified')) {
+            if ($request->email_verified === '1') {
+                $query->whereNotNull('email_verified_at');
+            } else {
+                $query->whereNull('email_verified_at');
+            }
+        }
+
+        $users = $query->latest()->paginate(20);
+
+        // Statistics
+        $stats = [
+            'total' => User::count(),
+            'verified' => User::whereNotNull('email_verified_at')->count(),
+            'unverified' => User::whereNull('email_verified_at')->count(),
+            'by_role' => [
+                'patient' => User::where('role', 'patient')->count(),
+                'doctor' => User::where('role', 'doctor')->count(),
+                'nurse' => User::where('role', 'nurse')->count(),
+                'canvasser' => User::where('role', 'canvasser')->count(),
+                'admin' => User::where('role', 'admin')->count(),
+            ],
+        ];
+
+        return view('admin.users', compact('users', 'stats'));
+    }
+
+    /**
+     * Update a user's information in the unified users table
+     * This updates both the users table and the role-specific table
+     */
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::with(['patient', 'adminUser', 'doctor', 'nurse', 'canvasser'])->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+            'role' => 'required|in:patient,admin,doctor,nurse,canvasser',
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        try {
+            // Update user record
+            $userData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'role' => $validated['role'],
+            ];
+
+            if (!empty($validated['password'])) {
+                $userData['password'] = \Hash::make($validated['password']);
+            }
+
+            $user->update($userData);
+
+            // Also update the role-specific table if it exists
+            $roleModel = $user->roleModel();
+            if ($roleModel) {
+                $roleData = [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                ];
+
+                if (!empty($validated['password'])) {
+                    $roleData['password'] = \Hash::make($validated['password']);
+                }
+
+                $roleModel->update($roleData);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User updated successfully!',
+                'user' => $user->fresh(['patient', 'adminUser', 'doctor', 'nurse', 'canvasser'])
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a user from the unified users table
+     * This will cascade delete the role-specific record due to foreign key constraints
+     */
+    public function deleteUser($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            $role = $user->role;
+            $name = $user->name;
+            
+            // Delete the user (will cascade to role-specific table)
+            $user->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst($role) . ' user "' . $name . '" deleted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete user: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

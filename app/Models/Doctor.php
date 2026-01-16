@@ -15,6 +15,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     protected $appends = ['average_rating', 'total_reviews', 'full_name', 'effective_consultation_fee'];
 
     protected $fillable = [
+        'user_id',
         'name',
         'first_name',
         'last_name',
@@ -69,6 +70,22 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'availability_schedule' => 'array',
     ];
+
+    /**
+     * Get the user record associated with this doctor
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get email from user relationship (preferred) or fallback to doctor email
+     */
+    public function getEmailFromUser()
+    {
+        return $this->user?->email ?? $this->email;
+    }
 
     /**
      * Get the admin who approved this doctor
@@ -269,6 +286,14 @@ class Doctor extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\DoctorVerifyEmail);
+    }
+
+    /**
+     * Get the email address that should be used for verification.
+     */
+    public function getEmailForVerification()
+    {
+        return $this->user?->email ?? $this->email;
     }
     
     /**
