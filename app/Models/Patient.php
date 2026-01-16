@@ -15,6 +15,39 @@ class Patient extends Authenticatable
 {
     use Notifiable, MustVerifyEmail, SoftDeletes, Auditable;
 
+    /**
+     * Initializing the model.
+     * HIPAA/Unified Architecture: Automatically sync changes to linked records.
+     */
+    protected static function booted()
+    {
+        static::updated(function ($patient) {
+            // 1. Sync with User record
+            if ($patient->user) {
+                $patient->user->update([
+                    'name' => $patient->name,
+                    'email' => $patient->email,
+                ]);
+            }
+            
+            // 2. Sync with Consultation snapshot fields
+            if ($patient->wasChanged(['name', 'email', 'phone', 'gender', 'age'])) {
+                $parts = explode(' ', trim($patient->name), 2);
+                $firstName = $parts[0] ?? '';
+                $lastName = $parts[1] ?? '';
+                
+                \App\Models\Consultation::where('patient_id', $patient->id)->update([
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'email' => $patient->email,
+                    'mobile' => $patient->phone,
+                    'gender' => $patient->gender,
+                    'age' => $patient->age,
+                ]);
+            }
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'name',

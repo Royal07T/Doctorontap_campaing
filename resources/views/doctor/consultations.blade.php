@@ -248,7 +248,7 @@
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Contact</p>
                                             <p class="text-xs text-gray-900">{{ $consultation->mobile }}</p>
-                                            <p class="text-xs text-gray-600">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
+                                            <p class="text-xs text-gray-600">{{ $consultation->getEmailFromUser() ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
                                         </div>
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>

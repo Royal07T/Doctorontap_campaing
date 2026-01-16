@@ -107,7 +107,7 @@
                                                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Payment Pending</span>
                                                     @endif
                                                 </div>
-                                                <p class="text-xs text-gray-600">{{ $consultation->first_name }} {{ $consultation->last_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>
+                                                <p class="text-xs text-gray-600">{{ $consultation->full_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>
                                             </div>
                                         </div>
                                         <div class="flex-shrink-0 ml-4">
@@ -136,8 +136,7 @@
                                     <div class="p-5 space-y-4">
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Patient</p>
-                                                <p class="text-xs text-gray-900 font-semibold">{{ $consultation->first_name }} {{ $consultation->last_name }}</p>
+                                                <p class="text-xs text-gray-900 font-semibold">{{ $consultation->full_name }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Date</p>

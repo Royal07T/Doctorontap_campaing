@@ -114,7 +114,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Email</label>
-                            <p class="text-sm text-gray-900">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
+                            <p class="text-sm text-gray-900">{{ $consultation->getEmailFromUser() ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
                             @if($consultation->is_multi_patient_booking && !$consultation->email)
                                 <p class="text-xs text-blue-600 mt-0.5">Using payer email (patient email not provided)</p>
                             @endif
@@ -709,7 +709,7 @@
                 <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p class="text-xs text-gray-600">Patient</p>
                     <p class="text-xs font-semibold text-gray-900 mt-0.5">{{ $consultation->full_name }}</p>
-                    <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->email }}</p>
+                    <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->getEmailFromUser() }}</p>
                     @if($consultation->doctor)
                     <p class="text-xs text-gray-600 mt-1.5">Fee: <span class="font-bold text-green-600">₦{{ number_format($consultation->doctor->effective_consultation_fee, 2) }}</span></p>
                     @endif
@@ -968,7 +968,7 @@
                 },
                 
                 sendPayment() {
-                    this.showConfirm('Send Payment Request', 'Send payment request email to {{ $consultation->email }}?', () => this.doSendPayment());
+                    this.showConfirm('Send Payment Request', 'Send payment request email to {{ $consultation->getEmailFromUser() }}?', () => this.doSendPayment());
                 },
                 
                 async markPaymentAsPaid() {
@@ -1060,7 +1060,7 @@
                 
                 forwardTreatmentPlan() {
                     @php
-                        $recipientEmail = $consultation->email ?: ($consultation->patient && $consultation->patient->email ? $consultation->patient->email : ($consultation->booking ? $consultation->booking->payer_email : 'the patient'));
+                        $recipientEmail = $consultation->getEmailFromUser() ?: 'the patient';
                         if ($consultation->payment_status === 'paid') {
                             $message = 'Send treatment plan to ' . $recipientEmail . '? (Payment confirmed)';
                         } else {

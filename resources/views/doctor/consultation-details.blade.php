@@ -141,11 +141,11 @@ consultationPage()
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Full Name</label>
-                            <p class="text-sm text-gray-900 font-semibold">{{ $consultation->first_name }} {{ $consultation->last_name }}</p>
+                            <p class="text-sm text-gray-900 font-semibold">{{ $consultation->full_name }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
-                            <p class="text-sm text-gray-900">{{ $consultation->email ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
+                            <p class="text-sm text-gray-900">{{ $consultation->getEmailFromUser() ?: ($consultation->booking ? $consultation->booking->payer_email : 'N/A') }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Mobile</label>

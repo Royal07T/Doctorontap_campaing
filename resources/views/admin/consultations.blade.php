@@ -133,7 +133,7 @@
                         }
                     },
                     async sendPayment() {
-                        showConfirmModal('Send payment request email to {{ $consultation->email }}?', async () => {
+                        showConfirmModal('Send payment request email to {{ $consultation->getEmailFromUser() }}?', async () => {
                             this.isSending = true;
                             try {
                                 const response = await fetch('/admin/consultation/{{ $consultation->id }}/send-payment', {
@@ -231,7 +231,7 @@
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Patient</p>
                                     <p class="text-xs text-gray-900 font-semibold">{{ $consultation->full_name }}</p>
-                                    <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->email }}</p>
+                                    <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->getEmailFromUser() }}</p>
                                     <p class="text-xs text-gray-600">{{ $consultation->mobile }}</p>
                                     @if($consultation->is_multi_patient_booking && $consultation->booking)
                                         <p class="text-xs text-blue-600 mt-1">Payer: {{ $consultation->booking->payer_name }} ({{ $consultation->booking->payer_email }})</p>
