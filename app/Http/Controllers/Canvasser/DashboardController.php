@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\Patient;
 use App\Models\Doctor;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -106,11 +107,37 @@ class DashboardController extends Controller
                     'age' => $validated['age'],
                     'canvasser_id' => $canvasser->id,
                 ]);
+
+                // Synchronize with user record if it exists
+                if ($patient->user) {
+                    $patient->user->update([
+                        'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                        'email' => $validated['email'],
+                    ]);
+                } else {
+                    // Create user record for legacy patient
+                    $user = User::create([
+                        'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                        'email' => $validated['email'],
+                        'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
+                        'role' => 'patient',
+                    ]);
+                    $patient->update(['user_id' => $user->id]);
+                }
                 
-                $message = 'Patient record updated successfully! You can now create consultations for this patient.';
+                $message = 'Patient record updated successfully and synchronized with unified account! You can now create consultations for this patient.';
             } else {
-                // Create new patient
+                // Create new user record first for unified authentication
+                $user = User::create([
+                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'email' => $validated['email'],
+                    'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
+                    'role' => 'patient',
+                ]);
+
+                // Create new patient linked to the user
                 $patient = Patient::create([
+                    'user_id' => $user->id,
                     'name' => $validated['first_name'] . ' ' . $validated['last_name'],
                     'email' => $validated['email'],
                     'phone' => $validated['phone'],
@@ -119,7 +146,7 @@ class DashboardController extends Controller
                     'canvasser_id' => $canvasser->id,
                 ]);
                 
-                $message = 'Patient registered successfully! You can now create consultations for this patient.';
+                $message = 'Patient registered successfully with unified account! You can now create consultations for this patient.';
             }
 
             return response()->json([
@@ -282,8 +309,9 @@ class DashboardController extends Controller
         $validated['age'] = $patient->age;
         $validated['gender'] = $patient->gender;
 
-        // Send specialized confirmation email to the patient (booked by canvasser)
-        Mail::to($patient->email)->send(new CanvasserConsultationConfirmation($validated, $canvasser));
+        // Send confirmation email to the patient using unified email
+        $recipientEmail = $patient->getEmailFromUser();
+        Mail::to($recipientEmail)->send(new CanvasserConsultationConfirmation($validated, $canvasser));
 
         // Send SMS confirmation to the patient
         try {

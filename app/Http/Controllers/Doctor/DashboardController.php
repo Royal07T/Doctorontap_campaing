@@ -382,51 +382,20 @@ class DashboardController extends Controller
                 ]);
                 
                 try {
-                    // Determine recipient email: check multiple sources
-                    $recipientEmail = null;
-                    
-                    // 1. First try consultation email field
-                    if (!empty($consultation->email)) {
-                        $recipientEmail = $consultation->email;
-                        \Illuminate\Support\Facades\Log::info('Using consultation email for payment request', [
-                            'consultation_id' => $consultation->id,
-                            'email' => $recipientEmail
-                        ]);
-                    }
-                    // 2. Try patient relationship email
-                    elseif ($consultation->patient && !empty($consultation->patient->email)) {
-                        $recipientEmail = $consultation->patient->email;
-                        \Illuminate\Support\Facades\Log::info('Using patient email for payment request', [
-                            'consultation_id' => $consultation->id,
-                            'patient_id' => $consultation->patient_id,
-                            'email' => $recipientEmail
-                        ]);
-                    }
-                    // 3. Try booking payer email (for multi-patient bookings)
-                    elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
-                        $recipientEmail = $consultation->booking->payer_email;
-                        \Illuminate\Support\Facades\Log::info('Using payer email for payment request', [
-                            'consultation_id' => $consultation->id,
-                            'booking_id' => $consultation->booking_id,
-                            'payer_email' => $recipientEmail
-                        ]);
-                    }
+                    // Determine recipient email: prioritize unified user email
+                    $recipientEmail = $consultation->getEmailFromUser();
                     
                     if ($recipientEmail) {
-                        \Illuminate\Support\Facades\Log::info('Attempting to send payment request email', [
+                        \Illuminate\Support\Facades\Log::info('Attempting to send payment request email (Unified)', [
                             'consultation_id' => $consultation->id,
-                            'email' => $recipientEmail,
-                            'mail_driver' => config('mail.default'),
-                            'mail_host' => config('mail.mailers.smtp.host')
+                            'email' => $recipientEmail
                         ]);
                         
                         \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\PaymentRequest($consultation));
                         
                         \Illuminate\Support\Facades\Log::info('Payment request email sent successfully after treatment plan ' . ($isUpdate ? 'update' : 'creation'), [
                             'consultation_id' => $consultation->id,
-                            'reference' => $consultation->reference,
-                            'email' => $recipientEmail,
-                            'is_update' => $isUpdate
+                            'email' => $recipientEmail
                         ]);
                     } else {
                         \Illuminate\Support\Facades\Log::warning('No email available to send payment request', [

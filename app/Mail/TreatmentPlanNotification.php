@@ -13,11 +13,9 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\SentMessage;
 use Barryvdh\DomPDF\Facade\Pdf;
-
 class TreatmentPlanNotification extends Mailable
 {
     use Queueable, SerializesModels;
-    
     /**
      * The notification log for tracking
      *

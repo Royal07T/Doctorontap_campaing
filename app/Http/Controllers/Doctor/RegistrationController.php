@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Doctor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Doctor;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -98,8 +99,17 @@ class RegistrationController extends Controller
             $certificateOriginalName = $file->getClientOriginalName();
         }
 
-        // Create the doctor account
+        // Create the user account first for unified authentication
+        $user = User::create([
+            'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'doctor',
+        ]);
+
+        // Create the doctor account linked to the user
         $doctor = Doctor::create([
+            'user_id' => $user->id,
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'name' => $validated['first_name'] . ' ' . $validated['last_name'],

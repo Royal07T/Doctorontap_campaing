@@ -13,6 +13,7 @@ use App\Mail\PaymentRequest;
 use App\Models\Doctor;
 use App\Models\Consultation;
 use App\Models\Patient;
+use App\Models\User;
 use App\Notifications\ConsultationSmsNotification;
 
 class ConsultationController extends Controller
@@ -163,9 +164,35 @@ class ConsultationController extends Controller
                     'gender' => $validated['gender'],
                     'age' => $validated['age'],
                 ]);
+
+                // Synchronize with user record if it exists
+                if ($patient->user) {
+                    $patient->user->update([
+                        'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                        'email' => $validated['email'],
+                    ]);
+                } else {
+                    // Create user record for legacy patient
+                    $user = User::create([
+                        'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                        'email' => $validated['email'],
+                        'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
+                        'role' => 'patient',
+                    ]);
+                    $patient->update(['user_id' => $user->id]);
+                }
             } else {
-                // Create new patient
+                // Create new user record first for unified authentication
+                $user = User::create([
+                    'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'email' => $validated['email'],
+                    'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
+                    'role' => 'patient',
+                ]);
+
+                // Create new patient linked to the user
                 $patient = Patient::create([
+                    'user_id' => $user->id,
                     'email' => $validated['email'],
                     'name' => $validated['first_name'] . ' ' . $validated['last_name'],
                     'phone' => $validated['mobile'],
@@ -256,12 +283,13 @@ class ConsultationController extends Controller
         $adminEmail = config('mail.admin_email');
         
         try {
-            // Send confirmation email to the patient
-            Mail::to($validated['email'])->send(new ConsultationConfirmation($validated));
+            // Send confirmation email to the patient using unified email
+            $patientEmail = $patient->getEmailFromUser();
+            Mail::to($patientEmail)->send(new ConsultationConfirmation($validated));
             $emailsSent++;
             \Log::info('Patient confirmation email sent successfully', [
                 'consultation_reference' => $reference,
-                'patient_email' => $validated['email']
+                'patient_email' => $patientEmail
             ]);
         } catch (\Exception $e) {
             \Log::warning('Failed to send patient confirmation email: ' . $e->getMessage(), [
@@ -483,7 +511,8 @@ class ConsultationController extends Controller
 
         // Send payment request email immediately
         try {
-            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
+            $patientEmail = $consultation->getEmailFromUser();
+            Mail::to($patientEmail)->send(new PaymentRequest($consultation));
 
             // Update consultation
             $consultation->update([
@@ -493,7 +522,7 @@ class ConsultationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment request email sent successfully'
+                'message' => 'Payment request email sent successfully to ' . $patientEmail
             ]);
         } catch (\Exception $e) {
             \Log::error('Failed to send payment request email: ' . $e->getMessage(), [

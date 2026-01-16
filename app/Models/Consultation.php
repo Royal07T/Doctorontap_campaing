@@ -183,6 +183,25 @@ class Consultation extends Model
     }
 
     /**
+     * Get email from user relationship (preferred) or fallback to consultation email
+     */
+    public function getEmailFromUser()
+    {
+        // Try to get email from the associated patient's linked user
+        if ($this->patient && $this->patient->user) {
+            return $this->patient->user->email;
+        }
+        
+        // Fallback to patient's own email field (which should also be synchronized)
+        if ($this->patient && !empty($this->patient->email)) {
+            return $this->patient->email;
+        }
+
+        // Ultimate fallback to the consultation record email
+        return $this->email;
+    }
+
+    /**
      * Check if consultation is completed
      */
     public function isCompleted(): bool

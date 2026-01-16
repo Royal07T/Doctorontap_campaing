@@ -11,11 +11,9 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\SentMessage;
-
 class ReviewRequest extends Mailable
 {
     use Queueable, SerializesModels;
-    
     /**
      * The notification log for tracking
      *

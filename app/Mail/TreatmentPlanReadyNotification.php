@@ -12,30 +12,9 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\ThrottlesExceptions;
 
-class TreatmentPlanReadyNotification extends Mailable implements ShouldQueue
+class TreatmentPlanReadyNotification extends Mailable
 {
     use Queueable, SerializesModels, InteractsWithQueue;
-
-    /**
-     * The number of times the job may be attempted.
-     *
-     * @var int
-     */
-    public $tries = 3;
-    
-    /**
-     * The number of seconds to wait before retrying the job.
-     *
-     * @var int
-     */
-    public $backoff = [60, 180, 300]; // 1 min, 3 min, 5 min
-    
-    /**
-     * The maximum number of seconds the job can run.
-     *
-     * @var int
-     */
-    public $timeout = 30;
 
     /**
      * Create a new message instance.

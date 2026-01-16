@@ -568,15 +568,16 @@ class PaymentController extends Controller
                             'reference' => $reference
                         ]);
 
-                        // Optionally send failure notification email
+                        // Optionally send failure notification email using unified email
                         try {
-                            \Illuminate\Support\Facades\Mail::to($consultation->email)->send(
+                            $recipientEmail = $consultation->getEmailFromUser();
+                            \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(
                                 new \App\Mail\PaymentFailedNotification($consultation, $payment, $data['failure_message'] ?? 'Payment could not be processed')
                             );
                             
                             Log::info('Payment failure notification sent', [
                                 'consultation_id' => $consultation->id,
-                                'email' => $consultation->email
+                                'email' => $recipientEmail
                             ]);
                         } catch (\Exception $e) {
                             Log::error('Failed to send payment failure email', [

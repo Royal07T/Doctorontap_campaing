@@ -313,19 +313,23 @@ class DashboardController extends Controller
             'doctor_id' => $request->doctor_id
         ]);
 
-        // Send notification to the new doctor
+        // Send unified email notification to the doctor
         try {
-            \Mail::to($doctor->email)->send(new \App\Mail\ConsultationDoctorNotification([
+            $recipientEmail = $doctor->getEmailFromUser();
+            \Mail::to($recipientEmail)->send(new \App\Mail\ConsultationDoctorNotification([
+                'patient_name' => $consultation->full_name,
+                'reference' => $consultation->reference,
+                'consult_mode' => $consultation->consult_mode,
+                'email' => $recipientEmail,
+                'doctor_name' => $doctor->name,
                 'consultation_reference' => $consultation->reference,
                 'first_name' => $consultation->first_name,
                 'last_name' => $consultation->last_name,
-                'email' => $consultation->email,
                 'mobile' => $consultation->mobile,
                 'age' => $consultation->age,
                 'gender' => $consultation->gender,
                 'problem' => $consultation->problem,
                 'severity' => $consultation->severity,
-                'consult_mode' => $consultation->consult_mode,
                 'doctor' => $doctor->full_name,
                 'doctor_fee' => $doctor->effective_consultation_fee,
                 'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
@@ -392,7 +396,9 @@ class DashboardController extends Controller
 
         // Send urgent email notification
         try {
-            \Mail::to($doctor->email)->send(new \App\Mail\DelayQueryNotification($notificationData));
+            // Send unified email notification
+            $recipientEmail = $doctor->getEmailFromUser();
+            \Mail::to($recipientEmail)->send(new \App\Mail\DelayQueryNotification($notificationData));
             \Log::info('Delay query notification sent to doctor', [
                 'consultation_id' => $consultation->id,
                 'consultation_reference' => $consultation->reference,
@@ -464,17 +470,18 @@ class DashboardController extends Controller
 
         // Send payment request email (allow resending)
         try {
-            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
-
-            // Update consultation (update timestamp even if already sent)
-            $consultation->update([
-                'payment_request_sent' => true,
-                'payment_request_sent_at' => now(),
-            ]);
-
+            $recipientEmail = $consultation->getEmailFromUser();
+            if ($recipientEmail) {
+                Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
+                // Update consultation (update timestamp even if already sent)
+                $consultation->update([
+                    'payment_request_sent' => true,
+                    'payment_request_sent_at' => now(),
+                ]);
+            }
             return response()->json([
                 'success' => true,
-                'message' => ($consultation->payment_request_sent ? 'Payment request email resent' : 'Payment request email sent') . ' successfully to ' . $consultation->email
+                'message' => ($consultation->payment_request_sent ? 'Payment request email resent' : 'Payment request email sent') . ' successfully to ' . $recipientEmail
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -499,21 +506,12 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        // Determine recipient email: check multiple sources
-        $recipientEmail = null;
+        // Determine recipient email: prioritize unified user email
+        $recipientEmail = $consultation->getEmailFromUser();
         $recipientName = $consultation->full_name;
         
-        // 1. First try consultation email field
-        if (!empty($consultation->email)) {
-            $recipientEmail = $consultation->email;
-        }
-        // 2. Try patient relationship email
-        elseif ($consultation->patient && !empty($consultation->patient->email)) {
-            $recipientEmail = $consultation->patient->email;
-            $recipientName = $consultation->patient->full_name ?? $recipientName;
-        }
-        // 3. Try booking payer email (for multi-patient bookings)
-        elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
+        // Multi-patient fallback logic (if no direct email on consultation or patient)
+        if (!$recipientEmail && $consultation->booking && !empty($consultation->booking->payer_email)) {
             $recipientEmail = $consultation->booking->payer_email;
             $recipientName = $consultation->booking->payer_name ?? $recipientName;
         }
@@ -605,15 +603,16 @@ class DashboardController extends Controller
             'sms' => ['sent' => false, 'message' => ''],
         ];
 
-        // Send Email
+        // Send Email using unified logic
         try {
-            Mail::to($consultation->email)->send(new PaymentRequest($consultation));
-            $results['email'] = ['sent' => true, 'message' => 'Email sent successfully'];
+            $recipientEmail = $consultation->getEmailFromUser();
+            Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
+            $results['email'] = ['sent' => true, 'message' => 'Email sent successfully to ' . $recipientEmail];
             
-            \Log::info('Payment request email resent by admin', [
+            \Log::info('Payment request email resent by admin (Unified)', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
-                'email' => $consultation->email,
+                'email' => $recipientEmail,
                 'admin_user' => auth()->user()->name ?? 'Unknown'
             ]);
         } catch (\Exception $e) {
@@ -729,13 +728,15 @@ class DashboardController extends Controller
                     'treatment_plan_accessible' => true,
                 ]);
 
-                // Send payment request email
+                // Send payment request / treatment plan email using unified email
                 try {
-                    Mail::to($consultation->email)->send(new PaymentRequest($consultation));
+                    $recipientEmail = $consultation->getEmailFromUser();
+                    Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
                     
-                    \Log::info('Payment request sent after manual payment', [
+                    \Log::info('Payment request sent after manual payment (Unified)', [
                         'consultation_id' => $consultation->id,
                         'reference' => $consultation->reference,
+                        'email' => $recipientEmail,
                         'payment_method' => $request->payment_method
                     ]);
                 } catch (\Exception $e) {
@@ -917,7 +918,8 @@ class DashboardController extends Controller
 
         // Forward documents via email with attachments
         try {
-            Mail::to($consultation->doctor->email)->send(new DocumentsForwardedToDoctor($consultation));
+            $recipientEmail = $consultation->doctor->getEmailFromUser();
+            Mail::to($recipientEmail)->send(new DocumentsForwardedToDoctor($consultation));
 
             // Update consultation
             $consultation->update([
@@ -967,19 +969,28 @@ class DashboardController extends Controller
         }
 
         try {
-            $doctor = Doctor::create($validated);
+        // Create user record first for unified authentication
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => \Hash::make(\Illuminate\Support\Str::random(12)), // Random password for admin-added doctors
+            'role' => 'doctor',
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Doctor added successfully!',
-                'doctor' => $doctor
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add doctor: ' . $e->getMessage()
-            ], 500);
-        }
+        $validated['user_id'] = $user->id;
+        $doctor = Doctor::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Doctor added successfully with unified user account!',
+            'doctor' => $doctor->fresh('user')
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to add doctor: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     /**
@@ -1007,19 +1018,37 @@ class DashboardController extends Controller
         $validated['is_available'] = $request->has('is_available') ? true : false;
 
         try {
-            $doctor->update($validated);
+        // Update doctor record
+        $doctor->update($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Doctor updated successfully!',
-                'doctor' => $doctor
+        // Synchronize with user record if it exists
+        if ($doctor->user) {
+            $doctor->user->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update doctor: ' . $e->getMessage()
-            ], 500);
+        } else {
+            // Create user record if legacy doctor has no user_id
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
+                'role' => 'doctor',
+            ]);
+            $doctor->update(['user_id' => $user->id]);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Doctor updated and synchronized with unified user account!',
+            'doctor' => $doctor->fresh('user')
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update doctor: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     /**
@@ -1084,7 +1113,9 @@ class DashboardController extends Controller
 
             foreach ($doctors as $doctor) {
                 try {
-                    \Mail::to($doctor->email)->send(new \App\Mail\CampaignNotification($doctor, $campaignDetails));
+                    // Use unified email logic for campaigns
+                    $recipientEmail = $doctor->getEmailFromUser();
+                    \Mail::to($recipientEmail)->send(new \App\Mail\CampaignNotification($doctor, $campaignDetails));
                     $emailsSent++;
                 } catch (\Exception $e) {
                     $emailsFailed++;
@@ -1159,21 +1190,30 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-            $admin = AdminUser::create($validated);
-            
-            // Send email verification notification
-            $admin->sendEmailVerificationNotification();
+        // Create user record first for unified authentication
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'], // Already hashed or will be hashed by cast/mutator
+            'role' => 'admin',
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Admin user created successfully! A verification email has been sent to ' . $admin->email . '.'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create admin: ' . $e->getMessage()
-            ], 500);
-        }
+        $validated['user_id'] = $user->id;
+        $admin = AdminUser::create($validated);
+        
+        // Send email verification notification using unified email logic
+        $admin->sendEmailVerificationNotification();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin user created successfully with unified account! A verification email has been sent to ' . $admin->getEmailFromUser() . '.'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create admin: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     // updateAdminUser method removed per user request to disable admin editing functionality
@@ -1301,24 +1341,34 @@ class DashboardController extends Controller
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
-            $canvasser = Canvasser::create($validated);
-            
-            // Get admin name
-            $adminName = auth()->guard('admin')->user()->name;
-            
-            // Send account creation email with password and verification link
-            Mail::to($canvasser->email)->send(new CanvasserAccountCreated($canvasser, $plainPassword, $adminName));
+        // Create user record first for unified authentication
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'role' => 'canvasser',
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Canvasser created successfully! An email with login credentials and verification link has been sent.'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create canvasser: ' . $e->getMessage()
-            ], 500);
-        }
+        $validated['user_id'] = $user->id;
+        $canvasser = Canvasser::create($validated);
+        
+        // Get admin name
+        $adminName = auth()->guard('admin')->user()->name;
+        
+        // Send account creation email with password and verification link using unified email
+        $recipientEmail = $canvasser->getEmailFromUser();
+        Mail::to($recipientEmail)->send(new CanvasserAccountCreated($canvasser, $plainPassword, $adminName));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Canvasser created successfully with unified account! An email with login credentials and verification link has been sent to ' . $recipientEmail . '.'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create canvasser: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     /**
@@ -1346,18 +1396,40 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-            $canvasser->update($validated);
+        // Update canvasser record
+        $canvasser->update($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Canvasser updated successfully!'
+        // Synchronize with user record if it exists
+        if ($canvasser->user) {
+            $userData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+            ];
+            if (!empty($validated['password'])) {
+                $userData['password'] = $validated['password'];
+            }
+            $canvasser->user->update($userData);
+        } else {
+            // Create user record if legacy canvasser has no user_id
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'] ?? $canvasser->password,
+                'role' => 'canvasser',
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update canvasser: ' . $e->getMessage()
-            ], 500);
+            $canvasser->update(['user_id' => $user->id]);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Canvasser updated and synchronized with unified account!'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update canvasser: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     /**
@@ -1467,24 +1539,34 @@ class DashboardController extends Controller
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
-            $nurse = Nurse::create($validated);
-            
-            // Get admin name
-            $adminName = auth()->guard('admin')->user()->name;
-            
-            // Send account creation email with password and verification link
-            Mail::to($nurse->email)->send(new NurseAccountCreated($nurse, $plainPassword, $adminName));
+        // Create user record first for unified authentication
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'role' => 'nurse',
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Nurse created successfully! An email with login credentials and verification link has been sent.'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create nurse: ' . $e->getMessage()
-            ], 500);
-        }
+        $validated['user_id'] = $user->id;
+        $nurse = Nurse::create($validated);
+        
+        // Get admin name
+        $adminName = auth()->guard('admin')->user()->name;
+        
+        // Send account creation email with password and verification link using unified email
+        $recipientEmail = $nurse->getEmailFromUser();
+        Mail::to($recipientEmail)->send(new NurseAccountCreated($nurse, $plainPassword, $adminName));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nurse created successfully with unified account! An email with login credentials and verification link has been sent to ' . $recipientEmail . '.'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create nurse: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     /**
@@ -1512,18 +1594,40 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-            $nurse->update($validated);
+        // Update nurse record
+        $nurse->update($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Nurse updated successfully!'
+        // Synchronize with user record if it exists
+        if ($nurse->user) {
+            $userData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+            ];
+            if (!empty($validated['password'])) {
+                $userData['password'] = $validated['password'];
+            }
+            $nurse->user->update($userData);
+        } else {
+            // Create user record if legacy nurse has no user_id
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'] ?? $nurse->password,
+                'role' => 'nurse',
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update nurse: ' . $e->getMessage()
-            ], 500);
+            $nurse->update(['user_id' => $user->id]);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nurse updated and synchronized with unified account!'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update nurse: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     /**

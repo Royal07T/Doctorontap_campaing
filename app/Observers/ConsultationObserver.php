@@ -38,30 +38,13 @@ class ConsultationObserver
             // Send treatment plan notification email if treatment plan exists (regardless of unlock status)
             // This ensures email is sent even if treatment plan was unlocked before payment_status changed
             if ($consultation->hasTreatmentPlan()) {
-                // Determine recipient email: check multiple sources
-                $recipientEmail = null;
+                // Determine recipient email: prioritize unified user email
+                $recipientEmail = $consultation->getEmailFromUser();
                 
-                // 1. First try consultation email field
-                if (!empty($consultation->email)) {
-                    $recipientEmail = $consultation->email;
-                    Log::info('Using consultation email for treatment plan', [
-                        'consultation_id' => $consultation->id,
-                        'email' => $recipientEmail
-                    ]);
-                }
-                // 2. Try patient relationship email
-                elseif ($consultation->patient && !empty($consultation->patient->email)) {
-                    $recipientEmail = $consultation->patient->email;
-                    Log::info('Using patient email for treatment plan', [
-                        'consultation_id' => $consultation->id,
-                        'patient_id' => $consultation->patient_id,
-                        'email' => $recipientEmail
-                    ]);
-                }
-                // 3. Try booking payer email (for multi-patient bookings)
-                elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
+                // Multi-patient fallback logic
+                if (!$recipientEmail && $consultation->booking && !empty($consultation->booking->payer_email)) {
                     $recipientEmail = $consultation->booking->payer_email;
-                    Log::info('Using payer email for treatment plan', [
+                    Log::info('Using payer email as fallback for treatment plan notification', [
                         'consultation_id' => $consultation->id,
                         'booking_id' => $consultation->booking_id,
                         'payer_email' => $recipientEmail

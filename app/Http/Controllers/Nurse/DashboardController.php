@@ -242,24 +242,41 @@ class DashboardController extends Controller
 
             $pdfContent = $pdf->output();
 
-            // Send email with PDF attachment
-            Mail::to($patient->email)->send(new VitalSignsReport(
-                $patient,
-                $vitalSign,
-                $nurse,
-                $pdfContent
-            ));
+            // Send vital signs report email to patient using unified email
+            try {
+                $recipientEmail = $patient->getEmailFromUser();
+                Mail::to($recipientEmail)->send(new VitalSignsReport(
+                    $patient,
+                    $vitalSign,
+                    $nurse,
+                    $pdfContent
+                ));
+                \Log::info('Vital signs report email sent to patient', [
+                    'patient_id' => $patient->id,
+                    'email' => $recipientEmail
+                ]);
 
-            // Update vital signs record
-            $vitalSign->update([
-                'email_sent' => true,
-                'email_sent_at' => now()
-            ]);
+                // Update vital signs record
+                $vitalSign->update([
+                    'email_sent' => true,
+                    'email_sent_at' => now()
+                ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Report sent to ' . $patient->email . ' successfully!'
-            ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Report sent to ' . $recipientEmail . ' successfully!'
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send vital signs email to patient: ' . $e->getMessage(), [
+                    'patient_id' => $patient->id,
+                    'email_attempted' => $patient->getEmailFromUser(),
+                    'error' => $e->getMessage()
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send email: ' . $e->getMessage()
+                ], 500);
+            }
 
         } catch (\Exception $e) {
             \Log::error('Failed to send vital signs email: ' . $e->getMessage());
