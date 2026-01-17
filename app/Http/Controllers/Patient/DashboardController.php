@@ -31,6 +31,9 @@ class DashboardController extends Controller
     {
         $patient = Auth::guard('patient')->user();
         
+        // Get latest vitals for health snapshot
+        $latestVitals = $patient->latestVitalSigns;
+        
         // Statistics
         $stats = [
             'total_consultations' => $patient->consultations()->count(),
@@ -238,7 +241,13 @@ class DashboardController extends Controller
             }
         }
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber'));
+        // Quick Contacts - Active doctors, prioritized by recent consultations
+        $quickContacts = Doctor::where('is_approved', true)
+            ->where('is_available', true)
+            ->limit(3)
+            ->get();
+
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts'));
     }
 
     /**
