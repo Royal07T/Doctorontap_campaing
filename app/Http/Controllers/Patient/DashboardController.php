@@ -476,7 +476,24 @@ class DashboardController extends Controller
                 }),
         ];
 
-        return view('patient.consultations', compact('consultations', 'stats', 'patient'));
+        // Favorite/Distinct Doctors Count
+        $favoriteDoctorsCount = $patient->consultations()
+            ->whereNotNull('doctor_id')
+            ->distinct('doctor_id')
+            ->count('doctor_id');
+
+        // Next Appointment
+        $nextAppointment = $patient->consultations()
+            ->where('status', 'scheduled')
+            ->where(function($q) {
+                $q->where('scheduled_at', '>', now())
+                  ->orWhereNull('scheduled_at'); // Include pending scheduling if needed, but primarily future scheduled
+            })
+            ->whereNotNull('scheduled_at') // Strict check for next appointment time
+            ->orderBy('scheduled_at', 'asc')
+            ->first();
+
+        return view('patient.consultations', compact('consultations', 'stats', 'favoriteDoctorsCount', 'nextAppointment', 'patient'));
     }
 
     /**

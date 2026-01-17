@@ -3,619 +3,339 @@
 @section('title', 'Consultation Details')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
-    <!-- Back Button -->
-    <div class="mb-6">
-        <a href="{{ route('patient.consultations') }}" class="text-purple-600 hover:text-purple-800 font-medium">
-            ← Back to Consultations
+<div class="max-w-7xl mx-auto space-y-6" x-data="{ activeTab: 'overview' }">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{{ route('patient.consultations') }}" class="hover:text-purple-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            Back to Consultations
         </a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium">{{ $consultation->reference }}</span>
     </div>
 
-    <!-- Header -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <div class="flex justify-between items-start">
-            <div>
-                <h1 class="text-lg font-bold text-gray-900 mb-1">{{ $consultation->reference }}</h1>
-                <p class="text-xs text-gray-500">Consultation Details</p>
-            </div>
-            <div class="text-right">
-                @if($consultation->status === 'completed')
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Completed</span>
-                @elseif($consultation->status === 'pending')
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">Pending</span>
-                @elseif($consultation->status === 'scheduled')
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Scheduled</span>
-                @elseif($consultation->status === 'cancelled')
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Cancelled</span>
-                @else
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">{{ ucfirst($consultation->status) }}</span>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Consultation Lifecycle Banner (In-App Consultations Only) -->
-    <x-consultation.partials.lifecycle-banner :consultation="$consultation" userType="patient" />
-
-    <!-- Consultation Information -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Consultation Information</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Doctor</p>
-                @if($consultation->doctor)
-                    <div class="flex items-center space-x-2.5">
-                        @if($consultation->doctor->photo_url)
-                            <img src="{{ $consultation->doctor->photo_url }}" alt="Dr. {{ $consultation->doctor->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-purple-200">
-                        @else
-                            <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-purple-200">
-                                {{ substr($consultation->doctor->name, 0, 1) }}
-                            </div>
-                        @endif
-                        <div>
-                            <p class="text-xs font-semibold text-gray-900">
-                                @php
-                                    $name = trim($consultation->doctor->name);
-                                    $nameLower = strtolower($name);
-                                    $hasDrPrefix = preg_match('/^dr\.?\s*/i', $nameLower);
-                                @endphp
-                                {{ $hasDrPrefix ? $name : 'Dr. ' . $name }}
-                            </p>
-                            @if($consultation->doctor->specialization)
-                                <p class="text-xs text-gray-500">{{ $consultation->doctor->specialization }}</p>
-                            @endif
-                        </div>
-                    </div>
-                @else
-                    <p class="text-xs text-gray-900">N/A</p>
-                @endif
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Reference</p>
-                <p class="text-xs text-gray-900 font-mono">{{ $consultation->reference }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Created Date</p>
-                <p class="text-xs text-gray-900">{{ $consultation->created_at->format('M d, Y H:i A') }}</p>
-            </div>
-            @if($consultation->scheduled_at)
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Scheduled Date & Time</p>
-                <p class="text-xs text-gray-900 font-semibold">{{ $consultation->scheduled_at->format('M d, Y H:i A') }}</p>
-            </div>
-            @endif
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Status</p>
-                @if($consultation->status === 'completed')
-                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Completed</span>
-                @elseif($consultation->status === 'pending')
-                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-amber-100 text-amber-700">Pending</span>
-                @elseif($consultation->status === 'scheduled')
-                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Scheduled</span>
-                @else
-                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-gray-100 text-gray-700">{{ ucfirst($consultation->status) }}</span>
-                @endif
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Status</p>
-                @if($consultation->payment_status === 'paid')
-                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">✓ Paid</span>
-                @else
-                    <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-amber-100 text-amber-700">{{ ucfirst($consultation->payment_status) }}</span>
-                @endif
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultation Mode</p>
-                <p class="text-xs text-gray-900">
-                    @if($consultation->consult_mode === 'voice')
-                        <span class="inline-flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                            </svg>
-                            Voice Call
-                        </span>
-                    @elseif($consultation->consult_mode === 'video')
-                        <span class="inline-flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                            </svg>
-                            Video Call
-                        </span>
-                    @elseif($consultation->consult_mode === 'chat')
-                        <span class="inline-flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                            Text Chat
-                        </span>
-                    @else
-                        {{ ucfirst($consultation->consult_mode ?? 'N/A') }}
-                    @endif
-                </p>
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Severity</p>
-                <p class="text-xs text-gray-900">
-                    @if($consultation->severity === 'mild')
-                        <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">🟢 Mild</span>
-                    @elseif($consultation->severity === 'moderate')
-                        <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-amber-100 text-amber-700">🟡 Moderate</span>
-                    @elseif($consultation->severity === 'severe')
-                        <span class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-700">🔴 Severe</span>
-                    @else
-                        {{ ucfirst($consultation->severity ?? 'N/A') }}
-                    @endif
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Patient Information -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Patient Information</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Full Name</p>
-                <p class="text-xs text-gray-900">{{ $consultation->first_name }} {{ $consultation->last_name }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Age</p>
-                <p class="text-xs text-gray-900">{{ $consultation->age ?? 'N/A' }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Gender</p>
-                <p class="text-xs text-gray-900">{{ ucfirst($consultation->gender ?? 'N/A') }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Email</p>
-                <p class="text-xs text-gray-900">{{ $consultation->email ?? 'N/A' }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Mobile</p>
-                <p class="text-xs text-gray-900">{{ $consultation->mobile ?? 'N/A' }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Medical Information -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Medical Information</h2>
-        <div class="space-y-4">
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Problem Description</p>
-                <p class="text-xs text-gray-900 leading-relaxed">{{ $consultation->problem ?? 'N/A' }}</p>
-            </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content Area (Left) -->
+        <div class="lg:col-span-2 space-y-6">
             
-            @if($consultation->emergency_symptoms && count($consultation->emergency_symptoms) > 0)
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Emergency Symptoms</p>
-                <div class="flex flex-wrap gap-2">
-                    @foreach($consultation->emergency_symptoms as $symptom)
-                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">{{ ucfirst(str_replace('_', ' ', $symptom)) }}</span>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            @if($consultation->medical_documents && count($consultation->medical_documents) > 0)
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Medical Documents</p>
-                <div class="space-y-2">
-                    @foreach($consultation->medical_documents as $doc)
-                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <span class="text-xs text-gray-900">{{ $doc['original_name'] ?? 'Document' }}</span>
-                                <span class="text-xs text-gray-500">({{ number_format(($doc['size'] ?? 0) / 1024, 2) }} KB)</span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-        </div>
-    </div>
-
-        <!-- Payment Information -->
-        @if($consultation->payment)
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Payment Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Amount Paid</p>
-                        <p class="text-lg font-bold text-gray-900">₦{{ number_format($consultation->payment->amount, 2) }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Date</p>
-                        <p class="text-xs text-gray-900">{{ $consultation->payment->created_at->format('M d, Y H:i A') }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Transaction Reference</p>
-                        <p class="text-xs text-gray-900 font-mono">{{ $consultation->payment->transaction_reference ?? 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Method</p>
-                        <p class="text-xs text-gray-900">{{ ucfirst($consultation->payment->payment_method ?? 'N/A') }}</p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <!-- Treatment Plan Section (Only visible if treatment plan exists and payment is paid) -->
-        @if($consultation->payment_status === 'paid' && $consultation->hasTreatmentPlan())
-            <div id="treatment-plan" x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6" style="scroll-margin-top: 100px;">
-                <!-- Treatment Plan Card Header -->
-                <button @click="open = !open" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
-                    <div class="p-5 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="flex-shrink-0">
-                                <div class="w-3 h-3 rounded-full bg-teal-500"></div>
-                            </div>
-                            <div>
-                                <h2 class="text-sm font-semibold text-gray-900 flex items-center">
-                                    <svg class="w-4 h-4 text-teal-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Treatment Plan
-                                </h2>
-                                @if($consultation->treatment_plan_created_at)
-                                    <p class="text-xs text-gray-500 mt-0.5">Created: {{ $consultation->treatment_plan_created_at->format('M d, Y') }}</p>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="flex-shrink-0 ml-4">
-                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" 
-                                 :class="{ 'rotate-180': open }" 
-                                 fill="none" 
-                                 stroke="currentColor" 
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </button>
-
-                <!-- Treatment Plan Dropdown Content -->
-                <div x-show="open" 
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 transform -translate-y-2"
-                     x-transition:enter-end="opacity-100 transform translate-y-0"
-                     x-transition:leave="transition ease-in duration-150"
-                     x-transition:leave-start="opacity-100 transform translate-y-0"
-                     x-transition:leave-end="opacity-0 transform -translate-y-2"
-                     x-cloak
-                     class="border-t border-gray-100 bg-gray-50"
-                     style="display: none;">
-                    <div class="p-5 space-y-5">
-
-                        <!-- Treatment Plan Content -->
-                        @if($consultation->treatment_plan)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">Treatment Plan</h3>
-                                <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded">
-                                    <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->treatment_plan }}</p>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Prescribed Medications -->
-                        @if($consultation->prescribed_medications && count($consultation->prescribed_medications) > 0)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center">
-                                    <svg class="w-4 h-4 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                                    </svg>
-                                    Prescribed Medications
-                                </h3>
-                                <div class="space-y-2.5">
-                                    @foreach($consultation->prescribed_medications as $medication)
-                                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                                                <div>
-                                                    <h4 class="text-xs font-semibold text-purple-900 mb-1">{{ $medication['name'] ?? 'N/A' }}</h4>
-                                                    <p class="text-xs text-purple-700">Dosage: {{ $medication['dosage'] ?? 'N/A' }}</p>
-                                                </div>
-                                                <div class="text-xs text-purple-700">
-                                                    <p><span class="font-medium">Frequency:</span> {{ $medication['frequency'] ?? 'N/A' }}</p>
-                                                    <p><span class="font-medium">Duration:</span> {{ $medication['duration'] ?? 'N/A' }}</p>
-                                                    @if(isset($medication['instructions']) && !empty($medication['instructions']))
-                                                        <p class="mt-1.5"><span class="font-medium">Instructions:</span> {{ $medication['instructions'] }}</p>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Follow-up Instructions -->
-                        @if($consultation->follow_up_instructions)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide flex items-center">
-                                    <svg class="w-4 h-4 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Follow-up Instructions
-                                </h3>
-                                <div class="bg-orange-50 border-l-4 border-orange-500 p-3 rounded">
-                                    <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->follow_up_instructions }}</p>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Lifestyle Recommendations -->
-                        @if($consultation->lifestyle_recommendations)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide flex items-center">
-                                    <svg class="w-4 h-4 text-teal-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                    </svg>
-                                    Lifestyle Recommendations
-                                </h3>
-                                <div class="bg-teal-50 border-l-4 border-teal-500 p-3 rounded">
-                                    <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->lifestyle_recommendations }}</p>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Referrals -->
-                        @if($consultation->referrals && count($consultation->referrals) > 0)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center">
-                                    <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                    </svg>
-                                    Referral Information
-                                </h3>
-                                <div class="space-y-3">
-                                    @foreach($consultation->referrals as $referral)
-                                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-                                            <div class="flex items-start justify-between mb-2">
-                                                <h4 class="text-sm font-semibold text-blue-900">
-                                                    {{ $referral['specialist'] ?? 'Specialist' }}
-                                                </h4>
-                                                <span class="px-2.5 py-1 text-xs font-semibold rounded-full
-                                                    @if(($referral['urgency'] ?? 'routine') === 'emergency')
-                                                        bg-red-100 text-red-700
-                                                    @elseif(($referral['urgency'] ?? 'routine') === 'urgent')
-                                                        bg-yellow-100 text-yellow-700
-                                                    @else
-                                                        bg-green-100 text-green-700
-                                                    @endif">
-                                                    {{ ucfirst($referral['urgency'] ?? 'routine') }}
-                                                </span>
-                                            </div>
-                                            <p class="text-xs text-blue-800 mb-1">
-                                                <span class="font-medium">Reason:</span> {{ $referral['reason'] ?? 'N/A' }}
-                                            </p>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Additional Notes -->
-                        @if($consultation->additional_notes)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide flex items-center">
-                                    <svg class="w-4 h-4 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                    Additional Notes
-                                </h3>
-                                <div class="bg-gray-50 border-l-4 border-gray-500 p-3 rounded">
-                                    <p class="text-xs text-gray-700 leading-relaxed whitespace-pre-line">{{ $consultation->additional_notes }}</p>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Treatment Plan Attachments -->
-                        @if($consultation->treatment_plan_attachments && count($consultation->treatment_plan_attachments) > 0)
-                            <div>
-                                <h3 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide flex items-center">
-                                    <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                    </svg>
-                                    Additional Files
-                                </h3>
-                                <div class="space-y-2">
-                                    @foreach($consultation->treatment_plan_attachments as $attachment)
-                                        <a href="{{ route('patient.consultation.attachment', ['id' => $consultation->id, 'file' => $attachment['stored_name'] ?? basename($attachment['path'])]) }}" 
-                                           target="_blank"
-                                           class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors group">
-                                            <div class="flex items-center gap-3">
-                                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                                <div>
-                                                    <p class="text-sm font-medium text-blue-900 group-hover:text-blue-700">{{ $attachment['original_name'] ?? 'File' }}</p>
-                                                    <p class="text-xs text-blue-600">
-                                                        @if(isset($attachment['size']))
-                                                            {{ number_format($attachment['size'] / 1024, 2) }} KB
-                                                        @endif
-                                                        @if(isset($attachment['mime_type']))
-                                                            • {{ strtoupper(pathinfo($attachment['original_name'] ?? '', PATHINFO_EXTENSION)) }}
-                                                        @endif
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <svg class="w-4 h-4 text-blue-600 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                            </svg>
-                                        </a>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @elseif($consultation->status === 'completed' && $consultation->payment_status === 'paid' && !$consultation->hasTreatmentPlan())
-            <!-- Treatment Plan Not Available -->
-            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded mb-6">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-yellow-800">Treatment Plan Not Available</h3>
-                        <p class="mt-2 text-sm text-yellow-700">
-                            Your treatment plan has not been created yet. Please check back later or contact support if you have any questions.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        @elseif($consultation->status === 'completed' && $consultation->hasTreatmentPlan() && !$consultation->isPaid())
-            <!-- Treatment Plan Ready - Payment Required -->
-            <div class="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-500 p-6 rounded-lg mb-6">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-6 w-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4 flex-1">
-                        <h3 class="text-base font-semibold text-purple-900 mb-2">🎉 Your Treatment Plan is Ready!</h3>
-                        <p class="text-sm text-purple-800 mb-4">
-                            Your doctor has completed your treatment plan. Complete payment to unlock and view your full treatment plan.
-                        </p>
-                        
-                        <!-- Payment Information -->
-                        <div class="bg-white rounded-lg p-4 mb-4 border border-purple-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-sm font-medium text-gray-700">Consultation Fee:</span>
-                                <span class="text-lg font-bold text-purple-900">
-                                    ₦{{ number_format($consultation->doctor ? $consultation->doctor->effective_consultation_fee : 5000, 2) }}
+            <!-- Session Header Card -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+                <div class="relative z-10">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <h1 class="text-2xl font-bold text-gray-900">Consultation Session</h1>
+                                @php
+                                    $statusColors = [
+                                        'completed' => 'bg-green-100 text-green-700',
+                                        'pending' => 'bg-amber-100 text-amber-700',
+                                        'scheduled' => 'bg-blue-100 text-blue-700',
+                                        'cancelled' => 'bg-red-100 text-red-700',
+                                    ];
+                                    $statusColor = $statusColors[$consultation->status] ?? 'bg-gray-100 text-gray-700';
+                                @endphp
+                                <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide {{ $statusColor }}">
+                                    {{ ucfirst($consultation->status) }}
                                 </span>
                             </div>
-                            @if($consultation->doctor)
-                                <p class="text-xs text-gray-600 mb-3">
-                                    <span class="font-medium">Doctor:</span> {{ $consultation->doctor->name }}
-                                </p>
-                            @endif
-                            <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST" class="w-full">
-                                @csrf
-                                <button type="submit" 
-                                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition shadow-md hover:shadow-lg">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                    </svg>
-                                    Pay Now to View Treatment Plan
+                            <p class="text-sm text-gray-500">Reference ID: <span class="font-mono text-gray-700">{{ $consultation->reference }}</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Action Area -->
+                    @if($consultation->status === 'scheduled' || $consultation->status === 'pending')
+                         <div class="bg-purple-50 rounded-xl p-4 border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 animate-pulse">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-purple-900">Session Scheduled</h3>
+                                    <p class="text-xs text-purple-700">
+                                        {{ $consultation->scheduled_at ? $consultation->scheduled_at->format('M d, h:i A') : 'Time Pending' }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            @if($consultation->meeting_link)
+                                <a href="{{ $consultation->meeting_link }}" target="_blank" class="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    Join Call
+                                </a>
+                            @else
+                                <button disabled class="w-full sm:w-auto px-6 py-2.5 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed">
+                                    Waiting for Link...
                                 </button>
-                            </form>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button @click="activeTab = 'overview'" 
+                            :class="activeTab === 'overview' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                        Overview
+                    </button>
+                    
+                    @if($consultation->status === 'completed')
+                    <button @click="activeTab = 'treatment'" 
+                            :class="activeTab === 'treatment' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2">
+                        Treatment Plan
+                        @if(!$consultation->isPaid())
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        @endif
+                    </button>
+                    @endif
+
+                    <button @click="activeTab = 'docs'" 
+                            :class="activeTab === 'docs' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                        Documents & Notes
+                    </button>
+                    
+                    @if($consultation->payment)
+                    <button @click="activeTab = 'payment'" 
+                            :class="activeTab === 'payment' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                        Payment
+                    </button>
+                    @endif
+                </nav>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="space-y-6">
+                
+                <!-- OVERVIEW TAB -->
+                <div x-show="activeTab === 'overview'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                    <!-- Symptoms -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Problem Description</h3>
+                        <p class="text-gray-700 text-sm leading-relaxed mb-4">{{ $consultation->problem ?? 'No description provided.' }}</p>
+                        
+                        @if($consultation->emergency_symptoms && count($consultation->emergency_symptoms) > 0)
+                            <div class="border-t border-gray-100 pt-4">
+                                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Reported Symptoms</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($consultation->emergency_symptoms as $symptom)
+                                        <span class="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100">
+                                            {{ ucfirst(str_replace('_', ' ', $symptom)) }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Vitals Snapshot (if available) -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Patient Vitals</h3>
+                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="p-3 bg-gray-50 rounded-xl">
+                                <span class="text-xs text-gray-500 block mb-1">Age</span>
+                                <span class="font-bold text-gray-900">{{ $consultation->age ?? '-' }}</span>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-xl">
+                                <span class="text-xs text-gray-500 block mb-1">Gender</span>
+                                <span class="font-bold text-gray-900">{{ ucfirst($consultation->gender ?? '-') }}</span>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- TREATMENT PLAN TAB -->
+                <div x-show="activeTab === 'treatment'" x-cloak>
+                    @if($consultation->isPaid())
+                         @if($consultation->hasTreatmentPlan())
+                            <div class="space-y-6">
+                                <!-- Main Plan -->
+                                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                    <h3 class="flex items-center gap-2 text-sm font-bold text-teal-700 uppercase tracking-wide mb-4">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        Doctor's Plan
+                                    </h3>
+                                    <div class="prose prose-sm max-w-none text-gray-700 bg-teal-50/50 p-4 rounded-xl border border-teal-100">
+                                        {{ $consultation->treatment_plan }}
+                                    </div>
+                                </div>
+
+                                <!-- Prescriptions -->
+                                @if($consultation->prescribed_medications)
+                                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                    <h3 class="flex items-center gap-2 text-sm font-bold text-purple-700 uppercase tracking-wide mb-4">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                                        Prescriptions
+                                    </h3>
+                                    <div class="space-y-3">
+                                        @foreach($consultation->prescribed_medications as $med)
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-100 gap-4">
+                                                <div>
+                                                    <h4 class="font-bold text-purple-900">{{ $med['name'] ?? 'Medication' }}</h4>
+                                                    <p class="text-xs text-purple-700 mt-1">{{ $med['brand'] ?? '' }}</p>
+                                                </div>
+                                                <div class="flex items-center gap-4 text-sm text-purple-800">
+                                                    <span class="px-2 py-1 bg-white rounded-md shadow-sm text-xs font-semibold">{{ $med['dosage'] ?? '-' }}</span>
+                                                    <span class="text-xs">{{ $med['frequency'] ?? '-' }}</span>
+                                                    <span class="text-xs">{{ $med['duration'] ?? '-' }}</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                         @else
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center">
+                                <h3 class="text-yellow-800 font-bold mb-2">Pending Treatment Plan</h3>
+                                <p class="text-yellow-700 text-sm">Your doctor hasn't submitted the treatment plan yet. You will be notified once it's ready.</p>
+                            </div>
+                         @endif
+                    @else
+                        <!-- LOCKED STATE -->
+                        <div class="relative overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+                            <!-- Blurred Content Background -->
+                            <div class="filter blur-sm select-none pointer-events-none p-6 space-y-4 opacity-50">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                                <div class="h-32 bg-gray-100 rounded-xl w-full"></div>
+                            </div>
+                            
+                            <!-- Lock Overlay -->
+                            <div class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm p-6 text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 mb-4 shadow-sm">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-gray-900 mb-2">Unlock Your Treatment Plan</h3>
+                                <p class="text-gray-500 max-w-md mb-6">Complete your payment to access the full treatment plan, prescriptions, and doctor's recommendations.</p>
+                                
+                                <div class="bg-white p-4 rounded-xl shadow-lg border border-purple-100 w-full max-w-xs">
+                                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                                        <span class="text-sm text-gray-500">Total Due</span>
+                                        <span class="text-lg font-bold text-purple-600">₦{{ number_format($consultation->doctor->effective_consultation_fee ?? 5000, 2) }}</span>
+                                    </div>
+                                    <form action="{{ route('patient.consultation.pay', $consultation->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-xl">
+                                            Pay Securely Now
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- DOCS & NOTES TAB -->
+                <div x-show="activeTab === 'docs'" x-cloak>
+                    @if($consultation->medical_documents && count($consultation->medical_documents) > 0)
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                             <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Patient Documents</h3>
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                @foreach($consultation->medical_documents as $doc)
+                                    <a href="#" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                                        <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        </div>
+                                        <div class="overflow-hidden">
+                                            <p class="text-sm font-bold text-gray-900 truncate">{{ $doc['original_name'] }}</p>
+                                            <p class="text-xs text-gray-500">{{ number_format($doc['size'] / 1024, 1) }} KB</p>
+                                        </div>
+                                    </a>
+                                @endforeach
+                             </div>
+                        </div>
+                    @else
+                        <div class="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                            <p class="text-gray-500 text-sm">No documents uploaded for this session.</p>
+                        </div>
+                    @endif
+                    
+                    @if($consultation->additional_notes)
+                        <div class="mt-6 bg-yellow-50 rounded-2xl p-6 border border-yellow-100">
+                            <h3 class="text-sm font-bold text-yellow-800 uppercase tracking-wide mb-3">Additional Notes</h3>
+                            <p class="text-sm text-yellow-900 leading-relaxed">{{ $consultation->additional_notes }}</p>
+                        </div>
+                    @endif
+                </div>
+                
+                 <!-- PAYMENT TAB -->
+                 @if($consultation->payment)
+                 <div x-show="activeTab === 'payment'" x-cloak>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Payment Receipt</h3>
+                            <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase">Paid</span>
                         </div>
                         
-                        <div class="bg-purple-100 rounded-lg p-3 border border-purple-200">
-                            <p class="text-xs text-purple-800">
-                                <strong>What happens after payment?</strong><br>
-                                • You'll receive a payment confirmation email<br>
-                                • Your treatment plan will be unlocked immediately<br>
-                                • You can download your treatment plan PDF<br>
-                                • Access your complete medical records
-                            </p>
+                        <div class="border-t border-b border-gray-100 py-4 my-4 space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Transaction Ref</span>
+                                <span class="font-mono font-medium text-gray-900">{{ $consultation->payment->transaction_reference }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Payment Date</span>
+                                <span class="font-medium text-gray-900">{{ $consultation->payment->created_at->format('M d, Y H:i A') }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Method</span>
+                                <span class="font-medium text-gray-900">{{ ucfirst($consultation->payment->payment_method) }}</span>
+                            </div>
                         </div>
+                        
+                        <div class="flex justify-between items-center text-lg font-bold text-gray-900 mb-6">
+                            <span>Total Paid</span>
+                            <span>₦{{ number_format($consultation->payment->amount, 2) }}</span>
+                        </div>
+                        
+                        <a href="{{ route('patient.consultation.receipt', $consultation->id) }}" class="block w-full text-center py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors">
+                            Download Receipt
+                        </a>
                     </div>
-                </div>
+                 </div>
+                 @endif
             </div>
-        @elseif($consultation->status === 'completed' && $consultation->requiresPaymentForTreatmentPlan() && !$consultation->hasTreatmentPlan())
-            <!-- Payment Required (Treatment Plan Not Ready Yet) -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded mb-6">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-blue-800">Payment Required</h3>
-                        <p class="mt-2 text-sm text-blue-700">
-                            Payment is required to access your treatment plan. Please complete payment to view your treatment plan once it's ready.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        @endif
+        </div>
 
-        <!-- Actions -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Actions</h2>
-            <div class="space-y-2.5">
-                @if($consultation->payment)
-                    <a href="{{ route('patient.consultation.receipt', $consultation->id) }}" class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
-                        <div class="flex items-center">
-                            <svg class="w-4 h-4 text-gray-600 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span class="text-xs font-medium text-gray-900">Download Receipt</span>
+        <!-- Sidebar (Right) -->
+        <div class="space-y-6">
+            <!-- Doctor Card -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Assigned Doctor</h3>
+                @if($consultation->doctor)
+                    <div class="text-center">
+                        <div class="w-24 h-24 mx-auto rounded-full bg-purple-50 p-1 mb-3">
+                            <img src="{{ $consultation->doctor->photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode($consultation->doctor->name).'&background=7B3DE9&color=fff' }}" 
+                                 class="w-full h-full rounded-full object-cover" 
+                                 alt="{{ $consultation->doctor->name }}">
                         </div>
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                @endif
-                
-                <a href="{{ route('patient.medical-records') }}" class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
-                    <div class="flex items-center">
-                        <svg class="w-4 h-4 text-gray-600 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <span class="text-xs font-medium text-gray-900">View Medical Records</span>
+                        <h2 class="text-lg font-bold text-gray-900">Dr. {{ $consultation->doctor->name }}</h2>
+                        <p class="text-sm text-purple-600 font-medium mb-4">{{ $consultation->doctor->specialization ?? 'Specialist' }}</p>
+                        
+                        @if($consultation->consult_mode === 'chat')
+                            <button class="w-full py-2 bg-purple-50 text-purple-700 font-bold rounded-xl text-sm hover:bg-purple-100 transition-colors">
+                                Message Doctor
+                            </button>
+                        @endif
                     </div>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </a>
+                @else
+                    <div class="text-center py-6 text-gray-500 text-sm">
+                        No doctor assigned yet.
+                    </div>
+                @endif
+            </div>
+
+            <!-- Help / Support -->
+            <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100">
+                <h3 class="text-sm font-bold text-blue-900 mb-2">Need Help?</h3>
+                <p class="text-xs text-blue-800 mb-4">If you have technical issues with the video call or questions about your payment, please contact support.</p>
+                <button class="text-xs font-bold text-blue-600 hover:text-blue-800 underline">Contact Support</button>
             </div>
         </div>
     </div>
 </div>
-
-@push('scripts')
-<script>
-    // Smooth scroll to treatment plan section and open dropdown if anchor is present
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.location.hash === '#treatment-plan') {
-            const element = document.getElementById('treatment-plan');
-            if (element) {
-                setTimeout(function() {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    
-                    // Open the dropdown
-                    if (typeof Alpine !== 'undefined') {
-                        const component = Alpine.$data(element);
-                        if (component && typeof component.open !== 'undefined') {
-                            component.open = true;
-                        } else {
-                            // Fallback: trigger click on button
-                            const button = element.querySelector('button');
-                            if (button) {
-                                button.click();
-                            }
-                        }
-                    } else {
-                        // Fallback: trigger click on button
-                        const button = element.querySelector('button');
-                        if (button) {
-                            button.click();
-                        }
-                    }
-                    
-                    // Add a highlight effect
-                    element.style.transition = 'box-shadow 0.3s ease';
-                    element.style.boxShadow = '0 0 0 4px rgba(20, 184, 166, 0.3)';
-                    setTimeout(function() {
-                        element.style.boxShadow = '';
-                    }, 2000);
-                }, 100);
-            }
-        }
-    });
-</script>
-@endpush
 @endsection
-

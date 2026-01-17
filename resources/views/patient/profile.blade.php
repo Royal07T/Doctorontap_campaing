@@ -3,321 +3,222 @@
 @section('title', 'My Profile')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    <!-- Profile Information -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 class="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">Personal Information</h2>
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{{ route('patient.dashboard') }}" class="hover:text-purple-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            Home
+        </a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium">Profile Settings</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Sidebar (Left) - Quick Info & Navigation -->
+        <div class="space-y-6">
+            <!-- User Card -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center relative overflow-hidden">
+                <div class="bg-purple-50 absolute top-0 left-0 w-full h-24 z-0"></div>
+                <div class="relative z-10">
+                    <div class="w-24 h-24 mx-auto rounded-full bg-white p-1 shadow-sm mb-3">
+                        @if($patient->photo_url)
+                            <img src="{{ $patient->photo_url }}" alt="Profile" class="w-full h-full rounded-full object-cover">
+                        @else
+                            <div class="w-full h-full rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-2xl">
+                                {{ substr($patient->name, 0, 1) }}
+                            </div>
+                        @endif
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">{{ $patient->name }}</h2>
+                    <p class="text-sm text-gray-500 mb-4">{{ $patient->email }}</p>
+                    
+                    <div class="flex justify-center gap-2">
+                        @if($patient->is_verified)
+                            <span class="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-100 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Verified Account
+                            </span>
+                        @else
+                            <span class="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-100">Pending Verification</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Mini -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Account Overview</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div class="flex justify-between items-center">
+                         <span class="text-sm text-gray-600">Member Since</span>
+                         <span class="text-sm font-semibold text-gray-900">{{ $patient->created_at->format('M Y') }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                         <span class="text-sm text-gray-600">Consultations</span>
+                         <span class="text-sm font-semibold text-purple-600">{{ $patient->consultations_count ?? 0 }}</span>
+                    </div>
+                     <div class="flex justify-between items-center">
+                         <span class="text-sm text-gray-600">Blood Group</span>
+                         <span class="text-sm font-semibold text-gray-900">{{ $patient->blood_group ?? '-' }}</span>
+                    </div>
+                </div>
+            </div>
             
+            <!-- Quick Links -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                 <a href="{{ route('patient.medical-records') }}" class="block w-full text-center py-2.5 bg-blue-50 text-blue-600 font-bold text-sm rounded-xl hover:bg-blue-100 transition-colors mb-2">
+                    View Medical Records
+                 </a>
+                 <a href="{{ route('patient.payments') }}" class="block w-full text-center py-2.5 bg-gray-50 text-gray-600 font-bold text-sm rounded-xl hover:bg-gray-100 transition-colors">
+                    Payment History
+                 </a>
+            </div>
+        </div>
+
+        <!-- Main Content (Right) - Forms -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Edit Form -->
             <form method="POST" action="{{ route('patient.profile.update') }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
-                <div class="space-y-6">
-                    <!-- Photo Upload Section -->
-                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300 mb-5">
-                        <h3 class="text-xs font-semibold text-gray-900 mb-3 uppercase tracking-wide">Profile Photo</h3>
-                        <div class="flex items-center space-x-4">
-                            <div class="flex-shrink-0">
-                                @if($patient->photo_url)
-                                    <img src="{{ $patient->photo_url }}" alt="Profile Photo" class="w-16 h-16 rounded-full object-cover border-3 border-purple-200">
-                                @else
-                                    <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center border-3 border-purple-200">
-                                        <span class="text-xl font-bold text-purple-600">{{ substr($patient->name, 0, 1) }}</span>
+                <!-- Personal Information -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        Personal Information
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <!-- Photo Upload -->
+                        <div class="col-span-1 md:col-span-2 bg-gray-50 rounded-xl p-4 border border-dashed border-gray-300">
+                             <div class="flex items-center gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                     </div>
-                                @endif
-                            </div>
-                            <div class="flex-1">
-                                <label for="photo" class="block text-xs font-medium text-gray-700 mb-1.5">Upload Photo</label>
-                                <input type="file" name="photo" id="photo" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                                <p class="text-xs text-gray-500 mt-1">JPG, PNG or GIF. Max size: 2MB</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Full Name -->
-                    <div class="mb-4">
-                        <label for="name" class="block text-xs font-medium text-gray-700 mb-1.5">Full Name</label>
-                        <input type="text" name="name" id="name" value="{{ old('name', $patient->name) }}" 
-                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 @error('name') border-red-500 @enderror" required>
-                        @error('name')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Email (Read Only) -->
-                    <div class="mb-4">
-                        <label for="email" class="block text-xs font-medium text-gray-700 mb-1.5">Email Address</label>
-                        <input type="email" id="email" value="{{ $patient->email }}" 
-                               class="w-full text-sm rounded-lg border-gray-300 bg-gray-100 shadow-sm cursor-not-allowed" disabled>
-                        <p class="mt-1 text-xs text-gray-500">Email address cannot be changed</p>
-                    </div>
-
-                    <!-- Phone -->
-                    <div class="mb-4">
-                        <label for="phone" class="block text-xs font-medium text-gray-700 mb-1.5">Phone Number</label>
-                        <input type="tel" name="phone" id="phone" value="{{ old('phone', $patient->phone) }}" 
-                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 @error('phone') border-red-500 @enderror" required>
-                        @error('phone')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Gender -->
-                    <div class="mb-4">
-                        <label for="gender" class="block text-xs font-medium text-gray-700 mb-1.5">Gender</label>
-                        <select name="gender" id="gender" 
-                                class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                            <option value="">Select Gender</option>
-                            <option value="male" {{ old('gender', $patient->gender) === 'male' ? 'selected' : '' }}>Male</option>
-                            <option value="female" {{ old('gender', $patient->gender) === 'female' ? 'selected' : '' }}>Female</option>
-                        </select>
-                        @if(strtolower($patient->gender) === 'female' || old('gender') === 'female')
-                        <div class="mt-2 p-3 bg-pink-50 border-l-4 border-pink-500 rounded">
-                            <div class="flex items-start">
-                                <svg class="w-4 h-4 text-pink-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <div>
-                                    <p class="text-xs font-medium text-pink-900">Menstrual Cycle Tracker Available</p>
-                                    <p class="text-xs text-pink-700 mt-1">As a female patient, you can track your menstrual cycle on your <a href="{{ route('patient.dashboard') }}" class="underline font-semibold">Dashboard</a>. You can log your periods and get predictions for your next cycle.</p>
                                 </div>
-                            </div>
+                                <div>
+                                    <label for="photo" class="block text-sm font-bold text-gray-900 mb-1">Update Profile Photo</label>
+                                    <input type="file" name="photo" id="photo" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 transition">
+                                </div>
+                             </div>
                         </div>
-                        @endif
-                    </div>
 
-                    <!-- Date of Birth -->
-                    <div class="mb-5">
-                        <label for="date_of_birth" class="block text-xs font-medium text-gray-700 mb-1.5">Date of Birth</label>
-                        <input type="date" name="date_of_birth" id="date_of_birth" 
-                               value="{{ old('date_of_birth', $patient->date_of_birth ? $patient->date_of_birth->format('Y-m-d') : '') }}" 
-                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    </div>
-
-                    <!-- Submit Button -->
-                    <div class="flex justify-end">
-                        <button type="submit" class="purple-gradient hover:opacity-90 text-white px-5 py-2.5 text-sm font-medium rounded-lg transition">
-                            Update Profile
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-    <!-- Medical Information -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h2 class="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">Medical Information</h2>
-        
-        <form method="POST" action="{{ route('patient.profile.update') }}">
-            @csrf
-            @method('PUT')
-
-            <div class="space-y-6">
-                <!-- Blood Group and Genotype -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="blood_group" class="block text-xs font-medium text-gray-700 mb-1.5">Blood Group</label>
-                        <select name="blood_group" id="blood_group" 
-                                class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                            <option value="">Select Blood Group</option>
-                            <option value="A+" {{ old('blood_group', $patient->blood_group) === 'A+' ? 'selected' : '' }}>A+</option>
-                            <option value="A-" {{ old('blood_group', $patient->blood_group) === 'A-' ? 'selected' : '' }}>A-</option>
-                            <option value="B+" {{ old('blood_group', $patient->blood_group) === 'B+' ? 'selected' : '' }}>B+</option>
-                            <option value="B-" {{ old('blood_group', $patient->blood_group) === 'B-' ? 'selected' : '' }}>B-</option>
-                            <option value="AB+" {{ old('blood_group', $patient->blood_group) === 'AB+' ? 'selected' : '' }}>AB+</option>
-                            <option value="AB-" {{ old('blood_group', $patient->blood_group) === 'AB-' ? 'selected' : '' }}>AB-</option>
-                            <option value="O+" {{ old('blood_group', $patient->blood_group) === 'O+' ? 'selected' : '' }}>O+</option>
-                            <option value="O-" {{ old('blood_group', $patient->blood_group) === 'O-' ? 'selected' : '' }}>O-</option>
-                            <option value="Unknown" {{ old('blood_group', $patient->blood_group) === 'Unknown' ? 'selected' : '' }}>Unknown</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="genotype" class="block text-xs font-medium text-gray-700 mb-1.5">Genotype</label>
-                        <select name="genotype" id="genotype" 
-                                class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                            <option value="">Select Genotype</option>
-                            <option value="AA" {{ old('genotype', $patient->genotype) === 'AA' ? 'selected' : '' }}>AA</option>
-                            <option value="AS" {{ old('genotype', $patient->genotype) === 'AS' ? 'selected' : '' }}>AS</option>
-                            <option value="AC" {{ old('genotype', $patient->genotype) === 'AC' ? 'selected' : '' }}>AC</option>
-                            <option value="SS" {{ old('genotype', $patient->genotype) === 'SS' ? 'selected' : '' }}>SS</option>
-                            <option value="SC" {{ old('genotype', $patient->genotype) === 'SC' ? 'selected' : '' }}>SC</option>
-                            <option value="CC" {{ old('genotype', $patient->genotype) === 'CC' ? 'selected' : '' }}>CC</option>
-                            <option value="Unknown" {{ old('genotype', $patient->genotype) === 'Unknown' ? 'selected' : '' }}>Unknown</option>
-                        </select>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Full Name</label>
+                            <input type="text" name="name" value="{{ old('name', $patient->name) }}" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium" required>
+                        </div>
+                        <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Phone Number</label>
+                            <input type="tel" name="phone" value="{{ old('phone', $patient->phone) }}" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium" required>
+                        </div>
+                        <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Gender</label>
+                             <select name="gender" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
+                                <option value="">Select Gender</option>
+                                <option value="male" {{ old('gender', $patient->gender) === 'male' ? 'selected' : '' }}>Male</option>
+                                <option value="female" {{ old('gender', $patient->gender) === 'female' ? 'selected' : '' }}>Female</option>
+                             </select>
+                        </div>
+                        <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Date of Birth</label>
+                            <input type="date" name="date_of_birth" value="{{ old('date_of_birth', $patient->date_of_birth ? $patient->date_of_birth->format('Y-m-d') : '') }}" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
+                        </div>
                     </div>
                 </div>
 
-                <!-- Height and Weight -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="height" class="block text-xs font-medium text-gray-700 mb-1.5">Height (cm)</label>
-                        <input type="text" name="height" id="height" value="{{ old('height', $patient->height) }}" 
-                               placeholder="e.g., 175"
-                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                <!-- Medical Information -->
+                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                        Medical Details
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Blood Group</label>
+                             <select name="blood_group" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
+                                <option value="">Select</option>
+                                @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $bg)
+                                    <option value="{{ $bg }}" {{ old('blood_group', $patient->blood_group) === $bg ? 'selected' : '' }}>{{ $bg }}</option>
+                                @endforeach
+                             </select>
+                        </div>
+                        <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Genotype</label>
+                             <select name="genotype" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
+                                <option value="">Select</option>
+                                @foreach(['AA', 'AS', 'AC', 'SS', 'SC', 'CC'] as $gt)
+                                    <option value="{{ $gt }}" {{ old('genotype', $patient->genotype) === $gt ? 'selected' : '' }}>{{ $gt }}</option>
+                                @endforeach
+                             </select>
+                        </div>
+                        <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Height (cm)</label>
+                            <input type="number" name="height" value="{{ old('height', $patient->height) }}" placeholder="e.g. 175" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
+                        </div>
+                         <div>
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Weight (kg)</label>
+                            <input type="number" name="weight" value="{{ old('weight', $patient->weight) }}" placeholder="e.g. 70" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="weight" class="block text-xs font-medium text-gray-700 mb-1.5">Weight (kg)</label>
-                        <input type="text" name="weight" id="weight" value="{{ old('weight', $patient->weight) }}" 
-                               placeholder="e.g., 70"
-                               class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Allergies</label>
+                            <textarea name="allergies" rows="2" placeholder="List any known allergies..." class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">{{ old('allergies', $patient->allergies) }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Chronic Conditions</label>
+                            <textarea name="chronic_conditions" rows="2" placeholder="List any chronic conditions..." class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">{{ old('chronic_conditions', $patient->chronic_conditions) }}</textarea>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Allergies -->
-                <div>
-                    <label for="allergies" class="block text-xs font-medium text-gray-700 mb-1.5">Allergies</label>
-                    <textarea name="allergies" id="allergies" rows="3" 
-                              placeholder="List any known allergies (e.g., Penicillin, Peanuts, Latex)"
-                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('allergies', $patient->allergies) }}</textarea>
-                </div>
-
-                <!-- Chronic Conditions -->
-                <div>
-                    <label for="chronic_conditions" class="block text-xs font-medium text-gray-700 mb-1.5">Chronic Conditions</label>
-                    <textarea name="chronic_conditions" id="chronic_conditions" rows="3" 
-                              placeholder="List any chronic medical conditions (e.g., Diabetes, Hypertension, Asthma)"
-                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('chronic_conditions', $patient->chronic_conditions) }}</textarea>
-                </div>
-
-                <!-- Current Medications -->
-                <div>
-                    <label for="current_medications" class="block text-xs font-medium text-gray-700 mb-1.5">Current Medications</label>
-                    <textarea name="current_medications" id="current_medications" rows="3" 
-                              placeholder="List medications you are currently taking"
-                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('current_medications', $patient->current_medications) }}</textarea>
-                </div>
-
-                <!-- Surgical History -->
-                <div>
-                    <label for="surgical_history" class="block text-xs font-medium text-gray-700 mb-1.5">Surgical History</label>
-                    <textarea name="surgical_history" id="surgical_history" rows="3" 
-                              placeholder="List any past surgeries or procedures"
-                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('surgical_history', $patient->surgical_history) }}</textarea>
-                </div>
-
-                <!-- Family Medical History -->
-                <div>
-                    <label for="family_medical_history" class="block text-xs font-medium text-gray-700 mb-1.5">Family Medical History</label>
-                    <textarea name="family_medical_history" id="family_medical_history" rows="3" 
-                              placeholder="List significant medical conditions in your family"
-                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('family_medical_history', $patient->family_medical_history) }}</textarea>
                 </div>
 
                 <!-- Emergency Contact -->
-                <div class="border-t border-gray-200 pt-4">
-                    <h3 class="text-xs font-semibold text-gray-900 mb-4 uppercase tracking-wide">Emergency Contact</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M12 12h.01M12 6h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Emergency Contact
+                    </h2>
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label for="emergency_contact_name" class="block text-xs font-medium text-gray-700 mb-1.5">Contact Name</label>
-                            <input type="text" name="emergency_contact_name" id="emergency_contact_name" 
-                                   value="{{ old('emergency_contact_name', $patient->emergency_contact_name) }}" 
-                                   placeholder="Full Name"
-                                   class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Contact Name</label>
+                            <input type="text" name="emergency_contact_name" value="{{ old('emergency_contact_name', $patient->emergency_contact_name) }}" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
                         </div>
-
                         <div>
-                            <label for="emergency_contact_phone" class="block text-xs font-medium text-gray-700 mb-1.5">Contact Phone</label>
-                            <input type="tel" name="emergency_contact_phone" id="emergency_contact_phone" 
-                                   value="{{ old('emergency_contact_phone', $patient->emergency_contact_phone) }}" 
-                                   placeholder="Phone Number"
-                                   class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Phone</label>
+                            <input type="tel" name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $patient->emergency_contact_phone) }}" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
                         </div>
-
                         <div>
-                            <label for="emergency_contact_relationship" class="block text-xs font-medium text-gray-700 mb-1.5">Relationship</label>
-                            <input type="text" name="emergency_contact_relationship" id="emergency_contact_relationship" 
-                                   value="{{ old('emergency_contact_relationship', $patient->emergency_contact_relationship) }}" 
-                                   placeholder="e.g., Spouse, Parent, Sibling"
-                                   class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
+                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Relationship</label>
+                            <input type="text" name="emergency_contact_relationship" value="{{ old('emergency_contact_relationship', $patient->emergency_contact_relationship) }}" class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-medium">
                         </div>
-                    </div>
-                </div>
+                     </div>
+                 </div>
 
-                <!-- Medical Notes -->
-                <div>
-                    <label for="medical_notes" class="block text-xs font-medium text-gray-700 mb-1.5">Additional Medical Notes</label>
-                    <textarea name="medical_notes" id="medical_notes" rows="4" 
-                              placeholder="Any additional medical information you'd like to share with your doctors"
-                              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('medical_notes', $patient->medical_notes) }}</textarea>
-                </div>
-
-                <!-- Submit Button -->
-                <div class="flex justify-end">
-                    <button type="submit" class="purple-gradient hover:opacity-90 text-white px-5 py-2.5 text-sm font-medium rounded-lg transition">
-                        Update Medical Information
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <!-- Account Information -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 class="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">Account Information</h2>
+                 <!-- Footer Actions -->
+                 <div class="flex items-center justify-end gap-4">
+                     <button type="button" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors">Cancel</button>
+                     <button type="submit" class="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-200 transition-all">Save Changes</button>
+                 </div>
+            </form>
             
-            <div class="space-y-3">
-                <div class="flex justify-between items-center py-2.5 border-b border-gray-200">
+            <!-- Security / Password -->
+             <div class="bg-gray-50 rounded-2xl border border-gray-200 p-6 mt-8">
+                <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-gray-900">Email Verification</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Confirm your email address for account security</p>
+                         <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Security Settings</h3>
+                         <p class="text-sm text-gray-500 mt-1">Manage your password and account security.</p>
                     </div>
-                    @if($patient->is_verified)
-                        <span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">✓ Verified</span>
-                    @else
-                        <span class="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">Pending</span>
-                    @endif
-                </div>
-
-                <div class="flex justify-between items-center py-2.5 border-b border-gray-200">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-900">Account Created</p>
-                        <p class="text-xs text-gray-500 mt-0.5">{{ $patient->created_at->format('M d, Y') }}</p>
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-center py-2.5">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-900">Total Consultations</p>
-                        <p class="text-xs text-gray-500 mt-0.5">{{ $patient->consultations_count ?? 0 }} consultations completed</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    <!-- Privacy & Security -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-900 mb-5 uppercase tracking-wide">Privacy & Security</h2>
-            
-            <div class="space-y-3">
-                <a href="#" class="flex justify-between items-center py-2.5 hover:bg-gray-50 rounded px-3 transition">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-900">Change Password</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Update your password regularly for security</p>
-                    </div>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </a>
-
-                <div class="py-3 px-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-4 w-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-xs text-purple-700">
-                                Your medical information is encrypted and stored securely. We never share your data without your explicit consent.
-                            </p>
-                        </div>
-                    </div>
+                     <button class="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors text-sm">Change Password</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
-
