@@ -97,7 +97,7 @@
                     
                     <!-- Card Body -->
                     <div class="px-5 flex-1">
-                        <h3 class="text-base font-bold text-gray-900 line-clamp-1 mb-0.5">Dr. {{ $doctor->name }}</h3>
+                        <h3 class="text-base font-bold text-gray-900 line-clamp-1 mb-0.5">{{ $doctor->name }}</h3>
                         <p class="text-sm text-purple-600 font-medium mb-3 line-clamp-1">{{ $doctor->specialization ?? 'General Practitioner' }}</p>
                         
                          <!-- Meta Info -->
@@ -178,7 +178,7 @@
                 <h3 class="text-lg font-bold text-gray-900">Book Appointment</h3>
                 <div class="flex items-center gap-2 mt-1">
                      <span class="text-sm text-gray-500">with</span>
-                     <span class="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md" x-text="'Dr. ' + doctorName"></span>
+                     <span class="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md" x-text="doctorName"></span>
                 </div>
             </div>
             <button @click="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">

@@ -177,7 +177,7 @@
                         <div class="flex-1 min-w-0">
                             <h4 class="text-base font-bold text-gray-900 truncate">
                                 @if($consultation->doctor)
-                                    Dr. {{ $consultation->doctor->name }}
+                                    {{ $consultation->doctor->name }}
                                 @else
                                     Assigned Doctor Pending
                                 @endif
@@ -216,32 +216,51 @@
                  <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-bold text-gray-900">Health Trackers</h3>
                 </div>
-                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 bg-gradient-to-br from-pink-50/50 to-white relative overflow-hidden">
-                    <div class="absolute -right-4 -bottom-4 opacity-10">
-                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-0 overflow-hidden group relative">
+                    <!-- Background Decoration -->
+                    <div class="absolute -right-6 -bottom-6 w-32 h-32 text-red-500 opacity-10 transition-transform group-hover:scale-125 duration-700">
+                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     </div>
-                    <div class="flex items-center justify-between relative z-10">
-                        <div>
-                            <p class="text-xs font-bold text-pink-500 uppercase tracking-widest mb-1">Cycle Tracker</p>
-                            @if($nextPeriodPrediction)
-                                <h4 class="text-2xl font-black text-gray-900">{{ $nextPeriodPrediction->format('M d') }}</h4>
-                                <p class="text-sm text-gray-500 mt-1 font-medium">
-                                    Next Period: 
-                                    @if($nextPeriodPrediction->isToday())
-                                        <span class="text-pink-600 font-bold">Expected today</span>
-                                    @else
-                                        in {{ $nextPeriodPrediction->diffInDays(now()) }} days
-                                    @endif
+                    
+                    <div class="p-6 relative z-10">
+                        <div class="flex items-start justify-between mb-6">
+                            <div>
+                                <p class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
+                                    Cycle Tracker
                                 </p>
-                            @else
-                                <h4 class="text-lg font-bold text-gray-900 mt-1">Predictions Unavailable</h4>
-                                <p class="text-xs text-gray-500 mt-1">Log your first period to start tracking.</p>
-                            @endif
+                                @if($nextPeriodPrediction)
+                                    <h4 class="text-3xl font-black text-gray-900 tracking-tight">{{ $nextPeriodPrediction->format('M d') }}</h4>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Next period starts 
+                                        @if($nextPeriodPrediction->isToday())
+                                            <span class="text-red-600 font-bold">today</span>
+                                        @else
+                                            in <span class="text-gray-900 font-bold">{{ $nextPeriodPrediction->diffInDays(now()) }} days</span>
+                                        @endif
+                                    </p>
+                                @else
+                                    <h4 class="text-xl font-bold text-gray-900 mt-1">Start Tracking</h4>
+                                    <p class="text-xs text-gray-500 mt-1">Log your first period to get predictions.</p>
+                                @endif
+                            </div>
+                            <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                            </div>
                         </div>
-                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-pink-100 flex items-center justify-center text-pink-500">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+
+                        <!-- Mini Stats or Action -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <a href="{{ route('patient.doctors') }}" class="flex flex-col items-center justify-center p-3 bg-red-50/50 hover:bg-red-50 rounded-2xl transition-colors border border-red-100 group/item">
+                                <span class="text-[10px] font-bold text-red-400 uppercase tracking-tighter mb-1">Log Daily Symptoms</span>
+                                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            </a>
+                            <div class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-1">Current Phase</span>
+                                <span class="text-xs font-black text-gray-700">Follicular</span>
+                            </div>
                         </div>
                     </div>
                  </div>
@@ -279,7 +298,7 @@
                                 <img src="{{ $doctor->photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode($doctor->name).'&background=7B3DE9&color=fff' }}" class="w-full h-full object-cover" alt="{{ $doctor->name }}">
                             </div>
                             <div class="min-w-0">
-                                <h4 class="text-sm font-bold text-gray-900 truncate">Dr. {{ $doctor->name }}</h4>
+                                <h4 class="text-sm font-bold text-gray-900 line-clamp-1" title="{{ $doctor->name }}">{{ $doctor->name }}</h4>
                                 <p class="text-[10px] font-medium text-gray-500 truncate uppercase">{{ $doctor->specialization }}</p>
                             </div>
                         </div>
