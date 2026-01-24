@@ -54,8 +54,9 @@
 // Custom Alert Utility
 window.CustomAlert = {
     confirmCallback: null,
+    onCloseCallback: null,
     
-    show(message, type = 'info', title = null) {
+    show(message, type = 'info', title = null, onClose = null) {
         const modal = document.getElementById('customAlertModal');
         const iconContainer = document.getElementById('alertIconContainer');
         const icon = document.getElementById('alertIcon');
@@ -107,6 +108,8 @@ window.CustomAlert = {
                 buttonText = 'OK';
         }
         
+        this.onCloseCallback = onClose;
+        
         iconContainer.className = `flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full ${bgColor}`;
         icon.className = `w-8 h-8 ${textColor}`;
         icon.innerHTML = iconPath;
@@ -127,6 +130,11 @@ window.CustomAlert = {
         const modal = document.getElementById('customAlertModal');
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto';
+        
+        if (this.onCloseCallback) {
+            this.onCloseCallback();
+            this.onCloseCallback = null;
+        }
     },
     
     confirm(message, onConfirm, onCancel = null) {
@@ -157,20 +165,20 @@ window.CustomAlert = {
     },
     
     // Helper methods for common use cases
-    success(message, title = 'Success') {
-        this.show(message, 'success', title);
+    success(message, title = 'Success', onClose = null) {
+        this.show(message, 'success', title, onClose);
     },
     
-    error(message, title = 'Error') {
-        this.show(message, 'error', title);
+    error(message, title = 'Error', onClose = null) {
+        this.show(message, 'error', title, onClose);
     },
     
-    warning(message, title = 'Warning') {
-        this.show(message, 'warning', title);
+    warning(message, title = 'Warning', onClose = null) {
+        this.show(message, 'warning', title, onClose);
     },
     
-    info(message, title = 'Information') {
-        this.show(message, 'info', title);
+    info(message, title = 'Information', onClose = null) {
+        this.show(message, 'info', title, onClose);
     }
 };
 

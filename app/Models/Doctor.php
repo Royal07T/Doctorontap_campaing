@@ -410,4 +410,16 @@ class Doctor extends Authenticatable implements MustVerifyEmail
             'platform_fee' => ($totalAmount * (100 - $percentage)) / 100,
         ];
     }
+
+    /**
+     * Check if profile is complete and compliant
+     */
+    public function getIsProfileCompleteAttribute()
+    {
+        return $this->mdcn_certificate_verified 
+            && $this->insurance_document 
+            && $this->photo 
+            && $this->bio 
+            && $this->specialization;
+    }
 }

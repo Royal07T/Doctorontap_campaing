@@ -156,9 +156,8 @@
 
 <!-- Booking Modal (Preserved & Styled) -->
 <div id="bookingModal" 
-     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity opacity-0 pointer-events-none"
-     :class="{ 'opacity-100 pointer-events-auto': showModal }"
-     x-data="bookingModal()" 
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+     x-data="bookingModal" 
      x-show="showModal" 
      x-cloak 
      @click.away="closeModal()">
@@ -248,6 +247,28 @@
                                       placeholder="Describe your symptoms or reason for visit..." 
                                       class="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"></textarea>
                          </div>
+
+                         <!-- Severity -->
+                         <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Severity</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <button type="button" @click="severity = 'mild'" 
+                                        :class="severity === 'mild' ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'"
+                                        class="py-2.5 border rounded-xl text-sm font-medium transition-all">
+                                    Mild
+                                </button>
+                                <button type="button" @click="severity = 'moderate'" 
+                                        :class="severity === 'moderate' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'"
+                                        class="py-2.5 border rounded-xl text-sm font-medium transition-all">
+                                    Moderate
+                                </button>
+                                <button type="button" @click="severity = 'severe'" 
+                                        :class="severity === 'severe' ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'"
+                                        class="py-2.5 border rounded-xl text-sm font-medium transition-all">
+                                    Severe
+                                </button>
+                            </div>
+                         </div>
                          
                          <div>
                              <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Consultation Mode</label>
@@ -281,7 +302,7 @@
                         Cancel
                     </button>
                     <button type="submit" 
-                            :disabled="isSubmitting || !selectedDate || !selectedTime || !problem"
+                            :disabled="isSubmitting || !selectedDate || !selectedTime || !problem || !severity"
                             class="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                         <span x-show="!isSubmitting">Confirm Booking</span>
                         <span x-show="isSubmitting" class="flex items-center justify-center gap-2">
@@ -307,8 +328,8 @@ window.openBookingModal = function(doctorId, doctorName, doctorSpecialization) {
     window.dispatchEvent(event);
 }
 
-function bookingModal() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('bookingModal', () => ({
         showModal: false,
         doctorId: null,
         doctorName: '',
@@ -317,6 +338,7 @@ function bookingModal() {
         selectedTime: '',
         consultMode: 'video',
         problem: '',
+        severity: 'mild',
         availableSlots: [],
         isSubmitting: false,
         minDate: new Date().toISOString().split('T')[0],
@@ -336,6 +358,7 @@ function bookingModal() {
             this.selectedTime = '';
             this.consultMode = 'video';
             this.problem = '';
+            this.severity = 'mild';
             this.availableSlots = [];
         },
         
@@ -346,11 +369,11 @@ function bookingModal() {
         async loadTimeSlots() {
             if (!this.selectedDate || !this.doctorId) return;
             
-            // Simulation of slots for UI demo purposes if API not ready, 
-            // In real app, fetch from: /patient/doctors/{id}/slots?date={date}
-            // For now, let's look at the original code's logic or basic simulation
             try {
-                const response = await fetch(`/patient/doctors/${this.doctorId}/availability?date=${this.selectedDate}`, {
+                // Use the correct route for availability
+                const url = `{{ route('patient.doctors.availability', ['id' => ':id']) }}`.replace(':id', this.doctorId) + `?date=${this.selectedDate}`;
+                
+                const response = await fetch(url, {
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
@@ -359,28 +382,65 @@ function bookingModal() {
                 
                 // Fallback simulation if route 404s or fails (common in redesigns)
                 if (!response.ok) {
-                     this.availableSlots = [
-                        { value: '09:00', label: '09:00 AM', booked: false },
-                        { value: '10:00', label: '10:00 AM', booked: false },
-                        { value: '11:00', label: '11:00 AM', booked: true },
-                        { value: '14:00', label: '02:00 PM', booked: false },
-                        { value: '15:30', label: '03:30 PM', booked: false },
-                    ];
+                    console.error('Availability fetch failed');
                     return;
                 }
 
                 const data = await response.json();
                 if (data.success) {
-                    this.availableSlots = data.slots; // Assuming API returns formatted slots
+                    const date = new Date(this.selectedDate);
+                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const dayName = days[date.getDay()];
+                    
+                    const schedule = data.availability_schedule && data.availability_schedule[dayName];
+                    const bookedSlots = data.booked_slots || [];
+                    
+                    this.availableSlots = [];
+
+                    if (schedule && schedule.enabled) {
+                        const start = schedule.start; // e.g. "09:00"
+                        const end = schedule.end;     // e.g. "17:00"
+                        
+                        // Parse start/end to minutes for easier calculation
+                        const [startHour, startMin] = start.split(':').map(Number);
+                        const [endHour, endMin] = end.split(':').map(Number);
+                        
+                        let currentHour = startHour;
+                        let currentMin = startMin;
+                        
+                        // Loop to generate 30 min slots
+                        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+                            // Format time string HH:mm
+                            const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
+                            
+                            // Check if booked
+                            // bookedSlots contains full objects, assuming we check time match for selected date
+                            const isBooked = bookedSlots.some(slot => slot.date === this.selectedDate && slot.time === timeString);
+                            
+                            // Format label (12-hour format)
+                            let labelHour = currentHour;
+                            const ampm = labelHour >= 12 ? 'PM' : 'AM';
+                            labelHour = labelHour % 12;
+                            labelHour = labelHour ? labelHour : 12; // the hour '0' should be '12'
+                            const label = `${labelHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')} ${ampm}`;
+                            
+                            this.availableSlots.push({
+                                value: timeString,
+                                label: label,
+                                booked: isBooked
+                            });
+                            
+                            // Increment by 30 mins
+                            currentMin += 30;
+                            if (currentMin >= 60) {
+                                currentHour++;
+                                currentMin -= 60;
+                            }
+                        }
+                    }
                 }
             } catch (e) {
                 console.error("Error loading slots", e);
-                 // Fallback
-                 this.availableSlots = [
-                    { value: '09:00', label: '09:00 AM', booked: false },
-                    { value: '10:00', label: '10:00 AM', booked: false },
-                    { value: '14:00', label: '02:00 PM', booked: false },
-                ];
             }
         },
         
@@ -392,18 +452,15 @@ function bookingModal() {
             formData.append('doctor_id', this.doctorId);
             formData.append('scheduled_at', `${this.selectedDate} ${this.selectedTime}`);
             formData.append('problem', this.problem);
-            formData.append('type', this.consultMode);
+            formData.append('consult_mode', this.consultMode);
+            formData.append('severity', this.severity);
             
             try {
-                const response = await fetch('{{ route("booking.store") }}', { 
-                    // Note: verifying route name, standard is often consultation.store or booking.store
-                    // Based on web.php: Route::post('/submit', [ConsultationController::class, 'store'])
-                    // wait, previous view used 'booking.store' for multipatient... 
-                    // Let's use the standard consultation submission route from web.php: /submit
+                const response = await fetch('{{ route("patient.doctors.book") }}', { 
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                         'Accept': 'application/json'
+                        'Accept': 'application/json'
                     },
                     body: formData
                 });
@@ -411,19 +468,25 @@ function bookingModal() {
                 const result = await response.json();
                 
                 if (response.ok) {
-                     // Success
-                     window.location.href = '{{ route("patient.consultations") }}';
+                     // Success - Show confirmation modal then redirect
+                     CustomAlert.success(
+                        'Your appointment has been successfully booked! You can view the details in your consultations.',
+                        'Booking Confirmed',
+                        () => {
+                            window.location.href = '{{ route("patient.consultations") }}';
+                        }
+                     );
                 } else {
-                    alert('Booking failed: ' + (result.message || 'Unknown error'));
+                    CustomAlert.error(result.message || 'Unknown error', 'Booking Failed');
                 }
             } catch (e) {
                 console.error("Booking error", e);
-                alert('An error occurred while booking. Please try again.');
+                CustomAlert.error('An error occurred while booking. Please try again.', 'System Error');
             } finally {
                 this.isSubmitting = false;
             }
         }
-    }
-}
+    }));
+});
 </script>
 @endsection
