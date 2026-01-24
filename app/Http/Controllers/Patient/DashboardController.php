@@ -9,6 +9,7 @@ use App\Models\Specialty;
 use App\Models\Doctor;
 use App\Models\Setting;
 use App\Models\MenstrualCycle;
+use App\Models\MenstrualDailyLog;
 use App\Models\SexualHealthRecord;
 use App\Models\Payment;
 use Illuminate\Http\Request;
@@ -1736,6 +1737,86 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Sexual health record deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Show Menstrual Cycle Tracker Page
+     */
+    public function cycleTracker()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        if (strtolower($patient->gender) !== 'female') {
+            return redirect()->route('patient.dashboard')->with('error', 'This feature is only available for female patients.');
+        }
+
+        $cycles = MenstrualCycle::where('patient_id', $patient->id)
+            ->orderBy('start_date', 'desc')
+            ->get();
+
+        $dailyLogs = MenstrualDailyLog::where('patient_id', $patient->id)
+            ->orderBy('date', 'desc')
+            ->get();
+
+        $currentCycle = MenstrualCycle::where('patient_id', $patient->id)
+            ->where(function($query) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->subDays(7));
+            })
+            ->orderBy('start_date', 'desc')
+            ->first();
+
+        // Calculate predictions (same as in index method)
+        $nextPeriodPrediction = null;
+        $averageCycleLength = 28; // Default
+        
+        if ($cycles->count() >= 2) {
+            $cycleLengths = [];
+            for ($i = 0; $i < $cycles->count() - 1; $i++) {
+                $current = $cycles[$i];
+                $previous = $cycles[$i + 1];
+                $cycleLengths[] = \Carbon\Carbon::parse($previous->start_date)->diffInDays(\Carbon\Carbon::parse($current->start_date));
+            }
+            $averageCycleLength = !empty($cycleLengths) ? round(array_sum($cycleLengths) / count($cycleLengths)) : 28;
+        }
+
+        if ($cycles->count() > 0) {
+            $latestCycle = $cycles->first();
+            $nextPeriodPrediction = \Carbon\Carbon::parse($latestCycle->start_date)->addDays($averageCycleLength);
+        }
+
+        return view('patient.cycle-tracker', compact('cycles', 'dailyLogs', 'currentCycle', 'nextPeriodPrediction', 'averageCycleLength'));
+    }
+
+    /**
+     * Store Menstrual Daily Log
+     */
+    public function storeDailyLog(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'mood' => 'nullable|string',
+            'flow' => 'nullable|string',
+            'sleep' => 'nullable|integer',
+            'water' => 'nullable|integer',
+            'urination' => 'nullable|integer',
+            'eating_habits' => 'nullable|integer',
+            'symptoms' => 'nullable|array',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $log = MenstrualDailyLog::updateOrCreate(
+            ['patient_id' => $patient->id, 'date' => $validated['date']],
+            array_merge($validated, ['patient_id' => $patient->id])
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daily log saved successfully!',
+            'log' => $log
         ]);
     }
 }

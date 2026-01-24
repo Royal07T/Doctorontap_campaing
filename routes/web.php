@@ -687,6 +687,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/doctors/symptom/{symptom}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySymptom'])->name('doctors-by-symptom');
     
     // Menstrual Cycle Tracking (for female patients)
+    Route::get('/cycle-tracker', [\App\Http\Controllers\Patient\DashboardController::class, 'cycleTracker'])->name('cycle-tracker');
+    Route::post('/menstrual-daily-log', [\App\Http\Controllers\Patient\DashboardController::class, 'storeDailyLog'])->name('menstrual-daily-log.store');
+    
     Route::get('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'showMenstrualCycle'])->name('menstrual-cycle.show');
     Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
     Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
