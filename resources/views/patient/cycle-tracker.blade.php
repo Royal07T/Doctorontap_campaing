@@ -12,14 +12,8 @@
                 <p class="text-sm text-gray-500 mt-1">Tracking your health metrics for better cycle prediction.</p>
             </div>
             <div class="flex items-center gap-3">
-                <button class="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg uppercase tracking-tight">
+                <button @click="logToday" class="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg uppercase tracking-tight">
                     <span>+ Log Today</span>
-                </button>
-                <button class="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
                 </button>
             </div>
         </div>
@@ -29,101 +23,20 @@
             <div class="lg:col-span-2 space-y-6">
                 <!-- Calendar Card -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                    <!-- Month Navigation -->
                     <div class="px-8 py-5 border-b border-gray-100">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-lg font-semibold text-gray-900" x-text="currentMonthName + ' ' + currentYear"></h2>
-                            <div class="flex items-center gap-1">
-                                <button @click="previousMonth" class="p-1.5 hover:bg-gray-100 rounded transition-colors">
-                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                    </svg>
-                                </button>
-                                <button @click="nextMonth" class="p-1.5 hover:bg-gray-100 rounded transition-colors">
-                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </button>
-                            </div>
+                            <h2 class="text-lg font-semibold text-gray-900">Select Date</h2>
+                            <button @click="goToToday" class="text-xs font-semibold text-purple-600 hover:text-purple-700">Today</button>
                         </div>
                     </div>
 
-                    <!-- Calendar Grid -->
                     <div class="p-6">
-                        <!-- Weekday Header -->
-                        <div class="grid grid-cols-7 mb-3">
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Mon</span>
-                            </div>
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Tue</span>
-                            </div>
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Wed</span>
-                            </div>
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Thu</span>
-                            </div>
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Fri</span>
-                            </div>
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Sat</span>
-                            </div>
-                            <div class="text-center pb-2">
-                                <span class="text-xs font-medium text-gray-400 uppercase">Sun</span>
-                            </div>
-                        </div>
-
-                        <!-- Calendar Days Grid -->
-                        <div class="grid grid-cols-7 gap-1">
-                            <template x-for="(dateObj, index) in calendarDays" :key="index">
-                                <div @click="selectDate(dateObj)" 
-                                     class="relative aspect-square flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all group"
-                                     :class="{
-                                         'bg-purple-600': isToday(dateObj),
-                                         'bg-purple-50': isSelected(dateObj) && !isToday(dateObj),
-                                         'hover:bg-gray-50': !isSelected(dateObj) && !isToday(dateObj) && dateObj.isCurrentMonth
-                                     }">
-                                    
-                                    <!-- Date Number -->
-                                    <span class="text-sm font-medium mb-1"
-                                          :class="{
-                                              'text-white': isToday(dateObj),
-                                              'text-gray-900': dateObj.isCurrentMonth && !isToday(dateObj),
-                                              'text-gray-300': !dateObj.isCurrentMonth
-                                          }"
-                                          x-text="dateObj.day"></span>
-
-                                    <!-- Indicators -->
-                                    <div class="flex items-center gap-0.5">
-                                        <template x-if="isPeriodDay(dateObj)">
-                                            <div class="w-1.5 h-1.5 rounded-full bg-pink-500"></div>
-                                        </template>
-                                        
-                                        <template x-if="isFertileDay(dateObj)">
-                                            <div class="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Legend -->
-                        <div class="flex items-center gap-4 mt-6 pt-4 border-t border-gray-100">
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-2 h-2 rounded-full bg-pink-500"></div>
-                                <span class="text-xs text-gray-500">Period</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-2 h-2 rounded-full bg-purple-400"></div>
-                                <span class="text-xs text-gray-500">Predicted Fertile</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-2 h-2 rounded-full bg-purple-600"></div>
-                                <span class="text-xs text-gray-500">Today</span>
-                            </div>
-                        </div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Date</label>
+                        <input type="date"
+                               :value="getSelectedDateForInput()"
+                               @change="setSelectedDateFromInput($event.target.value)"
+                               class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
+                        <p class="mt-2 text-xs text-gray-500">Use the date picker to select a day to view or log your cycle metrics.</p>
                     </div>
                 </div>
 
@@ -325,13 +238,45 @@
                         <span class="text-xs font-bold" x-text="symptom.label"></span>
                     </button>
                 </template>
-                <button type="button" class="flex flex-col items-center justify-center w-24 h-24 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-all">
+                <button type="button" @click="showOtherSymptomPrompt = true" class="flex flex-col items-center justify-center w-24 h-24 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-all">
                     <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     <span class="text-xs font-bold">Other</span>
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Symptom Prompt Modal -->
+<div x-show="showOtherSymptomPrompt" 
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+     style="display: none;">
+    <div @click.away="showOtherSymptomPrompt = false"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 transform scale-95"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 transform scale-100"
+         x-transition:leave-end="opacity-0 transform scale-95"
+         class="bg-white rounded-2xl p-6 w-96 max-w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Add Custom Symptom</h3>
+        <input type="text" 
+               x-model="customSymptomName"
+               @keyup.enter="addCustomSymptom"
+               @keydown.escape="showOtherSymptomPrompt = false"
+               placeholder="Enter symptom name"
+               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
+        <div class="flex justify-end gap-3 mt-4">
+            <button @click="showOtherSymptomPrompt = false" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
+            <button @click="addCustomSymptom" :disabled="!customSymptomName.trim()" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">Add</button>
         </div>
     </div>
 </div>
@@ -349,6 +294,8 @@ function cycleTracker() {
         currentCycleDay: 6,
         daysUntilNextPeriod: 21,
         ovulationWindow: 'Jan 17 - Jan 23',
+        showOtherSymptomPrompt: false,
+        customSymptomName: '',
 
         // Data from server
         cycles: @json($cycles),
@@ -383,6 +330,7 @@ function cycleTracker() {
 
         init() {
             this.updateCalendar();
+            this.updatePredictions();
             this.loadExistingLog();
         },
 
@@ -463,11 +411,56 @@ function cycleTracker() {
             this.currentYear = today.getFullYear();
             this.selectedDate = today;
             this.updateCalendar();
+            this.updatePredictions();
             this.loadExistingLog();
+        },
+
+        getSelectedDateForInput() {
+            return this.selectedDate.toISOString().split('T')[0];
+        },
+
+        setSelectedDateFromInput(value) {
+            if (!value) {
+                return;
+            }
+
+            const d = new Date(value + 'T00:00:00');
+            this.selectedDate = d;
+            this.currentMonth = d.getMonth();
+            this.currentYear = d.getFullYear();
+            this.updateCalendar();
+            this.updatePredictions();
+            this.loadExistingLog();
+        },
+
+        updatePredictions() {
+            // Calculate days until next period (simplified logic)
+            const today = new Date();
+            const selected = new Date(this.selectedDate);
+            const diffTime = selected - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Update days until next period
+            this.daysUntilNextPeriod = Math.max(0, 21 - diffDays);
+            
+            // Update current cycle day
+            this.currentCycleDay = Math.max(1, 28 - diffDays);
+            
+            // Update ovulation window (typically days 12-16 of cycle)
+            const cycleStart = new Date(selected);
+            cycleStart.setDate(cycleStart.getDate() - this.currentCycleDay + 1);
+            const ovulationStart = new Date(cycleStart);
+            ovulationStart.setDate(ovulationStart.getDate() + 11);
+            const ovulationEnd = new Date(cycleStart);
+            ovulationEnd.setDate(ovulationEnd.getDate() + 16);
+            
+            const options = { month: 'short', day: 'numeric' };
+            this.ovulationWindow = `${ovulationStart.toLocaleDateString('en-US', options)} - ${ovulationEnd.toLocaleDateString('en-US', options)}`;
         },
 
         selectDate(dateObj) {
             this.selectedDate = new Date(dateObj.year, dateObj.month, dateObj.day);
+            this.updatePredictions();
             this.loadExistingLog();
         },
 
@@ -475,6 +468,9 @@ function cycleTracker() {
             return this.selectedDate.getDate() === dateObj.day && 
                    this.selectedDate.getMonth() === dateObj.month &&
                    this.selectedDate.getFullYear() === dateObj.year;
+                   
+                   
+                   
         },
 
         isToday(dateObj) {
@@ -521,6 +517,34 @@ function cycleTracker() {
             }
         },
 
+        addCustomSymptom() {
+            const name = this.customSymptomName.trim();
+            if (!name) return;
+            
+            // Check if symptom already exists
+            if (this.formData.symptoms.includes(name)) {
+                this.showOtherSymptomPrompt = false;
+                this.customSymptomName = '';
+                return;
+            }
+            
+            // Add to symptoms array
+            this.formData.symptoms.push(name);
+            
+            // Reset modal
+            this.showOtherSymptomPrompt = false;
+            this.customSymptomName = '';
+        },
+
+        logToday() {
+            this.goToToday();
+            // Scroll to the daily log form
+            const logForm = document.querySelector('.sticky.top-6');
+            if (logForm) {
+                logForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        },
+
         loadExistingLog() {
             const dStr = this.selectedDate.toISOString().split('T')[0];
             const log = this.dailyLogs.find(l => l.date.split('T')[0] === dStr);
@@ -554,12 +578,19 @@ function cycleTracker() {
                 const response = await fetch('{{ route("patient.menstrual-daily-log.store") }}', {
                     method: 'POST',
                     headers: {
+                        'Accept': 'application/json',
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
                         date: this.selectedDate.toISOString().split('T')[0],
-                        ...this.formData
+                        mood: this.formData.mood,
+                        flow: this.formData.flow,
+                        sleep: this.formData.sleep === '' || this.formData.sleep === null ? null : Math.round(Number(this.formData.sleep)),
+                        water: this.formData.water === '' || this.formData.water === null ? null : Number(this.formData.water),
+                        urination: this.formData.urination === 'low' ? 1 : (this.formData.urination === 'normal' ? 2 : (this.formData.urination === 'high' ? 3 : null)),
+                        eating_habits: this.formData.eating === '' || this.formData.eating === null ? null : Number(this.formData.eating),
+                        symptoms: this.formData.symptoms
                     })
                 });
 

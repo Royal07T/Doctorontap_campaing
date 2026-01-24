@@ -225,10 +225,18 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/doctors/{id}/certificate', [DashboardController::class, 'viewCertificate'])->name('doctors.certificate');
     Route::post('/doctors/{id}/verify-certificate', [DashboardController::class, 'verifyMdcnCertificate'])->name('doctors.verify-certificate');
     Route::post('/doctors/{id}/unverify-certificate', [DashboardController::class, 'unverifyMdcnCertificate'])->name('doctors.unverify-certificate');
-    
+
+    // Care Giver Document Viewing
+    Route::get('/care-givers/{id}/cv', [DashboardController::class, 'viewCareGiverCv'])->name('care-givers.cv');
+    Route::get('/care-givers/{id}/photo', [DashboardController::class, 'viewCareGiverPhoto'])->name('care-givers.photo');
+
     // Settings
     Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
     Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
+
+    // Canvasser Module
+    Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');
+    Route::post('/canvassers', [DashboardController::class, 'storeCanvasser'])->name('canvassers.store');
     Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
     
     // Admin Users Management

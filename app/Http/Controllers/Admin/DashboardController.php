@@ -3204,6 +3204,90 @@ class DashboardController extends Controller
     }
 
     /**
+     * View/download caregiver CV (stored privately)
+     */
+    public function viewCareGiverCv($id)
+    {
+        try {
+            $careGiver = CareGiver::findOrFail($id);
+
+            if (!$careGiver->cv_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No CV found for this care giver.'
+                ], 404);
+            }
+
+            if (!Storage::disk('local')->exists($careGiver->cv_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'CV file not found on storage.'
+                ], 404);
+            }
+
+            $fileContent = Storage::disk('local')->get($careGiver->cv_path);
+            $mimeType = Storage::disk('local')->mimeType($careGiver->cv_path) ?? 'application/pdf';
+            $fileName = basename($careGiver->cv_path);
+
+            return response($fileContent)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . $fileName . '"');
+        } catch (\Exception $e) {
+            \Log::error('Failed to view care giver CV', [
+                'care_giver_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load CV: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * View/download caregiver profile photo (stored publicly)
+     */
+    public function viewCareGiverPhoto($id)
+    {
+        try {
+            $careGiver = CareGiver::findOrFail($id);
+
+            if (!$careGiver->profile_photo_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No profile photo found for this care giver.'
+                ], 404);
+            }
+
+            if (!Storage::disk('public')->exists($careGiver->profile_photo_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Profile photo file not found on storage.'
+                ], 404);
+            }
+
+            $fileContent = Storage::disk('public')->get($careGiver->profile_photo_path);
+            $mimeType = Storage::disk('public')->mimeType($careGiver->profile_photo_path) ?? 'image/jpeg';
+            $fileName = basename($careGiver->profile_photo_path);
+
+            return response($fileContent)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . $fileName . '"');
+        } catch (\Exception $e) {
+            \Log::error('Failed to view care giver profile photo', [
+                'care_giver_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load profile photo: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Display all vital signs records (Admin oversight)
      */
     public function vitalSigns(Request $request)
