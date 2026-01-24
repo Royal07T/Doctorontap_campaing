@@ -1253,10 +1253,9 @@ class DashboardController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'email' => 'required|email|unique:doctors,email,' . $doctor->id,
-            'gender' => 'nullable|in:Male,Female,male,female',
+            'gender' => 'nullable|in:Male,Female,Other,male,female,other',
             'specialization' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'experience' => 'nullable|string|max:255',
@@ -1264,7 +1263,11 @@ class DashboardController extends Controller
             'place_of_work' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:2000',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'insurance_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
+
+        // Auto-generate full name
+        $validated['name'] = $validated['first_name'] . ' ' . $validated['last_name'];
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -1309,6 +1312,32 @@ class DashboardController extends Controller
                 ]);
                 
                 return redirect()->back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+            }
+        }
+
+        // Handle insurance document upload
+        if ($request->hasFile('insurance_document')) {
+            try {
+                // Delete old document if exists
+                if ($doctor->insurance_document && Storage::disk('public')->exists($doctor->insurance_document)) {
+                    Storage::disk('public')->delete($doctor->insurance_document);
+                }
+
+                $file = $request->file('insurance_document');
+                $fileName = 'insurance-' . Str::slug($doctor->name) . '-' . time() . '.' . $file->getClientOriginalExtension();
+                
+                // Store in public disk under 'insurance_documents' folder
+                $path = Storage::disk('public')->putFileAs('insurance_documents', $file, $fileName);
+                
+                if ($path) {
+                    $validated['insurance_document'] = $path;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Insurance document upload exception', [
+                    'doctor_id' => $doctor->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Log error but continue with other updates
             }
         }
 

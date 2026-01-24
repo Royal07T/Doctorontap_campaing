@@ -1,219 +1,424 @@
 @extends('layouts.doctor')
 
-@section('title', 'Profile Settings')
-@section('header-title', 'Profile Settings')
+@section('title', 'Profile & Credentials')
+@section('header-title', 'Profile & Credentials')
+
+@push('x-data-extra')
+, activeTab: 'basic-info'
+@endpush
 
 @section('content')
-<div class="max-w-4xl mx-auto">
-    <!-- Header -->
-    <div class="mb-6">
-        <h1 class="text-lg font-bold text-gray-900">Profile Settings</h1>
-        <p class="text-xs text-gray-500 mt-1">Update your profile information and photo</p>
-    </div>
+<div class="min-h-screen bg-gray-50 py-6 px-4 md:px-6">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Profile & Credentials</h1>
+            <p class="text-sm text-gray-600 mt-1">Manage your professional identity, verification documents, and clinical details.</p>
+        </div>
 
-    @if(session('success'))
-        <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+        <!-- Success/Error Messages -->
+        @if(session('success'))
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 mb-6 rounded-lg">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-green-700">{{ session('success') }}</p>
+                    <p class="ml-3 text-sm font-medium text-emerald-800">{{ session('success') }}</p>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if($errors->any())
-        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        @if($errors->any())
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg">
+                <ul class="list-disc list-inside text-sm text-red-700">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <!-- Tabs Navigation -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div class="border-b border-gray-200 overflow-x-auto">
+                <nav class="flex -mb-px min-w-max">
+                    <button @click="activeTab = 'basic-info'"
+                            :class="activeTab === 'basic-info' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
+                        Basic Info
+                    </button>
+                    <button @click="activeTab = 'professional'"
+                            :class="activeTab === 'professional' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
+                        Professional Details
+                    </button>
+                    <button @click="activeTab = 'licenses'"
+                            :class="activeTab === 'licenses' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
+                        Licenses & KYC
+                    </button>
+                    <button @click="activeTab = 'bank'"
+                            :class="activeTab === 'bank' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
+                        Bank Accounts
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('doctor.profile.update') }}" enctype="multipart/form-data">
+            @csrf
+
+            <!-- Basic Info Tab -->
+            <div x-show="activeTab === 'basic-info'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <div class="flex items-start gap-2 mb-6">
+                    <svg class="w-5 h-5 text-indigo-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                     </svg>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Basic Information</h3>
+                        <p class="text-sm text-gray-600 mt-1">Your personal details and contact information</p>
+                    </div>
                 </div>
-                <div class="ml-3">
-                    <ul class="list-disc list-inside text-sm text-red-700">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+
+                <div class="flex flex-col md:flex-row items-start gap-8 mb-8">
+                    <!-- Avatar -->
+                    <div class="flex-shrink-0">
+                        <div class="relative">
+                            @if($doctor->photo_url)
+                                <img src="{{ $doctor->photo_url }}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover border-4 border-gray-100">
+                            @else
+                                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center border-4 border-gray-100">
+                                    <span class="text-4xl font-bold text-indigo-600">{{ substr($doctor->name, 0, 1) }}</span>
+                                </div>
+                            @endif
+                            <label for="avatar-upload" class="absolute bottom-0 right-0 w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </label>
+                            <input type="file" id="avatar-upload" name="photo" accept="image/*" class="hidden">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3 text-center">JPG, PNG or GIF<br>Max 2MB</p>
+                    </div>
+
+                    <!-- Form Fields -->
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">First Name *</label>
+                            <input type="text" name="first_name" value="{{ old('first_name', $doctor->first_name) }}" required
+                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Last Name *</label>
+                            <input type="text" name="last_name" value="{{ old('last_name', $doctor->last_name) }}" required
+                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Email Address *</label>
+                            <input type="email" name="email" value="{{ old('email', $doctor->email) }}" required
+                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Phone Number *</label>
+                            <input type="tel" name="phone" value="{{ old('phone', $doctor->phone) }}" required
+                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Gender</label>
+                            <select name="gender" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                <option value="">Select</option>
+                                <option value="Female" {{ old('gender', $doctor->gender) === 'Female' ? 'selected' : '' }}>Female</option>
+                                <option value="Male" {{ old('gender', $doctor->gender) === 'Male' ? 'selected' : '' }}>Male</option>
+                                <option value="Other" {{ old('gender', $doctor->gender) === 'Other' ? 'selected' : '' }}>Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Languages</label>
+                            <input type="text" name="languages" value="{{ old('languages', $doctor->languages) }}"
+                                   placeholder="English, Yoruba, Hausa"
+                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    @endif
 
-    <form method="POST" action="{{ route('doctor.profile.update') }}" enctype="multipart/form-data" class="space-y-6">
-        @csrf
+            <!-- Professional Details Tab -->
+            <div x-show="activeTab === 'professional'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <div class="flex items-start gap-2 mb-6">
+                    <svg class="w-5 h-5 text-indigo-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Professional Information</h3>
+                        <p class="text-sm text-gray-600 mt-1">Your medical specialization and experience</p>
+                    </div>
+                </div>
 
-        <!-- Photo Upload Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Profile Photo</h2>
-            <div class="flex items-center space-x-4">
-                <div class="flex-shrink-0">
-                    @if($doctor->photo_url)
-                        <img src="{{ $doctor->photo_url }}" alt="Profile Photo" class="w-16 h-16 rounded-full object-cover border-3 border-purple-200">
-                    @else
-                        <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center border-3 border-purple-200">
-                            <span class="text-xl font-bold text-purple-600">{{ substr($doctor->name, 0, 1) }}</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Specialization</label>
+                        <input type="text" name="specialization" value="{{ old('specialization', $doctor->specialization) }}"
+                               placeholder="Dermatologist"
+                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Experience (Years)</label>
+                        <input type="number" name="experience" value="{{ old('experience', (int)$doctor->experience) }}"
+                               placeholder="8"
+                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Location</label>
+                        <input type="text" name="location" value="{{ old('location', $doctor->location) }}"
+                               placeholder="Abuja, Nigeria"
+                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Biography</label>
+                        <textarea name="bio" rows="5" maxlength="1000"
+                                  placeholder="Compassionate and detail-oriented medical doctor dedicated to providing accurate diagnosis, effective treatment, and patient-centered care. Committed to improving health outcomes through professionalism, empathy, and evidence-based practice."
+                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">{{ old('bio', $doctor->bio) }}</textarea>
+                        <p class="text-xs text-gray-500 mt-1 text-right"><span x-text="$el.parentElement.previousElementSibling.value.length">0</span>/1000 characters</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Licenses & Verification Tab -->
+            <div x-show="activeTab === 'licenses'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <div class="flex items-start gap-2 mb-6">
+                    <svg class="w-5 h-5 text-indigo-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Licenses & Verification</h3>
+                        <p class="text-sm text-gray-600 mt-1">Upload your professional credentials and verification documents</p>
+                    </div>
+                </div>
+
+                <!-- MDCN Certificate -->
+                <div class="border border-gray-200 rounded-xl p-6 mb-5">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-900">MDCN Certificate</h4>
+                            <p class="text-xs text-gray-500 mt-1">Medical and Dental Council of Nigeria</p>
                         </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            VERIFIED
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">mdcn_license_2024.pdf</p>
+                            <p class="text-xs text-gray-500">1.2 MB</p>
+                        </div>
+                        <button type="button" class="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Insurance Documents -->
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-900">Insurance Documents</h4>
+                            <p class="text-xs text-gray-500 mt-1">Professional liability insurance</p>
+                        </div>
+                        @if($doctor->insurance_document)
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                UPLOADED
+                            </span>
+                        @else
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                ACTION REQUIRED
+                            </span>
+                        @endif
+                    </div>
+                    
+                    @if($doctor->insurance_document)
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
+                            <svg class="w-8 h-8 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                            </svg>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">Insurance Document</p>
+                                <a href="{{ Storage::url($doctor->insurance_document) }}" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">View Document</a>
+                            </div>
+                        </div>
+                        
+                        <div x-data="{ showUpload: false }">
+                            <button @click="showUpload = !showUpload" type="button" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span x-text="showUpload ? 'Cancel Change' : 'Change Document'"></span>
+                            </button>
+                            
+                            <div x-show="showUpload" class="mt-4" x-transition>
+                                <label class="flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    <div class="text-center">
+                                        <p class="text-sm font-medium text-gray-700">Select New File</p>
+                                        <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG up to 5MB</p>
+                                    </div>
+                                    <input type="file" name="insurance_document" accept=".pdf,.jpg,.jpeg,.png" class="hidden" @change="showUpload = false; $el.closest('form').querySelector('.file-selected-msg').textContent = 'New file selected: ' + $el.files[0].name">
+                                </label>
+                                <p class="text-xs text-emerald-600 mt-2 font-medium file-selected-msg"></p>
+                            </div>
+                        </div>
+                    @else
+                        <label class="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
+                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-gray-700">Upload Insurance Document</p>
+                                <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG up to 5MB</p>
+                            </div>
+                            <input type="file" name="insurance_document" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                        </label>
                     @endif
                 </div>
-                <div class="flex-1">
-                    <label for="photo" class="block text-xs font-medium text-gray-700 mb-1.5">Upload Photo</label>
-                    <input type="file" name="photo" id="photo" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                    <p class="text-xs text-gray-500 mt-1">JPG, PNG or GIF. Max size: 2MB</p>
+            </div>
+
+            <!-- Bank Accounts Tab -->
+            <div x-show="activeTab === 'bank'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Settlement Accounts</h3>
+                            <p class="text-sm text-gray-600 mt-1">Manage your payout bank accounts</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('doctor.bank-accounts') }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 w-full md:w-auto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add New
+                    </a>
+                </div>
+
+                <!-- Bank Accounts Grid -->
+                <div class="grid gap-4 md:grid-cols-2">
+                    @forelse($bankAccounts ?? [] as $account)
+                        <div class="flex items-center gap-4 p-5 border {{ $account->is_default ? 'border-indigo-500 border-2' : 'border-gray-200' }} rounded-xl hover:border-indigo-300 transition-colors">
+                            <div class="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                                    <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="text-sm font-bold text-gray-900 truncate">{{ $account->bank_name }}</p>
+                                    @if($account->is_default)
+                                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full">PRIMARY</span>
+                                    @endif
+                                    @if($account->is_verified)
+                                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">✓</span>
+                                    @else
+                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-full">PENDING</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-gray-500">{{ $account->account_number }} • {{ $account->account_name }}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                @if(!$account->is_default)
+                                    <form method="POST" action="{{ route('doctor.bank-accounts.set-default', $account->id) }}">
+                                        @csrf
+                                        <button type="submit" class="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="Set as default">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                @endif
+                                <form method="POST" action="{{ route('doctor.bank-accounts.delete', $account->id) }}" id="deleteForm{{ $account->id }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" onclick="confirmDeleteBankAccount({{ $account->id }})" class="p-2 text-gray-400 hover:text-red-600 transition-colors" title="Delete">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full bg-gray-50 rounded-xl p-12 text-center">
+                            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            <h3 class="text-sm font-semibold text-gray-900 mb-2">No Bank Accounts Yet</h3>
+                            <p class="text-xs text-gray-500 mb-6">Add your bank account details to receive payments for consultations.</p>
+                            <a href="{{ route('doctor.bank-accounts') }}" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Add Your First Bank Account
+                            </a>
+                        </div>
+                    @endforelse
                 </div>
             </div>
-        </div>
 
-        <!-- Basic Information -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Basic Information</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="first_name" class="block text-xs font-medium text-gray-700 mb-1.5">First Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="first_name" id="first_name" value="{{ old('first_name', $doctor->first_name) }}" required
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('first_name')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
 
-                <div>
-                    <label for="last_name" class="block text-xs font-medium text-gray-700 mb-1.5">Last Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="last_name" id="last_name" value="{{ old('last_name', $doctor->last_name) }}" required
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('last_name')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
 
-                <div>
-                    <label for="name" class="block text-xs font-medium text-gray-700 mb-1.5">Full Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" id="name" value="{{ old('name', $doctor->name) }}" required
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('name')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="email" class="block text-xs font-medium text-gray-700 mb-1.5">Email <span class="text-red-500">*</span></label>
-                    <input type="email" name="email" id="email" value="{{ old('email', $doctor->email) }}" required
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('email')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="phone" class="block text-xs font-medium text-gray-700 mb-1.5">Phone <span class="text-red-500">*</span></label>
-                    <input type="text" name="phone" id="phone" value="{{ old('phone', $doctor->phone) }}" required
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('phone')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="gender" class="block text-xs font-medium text-gray-700 mb-1.5">Gender</label>
-                    <select name="gender" id="gender" class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                        <option value="">Select Gender</option>
-                        <option value="Male" {{ old('gender', $doctor->gender) === 'Male' ? 'selected' : '' }}>Male</option>
-                        <option value="Female" {{ old('gender', $doctor->gender) === 'Female' ? 'selected' : '' }}>Female</option>
-                    </select>
-                    @error('gender')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+            <!-- Action Buttons -->
+            <div class="flex flex-col-reverse md:flex-row items-center justify-end gap-3 mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <button type="button" class="w-full md:w-auto px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors">
+                    Cancel Changes
+                </button>
+                <button type="submit" class="w-full md:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-indigo-100">
+                    Save Profile
+                </button>
             </div>
-        </div>
+        </form>
 
-        <!-- Professional Information -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Professional Information</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="specialization" class="block text-xs font-medium text-gray-700 mb-1.5">Specialization</label>
-                    <input type="text" name="specialization" id="specialization" value="{{ old('specialization', $doctor->specialization) }}"
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('specialization')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
 
-                <div>
-                    <label for="location" class="block text-xs font-medium text-gray-700 mb-1.5">Location</label>
-                    <input type="text" name="location" id="location" value="{{ old('location', $doctor->location) }}"
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('location')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="experience" class="block text-xs font-medium text-gray-700 mb-1.5">Experience</label>
-                    <input type="text" name="experience" id="experience" value="{{ old('experience', $doctor->experience) }}"
-                           placeholder="e.g., 10 years"
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('experience')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="languages" class="block text-xs font-medium text-gray-700 mb-1.5">Languages</label>
-                    <input type="text" name="languages" id="languages" value="{{ old('languages', $doctor->languages) }}"
-                           placeholder="e.g., English, French"
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('languages')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="md:col-span-2">
-                    <label for="place_of_work" class="block text-xs font-medium text-gray-700 mb-1.5">Place of Work</label>
-                    <input type="text" name="place_of_work" id="place_of_work" value="{{ old('place_of_work', $doctor->place_of_work) }}"
-                           placeholder="e.g., General Hospital, Private Clinic"
-                           class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">
-                    @error('place_of_work')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-            </div>
-        </div>
-
-        <!-- Bio Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 class="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Biography</h2>
-            <div>
-                <label for="bio" class="block text-xs font-medium text-gray-700 mb-1.5">About Me</label>
-                <textarea name="bio" id="bio" rows="6" maxlength="2000"
-                          placeholder="Tell patients about your background, education, and expertise..."
-                          class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200">{{ old('bio', $doctor->bio) }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Maximum 2000 characters</p>
-                @error('bio')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="flex justify-end space-x-3">
-            <a href="{{ route('doctor.dashboard') }}" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium transition-colors">
-                Cancel
-            </a>
-            <button type="submit" class="px-5 py-2.5 purple-gradient hover:opacity-90 text-white text-sm font-medium rounded-lg transition">
-                Save Changes
-            </button>
-        </div>
-    </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
-    @include('components.custom-alert-modal')
-@endpush
+<script>
+// Character counter for biography
+document.querySelectorAll('textarea[maxlength]').forEach(textarea => {
+    textarea.addEventListener('input', function() {
+        const counter = this.parentElement.querySelector('span[x-text*="length"]');
+        if (counter) {
+            counter.textContent = this.value.length;
+        }
+    });
+});
 
+// Bank account deletion confirmation
+function confirmDeleteBankAccount(accountId) {
+    if (confirm('Are you sure you want to delete this bank account? This action cannot be undone.')) {
+        document.getElementById('deleteForm' + accountId).submit();
+    }
+}
+</script>
+@endpush

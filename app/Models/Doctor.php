@@ -48,6 +48,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'mdcn_certificate_verified',
         'mdcn_certificate_verified_at',
         'mdcn_certificate_verified_by',
+        'insurance_document',
         'is_available',
         'is_auto_unavailable',
         'missed_consultations_count',
