@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\CareGiver;
+use App\Models\Location;
+use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -16,7 +18,20 @@ class CareGiverAuthController extends Controller
      */
     public function showRegistrationForm()
     {
-        return view('auth.caregiver-register');
+        $states = State::orderBy('name')->get(['id', 'name']);
+        return view('auth.caregiver-register', compact('states'));
+    }
+
+    /**
+     * Get cities (locations) by state
+     */
+    public function getCitiesByState($stateId)
+    {
+        $cities = Location::where('state_id', $stateId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json($cities);
     }
 
     /**
@@ -33,8 +48,8 @@ class CareGiverAuthController extends Controller
             'role' => 'required|string',
             'experience_years' => 'required|integer|min:0',
             'address' => 'required|string',
-            'city' => 'required|string',
-            'state' => 'required|string',
+            'state_id' => 'required|integer|exists:states,id',
+            'city_id' => 'required|integer|exists:locations,id',
             'profile_photo' => 'nullable|file|image|max:2048',
             'cv_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'password' => 'required|string|min:8|confirmed',
@@ -55,6 +70,15 @@ class CareGiverAuthController extends Controller
             $cvPath = $request->file('cv_file')->store('caregivers/cvs', 'local'); // Store CV privately
         }
 
+        $state = State::find($request->state_id);
+        $city = Location::where('id', $request->city_id)
+            ->where('state_id', $request->state_id)
+            ->first();
+
+        if (!$city) {
+            return back()->withErrors(['city_id' => 'Please select a valid city for the selected state.'])->withInput();
+        }
+
         // Create Care Giver
         $caregiver = CareGiver::create([
             'name' => $request->name,
@@ -67,8 +91,8 @@ class CareGiverAuthController extends Controller
             'license_number' => $request->license_number,
             'bio' => $request->bio,
             'address' => $request->address,
-            'city' => $request->city,
-            'state' => $request->state,
+            'city' => $city->name,
+            'state' => $state ? $state->name : null,
             'profile_photo_path' => $profilePhotoPath,
             'cv_path' => $cvPath,
             'password' => Hash::make($request->password),
@@ -76,6 +100,6 @@ class CareGiverAuthController extends Controller
             'verification_status' => 'pending',
         ]);
 
-        return redirect()->route('login')->with('success', 'Application submitted! Please wait for approval.');
+        return redirect()->route('care_giver.login')->with('success', 'Application submitted! Please wait for approval.');
     }
 }

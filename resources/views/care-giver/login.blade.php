@@ -1,22 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Care Giver Login - DoctorOnTap</title>
-    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .purple-gradient {
-            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
-        }
-        body {
-            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center px-4" x-data="{ showPassword: false, pageLoading: false }">
+@extends('layouts.caregiver-auth')
+
+@section('title', 'Care Giver Login')
+
+@section('content')
     <!-- Login Container -->
     <div class="w-full max-w-md">
         <!-- Logo -->
@@ -178,7 +164,8 @@
     
     <!-- System Preloader (hidden by default, shown only during form submission) -->
     <x-system-preloader x-show="pageLoading" message="Signing in..." />
-    
+
+    @push('scripts')
     <script>
         // Hide preloader on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -203,6 +190,7 @@
             }
         });
     </script>
-</body>
-</html>
+
+    @endpush
+@endsection
 

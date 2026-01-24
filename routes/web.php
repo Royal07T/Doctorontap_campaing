@@ -150,6 +150,7 @@ Route::prefix('reviews')->name('reviews.')->group(function () {
 Route::group(['prefix' => 'caregiver'], function () {
     Route::get('/register', [\App\Http\Controllers\Auth\CareGiverAuthController::class, 'showRegistrationForm'])->name('caregiver.register');
     Route::post('/register', [\App\Http\Controllers\Auth\CareGiverAuthController::class, 'register'])->name('caregiver.register.submit');
+    Route::get('/cities/{stateId}', [\App\Http\Controllers\Auth\CareGiverAuthController::class, 'getCitiesByState'])->name('caregiver.cities');
 });
 
 // Admin Login Routes (No authentication required)
