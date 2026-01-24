@@ -141,6 +141,15 @@
                     </svg>
                     Sign In to Dashboard
                 </button>
+
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-gray-600">
+                        Don't have an account? 
+                        <a href="{{ route('caregiver.register') }}" class="font-medium text-purple-600 hover:text-purple-500">
+                            Apply Here
+                        </a>
+                    </p>
+                </div>
             </form>
 
             <!-- Footer Links -->

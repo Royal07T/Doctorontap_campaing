@@ -30,6 +30,18 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
         'is_active',
         'created_by',
         'last_login_at',
+        'role',
+        'license_number',
+        'experience_years',
+        'address',
+        'state',
+        'city',
+        'gender',
+        'date_of_birth',
+        'bio',
+        'profile_photo_path',
+        'cv_path',
+        'verification_status',
     ];
 
     protected $hidden = [
@@ -43,6 +55,8 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
+        'date_of_birth' => 'date',
+        'experience_years' => 'integer',
     ];
 
     /**
@@ -209,6 +223,24 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
         return !is_null($this->email_verified_at);
     }
     
+    /**
+     * Get the photo URL
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if (!$this->profile_photo_path) {
+            return null;
+        }
+
+        // Check if file exists in public storage (adjust disk as needed)
+        // Ideally should match the upload disk. Let's assume 'public' for now.
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->profile_photo_path)) {
+            return \Illuminate\Support\Facades\Storage::url($this->profile_photo_path);
+        }
+
+        return null;
+    }
+
     /**
      * Update last activity timestamp
      */

@@ -146,6 +146,12 @@ Route::prefix('reviews')->name('reviews.')->group(function () {
     Route::post('/patient', [ReviewController::class, 'storePatientReview'])->name('patient.store');
 });
 
+// Caregiver Auth Routes
+Route::group(['prefix' => 'caregiver'], function () {
+    Route::get('/register', [\App\Http\Controllers\Auth\CareGiverAuthController::class, 'showRegistrationForm'])->name('caregiver.register');
+    Route::post('/register', [\App\Http\Controllers\Auth\CareGiverAuthController::class, 'register'])->name('caregiver.register.submit');
+});
+
 // Admin Login Routes (No authentication required)
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -699,6 +705,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/doctors/{id}/availability', [\App\Http\Controllers\Patient\DashboardController::class, 'getDoctorAvailability'])->name('doctors.availability');
     Route::post('/doctors/check-slot', [\App\Http\Controllers\Patient\DashboardController::class, 'checkTimeSlotAvailability'])->name('doctors.check-slot');
     Route::post('/doctors/book', [\App\Http\Controllers\Patient\DashboardController::class, 'createScheduledConsultation'])->name('doctors.book');
+    
+    // Caregiver Discovery
+    Route::get('/caregivers', [\App\Http\Controllers\Patient\DashboardController::class, 'caregivers'])->name('caregivers');
     
     // Sexual Health & Performance Tracking (for male patients)
     Route::post('/sexual-health', [\App\Http\Controllers\Patient\DashboardController::class, 'storeSexualHealthRecord'])->name('sexual-health.store');

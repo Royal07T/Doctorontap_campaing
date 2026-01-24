@@ -1819,4 +1819,22 @@ class DashboardController extends Controller
             'log' => $log
         ]);
     }
+
+    /**
+     * Display all available caregivers
+     */
+    public function caregivers(Request $request)
+    {
+        $query = \App\Models\CareGiver::where('is_active', true);
+
+        // Search by name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $caregivers = $query->paginate(12);
+
+        return view('patient.caregivers', compact('caregivers'));
+    }
 }

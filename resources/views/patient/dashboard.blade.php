@@ -330,7 +330,7 @@
                         </div>
                         <h4 class="text-lg font-bold text-gray-900 mb-1">Hire a Caregiver</h4>
                         <p class="text-xs text-gray-500 mb-5 leading-relaxed">Professional home nursing and care services for your family.</p>
-                        <a href="{{ route('patient.doctors') }}" class="w-full flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-100/50 hover:bg-emerald-700 transition-all uppercase tracking-widest">
+                        <a href="{{ route('patient.caregivers') }}" class="w-full flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-100/50 hover:bg-emerald-700 transition-all uppercase tracking-widest">
                             Find Caregivers
                         </a>
                     </div>
