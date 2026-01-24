@@ -174,7 +174,7 @@
                                 </div>
                                 <div class="mt-2 text-[11px] text-gray-500 flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    Approx. {{ $nextPeriodPrediction ? $nextPeriodPrediction->diffInDays(now()) : '--' }} days remaining
+                                    Approx. {{ $nextPeriodPrediction ? abs(round($nextPeriodPrediction->diffInDays(now(), false))) : '--' }} days remaining
                                 </div>
                             </div>
                         </div>
