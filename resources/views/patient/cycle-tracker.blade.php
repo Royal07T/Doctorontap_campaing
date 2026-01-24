@@ -30,74 +30,98 @@
                 <!-- Calendar Card -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
                     <!-- Month Navigation -->
-                    <div class="px-8 py-6 border-b border-gray-100">
+                    <div class="px-8 py-5 border-b border-gray-100">
                         <div class="flex items-center justify-between">
-                            <button @click="previousMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                            </button>
-                            <h2 class="text-xl font-black text-gray-900" x-text="currentMonthName + ' ' + currentYear"></h2>
-                            <button @click="nextMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
+                            <h2 class="text-lg font-semibold text-gray-900" x-text="currentMonthName + ' ' + currentYear"></h2>
+                            <div class="flex items-center gap-1">
+                                <button @click="previousMonth" class="p-1.5 hover:bg-gray-100 rounded transition-colors">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </button>
+                                <button @click="nextMonth" class="p-1.5 hover:bg-gray-100 rounded transition-colors">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Calendar Grid -->
-                    <div class="p-8">
-                        <div class="grid grid-cols-7 gap-2">
-                            <!-- Weekday Headers -->
-                            <template x-for="day in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']">
-                                <div class="text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider py-3" x-text="day"></div>
-                            </template>
+                    <div class="p-6">
+                        <!-- Weekday Header -->
+                        <div class="grid grid-cols-7 mb-3">
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Mon</span>
+                            </div>
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Tue</span>
+                            </div>
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Wed</span>
+                            </div>
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Thu</span>
+                            </div>
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Fri</span>
+                            </div>
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Sat</span>
+                            </div>
+                            <div class="text-center pb-2">
+                                <span class="text-xs font-medium text-gray-400 uppercase">Sun</span>
+                            </div>
+                        </div>
 
-                            <!-- Calendar Days -->
-                            <template x-for="dateObj in calendarDays">
+                        <!-- Calendar Days Grid -->
+                        <div class="grid grid-cols-7 gap-1">
+                            <template x-for="(dateObj, index) in calendarDays" :key="index">
                                 <div @click="selectDate(dateObj)" 
-                                     class="relative aspect-square flex items-center justify-center cursor-pointer group"
-                                     :class="!dateObj.isCurrentMonth ? 'opacity-30' : ''">
+                                     class="relative aspect-square flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all group"
+                                     :class="{
+                                         'bg-purple-600': isToday(dateObj),
+                                         'bg-purple-50': isSelected(dateObj) && !isToday(dateObj),
+                                         'hover:bg-gray-50': !isSelected(dateObj) && !isToday(dateObj) && dateObj.isCurrentMonth
+                                     }">
                                     
                                     <!-- Date Number -->
-                                    <div class="relative z-10 w-10 h-10 flex items-center justify-center rounded-full transition-all"
-                                         :class="{
-                                             'bg-purple-600 text-white shadow-lg': isToday(dateObj),
-                                             'bg-purple-100 text-purple-600': isSelected(dateObj) && !isToday(dateObj),
-                                             'hover:bg-gray-100': !isToday(dateObj) && !isSelected(dateObj),
-                                             'text-gray-900': dateObj.isCurrentMonth && !isToday(dateObj) && !isSelected(dateObj),
-                                             'text-gray-400': !dateObj.isCurrentMonth
-                                         }">
-                                        <span class="text-sm font-semibold" x-text="dateObj.day"></span>
+                                    <span class="text-sm font-medium mb-1"
+                                          :class="{
+                                              'text-white': isToday(dateObj),
+                                              'text-gray-900': dateObj.isCurrentMonth && !isToday(dateObj),
+                                              'text-gray-300': !dateObj.isCurrentMonth
+                                          }"
+                                          x-text="dateObj.day"></span>
+
+                                    <!-- Indicators -->
+                                    <div class="flex items-center gap-0.5">
+                                        <template x-if="isPeriodDay(dateObj)">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-pink-500"></div>
+                                        </template>
+                                        
+                                        <template x-if="isFertileDay(dateObj)">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                                        </template>
                                     </div>
-
-                                    <!-- Period Indicator (Pink Dot) -->
-                                    <template x-if="isPeriodDay(dateObj)">
-                                        <div class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-pink-500"></div>
-                                    </template>
-
-                                    <!-- Predicted Fertile (Purple Dashed Border) -->
-                                    <template x-if="isFertileDay(dateObj)">
-                                        <div class="absolute inset-0 border-2 border-dashed border-purple-400 rounded-full"></div>
-                                    </template>
                                 </div>
                             </template>
                         </div>
 
                         <!-- Legend -->
-                        <div class="flex items-center gap-6 mt-6 pt-6 border-t border-gray-100">
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full bg-pink-500"></div>
-                                <span class="text-xs text-gray-600">Period</span>
+                        <div class="flex items-center gap-4 mt-6 pt-4 border-t border-gray-100">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-pink-500"></div>
+                                <span class="text-xs text-gray-500">Period</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full border-2 border-dashed border-purple-400"></div>
-                                <span class="text-xs text-gray-600">Predicted Fertile</span>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-purple-400"></div>
+                                <span class="text-xs text-gray-500">Predicted Fertile</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full bg-purple-600"></div>
-                                <span class="text-xs text-gray-600">Today</span>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-purple-600"></div>
+                                <span class="text-xs text-gray-500">Today</span>
                             </div>
                         </div>
                     </div>
@@ -119,16 +143,18 @@
                     </div>
 
                     <!-- Ovulation Window Card -->
-                    <div class="bg-gradient-to-br from-pink-500 to-pink-600 rounded-3xl p-6 text-white relative overflow-hidden">
-                        <div class="absolute top-4 right-4 w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <div class="rounded-3xl p-6 relative overflow-hidden shadow-lg" style="background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);">
+                        <div class="absolute top-4 right-4 w-16 h-16 rounded-full flex items-center justify-center" style="background: rgba(255, 255, 255, 0.1);">
+                            <svg class="w-8 h-8" fill="white" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
                             </svg>
                         </div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-pink-100 mb-2">Health Tip</p>
-                        <h3 class="text-2xl font-black mb-3">OVULATION WINDOW</h3>
-                        <p class="text-lg font-bold mb-2" x-text="ovulationWindow"></p>
-                        <p class="text-sm text-pink-100">Most fertile expected in 4 days</p>
+                        <div class="relative z-10">
+                            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: #FCE7F3;">Health Tip</p>
+                            <h3 class="text-2xl font-black mb-3" style="color: #FFFFFF;">OVULATION WINDOW</h3>
+                            <p class="text-lg font-bold mb-2" style="color: #FFFFFF;" x-text="ovulationWindow"></p>
+                            <p class="text-sm" style="color: #FDF2F8;">Most fertile expected in 4 days</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -429,6 +455,15 @@ function cycleTracker() {
                 this.currentMonth++;
             }
             this.updateCalendar();
+        },
+
+        goToToday() {
+            const today = new Date();
+            this.currentMonth = today.getMonth();
+            this.currentYear = today.getFullYear();
+            this.selectedDate = today;
+            this.updateCalendar();
+            this.loadExistingLog();
         },
 
         selectDate(dateObj) {
