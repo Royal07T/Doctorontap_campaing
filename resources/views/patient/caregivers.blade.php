@@ -84,7 +84,7 @@
                     <!-- Card Footer -->
                     <div class="p-4 bg-gray-50 border-t border-gray-100 group-hover:bg-purple-50 transition-colors">
                         <button class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all shadow-sm opacity-50 cursor-not-allowed" title="Direct booking coming soon">
-                            View Profile
+                            Hire Caregiver
                         </button>
                     </div>
                 </div>
