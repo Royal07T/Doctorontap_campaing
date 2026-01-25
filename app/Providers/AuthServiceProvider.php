@@ -9,6 +9,7 @@ use App\Models\CareGiver;
 use App\Models\CustomerInteraction;
 use App\Models\SupportTicket;
 use App\Models\Escalation;
+use App\Models\VideoRoom;
 use App\Policies\ConsultationPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\VitalSignPolicy;
@@ -16,6 +17,7 @@ use App\Policies\CareGiverPolicy;
 use App\Policies\CustomerInteractionPolicy;
 use App\Policies\SupportTicketPolicy;
 use App\Policies\EscalationPolicy;
+use App\Policies\VideoRoomPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -34,6 +36,7 @@ class AuthServiceProvider extends ServiceProvider
         CustomerInteraction::class => CustomerInteractionPolicy::class,
         SupportTicket::class => SupportTicketPolicy::class,
         Escalation::class => EscalationPolicy::class,
+        VideoRoom::class => VideoRoomPolicy::class,
     ];
 
     /**

@@ -175,6 +175,16 @@ class Consultation extends Model
         return $this->hasMany(ConsultationSession::class);
     }
 
+    public function videoRooms(): HasMany
+    {
+        return $this->hasMany(VideoRoom::class);
+    }
+
+    public function activeVideoRoom()
+    {
+        return $this->videoRooms()->whereIn('status', ['pending', 'active'])->latest()->first();
+    }
+
     /**
      * Get the active session for this consultation
      */

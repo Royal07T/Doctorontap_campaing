@@ -37,5 +37,14 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        if (config('services.vonage.video_enabled')) {
+            $apiKey = config('services.vonage.api_key');
+            $apiSecret = config('services.vonage.api_secret');
+
+            if (empty($apiKey) || empty($apiSecret)) {
+                throw new \RuntimeException('VONAGE_VIDEO_ENABLED is true but VONAGE_API_KEY/VONAGE_API_SECRET are missing.');
+            }
+        }
     }
 }

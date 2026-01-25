@@ -82,13 +82,12 @@ class VonageVideoService
             $sessionOptions['mediaMode'] = $options['mediaMode'] ?? MediaMode::ROUTED;
             
             // Archive mode: MANUAL (default) or ALWAYS
-            if (isset($options['archiveMode'])) {
-                $sessionOptions['archiveMode'] = $options['archiveMode'];
-            }
+            $sessionOptions['archiveMode'] = $options['archiveMode'] ?? ArchiveMode::MANUAL;
             
             // Location hint for better routing
-            if (isset($options['location']) || config('services.vonage.video_location')) {
-                $sessionOptions['location'] = $options['location'] ?? config('services.vonage.video_location', '12.34.56.78');
+            $location = $options['location'] ?? config('services.vonage.video_location');
+            if (is_string($location) && filter_var($location, FILTER_VALIDATE_IP)) {
+                $sessionOptions['location'] = $location;
             }
             
             // Create session
@@ -149,11 +148,13 @@ class VonageVideoService
         }
 
         try {
+            $expiresIn = min(max(60, $expiresIn), 7200);
+
             // Build token options
             $tokenOptions = [
                 'role' => $role,
                 'expireTime' => time() + $expiresIn,
-                'data' => 'name=' . $userName,
+                'data' => 'v=1',
             ];
             
             // Add layout classes if provided (for archive/broadcast layout control)
@@ -167,7 +168,6 @@ class VonageVideoService
             Log::info('OpenTok Video token generated', [
                 'session_id' => $sessionId,
                 'role' => $role,
-                'user_name' => $userName,
                 'expires_in' => $expiresIn
             ]);
 
@@ -236,6 +236,94 @@ class VonageVideoService
                 'success' => false,
                 'message' => 'Failed to disconnect participant',
                 'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function startArchive(string $sessionId, array $options = []): array
+    {
+        if (!$this->enabled) {
+            return [
+                'success' => false,
+                'message' => 'Video API is disabled',
+                'error' => 'disabled'
+            ];
+        }
+
+        if (!$this->opentok) {
+            return [
+                'success' => false,
+                'message' => 'OpenTok credentials not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        try {
+            $archive = $this->opentok->startArchive($sessionId, $options);
+
+            Log::info('OpenTok archive started', [
+                'session_id' => $sessionId,
+                'archive_id' => $archive->id ?? null,
+            ]);
+
+            return [
+                'success' => true,
+                'archive' => $archive,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to start OpenTok archive', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Failed to start recording',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function stopArchive(string $archiveId): array
+    {
+        if (!$this->enabled) {
+            return [
+                'success' => false,
+                'message' => 'Video API is disabled',
+                'error' => 'disabled'
+            ];
+        }
+
+        if (!$this->opentok) {
+            return [
+                'success' => false,
+                'message' => 'OpenTok credentials not configured',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        try {
+            $archive = $this->opentok->stopArchive($archiveId);
+
+            Log::info('OpenTok archive stopped', [
+                'archive_id' => $archiveId,
+                'status' => $archive->status ?? null,
+            ]);
+
+            return [
+                'success' => true,
+                'archive' => $archive,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to stop OpenTok archive', [
+                'archive_id' => $archiveId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Failed to stop recording',
+                'error' => $e->getMessage(),
             ];
         }
     }

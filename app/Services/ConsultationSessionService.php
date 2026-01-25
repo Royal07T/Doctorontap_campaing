@@ -468,21 +468,20 @@ class ConsultationSessionService
         // Generate tokens for doctor and patient
         $doctorTokenResult = $this->videoService->generateToken(
             $sessionId,
-            \OpenTok\Role::PUBLISHER,
-            "Dr. {$doctor->name}",
-            86400 // 24 hours
+            \OpenTok\Role::MODERATOR,
+            'doctor',
+            7200
         );
 
         if (!$doctorTokenResult['success']) {
             return $doctorTokenResult;
         }
 
-        $patientName = $patient ? "{$patient->first_name} {$patient->last_name}" : "{$consultation->first_name} {$consultation->last_name}";
         $patientTokenResult = $this->videoService->generateToken(
             $sessionId,
             \OpenTok\Role::PUBLISHER,
-            $patientName,
-            86400
+            'patient',
+            7200
         );
 
         if (!$patientTokenResult['success']) {

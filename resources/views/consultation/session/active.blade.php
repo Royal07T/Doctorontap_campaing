@@ -28,9 +28,17 @@
                 x-data="vonageConsultation({
                     consultationId: {{ $consultation->id }},
                     mode: '{{ $consultation->consultation_mode }}',
+                    vonageApiKey: '{{ config('services.vonage.api_key') }}',
                     tokenUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.token" : "patient.consultations.session.token", $consultation->id) }}',
                     statusUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.status" : "patient.consultations.session.status", $consultation->id) }}',
                     endSessionUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.end" : "patient.consultations.session.end", $consultation->id) }}',
+                    videoCreateUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.create" : "patient.consultations.video.create", $consultation->id) }}',
+                    videoJoinUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.join" : "patient.consultations.video.join", $consultation->id) }}',
+                    videoRefreshUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.refresh" : "patient.consultations.video.refresh", $consultation->id) }}',
+                    videoStatusUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.status" : "patient.consultations.video.status", $consultation->id) }}',
+                    videoEndUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.end" : "patient.consultations.video.end", $consultation->id) }}',
+                    videoRecordingStartUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.recording.start" : "patient.consultations.video.recording.start", $consultation->id) }}',
+                    videoRecordingStopUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.recording.stop" : "patient.consultations.video.recording.stop", $consultation->id) }}',
                     dashboardUrl: '{{ auth()->guard("patient")->check() ? route("patient.dashboard") : route("doctor.dashboard") }}',
                     consultationDetailsUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.view" : "patient.consultation.view", $consultation->id) }}',
                     isPatient: {{ auth()->guard('patient')->check() ? 'true' : 'false' }}
@@ -201,9 +209,17 @@ function vonageConsultation(config) {
         // Configuration
         consultationId: config.consultationId,
         mode: config.mode,
+        vonageApiKey: config.vonageApiKey,
         tokenUrl: config.tokenUrl,
         statusUrl: config.statusUrl,
         endSessionUrl: config.endSessionUrl,
+        videoCreateUrl: config.videoCreateUrl,
+        videoJoinUrl: config.videoJoinUrl,
+        videoRefreshUrl: config.videoRefreshUrl,
+        videoStatusUrl: config.videoStatusUrl,
+        videoEndUrl: config.videoEndUrl,
+        videoRecordingStartUrl: config.videoRecordingStartUrl,
+        videoRecordingStopUrl: config.videoRecordingStopUrl,
         dashboardUrl: config.dashboardUrl,
         consultationDetailsUrl: config.consultationDetailsUrl,
         isPatient: config.isPatient,
@@ -222,6 +238,7 @@ function vonageConsultation(config) {
         publisher: null,
         subscribers: [], // Array to track all subscribers
         statusPollInterval: null,
+        currentArchiveId: null,
         
         // Chat SDK
         conversationClient: null,
@@ -249,9 +266,17 @@ function vonageConsultation(config) {
                 console.warn('OpenTok.js SDK not loaded. Video/voice consultations may not work.');
                 // Don't show error immediately - wait for user to click join
             }
+
+            window.addEventListener('beforeunload', () => {
+                this.cleanupVonage();
+            });
         },
         
         async joinConsultation() {
+            if (this.mode === 'video') {
+                return this.joinVideoRoom();
+            }
+
             this.state = 'loading';
             this.loading = true;
             this.errorType = null;
@@ -309,7 +334,7 @@ function vonageConsultation(config) {
                 this.chatToken = data.token;
                 
                 // Initialize Vonage Client SDK
-                await this.initializeVonage(data.token, data.session_id);
+                await this.initializeVonage(this.vonageApiKey, data.token, data.session_id);
                 
             } catch (error) {
                 console.error('Error joining consultation:', error);
@@ -318,8 +343,72 @@ function vonageConsultation(config) {
                 this.loading = false;
             }
         },
+
+        async joinVideoRoom() {
+            this.state = 'loading';
+            this.loading = true;
+            this.errorType = null;
+
+            try {
+                if (!this.isPatient) {
+                    await fetch(this.videoCreateUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    });
+                }
+
+                const response = await fetch(this.videoJoinUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+
+                if (response.status === 404 && this.isPatient) {
+                    this.showError('generic', 'Waiting for Doctor', 'The doctor has not started the video room yet. Please wait a moment and try again.');
+                    return;
+                }
+
+                if (response.status === 401) {
+                    this.showError('401', 'Unauthorized Access', 'You are not authorized to join this consultation. Please contact support if you believe this is an error.');
+                    return;
+                }
+
+                if (response.status === 403) {
+                    this.showError('403', 'Access Denied', 'You do not have permission to join this video room.');
+                    return;
+                }
+
+                if (response.status === 429) {
+                    this.showError('429', 'Too Many Requests', 'You have made too many requests. Please wait a moment and try again.');
+                    return;
+                }
+
+                if (!response.ok || !data.success) {
+                    this.showError('generic', 'Connection Error', data.message || `Server error (${response.status})`);
+                    return;
+                }
+
+                await this.initializeVonage(data.api_key || this.vonageApiKey, data.token, data.session_id);
+            } catch (error) {
+                console.error('Error joining video room:', error);
+                this.showError('generic', 'Network Error', 'Network error. Please check your connection and try again.');
+            } finally {
+                this.loading = false;
+            }
+        },
         
-        async initializeVonage(token, sessionId) {
+        async initializeVonage(apiKey, token, sessionId) {
             try {
                 // Check if OpenTok.js SDK is loaded
                 if (typeof OT === 'undefined') {
@@ -328,7 +417,7 @@ function vonageConsultation(config) {
                 
                 // Initialize OpenTok session
                 // OpenTok.js uses OT.initSession() to create a session
-                this.session = OT.initSession(sessionId);
+                this.session = OT.initSession(apiKey, sessionId);
                 
                 // Handle session events
                 this.session.on('sessionConnected', () => {
@@ -342,6 +431,10 @@ function vonageConsultation(config) {
                 
                 this.session.on('error', (error) => {
                     console.error('OpenTok session error:', error);
+                    if ((error.code === 1004 || error.code === 1006 || error.code === 1008) && this.mode === 'video') {
+                        this.refreshVideoToken();
+                        return;
+                    }
                     this.showError('generic', 'Session Error', 'An error occurred with the consultation session. Please try again.');
                     this.state = 'error';
                 });
@@ -350,6 +443,10 @@ function vonageConsultation(config) {
                 this.session.connect(token, (error) => {
                     if (error) {
                         console.error('Error connecting to OpenTok session:', error);
+                        if ((error.code === 1004 || error.code === 1006 || error.code === 1008) && this.mode === 'video') {
+                            this.refreshVideoToken();
+                            return;
+                        }
                         this.showError('generic', 'Connection Error', error.message || 'Failed to connect to consultation session.');
                         this.state = 'error';
                         return;
@@ -379,6 +476,36 @@ function vonageConsultation(config) {
             } catch (error) {
                 console.error('Error initializing Vonage:', error);
                 this.showError('generic', 'Initialization Error', error.message || 'Failed to initialize consultation. Please try again.');
+            }
+        },
+
+        async refreshVideoToken() {
+            if (this.state !== 'connected' && this.state !== 'loading') {
+                return;
+            }
+
+            try {
+                const response = await fetch(this.videoRefreshUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to refresh token');
+                }
+
+                this.cleanupVonage();
+                await this.initializeVonage(data.api_key || this.vonageApiKey, data.token, data.session_id);
+            } catch (e) {
+                console.error('Token refresh failed:', e);
+                this.showError('generic', 'Session Expired', 'Your session expired. Please re-join the consultation.');
+                this.state = 'error';
             }
         },
         
@@ -1133,7 +1260,6 @@ function vonageConsultation(config) {
         },
         
         toggleRecording() {
-            // This would trigger backend recording
             this.isRecording = !this.isRecording;
             const btn = document.getElementById('record-btn');
             if (btn) {
@@ -1141,24 +1267,60 @@ function vonageConsultation(config) {
                     btn.classList.add('bg-red-500', 'animate-pulse');
                     btn.classList.remove('bg-white');
                     btn.querySelector('svg').classList.add('text-white');
-                    btn.querySelector('svg').classList.remove('text-gray-700');
                 } else {
                     btn.classList.remove('bg-red-500', 'animate-pulse');
                     btn.classList.add('bg-white');
                     btn.querySelector('svg').classList.remove('text-white');
-                    btn.querySelector('svg').classList.add('text-gray-700');
                 }
             }
             
-            // Notify backend
-            fetch(`/consultations/${this.consultationId}/session/recording`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({ recording: this.isRecording })
-            }).catch(err => console.error('Error toggling recording:', err));
+            if (this.mode !== 'video') {
+                fetch(`/consultations/${this.consultationId}/session/recording`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ recording: this.isRecording })
+                }).catch(err => console.error('Error toggling recording:', err));
+                return;
+            }
+
+            if (this.isRecording) {
+                fetch(this.videoRecordingStartUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({})
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.success && data.archive && data.archive.vonage_archive_id) {
+                            this.currentArchiveId = data.archive.vonage_archive_id;
+                        }
+                    })
+                    .catch(err => console.error('Error starting recording:', err));
+            } else {
+                if (!this.currentArchiveId) {
+                    return;
+                }
+                fetch(this.videoRecordingStopUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ archive_id: this.currentArchiveId })
+                })
+                    .then(() => {
+                        this.currentArchiveId = null;
+                    })
+                    .catch(err => console.error('Error stopping recording:', err));
+            }
         },
         
         monitorConnectionQuality() {
@@ -1226,19 +1388,20 @@ function vonageConsultation(config) {
             this.ending = true;
             
             try {
-                const response = await fetch(this.endSessionUrl, {
+                const response = await fetch(this.mode === 'video' ? this.videoEndUrl : this.endSessionUrl, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({})
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    this.cleanup();
+                    this.cleanupVonage();
                     if (this.isPatient) {
                         this.showReviewModal = true;
                     } else {
@@ -1262,11 +1425,11 @@ function vonageConsultation(config) {
                 if (this.state !== 'connected') return;
                 
                 try {
-                    const response = await fetch(this.statusUrl, {
+                    const response = await fetch(this.mode === 'video' ? this.videoStatusUrl : this.statusUrl, {
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         },
                         cache: 'no-cache'
                     });
@@ -1281,7 +1444,7 @@ function vonageConsultation(config) {
                             if (this.isPatient) {
                                 this.showReviewModal = true;
                             } else {
-                                window.location.href = this.consultationDetailsUrl;
+                                window.location.href = this.dashboardUrl;
                             }
                         } else if (status === 'cancelled') {
                             this.cleanup();
@@ -1316,42 +1479,88 @@ function vonageConsultation(config) {
             if (this.conversationClient) {
                 this.conversationClient = null;
             }
-            
-            // Disconnect video/voice session
-            if (this.session) {
+
+            const session = this.session;
+
+            if (session && this.publisher) {
                 try {
-                    this.session.disconnect();
-                } catch (error) {
-                    console.error('Error disconnecting session:', error);
-                }
-                this.session = null;
-            }
-            
-            // Cleanup publisher
-            if (this.publisher) {
-                try {
-                    if (this.session) {
-                        this.session.unpublish(this.publisher);
-                    }
+                    session.unpublish(this.publisher);
                 } catch (error) {
                     console.error('Error unpublishing:', error);
                 }
+            }
+
+            if (this.publisher) {
+                try {
+                    this.publisher.destroy();
+                } catch (error) {
+                }
                 this.publisher = null;
             }
-            
-            // Cleanup subscribers
-            this.subscribers.forEach(sub => {
-                try {
-                    if (this.session) {
-                        this.session.unsubscribe(sub);
+
+            if (session && Array.isArray(this.subscribers)) {
+                this.subscribers.forEach(sub => {
+                    try {
+                        session.unsubscribe(sub);
+                    } catch (error) {
+                        console.error('Error unsubscribing:', error);
                     }
-                } catch (error) {
-                    console.error('Error unsubscribing:', error);
-                }
-            });
+                });
+            }
             this.subscribers = [];
-            
-            this.vonageClient = null;
+
+            if (session) {
+                try {
+                    session.disconnect();
+                } catch (error) {
+                    console.error('Error disconnecting session:', error);
+                }
+            }
+
+            this.session = null;
+        },
+        
+        cleanupVonage() {
+            if (this.statusPollInterval) {
+                clearInterval(this.statusPollInterval);
+                this.statusPollInterval = null;
+            }
+
+            try {
+                if (this.publisher && this.session) {
+                    try {
+                        this.session.unpublish(this.publisher);
+                    } catch (e) {
+                    }
+
+                    try {
+                        this.publisher.destroy();
+                    } catch (e) {
+                    }
+                }
+
+                this.publisher = null;
+
+                if (Array.isArray(this.subscribers)) {
+                    this.subscribers.forEach((sub) => {
+                        try {
+                            sub.destroy();
+                        } catch (e) {
+                        }
+                    });
+                }
+                this.subscribers = [];
+
+                if (this.session) {
+                    try {
+                        this.session.disconnect();
+                    } catch (e) {
+                    }
+                }
+            } catch (e) {
+            }
+
+            this.session = null;
         },
         
         redirectToDashboard(delayed) {

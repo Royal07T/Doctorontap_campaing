@@ -27,6 +27,50 @@ class ConsultationSessionController extends Controller
         $this->sessionService = $sessionService;
     }
 
+    public function waitingRoom(Consultation $consultation)
+    {
+        if (!$consultation->isInAppMode()) {
+            abort(404);
+        }
+
+        if (auth()->guard('doctor')->check()) {
+            if ($consultation->doctor_id !== auth()->guard('doctor')->id()) {
+                abort(403);
+            }
+        } elseif (auth()->guard('patient')->check()) {
+            $patient = auth()->guard('patient')->user();
+            if ($consultation->patient_id !== $patient->id && $consultation->email !== $patient->email) {
+                abort(403);
+            }
+        } else {
+            abort(401);
+        }
+
+        return view('consultation.session.waiting-room', compact('consultation'));
+    }
+
+    public function active(Consultation $consultation)
+    {
+        if (!$consultation->isInAppMode()) {
+            abort(404);
+        }
+
+        if (auth()->guard('doctor')->check()) {
+            if ($consultation->doctor_id !== auth()->guard('doctor')->id()) {
+                abort(403);
+            }
+        } elseif (auth()->guard('patient')->check()) {
+            $patient = auth()->guard('patient')->user();
+            if ($consultation->patient_id !== $patient->id && $consultation->email !== $patient->email) {
+                abort(403);
+            }
+        } else {
+            abort(401);
+        }
+
+        return view('consultation.session.active', compact('consultation'));
+    }
+
     /**
      * Get session token for joining consultation
      * 

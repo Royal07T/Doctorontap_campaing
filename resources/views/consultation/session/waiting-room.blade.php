@@ -105,7 +105,7 @@
     
     const consultationId = {{ $consultation->id }};
     const isDoctor = {{ auth()->guard('doctor')->check() ? 'true' : 'false' }};
-    const statusUrl = '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.status" : "patient.consultations.session.status", $consultation->id) }}';
+    const statusUrl = '{{ $consultation->consultation_mode === 'video' ? route(auth()->guard('doctor')->check() ? 'doctor.consultations.video.status' : 'patient.consultations.video.status', $consultation->id) : route(auth()->guard('doctor')->check() ? 'doctor.consultations.session.status' : 'patient.consultations.session.status', $consultation->id) }}';
     const activeUrl = '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.active" : "patient.consultations.session.active", $consultation->id) }}';
     const scheduledAt = @json($consultation->scheduled_at ? $consultation->scheduled_at->toIso8601String() : null);
     

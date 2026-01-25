@@ -62,6 +62,11 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                     Join Call
                                 </a>
+                            @elseif($consultation->isInAppMode())
+                                <a href="{{ route('patient.consultations.session.waiting-room', $consultation->id) }}" class="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Enter Waiting Room
+                                </a>
                             @else
                                 <button disabled class="w-full sm:w-auto px-6 py-2.5 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed">
                                     Waiting for Link...

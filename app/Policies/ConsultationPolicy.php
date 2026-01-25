@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Consultation;
-use App\Models\Admin;
+use App\Models\AdminUser;
 use App\Models\Doctor;
 use App\Models\Nurse;
 use App\Models\Patient;
@@ -22,7 +22,7 @@ class ConsultationPolicy
     public function view($user, Consultation $consultation): bool
     {
         // Admins can view all consultations
-        if ($user instanceof Admin) {
+        if ($user instanceof AdminUser) {
             $this->logAuthorization('view', $user, $consultation, true, 'admin');
             return true;
         }
@@ -69,7 +69,7 @@ class ConsultationPolicy
     public function update($user, Consultation $consultation): bool
     {
         // Admins can update all consultations
-        if ($user instanceof Admin) {
+        if ($user instanceof AdminUser) {
             return true;
         }
         
@@ -101,7 +101,7 @@ class ConsultationPolicy
     public function delete($user, Consultation $consultation): bool
     {
         // Only admins can delete consultations
-        if ($user instanceof Admin) {
+        if ($user instanceof AdminUser) {
             return true;
         }
         
@@ -117,7 +117,7 @@ class ConsultationPolicy
     public function viewAny($user): bool
     {
         // All authenticated users can view consultations (filtered by their access)
-        return $user instanceof Admin 
+        return $user instanceof AdminUser 
             || $user instanceof Doctor 
             || $user instanceof Nurse 
             || $user instanceof Patient 
@@ -133,7 +133,7 @@ class ConsultationPolicy
     public function create($user): bool
     {
         // Admins and canvassers can create consultations
-        return $user instanceof Admin || $user instanceof Canvasser;
+        return $user instanceof AdminUser || $user instanceof Canvasser;
     }
     
     /**

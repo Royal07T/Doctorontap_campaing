@@ -586,6 +586,9 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     // Consultation Sessions (In-App Consultations)
     // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
+        Route::get('/session/waiting-room', [\App\Http\Controllers\ConsultationSessionController::class, 'waitingRoom'])->name('session.waiting-room');
+        Route::get('/session/active', [\App\Http\Controllers\ConsultationSessionController::class, 'active'])->name('session.active');
+
         Route::post('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])
             ->middleware('throttle:10,1') // Rate limit: 10 requests per minute
             ->name('session.token');
@@ -593,6 +596,16 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
         Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
         Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
         Route::post('/session/recording', [\App\Http\Controllers\ConsultationSessionController::class, 'toggleRecording'])->name('session.recording');
+
+        Route::prefix('video')->name('video.')->group(function () {
+            Route::post('/create', [\App\Http\Controllers\VideoRoomController::class, 'createRoom'])->name('create');
+            Route::post('/join', [\App\Http\Controllers\VideoRoomController::class, 'joinRoom'])->middleware('throttle:10,1')->name('join');
+            Route::post('/refresh', [\App\Http\Controllers\VideoRoomController::class, 'refreshToken'])->middleware('throttle:10,1')->name('refresh');
+            Route::get('/status', [\App\Http\Controllers\VideoRoomController::class, 'status'])->name('status');
+            Route::post('/end', [\App\Http\Controllers\VideoRoomController::class, 'endRoom'])->name('end');
+            Route::post('/recording/start', [\App\Http\Controllers\VideoRoomController::class, 'startArchive'])->middleware('throttle:6,1')->name('recording.start');
+            Route::post('/recording/stop', [\App\Http\Controllers\VideoRoomController::class, 'stopArchive'])->middleware('throttle:6,1')->name('recording.stop');
+        });
         
         // Chat Messages
         Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
@@ -668,6 +681,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     // Consultation Sessions (In-App Consultations)
     // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
+        Route::get('/session/waiting-room', [\App\Http\Controllers\ConsultationSessionController::class, 'waitingRoom'])->name('session.waiting-room');
+        Route::get('/session/active', [\App\Http\Controllers\ConsultationSessionController::class, 'active'])->name('session.active');
+
         Route::post('/session/token', [\App\Http\Controllers\ConsultationSessionController::class, 'getToken'])
             ->middleware('throttle:10,1') // Rate limit: 10 requests per minute
             ->name('session.token');
@@ -675,6 +691,16 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
         Route::post('/session/end', [\App\Http\Controllers\ConsultationSessionController::class, 'endSession'])->name('session.end');
         Route::get('/session/status', [\App\Http\Controllers\ConsultationSessionController::class, 'getStatus'])->name('session.status');
         Route::post('/session/recording', [\App\Http\Controllers\ConsultationSessionController::class, 'toggleRecording'])->name('session.recording');
+
+        Route::prefix('video')->name('video.')->group(function () {
+            Route::post('/create', [\App\Http\Controllers\VideoRoomController::class, 'createRoom'])->name('create');
+            Route::post('/join', [\App\Http\Controllers\VideoRoomController::class, 'joinRoom'])->middleware('throttle:10,1')->name('join');
+            Route::post('/refresh', [\App\Http\Controllers\VideoRoomController::class, 'refreshToken'])->middleware('throttle:10,1')->name('refresh');
+            Route::get('/status', [\App\Http\Controllers\VideoRoomController::class, 'status'])->name('status');
+            Route::post('/end', [\App\Http\Controllers\VideoRoomController::class, 'endRoom'])->name('end');
+            Route::post('/recording/start', [\App\Http\Controllers\VideoRoomController::class, 'startArchive'])->middleware('throttle:6,1')->name('recording.start');
+            Route::post('/recording/stop', [\App\Http\Controllers\VideoRoomController::class, 'stopArchive'])->middleware('throttle:6,1')->name('recording.stop');
+        });
         
         // Chat Messages
         Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
