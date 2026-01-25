@@ -290,7 +290,13 @@ consultationPage()
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Age</label>
-                            <p class="text-sm text-gray-900">{{ $consultation->age }} years</p>
+                            <p class="text-sm text-gray-900">
+                                @if($consultation->patient && $consultation->patient->date_of_birth)
+                                    {{ $consultation->patient->date_of_birth->age }} years
+                                @else
+                                    {{ $consultation->age }} years
+                                @endif
+                            </p>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
