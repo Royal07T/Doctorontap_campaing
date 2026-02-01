@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
+use Vonage\Laravel\Facade\Vonage;
 use Vonage\Client;
 use Vonage\Client\Credentials\Basic;
 use Vonage\Client\Credentials\Keypair;
@@ -34,18 +35,26 @@ class VonageService
     protected $enabled;
     protected $whatsappEnabled;
     protected $whatsappNumber;
+    protected $messagesSandbox;
 
     public function __construct()
     {
-        $this->apiKey = config('services.vonage.api_key');
-        $this->apiSecret = config('services.vonage.api_secret');
-        $this->applicationId = config('services.vonage.application_id');
+        $this->apiKey = config('vonage.api_key');
+        $this->apiSecret = config('vonage.api_secret');
+        $this->applicationId = config('vonage.application_id');
         $this->privateKey = $this->getPrivateKey();
-        $this->brandName = config('services.vonage.brand_name', 'DoctorOnTap');
-        $this->apiMethod = config('services.vonage.api_method', 'legacy');
+        $this->brandName = config('vonage.brand_name', 'DoctorOnTap');
+        $this->apiMethod = config('services.vonage.api_method', 'legacy'); // Keeping migration logic
         $this->enabled = config('services.vonage.enabled', true);
-        $this->whatsappEnabled = config('services.vonage.whatsapp_enabled', false);
-        $this->whatsappNumber = config('services.vonage.whatsapp_number');
+        $this->whatsappEnabled = config('vonage.whatsapp_enabled', false);
+        $this->messagesSandbox = config('vonage.whatsapp_sandbox', false);
+        
+        // Use sandbox number if enabled, otherwise use configured number
+        $rawNumber = $this->messagesSandbox 
+            ? '14157386102' 
+            : config('vonage.whatsapp_number', '');
+            
+        $this->whatsappNumber = $this->formatPhoneNumber($rawNumber);
     }
 
     /**
@@ -54,7 +63,7 @@ class VonageService
     protected function getPrivateKey()
     {
         $privateKeyPath = config('services.vonage.private_key_path');
-        $privateKey = config('services.vonage.private_key');
+        $privateKey = config('vonage.private_key');
 
         if ($privateKeyPath && file_exists($privateKeyPath)) {
             return file_get_contents($privateKeyPath);
@@ -252,7 +261,8 @@ class VonageService
             }
 
             $credentials = new Keypair($this->privateKey, $this->applicationId);
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
 
             // Create SMS message using Messages API
             // Constructor: SMSText(to, from, message)
@@ -262,10 +272,16 @@ class VonageService
                 $message
             );
 
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+                Log::debug('Using Vonage Messages Sandbox for SMS');
+            }
+
             $response = $client->messages()->send($smsMessage);
 
-            // Messages API response structure is different
-            $messageUuid = $response->getMessageUuid();
+            // Handle both object and array responses
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
             
             Log::info('Vonage Messages API SMS sent successfully', [
                 'to' => $formattedPhone,
@@ -564,16 +580,8 @@ class VonageService
         try {
             set_time_limit(30);
             
-            // Choose authentication method
-            if ($useJWT) {
-                $credentials = new Keypair($this->privateKey, $this->applicationId);
-                Log::debug('Using JWT authentication for WhatsApp');
-            } else {
-                $credentials = new Basic($this->apiKey, $this->apiSecret);
-                Log::debug('Using Basic authentication for WhatsApp');
-            }
-            
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
 
             // Create WhatsApp text message
             $whatsappMessage = new WhatsAppText(
@@ -582,13 +590,20 @@ class VonageService
                 $message
             );
 
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+                Log::debug('Using Vonage Messages Sandbox for WhatsApp');
+            }
+
             $response = $client->messages()->send($whatsappMessage);
-            $messageUuid = $response->getMessageUuid();
+            
+            // Handle both object and array responses (depending on SDK/Package version)
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
             
             Log::info('Vonage WhatsApp message sent successfully', [
                 'to' => $formattedPhone,
-                'message_uuid' => $messageUuid,
-                'auth_method' => $useJWT ? 'JWT' : 'Basic'
+                'message_uuid' => $messageUuid
             ]);
 
             return [
@@ -689,15 +704,8 @@ class VonageService
             set_time_limit(30);
             
             // Choose authentication method
-            if ($useJWT) {
-                $credentials = new Keypair($this->privateKey, $this->applicationId);
-                Log::debug('Using JWT authentication for WhatsApp template');
-            } else {
-                $credentials = new Basic($this->apiKey, $this->apiSecret);
-                Log::debug('Using Basic authentication for WhatsApp template');
-            }
-            
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
 
             // Create WhatsApp template message
             $whatsappTemplate = new WhatsAppTemplate(
@@ -708,14 +716,21 @@ class VonageService
                 $templateParameters
             );
 
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+                Log::debug('Using Vonage Messages Sandbox for WhatsApp template');
+            }
+
             $response = $client->messages()->send($whatsappTemplate);
-            $messageUuid = $response->getMessageUuid();
+            
+            // Handle both object and array responses
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
             
             Log::info('Vonage WhatsApp template sent successfully', [
                 'to' => $formattedPhone,
                 'template_name' => $templateName,
-                'message_uuid' => $messageUuid,
-                'auth_method' => $useJWT ? 'JWT' : 'Basic'
+                'message_uuid' => $messageUuid
             ]);
 
             return [
@@ -798,17 +813,21 @@ class VonageService
         $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
 
         try {
-            $credentials = $useJWT 
-                ? new Keypair($this->privateKey, $this->applicationId)
-                : new Basic($this->apiKey, $this->apiSecret);
-            
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
+
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+            }
 
             $imageObject = new ImageObject($imageUrl, $caption);
             $whatsappImage = new WhatsAppImage($formattedPhone, $this->whatsappNumber, $imageObject);
 
             $response = $client->messages()->send($whatsappImage);
-            $messageUuid = $response->getMessageUuid();
+            
+            // Handle both object and array responses
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp image sent successfully', [
                 'to' => $formattedPhone,
@@ -878,17 +897,21 @@ class VonageService
         $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
 
         try {
-            $credentials = $useJWT 
-                ? new Keypair($this->privateKey, $this->applicationId)
-                : new Basic($this->apiKey, $this->apiSecret);
-            
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
+
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+            }
 
             $videoObject = new VideoObject($videoUrl, $caption);
             $whatsappVideo = new WhatsAppVideo($formattedPhone, $this->whatsappNumber, $videoObject);
 
             $response = $client->messages()->send($whatsappVideo);
-            $messageUuid = $response->getMessageUuid();
+            
+            // Handle both object and array responses
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp video sent successfully', [
                 'to' => $formattedPhone,
@@ -957,17 +980,21 @@ class VonageService
         $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
 
         try {
-            $credentials = $useJWT 
-                ? new Keypair($this->privateKey, $this->applicationId)
-                : new Basic($this->apiKey, $this->apiSecret);
-            
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
+
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+            }
 
             $audioObject = new AudioObject($audioUrl);
             $whatsappAudio = new WhatsAppAudio($formattedPhone, $this->whatsappNumber, $audioObject);
 
             $response = $client->messages()->send($whatsappAudio);
-            $messageUuid = $response->getMessageUuid();
+            
+            // Handle both object and array responses
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp audio sent successfully', [
                 'to' => $formattedPhone,
@@ -1038,17 +1065,21 @@ class VonageService
         $formattedPhone = $this->formatPhoneNumberForWhatsApp($to);
 
         try {
-            $credentials = $useJWT 
-                ? new Keypair($this->privateKey, $this->applicationId)
-                : new Basic($this->apiKey, $this->apiSecret);
-            
-            $client = new Client($credentials);
+            // Use the Vonage Facade
+            $client = Vonage::getFacadeRoot();
+
+            // Handle sandbox mode
+            if ($this->messagesSandbox) {
+                $client->messages()->getAPIResource()->setBaseUrl('https://messages-sandbox.nexmo.com/v1/messages');
+            }
 
             $fileObject = new FileObject($fileUrl, $caption, $fileName);
             $whatsappFile = new WhatsAppFile($formattedPhone, $this->whatsappNumber, $fileObject);
 
             $response = $client->messages()->send($whatsappFile);
-            $messageUuid = $response->getMessageUuid();
+            
+            // Handle both object and array responses
+            $messageUuid = is_object($response) ? $response->getMessageUuid() : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp file sent successfully', [
                 'to' => $formattedPhone,

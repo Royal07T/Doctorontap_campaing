@@ -423,13 +423,30 @@ class VonageWebhookController extends Controller
     protected function processInboundMessage(InboundMessage $message): void
     {
         // Example: Auto-reply logic, notification triggers, etc.
-        // This is where you'd add your business logic
+        // This is based on the Vonage Blog "How Does It Do That?" section
         
-        Log::info('Processing inbound message', [
-            'message_id' => $message->id,
-            'from' => $message->from_number,
-            'type' => $message->message_type
-        ]);
+        if ($message->channel === 'whatsapp' && $message->message_type === 'text') {
+            $text = trim($message->message_text);
+            
+            // If the message is a number, multiply it and reply
+            if (is_numeric($text)) {
+                $number = (int) $text;
+                $randomNumber = random_int(1, 10);
+                $respondNumber = $number * $randomNumber;
+                
+                $replyText = "The answer is {$respondNumber}! We multiplied your number ({$number}) by {$randomNumber}. This is an automated reply from DoctorOnTap via Vonage Messages API. 🤖";
+                
+                $vonageService = app(\App\Services\VonageService::class);
+                $vonageService->sendWhatsAppMessage($message->from_number, $replyText);
+                
+                Log::info('WhatsApp auto-reply sent', [
+                    'original' => $number,
+                    'multiplier' => $randomNumber,
+                    'result' => $respondNumber,
+                    'to' => $message->from_number
+                ]);
+            }
+        }
         
         // Mark as processed
         $message->markAsProcessed();

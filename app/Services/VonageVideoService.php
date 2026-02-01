@@ -26,9 +26,9 @@ class VonageVideoService
     public function __construct()
     {
         // For Vonage Video API, we use dedicated video credentials or fall back to main credentials
-        $this->apiKey = config('services.vonage.video_api_key') ?: config('services.vonage.api_key');
-        $this->apiSecret = config('services.vonage.video_api_secret') ?: config('services.vonage.api_secret');
-        $this->enabled = config('services.vonage.video_enabled', false);
+        $this->apiKey = config('vonage.video_api_key') ?: config('vonage.api_key');
+        $this->apiSecret = config('vonage.video_api_secret') ?: config('vonage.api_secret');
+        $this->enabled = config('vonage.video_enabled', false);
         
         // Initialize OpenTok client only if video is enabled and credentials exist
         if ($this->enabled && $this->apiKey && $this->apiSecret) {

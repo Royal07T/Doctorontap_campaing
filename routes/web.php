@@ -440,6 +440,8 @@ Route::get('/care-giver/email/verify/{id}/{hash}', [\App\Http\Controllers\CareGi
 Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver'])->group(function () {
     Route::get('/pin/verify', [\App\Http\Controllers\CareGiver\PinVerificationController::class, 'show'])->name('pin.verify');
     Route::post('/pin/verify', [\App\Http\Controllers\CareGiver\PinVerificationController::class, 'verify'])->name('pin.verify.post');
+    Route::get('/customer-care/whatsapp-test', [CustomerCareController::class, 'whatsappTest'])->name('customer-care.whatsapp-test');
+    Route::post('/customer-care/whatsapp/send', [CustomerCareController::class, 'sendWhatsApp'])->name('customer-care.whatsapp.send');
 });
 
 // Protected Care Giver Routes (Authentication + PIN verification required)

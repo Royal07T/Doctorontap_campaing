@@ -72,6 +72,7 @@ return [
         'brand_name' => env('VONAGE_BRAND_NAME', 'DoctorOnTap'),
         'api_method' => env('VONAGE_API_METHOD', 'legacy'), // 'legacy' or 'messages'
         'enabled' => env('VONAGE_ENABLED', false),
+        'messages_sandbox' => env('VONAGE_WHATSAPP_SANDBOX', false),
         
         // WhatsApp Configuration (requires Messages API)
         'whatsapp_enabled' => env('VONAGE_WHATSAPP_ENABLED', false),

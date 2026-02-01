@@ -458,4 +458,18 @@ class CustomerCareController extends Controller
             ->where('id', $id)
             ->update(array_merge($data, ['updated_at' => now()]));
     }
+
+    /**
+     * Display WhatsApp testing interface
+     */
+    public function whatsappTest()
+    {
+        $inboundMessages = DB::table('sms_inbound_logs')
+            ->where('raw_data', 'LIKE', '%whatsapp%')
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get();
+
+        return view('customer-care.whatsapp-test', compact('inboundMessages'));
+    }
 }
