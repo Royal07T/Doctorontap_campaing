@@ -40,7 +40,8 @@ class TestVonageWhatsApp extends Command
 
         // Check if authentication credentials are configured
         // WhatsApp supports both JWT (Application ID + Private Key) and Basic (API Key + Secret)
-        $hasJWT = !empty(config('services.vonage.application_id')) && !empty(config('services.vonage.private_key'));
+        $hasJWT = !empty(config('services.vonage.application_id')) && 
+                 (!empty(config('services.vonage.private_key')) || !empty(config('services.vonage.private_key_path')));
         $hasBasic = !empty(config('services.vonage.api_key')) && !empty(config('services.vonage.api_secret'));
         
         if (!$hasJWT && !$hasBasic) {

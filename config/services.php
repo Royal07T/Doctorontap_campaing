@@ -86,8 +86,12 @@ return [
         'mms_number' => env('VONAGE_MMS_NUMBER'), // Your Vonage phone number for MMS (can use same as voice_number)
         
         // Video API Configuration (for in-app video consultations)
+        // NOTE: Video API uses separate credentials from Messages API
         'video_enabled' => env('VONAGE_VIDEO_ENABLED', false),
+        'video_api_key' => env('VONAGE_VIDEO_API_KEY'), // Separate API key for Video (optional, defaults to main API_KEY)
+        'video_api_secret' => env('VONAGE_VIDEO_API_SECRET'), // Separate API secret for Video (optional, defaults to main API_SECRET)
         'video_location' => env('VONAGE_VIDEO_LOCATION', 'us'), // Data center location: us, eu, ap, etc.
+        'video_timeout' => env('VONAGE_VIDEO_TIMEOUT', 30), // Timeout in seconds
         
         // Conversations API Configuration (for in-app chat consultations)
         'conversation_enabled' => env('VONAGE_CONVERSATION_ENABLED', false),

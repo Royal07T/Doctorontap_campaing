@@ -424,6 +424,11 @@ class VonageService
      *
      * @return array Response with account information
      */
+    /**
+     * Check account balance
+     *
+     * @return array Response with account information
+     */
     public function checkBalance(): array
     {
         if (empty($this->apiKey) || empty($this->apiSecret)) {
@@ -437,18 +442,23 @@ class VonageService
             $credentials = new Basic($this->apiKey, $this->apiSecret);
             $client = new Client($credentials);
 
-            // Vonage doesn't have a direct balance API, but we can get account info
-            // Note: This requires additional API calls. For now, we'll return a simple success.
-            // You can extend this to use Vonage's Account API if needed.
-            
-            Log::info('Vonage balance check attempted', [
-                'note' => 'Vonage does not provide a direct balance API endpoint. Check your dashboard for account balance.'
+            $response = $client->account()->getBalance();
+            $balance = $response->getBalance();
+            $autoReload = $response->getAutoReload();
+
+            Log::info('Vonage balance check successful', [
+                'balance' => $balance,
+                'auto_reload' => $autoReload ? 'yes' : 'no'
             ]);
 
             return [
                 'success' => true,
-                'message' => 'Vonage account is configured. Check your Vonage dashboard for balance information.',
-                'note' => 'Vonage does not provide a direct balance API endpoint'
+                'message' => 'Vonage balance retrieved successfully',
+                'data' => [
+                    'balance' => $balance,
+                    'currency' => 'EUR', // Vonage balance is typically in EUR
+                    'auto_reload' => $autoReload
+                ]
             ];
         } catch (\Exception $e) {
             Log::error('Vonage balance check exception', [
@@ -458,9 +468,40 @@ class VonageService
 
             return [
                 'success' => false,
-                'message' => 'Exception occurred',
+                'message' => 'Exception occurred while checking balance',
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Verify webhook signature
+     *
+     * @param array $params Request parameters (usually $_GET or query string)
+     * @param string $signatureSecret Signature secret from config
+     * @param string $signatureMethod Signature method (default: md5hash)
+     * @return bool True if signature is valid
+     */
+    public function verifySignature(array $params, string $signatureSecret): bool
+    {
+        if (empty($signatureSecret)) {
+            Log::warning('Vonage signature validation skipped: No signature secret configured');
+            return true; // Skip validation if not configured (backwards compatibility)
+        }
+
+        try {
+            // Check if signature exists in params
+            if (!isset($params['sig'])) {
+                return false;
+            }
+
+            $signature = new \Vonage\Client\Signature($params, $signatureSecret, 'md5hash');
+            return $signature->check($params['sig']);
+        } catch (\Exception $e) {
+            Log::error('Vonage signature verification error', [
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
     }
 
@@ -1316,6 +1357,161 @@ class VonageService
             return [
                 'success' => false,
                 'message' => 'Exception occurred while sending MMS audio',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send WhatsApp message
+     */
+    public function sendWhatsApp($to, $message, $options = [])
+    {
+        if (!$this->whatsappEnabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp is not enabled',
+                'error' => 'service_disabled'
+            ];
+        }
+
+        $fromNumber = $options['from'] ?? $this->whatsappNumber;
+        if (empty($fromNumber)) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp requires a phone number. Set VONAGE_WHATSAPP_NUMBER in .env',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage WhatsApp requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumber($to);
+        $formattedFrom = $this->formatPhoneNumber($fromNumber);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $whatsappText = new WhatsAppText($formattedPhone, $formattedFrom, $message);
+            $response = $client->messages()->send($whatsappText);
+            $messageUuid = $response->getMessageUuid();
+
+            Log::info('Vonage WhatsApp message sent successfully', [
+                'to' => $formattedPhone,
+                'from' => $formattedFrom,
+                'message' => $message,
+                'message_uuid' => $messageUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'WhatsApp message sent successfully',
+                'data' => [
+                    'message_uuid' => $messageUuid,
+                    'to' => $formattedPhone,
+                    'from' => $formattedFrom
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage WhatsApp exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while sending WhatsApp message',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Initiate voice call
+     */
+    public function initiateCall($to, $options = [])
+    {
+        $fromNumber = $options['from'] ?? config('services.vonage.voice_number');
+        if (empty($fromNumber)) {
+            return [
+                'success' => false,
+                'message' => 'Voice calls require a phone number. Set VONAGE_VOICE_NUMBER in .env',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $useJWT = !empty($this->applicationId) && !empty($this->privateKey);
+        $useBasic = !empty($this->apiKey) && !empty($this->apiSecret);
+
+        if (!$useJWT && !$useBasic) {
+            return [
+                'success' => false,
+                'message' => 'Vonage Voice requires authentication credentials',
+                'error' => 'configuration_error'
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumber($to);
+        $formattedFrom = $this->formatPhoneNumber($fromNumber);
+
+        try {
+            $credentials = $useJWT 
+                ? new Keypair($this->privateKey, $this->applicationId)
+                : new Basic($this->apiKey, $this->apiSecret);
+            
+            $client = new Client($credentials);
+
+            $callOptions = [
+                'to' => [['type' => 'phone', 'number' => $formattedPhone]],
+                'from' => ['type' => 'phone', 'number' => $formattedFrom],
+                'answer_url' => $options['answer_url'] ?? route('webhooks.vonage.voice.answer'),
+                'event_url' => $options['event_url'] ?? route('webhooks.vonage.voice.event'),
+            ];
+
+            if (isset($options['machine_detection'])) {
+                $callOptions['machine_detection'] = $options['machine_detection'];
+            }
+
+            $call = $client->voice()->createOutboundCall($callOptions);
+            $callUuid = $call->getUuid();
+
+            Log::info('Vonage voice call initiated successfully', [
+                'to' => $formattedPhone,
+                'from' => $formattedFrom,
+                'call_uuid' => $callUuid
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Voice call initiated successfully',
+                'data' => [
+                    'uuid' => $callUuid,
+                    'to' => $formattedPhone,
+                    'from' => $formattedFrom
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Vonage voice call exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while initiating voice call',
                 'error' => $e->getMessage()
             ];
         }

@@ -2866,6 +2866,15 @@ class DashboardController extends Controller
             // Build validation rules based on form type
             $rules = [];
             
+            // Company settings (only validate if company form is submitted)
+            if ($formType === 'company' || $formType === 'both') {
+                $rules['company_name'] = 'required|string|max:255';
+                $rules['company_email'] = 'required|email|max:255';
+                $rules['company_phone'] = 'required|string|max:20';
+                $rules['company_address'] = 'nullable|string|max:500';
+                $rules['company_website'] = 'nullable|url|max:255';
+            }
+
             // Pricing settings (only validate if pricing form is submitted)
             if ($formType === 'pricing' || $formType === 'both') {
                 $rules['default_consultation_fee'] = 'nullable|numeric|min:0';
@@ -2956,7 +2965,34 @@ class DashboardController extends Controller
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Consultation fees updated successfully!');
+            // Update company settings (only if company form was submitted)
+            if ($formType === 'company' || $formType === 'both') {
+                if (isset($validated['company_name'])) {
+                    Setting::set('company_name', $validated['company_name'], 'string');
+                }
+                
+                if (isset($validated['company_email'])) {
+                    Setting::set('company_email', $validated['company_email'], 'string');
+                }
+                
+                if (isset($validated['company_phone'])) {
+                    Setting::set('company_phone', $validated['company_phone'], 'string');
+                }
+                
+                if (isset($validated['company_address'])) {
+                    Setting::set('company_address', $validated['company_address'], 'string');
+                }
+                
+                if (isset($validated['company_website'])) {
+                    Setting::set('company_website', $validated['company_website'], 'string');
+                }
+                
+                if ($formType === 'company') {
+                    return redirect()->back()->with('success', 'Company information updated successfully!');
+                }
+            }
+
+            return redirect()->back()->with('success', 'Settings updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
         }

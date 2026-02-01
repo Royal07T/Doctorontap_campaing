@@ -123,12 +123,10 @@ class VonageVoiceService
             // Add talk action (text-to-speech)
             $talk = new Talk($message);
             
-            // Set language and voice if provided
+            // Set language and style (voice) if provided
             if (isset($options['language'])) {
-                $talk->setLanguage($options['language']);
-            }
-            if (isset($options['voice'])) {
-                $talk->setVoiceName($options['voice']);
+                $style = (int) ($options['voice_style'] ?? 0);
+                $talk->setLanguage($options['language'], $style);
             }
             if (isset($options['style'])) {
                 $talk->setStyle($options['style']);

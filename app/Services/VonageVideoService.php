@@ -25,12 +25,13 @@ class VonageVideoService
 
     public function __construct()
     {
-        $this->apiKey = config('services.vonage.api_key');
-        $this->apiSecret = config('services.vonage.api_secret');
+        // For Vonage Video API, we use dedicated video credentials or fall back to main credentials
+        $this->apiKey = config('services.vonage.video_api_key') ?: config('services.vonage.api_key');
+        $this->apiSecret = config('services.vonage.video_api_secret') ?: config('services.vonage.api_secret');
         $this->enabled = config('services.vonage.video_enabled', false);
         
-        // Initialize OpenTok client if credentials are available
-        if ($this->apiKey && $this->apiSecret) {
+        // Initialize OpenTok client only if video is enabled and credentials exist
+        if ($this->enabled && $this->apiKey && $this->apiSecret) {
             $options = [];
             
             // Set timeout if configured
@@ -43,8 +44,56 @@ class VonageVideoService
                 $options['apiUrl'] = config('services.vonage.video_api_url');
             }
             
-            $this->opentok = new OpenTok($this->apiKey, $this->apiSecret, $options);
+            try {
+                // Determine if we should use Vonage Application Auth (JWT) or Legacy Auth (API Key/Secret)
+                // The OpenTok PHP SDK triggers Vonage Auth if the API Key looks like an Application ID
+                // and the API Secret looks like a private key path.
+                
+                $this->opentok = new OpenTok($this->apiKey, $this->apiSecret, $options);
+                
+                Log::info('Vonage Video Service initialized successfully', [
+                    'api_key_prefix' => substr($this->apiKey, 0, 8) . '...',
+                    'video_enabled' => $this->enabled
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to initialize Vonage Video Service', [
+                    'error' => $e->getMessage(),
+                    'api_key_set' => !empty($this->apiKey),
+                    'api_secret_set' => !empty($this->apiSecret),
+                    'video_enabled' => $this->enabled
+                ]);
+                $this->opentok = null;
+                $this->enabled = false;
+            }
+        } else {
+            $this->opentok = null;
         }
+    }
+
+    /**
+     * Check if the service is properly initialized
+     * 
+     * @return bool
+     */
+    public function isInitialized(): bool
+    {
+        return $this->enabled && $this->opentok !== null;
+    }
+
+    /**
+     * Get service status information
+     * 
+     * @return array
+     */
+    public function getStatus(): array
+    {
+        return [
+            'enabled' => $this->enabled,
+            'initialized' => $this->isInitialized(),
+            'api_key_set' => !empty($this->apiKey),
+            'api_secret_set' => !empty($this->apiSecret),
+            'using_dedicated_video_creds' => config('services.vonage.video_api_key') ? true : false
+        ];
     }
 
     /**

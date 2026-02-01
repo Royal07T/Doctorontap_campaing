@@ -60,6 +60,17 @@ Route::post('/vonage/webhook/voice/recording', [\App\Http\Controllers\VonageVoic
 Route::post('/vonage/webhook/session', [\App\Http\Controllers\VonageSessionWebhookController::class, 'handleSessionEvent'])
     ->name('vonage.webhook.session');
 
+// Vonage Webhook Aliases (matching Vonage dashboard configuration)
+// Delivery receipts (DLR) webhook - matches ngrok URL in Vonage dashboard
+// Support both GET and POST as Vonage can be configured for either
+Route::match(['get', 'post'], '/webhook/delivery', [VonageWebhookController::class, 'handleStatus'])
+    ->name('webhook.delivery');
+    
+// Inbound SMS webhook - matches ngrok URL in Vonage dashboard
+// Support both GET and POST as Vonage can be configured for either  
+Route::match(['get', 'post'], '/webhooks/inbound', [VonageWebhookController::class, 'handleInbound'])
+    ->name('webhooks.inbound');
+
 // Service Worker Route - Handle both /sw.js and /service-worker.js
 Route::get('/service-worker.js', function () {
     $swPath = public_path('sw.js');
@@ -778,3 +789,54 @@ Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 's
     Route::post('/impersonate/stop', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
     Route::get('/impersonate/status', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'status'])->name('impersonate.status');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Customer Care Routes
+|--------------------------------------------------------------------------
+|
+| Routes for customer care communication hub
+|
+*/
+
+Route::prefix('customer-care')->name('customer-care.')->middleware(['web'])->group(function () {
+    
+    // Authentication
+    Route::get('/login', [\App\Http\Controllers\CustomerCare\AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [\App\Http\Controllers\CustomerCare\AuthController::class, 'login'])->name('login.post');
+    Route::post('/logout', [\App\Http\Controllers\CustomerCare\AuthController::class, 'logout'])->name('logout');
+    
+    // Protected routes
+    Route::middleware(['auth:customer_care'])->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [\App\Http\Controllers\CustomerCareController::class, 'dashboard'])->name('dashboard');
+        
+        // Patient Search and Details
+        Route::get('/patients/search', [\App\Http\Controllers\CustomerCareController::class, 'searchPatients'])->name('patients.search');
+        Route::get('/patients/{id}/details', [\App\Http\Controllers\CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
+        
+        // Communications
+        Route::prefix('communications')->name('communications.')->group(function () {
+            Route::post('/send-sms', [\App\Http\Controllers\CustomerCareController::class, 'sendSms'])->name('send-sms');
+            Route::post('/send-whatsapp', [\App\Http\Controllers\CustomerCareController::class, 'sendWhatsApp'])->name('send-whatsapp');
+            Route::post('/initiate-call', [\App\Http\Controllers\CustomerCareController::class, 'initiateCall'])->name('initiate-call');
+            Route::get('/history/{patientId}', [\App\Http\Controllers\CustomerCareController::class, 'getCommunicationHistory'])->name('history');
+        });
+        
+        // Marketing Campaigns
+        Route::prefix('campaigns')->name('campaigns.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\CustomerCareController::class, 'getCampaigns'])->name('index');
+            Route::post('/', [\App\Http\Controllers\CustomerCareController::class, 'createCampaign'])->name('create');
+        });
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Slim API Integration
+|--------------------------------------------------------------------------
+|
+| Include the Slim API routes for lightweight API endpoints.
+|
+*/
+require __DIR__.'/api_slim.php';

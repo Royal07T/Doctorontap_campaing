@@ -19,6 +19,15 @@ class VonageVoiceWebhookController extends Controller
         ]);
 
         $data = $request->all();
+
+        // Security: Verify signature if configured
+        $vonageService = app(\App\Services\VonageService::class);
+        $signatureSecret = config('services.vonage.signature_secret');
+        
+        if ($signatureSecret && !$vonageService->verifySignature($data, $signatureSecret)) {
+            Log::warning('Vonage signature verification failed for voice answer webhook');
+            return response('Unauthorized', 401);
+        }
         $callUuid = $data['uuid'] ?? null;
         $from = $data['from'] ?? null;
         $to = $data['to'] ?? null;
@@ -73,6 +82,15 @@ class VonageVoiceWebhookController extends Controller
         ]);
 
         $data = $request->all();
+
+        // Security: Verify signature if configured
+        $vonageService = app(\App\Services\VonageService::class);
+        $signatureSecret = config('services.vonage.signature_secret');
+        
+        if ($signatureSecret && !$vonageService->verifySignature($data, $signatureSecret)) {
+            Log::warning('Vonage signature verification failed for voice event webhook');
+            return response('Unauthorized', 401);
+        }
         $callUuid = $data['uuid'] ?? null;
         $status = $data['status'] ?? null;
         $direction = $data['direction'] ?? null;
@@ -136,6 +154,15 @@ class VonageVoiceWebhookController extends Controller
         ]);
 
         $data = $request->all();
+
+        // Security: Verify signature if configured
+        $vonageService = app(\App\Services\VonageService::class);
+        $signatureSecret = config('services.vonage.signature_secret');
+        
+        if ($signatureSecret && !$vonageService->verifySignature($data, $signatureSecret)) {
+            Log::warning('Vonage signature verification failed for voice recording webhook');
+            return response('Unauthorized', 401);
+        }
         $recordingUuid = $data['recording_uuid'] ?? null;
         $recordingUrl = $data['recording_url'] ?? null;
         $callUuid = $data['conversation_uuid'] ?? null;

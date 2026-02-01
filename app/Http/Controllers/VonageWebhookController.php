@@ -21,6 +21,15 @@ class VonageWebhookController extends Controller
             'data' => $request->all()
         ]);
 
+        // Security: Verify signature if configured
+        $vonageService = app(\App\Services\VonageService::class);
+        $signatureSecret = config('services.vonage.signature_secret');
+        
+        if ($signatureSecret && !$vonageService->verifySignature($request->all(), $signatureSecret)) {
+            Log::warning('Vonage signature verification failed for inbound SMS webhook');
+            return response('Unauthorized', 401);
+        }
+
         // Vonage sends different formats for Legacy API vs Messages API
         // Legacy API: msisdn, to, messageId, text, type, keyword, message-timestamp
         // Messages API: from, to, message, timestamp, message_uuid, etc.
@@ -65,6 +74,15 @@ class VonageWebhookController extends Controller
         Log::info('Vonage status webhook received', [
             'data' => $request->all()
         ]);
+
+        // Security: Verify signature if configured
+        $vonageService = app(\App\Services\VonageService::class);
+        $signatureSecret = config('services.vonage.signature_secret');
+        
+        if ($signatureSecret && !$vonageService->verifySignature($request->all(), $signatureSecret)) {
+            Log::warning('Vonage signature verification failed for status webhook');
+            return response('Unauthorized', 401);
+        }
 
         $data = $request->all();
 

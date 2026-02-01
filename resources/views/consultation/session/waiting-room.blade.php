@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(auth()->guard('doctor')->check() ? 'layouts.doctor' : 'layouts.patient')
 
 @section('title', 'Waiting Room - Consultation')
 
@@ -289,7 +289,7 @@
     
     // Start polling
     checkSessionStatus(); // Initial check
-    pollInterval = setInterval(checkSessionStatus, 5000); // Poll every 5 seconds
+    pollInterval = setInterval(checkSessionStatus, 15000); // Poll every 15 seconds (reduced from 5 to avoid security alerts)
     
     // Cleanup on page unload
     window.addEventListener('beforeunload', function() {

@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Exclude webhook routes from CSRF protection
         $middleware->validateCsrfTokens(except: [
             'vonage/webhook/*',
+            'webhook/*',
+            'webhooks/*',
+            'api/*',
+            'api-docs',
         ]);
         
         // SECURITY: Input sanitization for all requests
