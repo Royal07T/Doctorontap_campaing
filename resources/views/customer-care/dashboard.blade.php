@@ -466,8 +466,8 @@
             if (!content || !selectedPatient) return;
 
             const route = currentMessageType === 'sms' 
-                ? '{{ route("customer-care.send-sms") }}' 
-                : '{{ route("customer-care.send-whatsapp") }}';
+                ? '{{ route("customer-care.communications.send-sms") }}' 
+                : '{{ route("customer-care.communications.send-whatsapp") }}';
 
             fetch(route, {
                 method: 'POST',
@@ -495,7 +495,7 @@
         function initiateCall() {
             if (!selectedPatient) return;
 
-            fetch('{{ route("customer-care.initiate-call") }}', {
+            fetch('{{ route("customer-care.communications.initiate-call") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

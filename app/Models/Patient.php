@@ -448,6 +448,18 @@ class Patient extends Authenticatable
     }
 
     /**
+     * Get the patient's age, calculated from date_of_birth if available.
+     * Fallback to stored age field if DOB is missing.
+     */
+    public function getAgeAttribute($value)
+    {
+        if ($this->date_of_birth) {
+            return $this->date_of_birth->age;
+        }
+        return $value;
+    }
+
+    /**
      * Get primary caregiver for this patient
      */
     public function primaryCaregiver()

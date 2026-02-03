@@ -88,7 +88,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_starts_with($path, 'nurse') => 'nurse.login',
                     str_starts_with($path, 'canvasser') => 'canvasser.login',
                     str_starts_with($path, 'patient') => 'patient.login',
-                    str_starts_with($path, 'customer-care') => 'customer_care.login',
+                    str_starts_with($path, 'customer-care') => 'customer-care.login',
                     default => 'admin.login',
                 };
                 

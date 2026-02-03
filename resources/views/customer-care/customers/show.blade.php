@@ -1,457 +1,307 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $patient->name }} - Customer Profile</title>
-    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .purple-gradient {
-            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, pageLoading: false }">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-            <!-- Sidebar Header -->
-            <div class="purple-gradient p-5 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 w-auto">
-                </div>
-                <button @click="sidebarOpen = false" class="lg:hidden text-white hover:text-gray-200">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+@extends('layouts.customer-care')
+
+@section('title', ($patient->name ?? 'Patient') . ' - Patient Profile')
+
+@section('content')
+<div class="px-6 py-8">
+    <!-- Breadcrumbs & Header -->
+    <div class="flex items-center justify-between mb-10" x-data="{ showCommModal: false, selectedChannel: 'sms' }">
+        <div class="flex items-center space-x-4">
+            <a href="{{ route('customer-care.customers.index') }}" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-purple-600 hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            </a>
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Patient Profile</h1>
+                <p class="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mt-1">Medical dossier & support history</p>
             </div>
-
-            <!-- User Info -->
-            <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                        {{ substr(Auth::guard('customer_care')->user()->name, 0, 1) }}
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-gray-800 text-sm">{{ Auth::guard('customer_care')->user()->name }}</p>
-                        <p class="text-xs text-gray-500">Customer Care</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Navigation -->
-            <nav class="p-4 space-y-2">
-                <a href="{{ route('customer-care.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    <span>Dashboard</span>
-                </a>
-
-                <a href="{{ route('customer-care.consultations') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <span>Consultations</span>
-                </a>
-
-                <a href="{{ route('customer-care.interactions.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <span>Interactions</span>
-                </a>
-
-                <a href="{{ route('customer-care.tickets.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>Support Tickets</span>
-                </a>
-
-                <a href="{{ route('customer-care.escalations.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <span>Escalations</span>
-                </a>
-
-                <a href="{{ route('customer-care.customers.index') }}" class="flex items-center space-x-3 px-4 py-3 text-white purple-gradient rounded-lg font-medium transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span>Customers</span>
-                </a>
-
-                <div class="border-t border-gray-200 my-2"></div>
-
-                <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    <span>View Website</span>
-                </a>
-
-                <form method="POST" action="{{ route('customer-care.logout') }}">
-                    @csrf
-                    <button type="submit" class="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        <span>Logout</span>
-                    </button>
-                </form>
-            </nav>
-        </aside>
-
-        <!-- Overlay for mobile sidebar -->
-        <div x-show="sidebarOpen" 
-             @click="sidebarOpen = false"
-             x-transition:enter="transition-opacity ease-linear duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition-opacity ease-linear duration-300"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-             style="display: none;"></div>
-
-        <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Header -->
-            <header class="purple-gradient shadow-lg z-10">
-                <div class="flex items-center justify-between px-6 py-6">
-                    <div class="flex items-center space-x-4">
-                        <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                        <div class="flex items-center space-x-3">
-                            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
-                            <div class="flex items-center space-x-3">
-                                <a href="{{ route('customer-care.customers.index') }}" class="text-white hover:text-purple-200">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                    </svg>
-                                </a>
-                                <h1 class="text-xl font-bold text-white">Customer Profile</h1>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <!-- Notification Icon -->
-                        <x-notification-icon />
-                        <span class="text-sm text-white hidden md:block">{{ now()->format('l, F j, Y') }}</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main Content -->
-            <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-                <!-- Customer Info Card -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div class="flex items-start justify-between mb-6">
-                        <div class="flex items-center space-x-4">
-                            @if($patient->photo)
-                            <img src="{{ asset('storage/' . $patient->photo) }}" alt="{{ $patient->name }}" class="w-20 h-20 rounded-full object-cover border-4 border-purple-200">
-                            @else
-                            <div class="w-20 h-20 rounded-full bg-purple-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-purple-200">
-                                {{ substr($patient->name, 0, 1) }}
-                            </div>
-                            @endif
-                            <div>
-                                <h2 class="text-2xl font-bold text-gray-900">{{ $patient->name }}</h2>
-                                <p class="text-gray-600">{{ $patient->email }}</p>
-                                <p class="text-sm text-gray-500">{{ $patient->phone ?? 'No phone number' }}</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $patient->is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                {{ $patient->is_verified ? 'Verified' : 'Unverified' }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Age</p>
-                            <p class="text-lg font-semibold text-gray-900">{{ $patient->age ?? 'N/A' }} years</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Gender</p>
-                            <p class="text-lg font-semibold text-gray-900">{{ ucfirst($patient->gender ?? 'N/A') }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Date of Birth</p>
-                            <p class="text-lg font-semibold text-gray-900">{{ $patient->date_of_birth ? $patient->date_of_birth->format('M d, Y') : 'N/A' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Blood Group</p>
-                            <p class="text-lg font-semibold text-gray-900">{{ $patient->blood_group ?? 'N/A' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Genotype</p>
-                            <p class="text-lg font-semibold text-gray-900">{{ $patient->genotype ?? 'N/A' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500 mb-1">Total Consultations</p>
-                            <p class="text-lg font-semibold text-gray-900">{{ $patient->consultations_count ?? $patient->consultations->count() }}</p>
-                        </div>
-                    </div>
-
-                    @if($patient->allergies || $patient->chronic_conditions || $patient->current_medications)
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Medical Information</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            @if($patient->allergies)
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Allergies</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $patient->allergies }}</p>
-                            </div>
-                            @endif
-                            @if($patient->chronic_conditions)
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Chronic Conditions</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $patient->chronic_conditions }}</p>
-                            </div>
-                            @endif
-                            @if($patient->current_medications)
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Current Medications</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $patient->current_medications }}</p>
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    @endif
-
-                    @if($patient->emergency_contact_name)
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Emergency Contact</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Name</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $patient->emergency_contact_name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Phone</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $patient->emergency_contact_phone }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Relationship</p>
-                                <p class="text-sm font-medium text-gray-900">{{ ucfirst($patient->emergency_contact_relationship) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Total Interactions</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $patient->customerInteractions->count() }}</p>
-                            </div>
-                            <div class="bg-blue-100 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Support Tickets</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $patient->supportTickets->count() }}</p>
-                            </div>
-                            <div class="bg-orange-100 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">Consultations</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $patient->consultations->count() }}</p>
-                            </div>
-                            <div class="bg-purple-100 p-3 rounded-lg">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Interactions -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Recent Interactions</h3>
-                        <a href="{{ route('customer-care.interactions.index', ['search' => $patient->email]) }}" class="text-sm text-purple-600 hover:text-purple-800">View All</a>
-                    </div>
-                    @if($patient->customerInteractions->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($patient->customerInteractions->take(5) as $interaction)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            {{ ucfirst($interaction->channel) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $interaction->status === 'resolved' ? 'bg-green-100 text-green-800' : ($interaction->status === 'active' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
-                                            {{ ucfirst($interaction->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $interaction->agent->name ?? 'N/A' }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $interaction->created_at->format('M d, Y H:i') }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('customer-care.interactions.show', $interaction) }}" class="text-purple-600 hover:text-purple-900">View</a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @else
-                    <p class="text-gray-500 text-center py-8">No interactions found for this customer.</p>
-                    @endif
-                </div>
-
-                <!-- Recent Support Tickets -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Recent Support Tickets</h3>
-                        <a href="{{ route('customer-care.tickets.index', ['search' => $patient->email]) }}" class="text-sm text-purple-600 hover:text-purple-800">View All</a>
-                    </div>
-                    @if($patient->supportTickets->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($patient->supportTickets->take(5) as $ticket)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3">
-                                        <div class="text-sm font-medium text-gray-900">{{ Str::limit($ticket->subject, 40) }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                                            {{ $ticket->category }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $ticket->status === 'resolved' ? 'bg-green-100 text-green-800' : ($ticket->status === 'open' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
-                                            {{ ucfirst($ticket->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $ticket->priority === 'urgent' ? 'bg-red-100 text-red-800' : ($ticket->priority === 'high' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800') }}">
-                                            {{ ucfirst($ticket->priority) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $ticket->agent->name ?? 'Unassigned' }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $ticket->created_at->format('M d, Y H:i') }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('customer-care.tickets.show', $ticket) }}" class="text-purple-600 hover:text-purple-900">View</a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @else
-                    <p class="text-gray-500 text-center py-8">No support tickets found for this customer.</p>
-                    @endif
-                </div>
-
-                <!-- Recent Consultations -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Recent Consultations</h3>
-                        <a href="{{ route('customer-care.consultations') }}" class="text-sm text-purple-600 hover:text-purple-800">View All</a>
-                    </div>
-                    @if($patient->consultations->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctor</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($patient->consultations->take(5) as $consultation)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $consultation->doctor->name ?? 'N/A' }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $consultation->status === 'completed' ? 'bg-green-100 text-green-800' : ($consultation->status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800') }}">
-                                            {{ ucfirst($consultation->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $consultation->created_at->format('M d, Y H:i') }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" class="text-purple-600 hover:text-purple-900">View</a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @else
-                    <p class="text-gray-500 text-center py-8">No consultations found for this customer.</p>
-                    @endif
-                </div>
-            </main>
         </div>
+        <div class="flex items-center space-x-3">
+            <button @click="showCommModal = true" class="px-6 py-3 bg-slate-800 text-white rounded-xl text-[12px] font-bold uppercase tracking-normal hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 flex items-center space-x-2">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <span style="color: white !important;">Initiate Outreach</span>
+            </button>
+            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest {{ $patient->is_verified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100' }}">
+                {{ $patient->is_verified ? 'Verified Identity' : 'Pending Verification' }}
+            </span>
+        </div>
+
+        <!-- Communication Modal -->
+        @include('components.customer-care.communication-modal', [
+            'userName' => $patient->name,
+            'userId' => $patient->id,
+            'userType' => 'patient'
+        ])
     </div>
 
-    @include('customer-care.shared.preloader-scripts')
-</body>
-</html>
+    <!-- Central Dossier Profile -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <!-- Profile Sidebar Card -->
+        <div class="lg:col-span-1 space-y-8">
+            <div class="clean-card p-8 text-center animate-slide-up">
+                <div class="relative inline-block mb-6">
+                    @if($patient->photo)
+                    <img src="{{ asset('storage/' . $patient->photo) }}" alt="{{ $patient->name }}" class="w-32 h-32 rounded-[2.5rem] object-cover border-4 border-white shadow-2xl mx-auto">
+                    @else
+                    <div class="w-32 h-32 rounded-[2.5rem] bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-4xl font-black shadow-2xl mx-auto">
+                        {{ substr($patient->name ?? 'P', 0, 1) }}
+                    </div>
+                    @endif
+                    <div class="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2 rounded-xl border-4 border-white shadow-lg">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                </div>
+                
+                <h2 class="text-2xl font-black text-slate-800 mb-1">{{ $patient->name }}</h2>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Patient ID: #DT-{{ str_pad($patient->id, 5, '0', STR_PAD_LEFT) }}</p>
+                
+                <div class="pt-6 mt-6 border-t border-slate-50 space-y-4">
+                    <div class="flex items-center justify-between text-left">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</span>
+                        <span class="text-sm font-bold text-slate-800">{{ $patient->email }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-left">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</span>
+                        <span class="text-sm font-bold text-slate-800">{{ $patient->phone ?? 'NR' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-left">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Joined On</span>
+                        <span class="text-sm font-bold text-slate-800">{{ $patient->created_at->format('d M Y') }}</span>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Medical Tags -->
+            <div class="clean-card p-6 animate-slide-up" style="animation-delay: 0.1s;">
+                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Biometric Data</p>
+                 <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Age</p>
+                        <p class="text-sm font-black text-slate-800">{{ $patient->age ?? 'NA' }} Yrs</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Gender</p>
+                        <p class="text-sm font-black text-slate-800">{{ ucfirst($patient->gender ?? 'NA') }}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Blood Type</p>
+                        <p class="text-sm font-black text-rose-600">{{ $patient->blood_group ?? 'NA' }}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Genotype</p>
+                        <p class="text-sm font-black text-indigo-600">{{ $patient->genotype ?? 'NA' }}</p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+
+        <!-- Detailed Dossier Info -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Medical History -->
+            <div class="clean-card p-8 animate-slide-up">
+                <div class="flex items-center space-x-3 mb-8">
+                    <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight">Medical Information</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Allergies</p>
+                        <div class="p-4 bg-rose-50/50 rounded-2xl border border-rose-100">
+                             <p class="text-sm font-bold text-rose-700 leading-relaxed">{{ $patient->allergies ?? 'Strictly None Declared' }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Chronic Conditions</p>
+                        <div class="p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
+                             <p class="text-sm font-bold text-amber-700 leading-relaxed">{{ $patient->chronic_conditions ?? 'No Records Found' }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Active Medications</p>
+                        <div class="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                             <p class="text-sm font-bold text-indigo-700 leading-relaxed">{{ $patient->current_medications ?? 'Not On Medication' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Contact -->
+                @if($patient->emergency_contact_name)
+                <div class="mt-10 pt-8 border-t border-slate-50">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Emergency Contact Verification</p>
+                    <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-wrap gap-8">
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Full Legal Name</p>
+                            <p class="text-sm font-black text-slate-800">{{ $patient->emergency_contact_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Direct Line</p>
+                            <p class="text-sm font-black text-slate-800">{{ $patient->emergency_contact_phone }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Kinship Relation</p>
+                            <p class="text-sm font-black text-slate-800 uppercase tracking-widest text-[11px]">{{ $patient->emergency_contact_relationship }}</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+
+            <!-- Stats & Engagement -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style="animation-delay: 0.2s;">
+                <div class="clean-card p-6 flex items-center space-x-4 border-l-4 border-l-blue-500">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-black text-slate-800 leading-none">{{ $patient->customerInteractions->count() }}</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Interactions</p>
+                    </div>
+                </div>
+                <div class="clean-card p-6 flex items-center space-x-4 border-l-4 border-l-orange-500">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2" /></svg>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-black text-slate-800 leading-none">{{ $patient->supportTickets->count() }}</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Tickets</p>
+                    </div>
+                </div>
+                <div class="clean-card p-6 flex items-center space-x-4 border-l-4 border-l-purple-500">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-black text-slate-800 leading-none">{{ $patient->consultations->count() }}</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Visits</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabbed Activity History -->
+            <div class="clean-card overflow-hidden animate-slide-up" style="animation-delay: 0.3s;" x-data="{ tab: 'interactions' }">
+                <div class="flex bg-slate-50 border-b border-slate-100">
+                    <button @click="tab = 'interactions'" :class="tab === 'interactions' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'" class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Recent Interactions</button>
+                    <button @click="tab = 'tickets'" :class="tab === 'tickets' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'" class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Support Queue</button>
+                    <button @click="tab = 'consultations'" :class="tab === 'consultations' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'" class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Clinical Visits</button>
+                </div>
+
+                <!-- Interactions Tab -->
+                <div x-show="tab === 'interactions'" class="p-0 animate-fade-in">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Channel</th>
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Identity/Agent</th>
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Summary</th>
+                                <th class="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Finalize</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($patient->customerInteractions->take(5) as $interaction)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-6 py-5">
+                                    <span class="inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest 
+                                        {{ $interaction->channel == 'chat' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600' }}">
+                                        {{ $interaction->channel }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <div class="text-[10px] font-bold text-slate-800">{{ $interaction->agent->name ?? 'System' }}</div>
+                                    <div class="text-[9px] font-medium text-slate-400">{{ $interaction->created_at->format('d M - H:i') }}</div>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <div class="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{{ $interaction->summary }}</div>
+                                </td>
+                                <td class="px-6 py-5 text-right">
+                                    <a href="{{ route('customer-care.interactions.show', $interaction) }}" class="text-purple-600 hover:text-purple-800 transition-colors">
+                                        <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-300 font-bold text-sm italic">No interaction records found</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tickets Tab -->
+                <div x-show="tab === 'tickets'" class="p-0 animate-fade-in" style="display: none;">
+                    <table class="w-full text-left">
+                         <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Ticket #</th>
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">State</th>
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Issue Summary</th>
+                                <th class="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($patient->supportTickets->take(5) as $ticket)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-6 py-5 font-black text-slate-800 text-xs">#{{ $ticket->ticket_number }}</td>
+                                <td class="px-6 py-5">
+                                    <span class="inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest 
+                                        {{ $ticket->status == 'open' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400' }}">
+                                        {{ $ticket->status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <div class="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{{ $ticket->subject }}</div>
+                                </td>
+                                <td class="px-6 py-5 text-right">
+                                    <a href="{{ route('customer-care.tickets.show', $ticket) }}" class="text-purple-600 hover:text-purple-800 transition-colors">
+                                        <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-300 font-bold text-sm italic">No support tickets issued</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Consultations Tab -->
+                <div x-show="tab === 'consultations'" class="p-0 animate-fade-in" style="display: none;">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Session Date</th>
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Medical Pro</th>
+                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Status</th>
+                                <th class="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Records</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($patient->consultations->take(5) as $consultation)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-6 py-5 text-xs font-black text-slate-800">{{ $consultation->created_at->format('d M Y') }}</td>
+                                <td class="px-6 py-5">
+                                    <div class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{{ $consultation->doctor->name ?? 'Assigned MD' }}</div>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <span class="inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest 
+                                        {{ $consultation->status == 'completed' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400' }}">
+                                        {{ $consultation->status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-5 text-right">
+                                    <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" class="text-purple-600 hover:text-purple-800 transition-colors">
+                                        <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-300 font-bold text-sm italic">No clinical records found</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

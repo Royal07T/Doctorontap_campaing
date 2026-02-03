@@ -1,18 +1,18 @@
 @extends('layouts.customer-care')
 
-@section('title', 'Escalate Ticket - Customer Care')
+@section('title', 'Escalate Interaction - Customer Care')
 
 @section('content')
 <div class="px-6 py-8" x-data="{ escalatedToType: 'admin' }">
     <!-- Header -->
     <div class="flex items-center justify-between mb-10">
         <div class="flex items-center space-x-4">
-            <a href="{{ route('customer-care.tickets.show', $ticket) }}" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-purple-600 hover:text-white transition-all">
+            <a href="{{ route('customer-care.interactions.show', $interaction) }}" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-purple-600 hover:text-white transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </a>
             <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Executive Escalation</h1>
-                <p class="text-[10px] font-bold text-rose-600 uppercase tracking-[0.2em] mt-1">Elevate Case #{{ $ticket->ticket_number }} to management/clinical oversight</p>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Interaction Escalation</h1>
+                <p class="text-[10px] font-bold text-rose-600 uppercase tracking-[0.2em] mt-1">Elevate active session log to management/clinical oversight</p>
             </div>
         </div>
     </div>
@@ -21,7 +21,7 @@
         <!-- Main Form -->
         <div class="lg:col-span-2 space-y-8">
             <div class="clean-card p-10 animate-slide-up">
-                <form method="POST" action="{{ route('customer-care.escalations.escalate-ticket', $ticket) }}" id="escalateForm">
+                <form method="POST" action="{{ route('customer-care.escalations.escalate-interaction', $interaction) }}" id="escalateForm">
                     @csrf
                     
                     <div class="space-y-8">
@@ -83,7 +83,7 @@
 
                         <!-- Actions -->
                         <div class="flex items-center justify-end space-x-4 pt-6">
-                            <a href="{{ route('customer-care.tickets.show', $ticket) }}" class="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600 transition-colors">
+                            <a href="{{ route('customer-care.interactions.show', $interaction) }}" class="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600 transition-colors">
                                 Cancel elevation
                             </a>
                             <button type="submit" class="bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-2xl px-12 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-xl hover:shadow-rose-100 transition-all active:scale-95 shadow-lg shadow-rose-100">
@@ -97,13 +97,13 @@
 
         <!-- Meta Sidebar -->
         <div class="space-y-8 animate-slide-up" style="animation-delay: 0.1s;">
-            <!-- Origin Case -->
+            <!-- Origin Interaction -->
             <div class="clean-card p-6">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Subject Interaction Node</p>
                 <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p class="text-[9px] font-black text-rose-500 uppercase mb-1">Support Incident</p>
-                    <h4 class="text-sm font-black text-slate-800 mb-1">#{{ $ticket->ticket_number }}</h4>
-                    <p class="text-xs font-bold text-slate-500 line-clamp-2">{{ $ticket->subject }}</p>
+                    <p class="text-[9px] font-black text-rose-500 uppercase mb-1">Active Session</p>
+                    <h4 class="text-sm font-black text-slate-800 mb-1">ID: #{{ $interaction->id }}</h4>
+                    <p class="text-xs font-bold text-slate-500 line-clamp-2">Summary: {{ $interaction->summary ?? 'No data' }}</p>
                 </div>
             </div>
 
@@ -112,11 +112,11 @@
                  <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Patient Entity</p>
                  <div class="flex items-center space-x-4">
                     <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">
-                        {{ substr($ticket->user->name ?? 'P', 0, 1) }}
+                        {{ substr($interaction->user->name ?? 'P', 0, 1) }}
                     </div>
                     <div>
-                        <h4 class="text-xs font-black text-slate-800">{{ $ticket->user->name ?? 'Anonymous Asset' }}</h4>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{{ $ticket->user->id_number ?? 'REG-8392' }}</p>
+                        <h4 class="text-xs font-black text-slate-800">{{ $interaction->user->name ?? 'Anonymous Asset' }}</h4>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{{ $interaction->user->phone ?? 'NR' }}</p>
                     </div>
                  </div>
             </div>
@@ -127,13 +127,15 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.querySelector('#escalateForm');
-        form.addEventListener('submit', function(e) {
-            const reason = form.querySelector('textarea[name="reason"]').value;
-            if (reason.length < 10) {
-                e.preventDefault();
-                CustomAlert.error('Technical rationale must be at least 10 characters for executive audit.', 'Escalation Protocol Error');
-            }
-        });
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const reason = form.querySelector('textarea[name="reason"]').value;
+                if (reason.length < 10) {
+                    e.preventDefault();
+                    CustomAlert.error('Technical rationale must be at least 10 characters for executive audit.', 'Escalation Protocol Error');
+                }
+            });
+        }
     });
 </script>
 @endsection

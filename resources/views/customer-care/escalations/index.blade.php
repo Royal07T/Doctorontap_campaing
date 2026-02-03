@@ -1,267 +1,148 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Escalations - Customer Care</title>
-    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .purple-gradient {
-            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, pageLoading: false }">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-            <!-- Sidebar Header -->
-            <div class="purple-gradient p-5 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 w-auto">
-                </div>
-                <button @click="sidebarOpen = false" class="lg:hidden text-white hover:text-gray-200">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+@extends('layouts.customer-care')
 
-            <!-- User Info -->
-            <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                        {{ substr(Auth::guard('customer_care')->user()->name, 0, 1) }}
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-gray-800 text-sm">{{ Auth::guard('customer_care')->user()->name }}</p>
-                        <p class="text-xs text-gray-500">Customer Care</p>
-                    </div>
-                </div>
-            </div>
+@section('title', 'Escalations - Customer Care')
 
-            <!-- Navigation -->
-            <nav class="p-4 space-y-2">
-                <a href="{{ route('customer-care.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    <span>Dashboard</span>
-                </a>
-
-                <a href="{{ route('customer-care.consultations') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <span>Consultations</span>
-                </a>
-
-                <a href="{{ route('customer-care.interactions.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <span>Interactions</span>
-                </a>
-
-                <a href="{{ route('customer-care.tickets.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>Support Tickets</span>
-                </a>
-
-                <a href="{{ route('customer-care.escalations.index') }}" class="flex items-center space-x-3 px-4 py-3 text-white purple-gradient rounded-lg font-medium transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <span>Escalations</span>
-                </a>
-
-                <a href="{{ route('customer-care.customers.index') }}" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span>Customers</span>
-                </a>
-
-                <div class="border-t border-gray-200 my-2"></div>
-
-                <a href="{{ url('/') }}" target="_blank" class="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-purple-50 rounded-lg font-medium transition-all hover:text-purple-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    <span>View Website</span>
-                </a>
-
-                <form method="POST" action="{{ route('customer-care.logout') }}">
-                    @csrf
-                    <button type="submit" class="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        <span>Logout</span>
-                    </button>
-                </form>
-            </nav>
-        </aside>
-
-        <!-- Overlay for mobile sidebar -->
-        <div x-show="sidebarOpen" 
-             @click="sidebarOpen = false"
-             x-transition:enter="transition-opacity ease-linear duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition-opacity ease-linear duration-300"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-             style="display: none;"></div>
-
-        <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Header -->
-            <header class="purple-gradient shadow-lg z-10">
-                <div class="flex items-center justify-between px-6 py-6">
-                    <div class="flex items-center space-x-4">
-                        <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                        <div class="flex items-center space-x-3">
-                            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-8 w-auto lg:hidden">
-                            <h1 class="text-xl font-bold text-white">Escalations</h1>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <!-- Notification Icon -->
-                        <x-notification-icon />
-                        <span class="text-sm text-white hidden md:block">{{ now()->format('l, F j, Y') }}</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main Content -->
-            <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-                @if(session('success'))
-                <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded">
-                    {{ session('success') }}
-                </div>
-                @endif
-
-                <!-- Filters -->
-                <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-                    <form method="GET" action="{{ route('customer-care.escalations.index') }}" class="flex flex-wrap gap-4">
-                        <div>
-                            <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                <option value="">All Status</option>
-                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                                <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
-                                <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
-                            </select>
-                        </div>
-                        <div>
-                            <select name="escalated_to_type" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                <option value="">All Types</option>
-                                <option value="admin" {{ request('escalated_to_type') == 'admin' ? 'selected' : '' }}>Admin</option>
-                                <option value="doctor" {{ request('escalated_to_type') == 'doctor' ? 'selected' : '' }}>Doctor</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                Filter
-                            </button>
-                        </div>
-                        @if(request()->hasAny(['status', 'escalated_to_type']))
-                        <div>
-                            <a href="{{ route('customer-care.escalations.index') }}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                                Clear
-                            </a>
-                        </div>
-                        @endif
-                    </form>
-                </div>
-
-                <!-- Escalations Table -->
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    @if($escalations->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Escalated To</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($escalations as $escalation)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">
-                                            @if($escalation->support_ticket_id)
-                                                Ticket: {{ $escalation->supportTicket->ticket_number ?? 'N/A' }}
-                                            @elseif($escalation->customer_interaction_id)
-                                                Interaction #{{ $escalation->customer_interaction_id }}
-                                            @else
-                                                N/A
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                            {{ $escalation->escalated_to_type == 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
-                                            {{ ucfirst($escalation->escalated_to_type) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900">{{ Str::limit($escalation->reason, 50) }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                            {{ $escalation->status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
-                                            {{ $escalation->status == 'in_progress' ? 'bg-blue-100 text-blue-800' : '' }}
-                                            {{ $escalation->status == 'resolved' ? 'bg-green-100 text-green-800' : '' }}
-                                            {{ $escalation->status == 'closed' ? 'bg-gray-100 text-gray-800' : '' }}">
-                                            {{ ucfirst(str_replace('_', ' ', $escalation->status)) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $escalation->created_at->format('M d, Y') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a href="{{ route('customer-care.escalations.show', $escalation) }}" class="text-purple-600 hover:text-purple-900">View</a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="px-6 py-4 border-t border-gray-200">
-                        {{ $escalations->links() }}
-                    </div>
-                    @else
-                    <div class="p-12 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">No escalations</h3>
-                        <p class="mt-1 text-sm text-gray-500">No escalations have been created yet.</p>
-                    </div>
-                    @endif
-                </div>
-            </main>
+@section('content')
+<div class="px-6 py-8">
+    <div class="flex items-center justify-between mb-10">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800 tracking-tight">Escalations</h1>
+            <p class="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mt-1">High-priority case management & oversight</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ now()->format('l, F j, Y') }}</span>
         </div>
     </div>
 
-    @include('customer-care.shared.preloader-scripts')
-</body>
-</html>
+    @if(session('success'))
+    <div class="mb-8 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl flex items-center space-x-3 animate-fade-in">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        <p class="text-sm font-bold">{{ session('success') }}</p>
+    </div>
+    @endif
 
+    <!-- Search & Filters -->
+    <div class="clean-card p-6 mb-8 animate-slide-up">
+        <form method="GET" action="{{ route('customer-care.escalations.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Current Status</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none appearance-none">
+                    <option value="">All Status</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                    <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                    <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Escalated To</label>
+                <select name="escalated_to_type" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none appearance-none">
+                    <option value="">All Oversight Groups</option>
+                    <option value="admin" {{ request('escalated_to_type') == 'admin' ? 'selected' : '' }}>Administrative Board</option>
+                    <option value="doctor" {{ request('escalated_to_type') == 'doctor' ? 'selected' : '' }}>Medical Directors</option>
+                </select>
+            </div>
+
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="flex-1 bg-slate-800 text-white rounded-xl px-4 py-3 text-sm font-bold hover:bg-slate-900 transition-all">
+                    Filter Queue
+                </button>
+                @if(request()->hasAny(['status', 'escalated_to_type']))
+                <a href="{{ route('customer-care.escalations.index') }}" class="bg-slate-100 text-slate-600 rounded-xl px-4 py-3 hover:bg-slate-200 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg>
+                </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
+    <!-- Escalations Registry -->
+    <div class="clean-card overflow-hidden animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/50">
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Source Entity</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Escalation Target</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Primary Reason</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Current Status</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Timeline</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    @forelse($escalations as $escalation)
+                    <tr class="hover:bg-slate-50/80 transition-colors group">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-black text-slate-800 uppercase tracking-widest">
+                                        @if($escalation->support_ticket_id)
+                                            Ticket #{{ $escalation->supportTicket->ticket_number ?? 'N/A' }}
+                                        @elseif($escalation->customer_interaction_id)
+                                            Interaction #{{ $escalation->customer_interaction_id }}
+                                        @else
+                                            General Escalation
+                                        @endif
+                                    </div>
+                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Reference ID: {{ $escalation->id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest 
+                                {{ $escalation->escalated_to_type == 'admin' ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600' }}">
+                                {{ $escalation->escalated_to_type }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="text-xs font-bold text-slate-600 max-w-xs truncate">
+                                {{ $escalation->reason }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest 
+                                {{ $escalation->status == 'pending' ? 'bg-amber-50 text-amber-600' : '' }}
+                                {{ $escalation->status == 'in_progress' ? 'bg-blue-50 text-blue-600' : '' }}
+                                {{ $escalation->status == 'resolved' ? 'bg-emerald-50 text-emerald-600' : '' }}
+                                {{ $escalation->status == 'closed' ? 'bg-slate-100 text-slate-500' : '' }}">
+                                {{ str_replace('_', ' ', $escalation->status) }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{ $escalation->created_at->format('d M Y') }}</div>
+                            <div class="text-[10px] font-medium text-slate-400">{{ $escalation->created_at->diffForHumans() }}</div>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <a href="{{ route('customer-care.escalations.show', $escalation) }}" 
+                               class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all">
+                                Review Case
+                            </a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-6 py-20 text-center">
+                            <div class="w-20 h-20 bg-slate-50 text-slate-200 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                            </div>
+                            <h3 class="text-lg font-black text-slate-800">Queue is Clear</h3>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">No pending escalations require attention</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($escalations->hasPages())
+        <div class="px-6 py-6 border-t border-slate-50 bg-slate-50/30">
+            {{ $escalations->links() }}
+        </div>
+        @endif
+    </div>
+</div>
+@endsection

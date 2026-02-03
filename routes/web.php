@@ -440,8 +440,6 @@ Route::get('/care-giver/email/verify/{id}/{hash}', [\App\Http\Controllers\CareGi
 Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver'])->group(function () {
     Route::get('/pin/verify', [\App\Http\Controllers\CareGiver\PinVerificationController::class, 'show'])->name('pin.verify');
     Route::post('/pin/verify', [\App\Http\Controllers\CareGiver\PinVerificationController::class, 'verify'])->name('pin.verify.post');
-    Route::get('/customer-care/whatsapp-test', [CustomerCareController::class, 'whatsappTest'])->name('customer-care.whatsapp-test');
-    Route::post('/customer-care/whatsapp/send', [CustomerCareController::class, 'sendWhatsApp'])->name('customer-care.whatsapp.send');
 });
 
 // Protected Care Giver Routes (Authentication + PIN verification required)
@@ -454,66 +452,6 @@ Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver',
     Route::get('/patients/{patient}', [\App\Http\Controllers\CareGiver\PatientController::class, 'show'])->name('patients.show');
 });
 
-// ==================== CUSTOMER CARE ROUTES ====================
-
-// Customer Care Login Routes (No authentication required)
-Route::prefix('customer-care')->name('customer-care.')->group(function () {
-    Route::get('/login', [CustomerCareAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [CustomerCareAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
-    
-    // Password Reset Routes
-    Route::get('/forgot-password', [CustomerCareForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password', [CustomerCareForgotPasswordController::class, 'sendResetLink'])->name('password.email');
-    Route::get('/reset-password/{token}', [CustomerCareForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password', [CustomerCareForgotPasswordController::class, 'resetPassword'])->name('password.update');
-});
-
-// Customer Care Email Verification Routes
-Route::prefix('customer-care')->name('customer-care.')->middleware('customer_care.auth')->group(function () {
-    Route::get('/email/verify', [CustomerCareVerificationController::class, 'notice'])->name('verification.notice');
-    Route::post('/email/verification-notification', [CustomerCareVerificationController::class, 'resend'])->name('verification.resend');
-});
-
-Route::get('/customer-care/email/verify/{id}/{hash}', [CustomerCareVerificationController::class, 'verify'])
-    ->name('customer-care.verification.verify');
-
-// Protected Customer Care Routes (Authentication required)
-Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_care.auth', 'customer_care.verified'])->group(function () {
-    Route::post('/logout', [CustomerCareAuthController::class, 'logout'])->name('logout');
-    
-    // Notifications
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
-    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
-    Route::get('/dashboard', [CustomerCareDashboardController::class, 'index'])->name('dashboard');
-    
-    // Consultation Management
-    Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
-    Route::get('/consultations/{id}', [CustomerCareDashboardController::class, 'showConsultation'])->name('consultations.show');
-    
-    // Customer Interactions
-    Route::resource('interactions', \App\Http\Controllers\CustomerCare\InteractionsController::class);
-    Route::post('/interactions/{interaction}/end', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'end'])->name('interactions.end');
-    Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
-    
-    // Support Tickets
-    Route::resource('tickets', \App\Http\Controllers\CustomerCare\TicketsController::class);
-    Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'updateStatus'])->name('tickets.update-status');
-    Route::post('/tickets/{ticket}/assign-to-me', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'assignToMe'])->name('tickets.assign-to-me');
-    
-    // Escalations
-    Route::resource('escalations', \App\Http\Controllers\CustomerCare\EscalationsController::class)->only(['index', 'show']);
-    Route::get('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromTicket'])->name('escalations.create-from-ticket');
-    Route::post('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateTicket'])->name('escalations.escalate-ticket');
-    Route::get('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromInteraction'])->name('escalations.create-from-interaction');
-    Route::post('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateInteraction'])->name('escalations.escalate-interaction');
-    
-    // Customer Profiles
-    Route::get('/customers', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'search'])->name('customers.index');
-    Route::get('/customers/{patient}', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'show'])->name('customers.show');
-});
 
 // ==================== DOCTOR ROUTES ====================
 
@@ -801,23 +739,78 @@ Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 's
 |
 */
 
+// ==================== CUSTOMER CARE ROUTES ====================
+
 Route::prefix('customer-care')->name('customer-care.')->middleware(['web'])->group(function () {
     
-    // Authentication
-    Route::get('/login', [\App\Http\Controllers\CustomerCare\AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [\App\Http\Controllers\CustomerCare\AuthController::class, 'login'])->name('login.post');
-    Route::post('/logout', [\App\Http\Controllers\CustomerCare\AuthController::class, 'logout'])->name('logout');
+    // Authentication (No auth required)
+    Route::get('/login', [CustomerCareAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [CustomerCareAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
     
-    // Protected routes
-    Route::middleware(['auth:customer_care'])->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [\App\Http\Controllers\CustomerCareController::class, 'dashboard'])->name('dashboard');
+    // Password Reset
+    Route::get('/forgot-password', [CustomerCareForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [CustomerCareForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [CustomerCareForgotPasswordController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [CustomerCareForgotPasswordController::class, 'resetPassword'])->name('password.update');
+
+    // Email Verification (Public link)
+    Route::get('/email/verify/{id}/{hash}', [CustomerCareVerificationController::class, 'verify'])
+        ->name('verification.verify');
+
+    // Protected Routes (Authentication required)
+    Route::middleware(['customer_care.auth', 'customer_care.verified'])->group(function () {
+        Route::post('/logout', [CustomerCareAuthController::class, 'logout'])->name('logout');
         
-        // Patient Search and Details
+        // Verification Notice
+        Route::get('/email/verify', [CustomerCareVerificationController::class, 'notice'])->name('verification.notice');
+        Route::post('/email/verification-notification', [CustomerCareVerificationController::class, 'resend'])->name('verification.resend');
+
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        
+        // Dashboard & Main Registry
+        Route::get('/dashboard', [CustomerCareDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
+        Route::get('/consultations/{id}', [CustomerCareDashboardController::class, 'showConsultation'])->name('consultations.show');
+        
+        // WhatsApp Validator (Sandbox testing)
+        Route::get('/whatsapp-test', [\App\Http\Controllers\CustomerCareController::class, 'whatsappTest'])->name('whatsapp-test');
+
+        // Customer Interactions
+        Route::resource('interactions', \App\Http\Controllers\CustomerCare\InteractionsController::class);
+        Route::post('/interactions/{interaction}/end', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'end'])->name('interactions.end');
+        Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
+        
+        // Support Tickets
+        Route::resource('tickets', \App\Http\Controllers\CustomerCare\TicketsController::class);
+        Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'updateStatus'])->name('tickets.update-status');
+        Route::post('/tickets/{ticket}/assign-to-me', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'assignToMe'])->name('tickets.assign-to-me');
+        
+        // Escalations
+        Route::resource('escalations', \App\Http\Controllers\CustomerCare\EscalationsController::class)->only(['index', 'show']);
+        Route::get('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromTicket'])->name('escalations.create-from-ticket');
+        Route::post('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateTicket'])->name('escalations.escalate-ticket');
+        Route::get('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromInteraction'])->name('escalations.create-from-interaction');
+        Route::post('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateInteraction'])->name('escalations.escalate-interaction');
+        
+        // Customer Profiles
+        Route::get('/customers', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'search'])->name('customers.index');
+        Route::get('/customers/{patient}', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'show'])->name('customers.show');
+
+        // Doctor Directory (New)
+        Route::get('/doctors', [\App\Http\Controllers\CustomerCare\DoctorProfileController::class, 'index'])->name('doctors.index');
+        Route::get('/doctors/{doctor}', [\App\Http\Controllers\CustomerCare\DoctorProfileController::class, 'show'])->name('doctors.show');
+
+        // Unified Communication Hub (Refactored)
+        Route::post('/communication/send', [\App\Http\Controllers\CustomerCare\CommunicationController::class, 'send'])->name('communications.send');
+        
+        // Communication Hub API Endpoints (Legacy support / internal)
         Route::get('/patients/search', [\App\Http\Controllers\CustomerCareController::class, 'searchPatients'])->name('patients.search');
         Route::get('/patients/{id}/details', [\App\Http\Controllers\CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
         
-        // Communications
         Route::prefix('communications')->name('communications.')->group(function () {
             Route::post('/send-sms', [\App\Http\Controllers\CustomerCareController::class, 'sendSms'])->name('send-sms');
             Route::post('/send-whatsapp', [\App\Http\Controllers\CustomerCareController::class, 'sendWhatsApp'])->name('send-whatsapp');
