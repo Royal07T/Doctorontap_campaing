@@ -248,7 +248,10 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts'));
+        // Daily Health Tip (can be made dynamic later)
+        $dailyHealthTip = "Stress management positively impacts sexual wellness. Try spending 10 minutes today on focused breathing exercises.";
+
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts', 'dailyHealthTip'));
     }
 
     /**
