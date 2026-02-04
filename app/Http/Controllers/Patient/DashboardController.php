@@ -375,6 +375,61 @@ class DashboardController extends Controller
     }
 
     /**
+     * Search functionality for patient portal
+     */
+    public function search(Request $request)
+    {
+        $patient = Auth::guard('patient')->user();
+        $query = $request->get('q', '');
+        $results = [
+            'consultations' => collect(),
+            'doctors' => collect(),
+            'medical_records' => collect(),
+        ];
+
+        if ($query) {
+            // Search consultations
+            $results['consultations'] = $patient->consultations()
+                ->where(function($q) use ($query) {
+                    $q->where('reference', 'like', "%{$query}%")
+                      ->orWhere('problem', 'like', "%{$query}%")
+                      ->orWhere('diagnosis', 'like', "%{$query}%");
+                })
+                ->orWhereHas('doctor', function($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                      ->orWhere('specialization', 'like', "%{$query}%");
+                })
+                ->with('doctor')
+                ->latest()
+                ->limit(10)
+                ->get();
+
+            // Search doctors
+            $results['doctors'] = \App\Models\Doctor::where('is_approved', true)
+                ->where('is_available', true)
+                ->where(function($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                      ->orWhere('specialization', 'like', "%{$query}%");
+                })
+                ->limit(10)
+                ->get();
+
+            // Search medical records
+            $results['medical_records'] = $patient->medicalHistories()
+                ->where(function($q) use ($query) {
+                    $q->where('diagnosis', 'like', "%{$query}%")
+                      ->orWhere('treatment_plan', 'like', "%{$query}%")
+                      ->orWhere('chief_complaint', 'like', "%{$query}%");
+                })
+                ->latest('consultation_date')
+                ->limit(10)
+                ->get();
+        }
+
+        return view('patient.search', compact('query', 'results'));
+    }
+
+    /**
      * Display all available doctors
      */
     public function doctors(Request $request)

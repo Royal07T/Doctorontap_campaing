@@ -618,6 +618,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export-history', [\App\Http\Controllers\Patient\DashboardController::class, 'exportHistory'])->name('dashboard.export-history');
     
+    // Search
+    Route::get('/search', [\App\Http\Controllers\Patient\DashboardController::class, 'search'])->name('search');
+    
     // Consultations
     Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
