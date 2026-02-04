@@ -242,11 +242,37 @@ class DashboardController extends Controller
             }
         }
 
-        // Quick Contacts - Active doctors, prioritized by recent consultations
-        $quickContacts = Doctor::where('is_approved', true)
-            ->where('is_available', true)
-            ->limit(3)
-            ->get();
+        // Quick Contacts - Most recently consulted doctors or most consulted doctors for new patients
+        $quickContacts = collect();
+        
+        // Get doctors from recent consultations (only completed ones with doctors)
+        $recentConsultationDoctors = $patient->consultations()
+            ->whereNotNull('doctor_id')
+            ->where('status', 'completed')
+            ->with('doctor')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->pluck('doctor')
+            ->filter(function($doctor) {
+                return $doctor && $doctor->is_approved && $doctor->is_available;
+            })
+            ->unique('id')
+            ->take(2);
+        
+        if ($recentConsultationDoctors->isNotEmpty()) {
+            $quickContacts = $recentConsultationDoctors;
+        } else {
+            // For new patients, get most consulted doctors overall
+            $quickContacts = Doctor::where('is_approved', true)
+                ->where('is_available', true)
+                ->withCount(['consultations as consultations_count' => function($query) {
+                    $query->where('status', 'completed');
+                }])
+                ->orderBy('consultations_count', 'desc')
+                ->orderBy('name')
+                ->limit(2)
+                ->get();
+        }
 
         // Daily Health Tip (can be made dynamic later)
         $dailyHealthTip = "Stress management positively impacts sexual wellness. Try spending 10 minutes today on focused breathing exercises.";
