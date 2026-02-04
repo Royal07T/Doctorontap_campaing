@@ -419,7 +419,8 @@ class DashboardController extends Controller
                 ->where(function($q) use ($query) {
                     $q->where('diagnosis', 'like', "%{$query}%")
                       ->orWhere('treatment_plan', 'like', "%{$query}%")
-                      ->orWhere('chief_complaint', 'like', "%{$query}%");
+                      ->orWhere('presenting_complaint', 'like', "%{$query}%")
+                      ->orWhere('additional_notes', 'like', "%{$query}%");
                 })
                 ->latest('consultation_date')
                 ->limit(10)
@@ -1965,6 +1966,47 @@ class DashboardController extends Controller
         }
 
         return view('patient.cycle-tracker', compact('cycles', 'dailyLogs', 'currentCycle', 'nextPeriodPrediction', 'averageCycleLength'));
+    }
+
+    /**
+     * Reset Menstrual Cycle Tracker (Delete all cycles and daily logs)
+     */
+    public function resetCycleTracker()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        if (strtolower($patient->gender) !== 'female') {
+            return response()->json(['error' => 'This feature is only available for female patients.'], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Delete all daily logs
+            MenstrualDailyLog::where('patient_id', $patient->id)->delete();
+
+            // Delete all cycles
+            MenstrualCycle::where('patient_id', $patient->id)->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cycle tracker has been reset successfully. All cycles and daily logs have been deleted.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to reset cycle tracker', [
+                'patient_id' => $patient->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset cycle tracker. Please try again.',
+            ], 500);
+        }
     }
 
     /**

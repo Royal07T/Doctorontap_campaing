@@ -12,6 +12,12 @@
                 <p class="text-sm text-gray-500 mt-1">Tracking your health metrics for better cycle prediction.</p>
             </div>
             <div class="flex items-center gap-3">
+                <button @click="resetTracker" class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-semibold text-sm transition-all shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Reset Tracker</span>
+                </button>
                 <button @click="logToday" class="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg uppercase tracking-tight">
                     <span>+ Log Today</span>
                 </button>
@@ -615,6 +621,79 @@ function cycleTracker() {
                 alert('Connection error. Please try again.');
             } finally {
                 this.saving = false;
+            }
+        },
+
+        async resetTracker() {
+            if (!confirm('Are you sure you want to reset your cycle tracker? This will permanently delete all your menstrual cycles and daily logs. This action cannot be undone.')) {
+                return;
+            }
+
+            if (!confirm('This is your final confirmation. All cycle data will be permanently deleted. Continue?')) {
+                return;
+            }
+
+            try {
+                @php
+                    try {
+                        $resetUrl = route('patient.cycle-tracker.reset');
+                    } catch (\Exception $e) {
+                        $resetUrl = url('/patient/cycle-tracker/reset');
+                    }
+                @endphp
+                const response = await fetch('{{ $resetUrl }}', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Clear local data
+                    this.cycles = [];
+                    this.dailyLogs = [];
+                    this.formData = {
+                        mood: '',
+                        flow: '',
+                        sleep: 7.5,
+                        water: 3,
+                        urination: 'normal',
+                        eating: 50,
+                        symptoms: []
+                    };
+                    
+                    // Reset predictions
+                    this.currentCycleDay = 1;
+                    this.daysUntilNextPeriod = 28;
+                    this.ovulationWindow = 'Not available';
+                    
+                    // Reload page to refresh all data
+                    if (window.showCustomAlert) {
+                        window.showCustomAlert('Success', 'Cycle tracker has been reset successfully', 'success', () => {
+                            window.location.reload();
+                        });
+                    } else {
+                        alert('Cycle tracker has been reset successfully');
+                        window.location.reload();
+                    }
+                } else {
+                    if (window.showCustomAlert) {
+                        window.showCustomAlert('Error', data.message || 'Failed to reset cycle tracker', 'error');
+                    } else {
+                        alert(data.message || 'Failed to reset cycle tracker');
+                    }
+                }
+            } catch (error) {
+                console.error('Error resetting tracker:', error);
+                if (window.showCustomAlert) {
+                    window.showCustomAlert('Error', 'Connection error. Please try again.', 'error');
+                } else {
+                    alert('Connection error. Please try again.');
+                }
             }
         }
     };

@@ -119,13 +119,40 @@
                                 {{ $doctor->location }}
                             </div>
                             @endif
+                            @if($doctor->languages)
+                            <div class="flex items-center text-xs text-gray-500">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                                </svg>
+                                {{ $doctor->languages }}
+                            </div>
+                            @endif
+                            @php
+                                // Get consultation fee - handle both single fee and range
+                                if ($doctor->use_default_fee) {
+                                    $defaultFee = \App\Models\Setting::get('default_consultation_fee', 5000);
+                                    $feeDisplay = '₦' . number_format($defaultFee, 0);
+                                } elseif ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
+                                    $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0) . ' - ₦' . number_format($doctor->max_consultation_fee, 0);
+                                } elseif ($doctor->consultation_fee) {
+                                    $feeDisplay = '₦' . number_format($doctor->consultation_fee, 0);
+                                } else {
+                                    $feeDisplay = 'Contact for pricing';
+                                }
+                            @endphp
+                            <div class="flex items-center text-xs font-semibold text-purple-600">
+                                <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {{ $feeDisplay }}
+                            </div>
                          </div>
                     </div>
                     
                     <!-- Card Footer -->
                     <div class="p-4 bg-gray-50 border-t border-gray-100 group-hover:bg-purple-50 transition-colors">
                         <button onclick="window.openBookingModal({{ $doctor->id }}, '{{ addslashes($doctor->name) }}', '{{ addslashes($doctor->specialization ?? 'General Practitioner') }}')" 
-                                class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all shadow-sm">
+                                class="w-full py-2.5 bg-purple-600 border border-purple-600 text-white font-bold text-sm rounded-xl hover:bg-purple-700 hover:border-purple-700 transition-all shadow-md hover:shadow-lg">
                             Book Appointment
                         </button>
                     </div>

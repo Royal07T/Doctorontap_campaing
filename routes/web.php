@@ -665,6 +665,7 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/export-history', [\App\Http\Controllers\Patient\DashboardController::class, 'exportHistory'])->name('dashboard.export-history');
     
     // Consultations
     Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
@@ -730,6 +731,7 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     // Menstrual Cycle Tracking (for female patients)
     Route::get('/cycle-tracker', [\App\Http\Controllers\Patient\DashboardController::class, 'cycleTracker'])->name('cycle-tracker');
     Route::post('/menstrual-daily-log', [\App\Http\Controllers\Patient\DashboardController::class, 'storeDailyLog'])->name('menstrual-daily-log.store');
+    Route::post('/cycle-tracker/reset', [\App\Http\Controllers\Patient\DashboardController::class, 'resetCycleTracker'])->name('cycle-tracker.reset');
     
     Route::get('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'showMenstrualCycle'])->name('menstrual-cycle.show');
     Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
@@ -743,6 +745,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     
     // Caregiver Discovery
     Route::get('/caregivers', [\App\Http\Controllers\Patient\DashboardController::class, 'caregivers'])->name('caregivers');
+    
+    // Search
+    Route::get('/search', [\App\Http\Controllers\Patient\DashboardController::class, 'search'])->name('search');
     
     // Sexual Health & Performance Tracking (for male patients)
     Route::post('/sexual-health', [\App\Http\Controllers\Patient\DashboardController::class, 'storeSexualHealthRecord'])->name('sexual-health.store');
@@ -779,43 +784,7 @@ Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 's
     Route::get('/impersonate/status', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'status'])->name('impersonate.status');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Customer Care Routes
-|--------------------------------------------------------------------------
-|
-| Routes for customer care communication hub
-|
-*/
 
-Route::prefix('customer-care')->name('customer-care.')->group(function () {
-    
-    // Authentication
-    Route::get('/login', [CustomerCare\AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [CustomerCare\AuthController::class, 'login']);
-    Route::post('/logout', [CustomerCare\AuthController::class, 'logout'])->name('logout');
-    
-    // Dashboard
-    Route::get('/dashboard', [CustomerCareController::class, 'dashboard'])->name('dashboard');
-    
-    // Patient Search and Details
-    Route::get('/patients/search', [CustomerCareController::class, 'searchPatients'])->name('patients.search');
-    Route::get('/patients/{id}/details', [CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
-    
-    // Communications
-    Route::prefix('communications')->name('communications.')->group(function () {
-        Route::post('/send-sms', [CustomerCareController::class, 'sendSms'])->name('send-sms');
-        Route::post('/send-whatsapp', [CustomerCareController::class, 'sendWhatsApp'])->name('send-whatsapp');
-        Route::post('/initiate-call', [CustomerCareController::class, 'initiateCall'])->name('initiate-call');
-        Route::get('/history/{patientId}', [CustomerCareController::class, 'getCommunicationHistory'])->name('history');
-    });
-    
-    // Marketing Campaigns
-    Route::prefix('campaigns')->name('campaigns.')->group(function () {
-        Route::get('/', [CustomerCareController::class, 'getCampaigns'])->name('index');
-        Route::post('/', [CustomerCareController::class, 'createCampaign'])->name('create');
-    });
-});
 
 /*
 |--------------------------------------------------------------------------
