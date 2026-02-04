@@ -51,8 +51,8 @@
                 </div>
             </div>
             <h3 class="text-lg font-bold text-gray-900 mb-2">Talk to a Doctor</h3>
-            <p class="text-sm text-gray-600 mb-4">Connect with a certified GP or specialist in minutes.</p>
-            <a href="{{ route('patient.doctors') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-pink-600 text-white rounded-lg text-sm font-semibold hover:bg-pink-700 transition-all shadow-md hover:shadow-lg">
+            <p class="text-sm text-gray-700 mb-4 font-medium">Connect with a certified GP or specialist in minutes.</p>
+            <a href="{{ route('patient.doctors') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-pink-600 text-white rounded-lg text-sm font-bold hover:bg-pink-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #db2777 !important; color: #ffffff !important;">
                 Consult Now
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -71,8 +71,8 @@
                 </div>
             </div>
             <h3 class="text-lg font-bold text-gray-900 mb-2">Hire a Caregiver</h3>
-            <p class="text-sm text-gray-600 mb-4">Professional nursing and home care services for your loved ones.</p>
-            <a href="{{ route('patient.caregivers') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-all shadow-md hover:shadow-lg">
+            <p class="text-sm text-gray-700 mb-4 font-medium">Professional nursing and home care services for your loved ones.</p>
+            <a href="{{ route('patient.caregivers') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #0d9488 !important; color: #ffffff !important;">
                 Browse Caregivers
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -90,8 +90,8 @@
                 </div>
             </div>
             <h3 class="text-lg font-bold text-gray-900 mb-2">Medical Coordination</h3>
-            <p class="text-sm text-gray-600 mb-4">Let us manage your appointments and pharmacy needs.</p>
-            <a href="{{ route('patient.consultations') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">
+            <p class="text-sm text-gray-700 mb-4 font-medium">Let us manage your appointments and pharmacy needs.</p>
+            <a href="{{ route('patient.consultations') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #2563eb !important; color: #ffffff !important;">
                 Manage Services
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
