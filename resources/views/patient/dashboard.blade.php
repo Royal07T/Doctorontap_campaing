@@ -3,40 +3,40 @@
 @section('title', 'Patient Dashboard')
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6 pb-8">
     <!-- Welcome Section -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <div>
-            <h2 class="text-3xl font-bold text-gray-900">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                 Good morning, {{ explode(' ', $patient->name)[0] }}! 👋
             </h2>
-            <p class="text-gray-600 mt-1">Here is a summary of your health today.</p>
+            <p class="text-gray-600 text-base">Here is a summary of your health today.</p>
         </div>
-        <button class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="{{ route('patient.dashboard.export-history') }}" class="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-purple-200 rounded-xl text-sm font-semibold text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all shadow-md hover:shadow-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Export History
-        </button>
+        </a>
     </div>
 
     <!-- Three Action Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <!-- Talk to a Doctor (Pink) -->
-        <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl p-6 border border-pink-200 shadow-sm">
+        <div class="bg-gradient-to-br from-pink-500 via-pink-400 to-pink-300 rounded-2xl p-6 border-2 border-pink-600 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-pink-200 rounded-xl flex items-center justify-center relative">
-                    <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-14 h-14 bg-white bg-opacity-30 rounded-xl flex items-center justify-center relative backdrop-blur-sm">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
-                    <svg class="w-3 h-3 text-pink-600 absolute top-1 right-1" fill="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-white absolute top-0.5 right-0.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                     </svg>
                 </div>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">Talk to a Doctor</h3>
-            <p class="text-sm text-gray-600 mb-4">Connect with a certified GP or specialist in minutes.</p>
-            <a href="{{ route('patient.doctors') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg text-sm font-medium hover:bg-pink-700 transition-colors">
+            <h3 class="text-xl font-bold text-white mb-2">Talk to a Doctor</h3>
+            <p class="text-sm text-pink-50 mb-5 leading-relaxed">Connect with a certified GP or specialist in minutes.</p>
+            <a href="{{ route('patient.doctors') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-white text-pink-600 rounded-xl text-sm font-bold hover:bg-pink-50 transition-all shadow-md hover:shadow-lg">
                 Consult Now
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -45,18 +45,18 @@
         </div>
 
         <!-- Hire a Caregiver (Teal) -->
-        <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-2xl p-6 border border-teal-200 shadow-sm">
+        <div class="bg-gradient-to-br from-teal-500 via-teal-400 to-teal-300 rounded-2xl p-6 border-2 border-teal-600 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-teal-200 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-14 h-14 bg-white bg-opacity-30 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                 </div>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">Hire a Caregiver</h3>
-            <p class="text-sm text-gray-600 mb-4">Professional nursing and home care services for your loved ones.</p>
-            <a href="{{ route('patient.caregivers') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors">
+            <h3 class="text-xl font-bold text-white mb-2">Hire a Caregiver</h3>
+            <p class="text-sm text-teal-50 mb-5 leading-relaxed">Professional nursing and home care services for your loved ones.</p>
+            <a href="{{ route('patient.caregivers') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-white text-teal-600 rounded-xl text-sm font-bold hover:bg-teal-50 transition-all shadow-md hover:shadow-lg">
                 Browse Caregivers
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -87,7 +87,7 @@
     <!-- Health Snapshot and Daily Tip Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Health Snapshot (Left - 2 columns) -->
-        <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-gray-900">Health Snapshot</h3>
                 <a href="{{ route('patient.medical-records') }}" class="text-sm font-medium text-purple-600 hover:text-purple-700">View All Trends</a>
@@ -138,7 +138,7 @@
         </div>
 
         <!-- Daily Health Tip (Right - 1 column) -->
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-sm text-white">
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-lg border-2 border-purple-400 text-white hover:shadow-xl transition-all">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -155,7 +155,7 @@
     <!-- Appointments, Contacts, and Emergency Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Upcoming Appointments (Left) -->
-        <div class="lg:col-span-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+        <div class="lg:col-span-1 bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-gray-900">Upcoming Appointments</h3>
                 <a href="{{ route('patient.doctors') }}" class="text-sm font-medium text-purple-600 hover:text-purple-700">BOOK NEW</a>
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Quick Contacts (Middle) -->
-        <div class="lg:col-span-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+        <div class="lg:col-span-1 bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
             <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Contacts</h3>
             <div class="space-y-3">
                 @forelse($quickContacts->take(2) as $doctor)
@@ -226,12 +226,19 @@
         </div>
 
         <!-- Emergency Help (Right) -->
-        <div class="lg:col-span-1 bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 shadow-sm text-white">
-            <h3 class="text-lg font-bold mb-2">Need Emergency Help?</h3>
-            <p class="text-sm text-blue-100 mb-4">Our 24/7 hotline is available for immediate medical assistance.</p>
-            <a href="tel:112" class="inline-flex items-center gap-2 w-full justify-center px-4 py-3 bg-white text-blue-900 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors">
+        <div class="lg:col-span-1 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 rounded-2xl p-6 shadow-lg border-2 border-blue-600 text-white hover:shadow-xl transition-all transform hover:-translate-y-1">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold">Need Emergency Help?</h3>
+            </div>
+            <p class="text-sm text-blue-100 mb-5 leading-relaxed">Our 24/7 hotline is available for immediate medical assistance.</p>
+            <a href="tel:112" class="inline-flex items-center gap-2 w-full justify-center px-4 py-3 bg-white text-blue-900 rounded-xl text-sm font-bold hover:bg-blue-50 transition-all shadow-md hover:shadow-lg">
                 <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
                 Call SOS Line
             </a>
@@ -240,7 +247,7 @@
 
     <!-- Women's Health Tracker (Below Appointments) -->
     @if(strtolower($patient->gender) === 'female')
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow">
         <div class="border-b border-gray-100 p-5 bg-gray-50/50 flex items-center justify-between">
             <div>
                 <h3 class="text-base font-bold text-gray-900">Women's Health TRACKER</h3>

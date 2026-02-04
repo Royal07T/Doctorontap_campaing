@@ -187,30 +187,30 @@
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Top Header -->
-            <header class="bg-white shadow-sm border-b border-gray-200 z-10">
+            <header class="purple-gradient shadow-lg border-b border-purple-700 z-10">
                 <div class="flex items-center justify-between px-6 py-4">
                     <!-- Left: Logo -->
                     <div class="flex items-center space-x-4">
-                        <button @click="sidebarOpen = true" class="lg:hidden text-gray-600 hover:text-gray-900 focus:outline-none">
+                        <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
+                            <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 backdrop-blur-sm flex items-center justify-center border-2 border-white border-opacity-30">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
                             </div>
-                            <h1 class="text-xl font-bold text-gray-900">DoctorOnTap™</h1>
+                            <h1 class="text-xl font-bold text-white">DoctorOnTap™</h1>
                         </div>
                     </div>
                     
                     <!-- Center: Search Bar -->
                     <div class="hidden md:flex flex-1 max-w-md mx-8">
                         <div class="relative w-full">
-                            <input type="text" placeholder="Search records, doctors..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
-                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <input type="text" placeholder="Search records, doctors..." class="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent text-sm text-white placeholder-white placeholder-opacity-70">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white text-opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
@@ -222,14 +222,14 @@
                         <x-notification-icon />
                         
                         <!-- Dark Mode Toggle -->
-                        <button class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button class="p-2 text-white hover:text-purple-200 hover:bg-white hover:bg-opacity-10 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                             </svg>
                         </button>
                         
                         <!-- Date -->
-                        <span class="text-sm font-medium text-gray-700">{{ now()->format('l, M d, Y') }}</span>
+                        <span class="text-sm font-medium text-white">{{ now()->format('l, M d, Y') }}</span>
                     </div>
                 </div>
             </header>

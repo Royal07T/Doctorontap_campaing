@@ -255,6 +255,100 @@ class DashboardController extends Controller
     }
 
     /**
+     * Export patient history
+     */
+    public function exportHistory()
+    {
+        $patient = Auth::guard('patient')->user();
+        
+        // Get all consultations
+        $consultations = $patient->consultations()
+            ->with(['doctor', 'payment'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Get medical records
+        $medicalHistories = $patient->medicalHistories()
+            ->orderBy('consultation_date', 'desc')
+            ->get();
+        
+        // Get vital signs
+        $vitalSigns = $patient->vitalSigns()
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Generate CSV content
+        $filename = 'patient_history_' . $patient->id . '_' . now()->format('Y-m-d') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+        
+        $callback = function() use ($patient, $consultations, $medicalHistories, $vitalSigns) {
+            $file = fopen('php://output', 'w');
+            
+            // Patient Information
+            fputcsv($file, ['PATIENT HEALTH HISTORY EXPORT']);
+            fputcsv($file, ['Generated on: ' . now()->format('F d, Y h:i A')]);
+            fputcsv($file, []);
+            fputcsv($file, ['PATIENT INFORMATION']);
+            fputcsv($file, ['Name', $patient->name]);
+            fputcsv($file, ['Email', $patient->email]);
+            fputcsv($file, ['Phone', $patient->mobile ?? 'N/A']);
+            fputcsv($file, ['Date of Birth', $patient->date_of_birth ? $patient->date_of_birth->format('Y-m-d') : 'N/A']);
+            fputcsv($file, ['Gender', $patient->gender ?? 'N/A']);
+            fputcsv($file, []);
+            
+            // Consultations
+            fputcsv($file, ['CONSULTATIONS']);
+            fputcsv($file, ['Date', 'Doctor', 'Specialization', 'Status', 'Payment Status', 'Reference', 'Problem']);
+            foreach ($consultations as $consultation) {
+                fputcsv($file, [
+                    $consultation->created_at->format('Y-m-d H:i'),
+                    $consultation->doctor ? $consultation->doctor->name : 'N/A',
+                    $consultation->doctor ? $consultation->doctor->specialization : 'N/A',
+                    $consultation->status,
+                    $consultation->payment_status,
+                    $consultation->reference,
+                    $consultation->problem ?? 'N/A'
+                ]);
+            }
+            fputcsv($file, []);
+            
+            // Medical Records
+            fputcsv($file, ['MEDICAL RECORDS']);
+            fputcsv($file, ['Date', 'Diagnosis', 'Treatment Plan']);
+            foreach ($medicalHistories as $history) {
+                fputcsv($file, [
+                    $history->consultation_date->format('Y-m-d'),
+                    $history->diagnosis ?? 'N/A',
+                    $history->treatment_plan ?? 'N/A'
+                ]);
+            }
+            fputcsv($file, []);
+            
+            // Vital Signs
+            fputcsv($file, ['VITAL SIGNS']);
+            fputcsv($file, ['Date', 'Blood Pressure', 'Temperature', 'Heart Rate', 'Weight', 'Height']);
+            foreach ($vitalSigns as $vital) {
+                fputcsv($file, [
+                    $vital->created_at->format('Y-m-d H:i'),
+                    $vital->blood_pressure ?? 'N/A',
+                    $vital->temperature ?? 'N/A',
+                    $vital->heart_rate ?? 'N/A',
+                    $vital->weight ?? 'N/A',
+                    $vital->height ?? 'N/A'
+                ]);
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
      * Display all available doctors
      */
     public function doctors(Request $request)
