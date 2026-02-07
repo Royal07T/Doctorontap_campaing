@@ -25,6 +25,7 @@ use App\Http\Controllers\CustomerCare\AuthController as CustomerCareAuthControll
 use App\Http\Controllers\CustomerCare\DashboardController as CustomerCareDashboardController;
 use App\Http\Controllers\CustomerCare\VerificationController as CustomerCareVerificationController;
 use App\Http\Controllers\CustomerCare\ForgotPasswordController as CustomerCareForgotPasswordController;
+use App\Http\Controllers\CustomerCareController;
 use App\Http\Controllers\Admin\CustomerCareOversightController;
 use App\Http\Controllers\Admin\ForgotPasswordController as AdminForgotPasswordController;
 use App\Http\Controllers\Admin\VerificationController as AdminVerificationController;
@@ -500,6 +501,23 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     // Customer Profiles
     Route::get('/customers', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'search'])->name('customers.index');
     Route::get('/customers/{patient}', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'show'])->name('customers.show');
+    
+    // Doctor Directory
+    Route::get('/doctors', [\App\Http\Controllers\CustomerCare\DoctorProfileController::class, 'index'])->name('doctors.index');
+    Route::get('/doctors/{doctor}', [\App\Http\Controllers\CustomerCare\DoctorProfileController::class, 'show'])->name('doctors.show');
+    
+    // Patient Search (for dashboard)
+    Route::get('/patients/search', [CustomerCareController::class, 'searchPatients'])->name('patients.search');
+    Route::get('/patients/{id}/details', [CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
+    
+    // Communications
+    Route::post('/communications/send-sms', [CustomerCareController::class, 'sendSms'])->name('communications.send-sms');
+    Route::post('/communications/send-whatsapp', [CustomerCareController::class, 'sendWhatsApp'])->name('communications.send-whatsapp');
+    Route::post('/communications/initiate-call', [CustomerCareController::class, 'initiateCall'])->name('communications.initiate-call');
+    Route::get('/communications/history/{patientId}', [CustomerCareController::class, 'getCommunicationHistory'])->name('communications.history');
+    
+    // WhatsApp Test/Sandbox
+    Route::get('/whatsapp-test', [CustomerCareController::class, 'whatsappTest'])->name('whatsapp-test');
 });
 
 // ==================== DOCTOR ROUTES ====================

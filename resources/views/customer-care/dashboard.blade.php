@@ -400,7 +400,7 @@
 
         // Select patient
         function selectPatient(patientId) {
-            fetch(`{{ route('customer-care.patients.details', ['id' => ':id']) }}`.replace(':id', patientId))
+            fetch(`{{ url('/customer-care/patients') }}/${patientId}/details`)
                 .then(response => response.json())
                 .then(data => {
                     selectedPatient = data.patient;

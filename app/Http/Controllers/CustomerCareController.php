@@ -312,7 +312,7 @@ class CustomerCareController extends Controller
                 // Initiate voice call using Vonage Voice API
                 if ($this->vonageService) {
                     $callResult = $this->vonageService->initiateCall($patient->phone, [
-                        'answer_url' => route('customer-care.call-webhook'),
+                        'answer_url' => route('vonage.webhook.voice.answer'),
                         'machine_detection' => 'continue'
                     ]);
                 } else {
