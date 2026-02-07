@@ -73,6 +73,18 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
             <span>Doctors</span>
         </a>
+
+        <!-- Bulk SMS Marketing -->
+        <a href="{{ route('customer-care.bulk-sms.index') }}" class="flex items-center space-x-3 px-4 py-3.5 {{ request()->routeIs('customer-care.bulk-sms*') ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'text-slate-600 hover:text-purple-600 hover:bg-purple-50' }} rounded-2xl font-bold transition-all duration-300">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+            <span>Bulk SMS</span>
+        </a>
+
+        <!-- Bulk Email Marketing -->
+        <a href="{{ route('customer-care.bulk-email.index') }}" class="flex items-center space-x-3 px-4 py-3.5 {{ request()->routeIs('customer-care.bulk-email*') ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'text-slate-600 hover:text-purple-600 hover:bg-purple-50' }} rounded-2xl font-bold transition-all duration-300">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <span>Bulk Email</span>
+        </a>
     </nav>
 
     <!-- Sidebar Footer (Fixed Bottom) -->

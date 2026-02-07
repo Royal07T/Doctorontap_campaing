@@ -302,10 +302,38 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
         Route::get('/tickets/{ticket}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showTicket'])->name('tickets.show');
         Route::get('/escalations', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'escalations'])->name('escalations');
         Route::get('/escalations/{escalation}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showEscalation'])->name('escalations.show');
+    });
+    
+    // SMS Templates Management (Admin)
+    Route::prefix('sms-templates')->name('sms-templates.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'store'])->name('store');
+        Route::get('/{smsTemplate}', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'show'])->name('show');
+        Route::get('/{smsTemplate}/edit', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'edit'])->name('edit');
+        Route::put('/{smsTemplate}', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'update'])->name('update');
+        Route::delete('/{smsTemplate}', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'destroy'])->name('destroy');
+        Route::post('/{smsTemplate}/toggle-status', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'toggleStatus'])->name('toggle-status');
+        Route::post('/{smsTemplate}/duplicate', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'duplicate'])->name('duplicate');
+        Route::post('/{smsTemplate}/preview', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'preview'])->name('preview');
         Route::get('/customers/{patient}/history', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'customerHistory'])->name('customers.history');
         Route::get('/agent-performance', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'agentPerformance'])->name('agent-performance');
         Route::get('/agents/{agent}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'agentDetails'])->name('agents.show');
         Route::get('/frequent-issues', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'frequentIssues'])->name('frequent-issues');
+    });
+    
+    // Email Templates Management (Admin)
+    Route::prefix('email-templates')->name('email-templates.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'store'])->name('store');
+        Route::get('/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'show'])->name('show');
+        Route::get('/{emailTemplate}/edit', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'edit'])->name('edit');
+        Route::put('/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'update'])->name('update');
+        Route::delete('/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'destroy'])->name('destroy');
+        Route::post('/{emailTemplate}/toggle-status', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'toggleStatus'])->name('toggle-status');
+        Route::post('/{emailTemplate}/duplicate', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'duplicate'])->name('duplicate');
+        Route::post('/{emailTemplate}/preview', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'preview'])->name('preview');
     });
     
     // Doctor Payment Management
@@ -515,6 +543,30 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     Route::post('/communications/send-whatsapp', [CustomerCareController::class, 'sendWhatsApp'])->name('communications.send-whatsapp');
     Route::post('/communications/initiate-call', [CustomerCareController::class, 'initiateCall'])->name('communications.initiate-call');
     Route::get('/communications/history/{patientId}', [CustomerCareController::class, 'getCommunicationHistory'])->name('communications.history');
+    
+    // Bulk SMS / SMS Marketing (Customer Care)
+    Route::prefix('bulk-sms')->name('bulk-sms.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'create'])->name('create');
+        Route::post('/send', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'send'])->name('send');
+        Route::post('/preview', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'preview'])->name('preview');
+        Route::get('/patients', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'getPatients'])->name('patients');
+        Route::get('/{campaign}', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'show'])->name('show');
+        Route::get('/history', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'history'])->name('history');
+        Route::get('/{campaign}/export', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'export'])->name('export');
+    });
+    
+    // Bulk Email / Email Marketing (Customer Care)
+    Route::prefix('bulk-email')->name('bulk-email.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'create'])->name('create');
+        Route::post('/send', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'send'])->name('send');
+        Route::post('/preview', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'preview'])->name('preview');
+        Route::get('/patients', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'getPatients'])->name('patients');
+        Route::get('/{campaign}', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'show'])->name('show');
+        Route::get('/history', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'history'])->name('history');
+        Route::get('/{campaign}/export', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'export'])->name('export');
+    });
     
     // WhatsApp Test/Sandbox
     Route::get('/whatsapp-test', [CustomerCareController::class, 'whatsappTest'])->name('whatsapp-test');
