@@ -56,20 +56,20 @@
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
                             <div class="p-4 bg-blue-50 rounded-lg">
                                 <div class="text-sm text-blue-600 font-medium">Total Recipients</div>
-                                <div class="text-2xl font-bold text-blue-900 mt-1">{{ count($campaign->recipients ?? []) }}</div>
+                                <div class="text-2xl font-bold text-blue-900 mt-1">{{ $campaign->total_recipients }}</div>
                             </div>
                             <div class="p-4 bg-green-50 rounded-lg">
                                 <div class="text-sm text-green-600 font-medium">Successful</div>
-                                <div class="text-2xl font-bold text-green-900 mt-1">{{ $campaign->success_count }}</div>
+                                <div class="text-2xl font-bold text-green-900 mt-1">{{ $campaign->successful_sends }}</div>
                             </div>
                             <div class="p-4 bg-red-50 rounded-lg">
                                 <div class="text-sm text-red-600 font-medium">Failed</div>
-                                <div class="text-2xl font-bold text-red-900 mt-1">{{ $campaign->failure_count }}</div>
+                                <div class="text-2xl font-bold text-red-900 mt-1">{{ $campaign->failed_sends }}</div>
                             </div>
                             <div class="p-4 bg-purple-50 rounded-lg">
                                 <div class="text-sm text-purple-600 font-medium">Success Rate</div>
                                 <div class="text-2xl font-bold text-purple-900 mt-1">
-                                    {{ count($campaign->recipients ?? []) > 0 ? round(($campaign->success_count / count($campaign->recipients ?? [])) * 100, 1) : 0 }}%
+                                    {{ $campaign->total_recipients > 0 ? round(($campaign->successful_sends / $campaign->total_recipients) * 100, 1) : 0 }}%
                                 </div>
                             </div>
                         </div>
@@ -101,7 +101,7 @@
                                 </svg>
                                 <div>
                                     <div class="text-sm text-gray-500">Sent By</div>
-                                    <div class="font-medium text-gray-900">{{ $campaign->sentBy->name ?? 'N/A' }}</div>
+                                    <div class="font-medium text-gray-900">{{ $campaign->sender->name ?? 'N/A' }}</div>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-3">
@@ -110,7 +110,7 @@
                                 </svg>
                                 <div>
                                     <div class="text-sm text-gray-500">Open Rate</div>
-                                    <div class="font-medium text-gray-900">{{ $campaign->open_count }} opens ({{ round(($campaign->open_count / max(count($campaign->recipients ?? []), 1)) * 100, 1) }}%)</div>
+                                    <div class="font-medium text-gray-900">{{ $campaign->opened_count }} opens ({{ $campaign->successful_sends > 0 ? round(($campaign->opened_count / $campaign->successful_sends) * 100, 1) : 0 }}%)</div>
                                 </div>
                             </div>
                         </div>
@@ -153,35 +153,29 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    @forelse($campaign->recipients ?? [] as $recipient)
+                                    @forelse($campaign->send_results ?? [] as $result)
                                         <tr class="hover:bg-gray-50">
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900">{{ $recipient['name'] ?? 'N/A' }}</div>
+                                                <div class="text-sm font-medium text-gray-900">N/A</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">{{ $recipient['email'] ?? 'N/A' }}</div>
+                                                <div class="text-sm text-gray-900">{{ $result['email'] ?? 'N/A' }}</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                                    @if(($recipient['status'] ?? '') == 'sent') bg-green-100 text-green-800
+                                                    @if(($result['status'] ?? '') == 'success') bg-green-100 text-green-800
                                                     @else bg-red-100 text-red-800
                                                     @endif">
-                                                    {{ ucfirst($recipient['status'] ?? 'pending') }}
+                                                    {{ ucfirst($result['status'] ?? 'pending') }}
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ isset($recipient['delivered_at']) ? \Carbon\Carbon::parse($recipient['delivered_at'])->format('M d, H:i') : 'N/A' }}
+                                                {{ $campaign->completed_at ? $campaign->completed_at->format('M d, H:i') : 'N/A' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                @if(($recipient['opened'] ?? false))
-                                                    <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                @else
-                                                    <svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                @endif
+                                                <svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                                </svg>
                                             </td>
                                         </tr>
                                     @empty

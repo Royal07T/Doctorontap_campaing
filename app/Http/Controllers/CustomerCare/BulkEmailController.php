@@ -114,14 +114,30 @@ class BulkEmailController extends Controller
             'campaign_name' => 'required|string|max:255',
             'template_id' => 'nullable|exists:email_templates,id',
             'subject' => 'required|string|max:255',
-            'content' => 'required|string',
+            'content_hidden' => 'required|string',
             'plain_text_content' => 'nullable|string',
-            'recipients' => 'required|array|min:1',
-            'recipients.*' => 'required|email',
+            'recipients' => 'nullable|array',
+            'recipients.*' => 'email',
+            'send_to_all' => 'nullable|boolean',
             'variables' => 'nullable|array',
             'from_name' => 'nullable|string|max:255',
             'from_email' => 'nullable|email|max:255',
         ]);
+        
+        // Get content from hidden field (Summernote output)
+        $content = $request->input('content_hidden');
+        
+        // Get recipients
+        if ($request->send_to_all) {
+            // Get all patients with email
+            $recipients = Patient::whereNotNull('email')->pluck('email')->toArray();
+        } else {
+            $recipients = $request->recipients ?? [];
+        }
+        
+        if (empty($recipients)) {
+            return back()->withErrors(['error' => 'Please select at least one recipient or choose "All Patients"']);
+        }
 
         DB::beginTransaction();
         try {
@@ -131,10 +147,10 @@ class BulkEmailController extends Controller
                 'template_id' => $request->template_id,
                 'sent_by' => Auth::guard('customer_care')->id(),
                 'subject' => $request->subject,
-                'message_content' => $request->content,
+                'message_content' => $content,
                 'plain_text_content' => $request->plain_text_content,
-                'recipient_emails' => $request->recipients,
-                'total_recipients' => count($request->recipients),
+                'recipient_emails' => $recipients,
+                'total_recipients' => count($recipients),
                 'status' => 'processing',
                 'from_name' => $request->from_name ?? config('mail.from.name'),
                 'from_email' => $request->from_email ?? config('mail.from.address'),
@@ -149,7 +165,7 @@ class BulkEmailController extends Controller
             DB::commit();
 
             // Send emails (synchronously for now, could be queued)
-            $this->processCampaign($campaign, $request->subject, $request->content, $request->plain_text_content, $request->recipients);
+            $this->processCampaign($campaign, $request->subject, $content, $request->plain_text_content, $recipients);
 
             return redirect()
                 ->route('customer-care.bulk-email.show', $campaign)
