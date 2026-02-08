@@ -75,6 +75,13 @@ class Consultation extends Model
         'treatment_plan_email_sent_at',
         'treatment_plan_email_status',
         'treatment_plan_attachments',
+        // Second Opinion Fields
+        'service_type',
+        'can_escalate_to_full',
+        'escalated_from_consultation_id',
+        'escalated_at',
+        'second_opinion_notes',
+        'second_opinion_documents',
     ];
 
     protected $casts = [
@@ -101,6 +108,10 @@ class Consultation extends Model
         'treatment_plan_email_sent_at' => 'datetime',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
+        // Second Opinion Casts
+        'can_escalate_to_full' => 'boolean',
+        'escalated_at' => 'datetime',
+        'second_opinion_documents' => 'array',
     ];
 
     /**
@@ -480,5 +491,102 @@ class Consultation extends Model
         }
 
         return InvoiceItem::where('consultation_id', $this->id)->first();
+    }
+    
+    /**
+     * Check if this is a second opinion consultation
+     */
+    public function isSecondOpinion(): bool
+    {
+        return $this->service_type === 'second_opinion';
+    }
+    
+    /**
+     * Check if this is a full consultation
+     */
+    public function isFullConsultation(): bool
+    {
+        return $this->service_type === 'full_consultation';
+    }
+    
+    /**
+     * Check if this consultation can be escalated to a full consultation
+     */
+    public function canEscalateToFull(): bool
+    {
+        return $this->isSecondOpinion() 
+            && $this->can_escalate_to_full 
+            && $this->doctor 
+            && $this->doctor->canConductFullConsultation();
+    }
+    
+    /**
+     * Escalate second opinion to full consultation
+     */
+    public function escalateToFullConsultation(): ?self
+    {
+        if (!$this->canEscalateToFull()) {
+            return null;
+        }
+        
+        // Create new full consultation
+        $fullConsultation = self::create([
+            'reference' => 'FC-' . strtoupper(uniqid()),
+            'patient_id' => $this->patient_id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'email' => $this->email,
+            'mobile' => $this->mobile,
+            'age' => $this->age,
+            'gender' => $this->gender,
+            'problem' => $this->problem,
+            'presenting_complaint' => $this->presenting_complaint,
+            'doctor_id' => $this->doctor_id,
+            'service_type' => 'full_consultation',
+            'escalated_from_consultation_id' => $this->id,
+            'escalated_at' => now(),
+            'status' => 'pending',
+            'consultation_mode' => $this->consultation_mode,
+        ]);
+        
+        // Update original second opinion
+        $this->update([
+            'status' => 'escalated',
+            'escalated_at' => now(),
+        ]);
+        
+        return $fullConsultation;
+    }
+    
+    /**
+     * Get the consultation this was escalated from (if any)
+     */
+    public function escalatedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'escalated_from_consultation_id');
+    }
+    
+    /**
+     * Get consultations that were escalated from this one
+     */
+    public function escalatedTo(): HasMany
+    {
+        return $this->hasMany(self::class, 'escalated_from_consultation_id');
+    }
+    
+    /**
+     * Scope: Get only second opinion consultations
+     */
+    public function scopeSecondOpinions($query)
+    {
+        return $query->where('service_type', 'second_opinion');
+    }
+    
+    /**
+     * Scope: Get only full consultations
+     */
+    public function scopeFullConsultations($query)
+    {
+        return $query->where('service_type', 'full_consultation');
     }
 }

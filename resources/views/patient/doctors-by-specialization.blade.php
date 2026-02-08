@@ -58,20 +58,40 @@
                     </div>
 
                     <!-- Availability Status -->
-                    <div class="mb-3 text-center">
+                    <div class="mb-3 text-center flex flex-col gap-2">
                         @if($doctor->is_available)
-                            <span class="inline-flex items-center px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                 </svg>
                                 Available Now
                             </span>
                         @else
-                            <span class="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
                                 </svg>
                                 Currently Unavailable
+                            </span>
+                        @endif
+                        
+                        <!-- Second Opinion Badge -->
+                        @if($doctor->can_provide_second_opinion ?? true)
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Second Opinion Available
+                            </span>
+                        @endif
+                        
+                        <!-- International Doctor Badge -->
+                        @if($doctor->is_international ?? false)
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                International Doctor
                             </span>
                         @endif
                     </div>

@@ -61,6 +61,11 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'order',
         'last_login_at',
         'email_verified_at',
+        // Second Opinion Capabilities
+        'can_provide_second_opinion',
+        'is_international',
+        'country_of_practice',
+        'license_restrictions',
     ];
 
     protected $hidden = [
@@ -85,6 +90,9 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'availability_schedule' => 'array',
+        // Second Opinion Capabilities
+        'can_provide_second_opinion' => 'boolean',
+        'is_international' => 'boolean',
     ];
 
     /**
@@ -421,5 +429,68 @@ class Doctor extends Authenticatable implements MustVerifyEmail
             && $this->photo 
             && $this->bio 
             && $this->specialization;
+    }
+    
+    /**
+     * Check if doctor can conduct full consultations
+     */
+    public function canConductFullConsultation(): bool
+    {
+        // International doctors cannot conduct full consultations
+        return !$this->is_international;
+    }
+    
+    /**
+     * Check if doctor can provide second opinions
+     */
+    public function canProvideSecondOpinion(): bool
+    {
+        return $this->can_provide_second_opinion;
+    }
+    
+    /**
+     * Check if doctor is local (Nigerian or Rwandan)
+     */
+    public function isLocalDoctor(): bool
+    {
+        return !$this->is_international;
+    }
+    
+    /**
+     * Get doctor's consultation capabilities
+     */
+    public function getConsultationCapabilities(): array
+    {
+        return [
+            'can_conduct_full_consultation' => $this->canConductFullConsultation(),
+            'can_provide_second_opinion' => $this->canProvideSecondOpinion(),
+            'is_international' => $this->is_international,
+            'country_of_practice' => $this->country_of_practice,
+            'license_restrictions' => $this->license_restrictions,
+        ];
+    }
+    
+    /**
+     * Scope: Get only local doctors
+     */
+    public function scopeLocal($query)
+    {
+        return $query->where('is_international', false);
+    }
+    
+    /**
+     * Scope: Get only international doctors
+     */
+    public function scopeInternational($query)
+    {
+        return $query->where('is_international', true);
+    }
+    
+    /**
+     * Scope: Get doctors who can provide second opinions
+     */
+    public function scopeCanProvideSecondOpinion($query)
+    {
+        return $query->where('can_provide_second_opinion', true);
     }
 }

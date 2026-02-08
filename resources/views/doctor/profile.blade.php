@@ -191,6 +191,77 @@
                         <p class="text-xs text-gray-500 mt-1 text-right"><span x-text="$el.parentElement.previousElementSibling.value.length">0</span>/1000 characters</p>
                     </div>
                 </div>
+                
+                <!-- Service Capabilities Section -->
+                <div class="mt-8 pt-8 border-t border-gray-200">
+                    <div class="flex items-start gap-2 mb-6">
+                        <svg class="w-5 h-5 text-indigo-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Service Capabilities</h3>
+                            <p class="text-sm text-gray-600 mt-1">Configure the types of services you can provide</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Second Opinion Capability -->
+                        <div class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <input type="hidden" name="can_provide_second_opinion" value="0">
+                            <input type="checkbox" 
+                                   id="can_provide_second_opinion" 
+                                   name="can_provide_second_opinion" 
+                                   value="1"
+                                   {{ old('can_provide_second_opinion', $doctor->can_provide_second_opinion ?? true) ? 'checked' : '' }}
+                                   class="mt-1 rounded text-blue-600 focus:ring-blue-500">
+                            <div class="flex-1">
+                                <label for="can_provide_second_opinion" class="block text-sm font-bold text-gray-900 cursor-pointer">
+                                    Provide Second Opinion Services
+                                </label>
+                                <p class="text-xs text-gray-600 mt-1">Enable this to allow patients to request second opinions from you. You'll review existing medical results, diagnoses, or treatment plans.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- International Doctor Status -->
+                        <div class="flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <input type="hidden" name="is_international" value="0">
+                            <input type="checkbox" 
+                                   id="is_international" 
+                                   name="is_international" 
+                                   value="1"
+                                   {{ old('is_international', $doctor->is_international ?? false) ? 'checked' : '' }}
+                                   class="mt-1 rounded text-purple-600 focus:ring-purple-500"
+                                   x-data
+                                   @change="$el.checked && !confirm('International doctors can only provide second opinions and cannot conduct full consultations or prescribe locally. Continue?') ? $el.checked = false : null">
+                            <div class="flex-1">
+                                <label for="is_international" class="block text-sm font-bold text-gray-900 cursor-pointer">
+                                    International Doctor
+                                </label>
+                                <p class="text-xs text-gray-600 mt-1">Check this if you are practicing outside Nigeria/Rwanda. International doctors are restricted to providing second opinions only.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Country of Practice (for international doctors) -->
+                        <div x-data="{ isInternational: {{ old('is_international', $doctor->is_international ?? false) ? 'true' : 'false' }} }" 
+                             x-init="$watch('isInternational', value => { if (!value) { $refs.countryInput.value = ''; } })">
+                            <div x-show="isInternational" x-transition class="pl-7">
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Country of Practice</label>
+                                <input type="text" 
+                                       name="country_of_practice" 
+                                       value="{{ old('country_of_practice', $doctor->country_of_practice) }}"
+                                       placeholder="e.g., United States, United Kingdom"
+                                       x-ref="countryInput"
+                                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">
+                                <p class="text-xs text-gray-500 mt-1">Specify the country where you are licensed to practice</p>
+                            </div>
+                            <script>
+                                document.getElementById('is_international').addEventListener('change', function(e) {
+                                    Alpine.store('isInternational', e.target.checked);
+                                });
+                            </script>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Licenses & Verification Tab -->

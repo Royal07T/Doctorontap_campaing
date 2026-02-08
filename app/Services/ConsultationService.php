@@ -62,6 +62,22 @@ class ConsultationService
             $consultationMode = in_array($consultationMode, ['voice', 'video', 'chat']) ? $consultationMode : 'whatsapp';
         }
 
+        // Handle second opinion documents if provided
+        $secondOpinionDocs = [];
+        if (!empty($validated['second_opinion_documents'])) {
+            $secondOpinionDocs = $this->handleDocumentUploads($validated['second_opinion_documents']);
+        }
+        
+        // Determine service type and can_escalate_to_full
+        $serviceType = $validated['service_type'] ?? 'full_consultation';
+        $canEscalate = false;
+        
+        // If it's a second opinion with a local doctor, allow escalation
+        if ($serviceType === 'second_opinion' && $doctorId) {
+            $doctor = Doctor::find($doctorId);
+            $canEscalate = $doctor && $doctor->canConductFullConsultation();
+        }
+
         // Create consultation record
         $consultation = Consultation::create([
             'reference' => $reference,
@@ -81,6 +97,11 @@ class ConsultationService
             'doctor_id' => $doctorId,
             'status' => 'pending',
             'payment_status' => 'unpaid',
+            // Second Opinion Fields
+            'service_type' => $serviceType,
+            'can_escalate_to_full' => $canEscalate,
+            'second_opinion_documents' => !empty($secondOpinionDocs) ? $secondOpinionDocs : null,
+            'second_opinion_notes' => $validated['second_opinion_notes'] ?? null,
         ]);
 
         // Create notifications for patient and doctor

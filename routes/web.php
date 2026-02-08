@@ -685,6 +685,18 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
         Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
         Route::post('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'store'])->name('chat.messages.store');
     });
+    
+    // Doctor's Forum Routes
+    Route::prefix('forum')->name('forum.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Doctor\ForumController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Doctor\ForumController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Doctor\ForumController::class, 'store'])->name('store');
+        Route::get('/{slug}', [\App\Http\Controllers\Doctor\ForumController::class, 'show'])->name('show');
+        Route::get('/{slug}/edit', [\App\Http\Controllers\Doctor\ForumController::class, 'edit'])->name('edit');
+        Route::put('/{slug}', [\App\Http\Controllers\Doctor\ForumController::class, 'update'])->name('update');
+        Route::delete('/{slug}', [\App\Http\Controllers\Doctor\ForumController::class, 'destroy'])->name('destroy');
+        Route::post('/{slug}/reply', [\App\Http\Controllers\Doctor\ForumController::class, 'storeReply'])->name('reply.store');
+    });
 });
 
 // ==================== PATIENT ROUTES ====================

@@ -10,32 +10,44 @@ Alpine.plugin(collapse);
 // Make Alpine available globally
 window.Alpine = Alpine;
 
-// Initialize Laravel Echo for WebSockets
+// Initialize Laravel Echo for WebSockets (optional - graceful degradation)
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-    authEndpoint: '/broadcasting/auth',
-    auth: {
-        headers: {
-            'X-CSRF-TOKEN': () => {
-                const token = document.querySelector('meta[name="csrf-token"]')?.content;
-                if (!token) {
-                    console.warn('CSRF token not found in meta tag. Please refresh the page.');
-                }
-                return token || '';
+try {
+    // Only initialize if WebSocket keys are configured
+    const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
+    const reverbHost = import.meta.env.VITE_REVERB_HOST;
+    
+    if (reverbKey && reverbHost) {
+        window.Echo = new Echo({
+            broadcaster: 'reverb',
+            key: reverbKey,
+            wsHost: reverbHost,
+            wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+            wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+            forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+            enabledTransports: ['ws', 'wss'],
+            authEndpoint: '/broadcasting/auth',
+            auth: {
+                headers: {
+                    'X-CSRF-TOKEN': () => {
+                        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                        return token || '';
+                    },
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                withCredentials: true,
             },
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        withCredentials: true,
-    },
-});
+        });
+        console.log('✅ WebSocket connection initialized');
+    } else {
+        console.info('ℹ️ WebSocket not configured - notifications will work via polling');
+        window.Echo = undefined;
+    }
+} catch (error) {
+    console.warn('⚠️ WebSocket connection failed - notifications will work via polling:', error.message);
+    window.Echo = undefined;
+}
 
 // Start Alpine
 Alpine.start();

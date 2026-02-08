@@ -746,10 +746,14 @@
                     <!-- Medical Documents Upload -->
                     <div class="mb-4">
                         <label for="medical_documents" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
-                            Upload Medical Documents (Optional)
+                            <span x-show="formData.service_type === 'second_opinion'">Upload Medical Documents (Required for Second Opinion) *</span>
+                            <span x-show="formData.service_type !== 'second_opinion'">Upload Medical Documents (Optional)</span>
                         </label>
-                        <p class="text-xs text-gray-600 mb-2">
-                            Upload test results, lab reports, X-rays, or prescriptions (PDF, JPG, PNG, DOC - Max 5MB)
+                        <p class="text-xs text-gray-600 mb-2" x-show="formData.service_type === 'second_opinion'">
+                            <strong>For second opinion:</strong> Please upload your lab results, test reports, X-rays, previous diagnosis, or any relevant medical documents for review. (PDF, JPG, PNG, DOC - Max 5MB each)
+                        </p>
+                        <p class="text-xs text-gray-600 mb-2" x-show="formData.service_type !== 'second_opinion'">
+                            Upload test results, lab reports, X-rays, or prescriptions if available (PDF, JPG, PNG, DOC - Max 5MB each)
                         </p>
                         <input 
                             type="file" 
@@ -1145,6 +1149,64 @@
                         </div>
                     </div>
                     
+                    <!-- Service Type Selection -->
+                    <div class="mb-4">
+                        <label for="service_type" class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                            What type of service do you need? *
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="relative flex items-start gap-3 p-4 bg-white border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md"
+                                   :class="formData.service_type === 'full_consultation' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200' : ''">
+                                <input type="radio" 
+                                       name="service_type" 
+                                       value="full_consultation" 
+                                       x-model="formData.service_type"
+                                       required
+                                       class="mt-1 text-emerald-600 focus:ring-emerald-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-2xl">🩺</span>
+                                        <span class="text-sm font-bold text-gray-900">Full Consultation</span>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Complete medical consultation with a licensed doctor. Includes diagnosis, prescription, and treatment plan.</p>
+                                </div>
+                            </label>
+                            
+                            <label class="relative flex items-start gap-3 p-4 bg-white border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:shadow-md"
+                                   :class="formData.service_type === 'second_opinion' ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : ''">
+                                <input type="radio" 
+                                       name="service_type" 
+                                       value="second_opinion" 
+                                       x-model="formData.service_type"
+                                       required
+                                       class="mt-1 text-blue-600 focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-2xl">🔍</span>
+                                        <span class="text-sm font-bold text-gray-900">Second Opinion</span>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Get a professional review of existing medical results, diagnosis, or treatment plan from another qualified doctor.</p>
+                                </div>
+                            </label>
+                        </div>
+                        <p x-show="errors.service_type" class="text-red-500 text-xs mt-1" x-text="errors.service_type"></p>
+                        
+                        <!-- Second Opinion Info Box -->
+                        <div x-show="formData.service_type === 'second_opinion'" 
+                             x-transition
+                             class="mt-3 bg-blue-50 border-l-4 border-blue-500 p-3 rounded-lg">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-xs font-bold text-blue-900 mb-1">About Second Opinion Service</p>
+                                    <p class="text-xs text-blue-800">Our doctors will review your existing medical results, diagnosis, or treatment plan and provide their professional assessment. Please upload all relevant medical documents for a comprehensive review.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Doctor Preference -->
                         <div>
@@ -2479,6 +2541,7 @@
                     problem: '',
                     severity: '',
                     emergency_symptoms: [],
+                    service_type: '{{ request("service_type") == "second_opinion" ? "second_opinion" : "full_consultation" }}',
                     doctor: '',
                     consult_mode: '',
                     informed_consent: false,
@@ -2851,6 +2914,7 @@
                         problem: '',
                         severity: '',
                         emergency_symptoms: [],
+                        service_type: 'full_consultation',
                         doctor: '',
                         consult_mode: '',
                         informed_consent: false,

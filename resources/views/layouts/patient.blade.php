@@ -113,6 +113,17 @@
                     <span>Find Doctors</span>
                 </a>
 
+                <a href="{{ route('consultation.index') }}?service_type=second_opinion" 
+                   class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all group {{ request()->query('service_type') == 'second_opinion' ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <span>Second Opinion</span>
+                    <span class="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full group-hover:scale-110 transition-transform">
+                        NEW
+                    </span>
+                </a>
+
                 <a href="{{ route('patient.caregivers') }}" 
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all {{ request()->routeIs('patient.caregivers') ? 'text-white purple-gradient' : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

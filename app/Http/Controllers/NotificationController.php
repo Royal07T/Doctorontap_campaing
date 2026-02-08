@@ -41,24 +41,10 @@ class NotificationController extends Controller
         $limit = $request->get('limit', 20);
         $notifications = $query->limit($limit)->get();
 
-        // Return JSON for AJAX requests
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'notifications' => $notifications,
-                    'unread_count' => Notification::forUser($userType, $userId)->unread()->count(),
-                ]
-            ]);
-        }
-
-        // For regular web requests, return view (if needed)
+        // Return JSON for both AJAX and regular requests
         return response()->json([
-            'success' => true,
-            'data' => [
-                'notifications' => $notifications,
-                'unread_count' => Notification::forUser($userType, $userId)->unread()->count(),
-            ]
+            'notifications' => $notifications,
+            'unread_count' => Notification::forUser($userType, $userId)->unread()->count(),
         ]);
     }
 

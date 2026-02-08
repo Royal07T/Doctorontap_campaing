@@ -180,8 +180,8 @@ function notificationComponent(routePrefix, userType, userId) {
         },
 
         setupWebSocket() {
-            if (typeof window.Echo === 'undefined') {
-                console.error('Laravel Echo not available. WebSocket connection required for notifications.');
+            if (typeof window.Echo === 'undefined' || window.Echo === null) {
+                console.info('ℹ️ Real-time notifications not available - using polling instead');
                 this.websocketConnected = false;
                 return;
             }
@@ -255,12 +255,49 @@ function notificationComponent(routePrefix, userType, userId) {
         async fetchNotifications() {
             this.loading = true;
             try {
-                const response = await fetch(`/${routePrefix}/notifications`);
+                const response = await fetch(`/${routePrefix}/notifications`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                // Handle authentication errors
+                if (response.status === 401 || response.status === 403) {
+                    const data = await response.json();
+                    if (data.redirect) {
+                        // Redirect to login if unauthorized
+                        window.location.href = data.redirect;
+                        return;
+                    }
+                }
+                
+                if (!response.ok) {
+                    console.warn(`Failed to fetch notifications: ${response.status}`);
+                    this.notifications = [];
+                    this.unreadCount = 0;
+                    return;
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('Notification endpoint did not return JSON. This may indicate a server error or redirect.');
+                    this.notifications = [];
+                    this.unreadCount = 0;
+                    return;
+                }
+                
                 const data = await response.json();
                 this.notifications = data.notifications || [];
                 this.unreadCount = data.unread_count || 0;
             } catch (error) {
-                console.error('Error fetching notifications:', error);
+                console.warn('Could not fetch notifications:', error.message);
+                // Silent fail - don't disrupt user experience
+                this.notifications = [];
+                this.unreadCount = 0;
             } finally {
                 this.loading = false;
             }

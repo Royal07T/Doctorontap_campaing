@@ -29,11 +29,49 @@ class DashboardController extends Controller
                                          ->get();
         
         // Calculate total earnings from paid consultations
-        // Earnings = Sum of (effective consultation fee * doctor percentage) for all paid consultations
         $totalEarnings = $paidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
             $consultationFee = $doctor->effective_consultation_fee ?? 0;
             return ($consultationFee * $doctorPercentage) / 100;
         });
+        
+        // Calculate pending earnings (completed but not yet paid out to doctor)
+        $completedPaidConsultations = Consultation::where('doctor_id', $doctor->id)
+                                                   ->where('status', 'completed')
+                                                   ->where('payment_status', 'paid')
+                                                   ->get();
+        
+        $pendingEarnings = $completedPaidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
+            $consultationFee = $doctor->effective_consultation_fee ?? 0;
+            return ($consultationFee * $doctorPercentage) / 100;
+        });
+        
+        // Calculate growth percentages (comparing last 30 days to previous 30 days)
+        $currentMonthConsultations = Consultation::where('doctor_id', $doctor->id)
+                                                 ->where('created_at', '>=', now()->subDays(30))
+                                                 ->count();
+        
+        $previousMonthConsultations = Consultation::where('doctor_id', $doctor->id)
+                                                  ->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])
+                                                  ->count();
+        
+        $consultationsGrowth = $previousMonthConsultations > 0 
+            ? round((($currentMonthConsultations - $previousMonthConsultations) / $previousMonthConsultations) * 100) 
+            : 0;
+        
+        // Calculate earnings growth
+        $currentMonthEarnings = Consultation::where('doctor_id', $doctor->id)
+                                            ->where('payment_status', 'paid')
+                                            ->where('created_at', '>=', now()->subDays(30))
+                                            ->count() * ($doctor->effective_consultation_fee * $doctorPercentage / 100);
+        
+        $previousMonthEarnings = Consultation::where('doctor_id', $doctor->id)
+                                             ->where('payment_status', 'paid')
+                                             ->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])
+                                             ->count() * ($doctor->effective_consultation_fee * $doctorPercentage / 100);
+        
+        $earningsGrowth = $previousMonthEarnings > 0 
+            ? round((($currentMonthEarnings - $previousMonthEarnings) / $previousMonthEarnings) * 100) 
+            : 0;
         
         $stats = [
             'total_consultations' => Consultation::where('doctor_id', $doctor->id)->count(),
@@ -46,7 +84,10 @@ class DashboardController extends Controller
             'paid_consultations' => $paidConsultations->count(),
             'pending_payments' => Consultation::where('doctor_id', $doctor->id)
                                               ->where('payment_status', 'pending')->count(),
-            'total_earnings' => $totalEarnings, // Current earnings from paid consultations
+            'total_earnings' => $totalEarnings,
+            'pending_earnings' => $pendingEarnings,
+            'consultations_growth' => $consultationsGrowth,
+            'earnings_growth' => $earningsGrowth,
             // Stats for consultations page style cards
             'total' => Consultation::where('doctor_id', $doctor->id)->count(),
             'paid' => Consultation::where('doctor_id', $doctor->id)->where('payment_status', 'paid')->count(),
@@ -57,14 +98,27 @@ class DashboardController extends Controller
             'completed' => Consultation::where('doctor_id', $doctor->id)->where('status', 'completed')->count(),
         ];
 
-        // Get recent consultations with payment information
-        $recentConsultations = Consultation::where('doctor_id', $doctor->id)
-                                           ->with(['payment', 'booking'])
-                                           ->latest()
-                                           ->limit(10)
-                                           ->get();
+        // Get upcoming priority consultations (pending, scheduled, or within next 2 hours)
+        $priorityConsultations = Consultation::where('doctor_id', $doctor->id)
+                                             ->whereIn('status', ['pending', 'scheduled'])
+                                             ->with(['patient'])
+                                             ->orderByRaw("CASE 
+                                                 WHEN status = 'pending' THEN 1 
+                                                 WHEN status = 'scheduled' THEN 2 
+                                                 ELSE 3 
+                                             END")
+                                             ->orderBy('created_at', 'desc')
+                                             ->limit(5)
+                                             ->get();
 
-        return view('doctor.dashboard', compact('stats', 'recentConsultations'));
+        // Get recent forum posts for sidebar
+        $recentForumPosts = \App\Models\ForumPost::with(['doctor', 'category'])
+                                                 ->published()
+                                                 ->recent()
+                                                 ->limit(2)
+                                                 ->get();
+
+        return view('doctor.dashboard', compact('stats', 'priorityConsultations', 'recentForumPosts'));
     }
 
     /**
@@ -1264,7 +1318,14 @@ class DashboardController extends Controller
             'bio' => 'nullable|string|max:2000',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'insurance_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'can_provide_second_opinion' => 'nullable|boolean',
+            'is_international' => 'nullable|boolean',
+            'country_of_practice' => 'nullable|required_if:is_international,1|string|max:255',
         ]);
+        
+        // Convert checkbox values to boolean
+        $validated['can_provide_second_opinion'] = $request->has('can_provide_second_opinion');
+        $validated['is_international'] = $request->has('is_international');
 
         // Auto-generate full name
         $validated['name'] = $validated['first_name'] . ' ' . $validated['last_name'];
