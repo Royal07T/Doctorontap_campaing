@@ -180,7 +180,27 @@ class BulkSmsController extends Controller
 
         foreach ($recipients as $phone) {
             try {
-                $result = $this->smsService->sendSMS($phone, $message);
+                // Get patient data for personalization
+                $patient = Patient::where('phone', $phone)->first();
+                
+                // Prepare personalization data
+                $personalData = [
+                    'name' => $patient->name ?? 'Valued Patient',
+                    'first_name' => $patient->name ? explode(' ', $patient->name)[0] : 'Valued',
+                    'last_name' => $patient->name && count(explode(' ', $patient->name)) > 1 ? explode(' ', $patient->name)[1] : 'Patient',
+                    'email' => $patient->email ?? 'N/A',
+                    'phone' => $phone,
+                    'company_name' => config('app.name', 'DoctorOnTap'),
+                    'date' => now()->format('F j, Y'),
+                    'time' => now()->format('g:i A'),
+                    'link' => url('/'),
+                ];
+                
+                // Replace variables in message
+                $personalizedMessage = $this->replaceVariables($message, $personalData);
+                
+                // Send personalized SMS
+                $result = $this->smsService->sendSMS($phone, $personalizedMessage);
 
                 if ($result['success']) {
                     $successful++;
@@ -215,6 +235,19 @@ class BulkSmsController extends Controller
             'status' => 'completed',
             'completed_at' => now(),
         ]);
+    }
+    
+    /**
+     * Replace variables in text with actual data
+     */
+    protected function replaceVariables(string $text, array $data): string
+    {
+        foreach ($data as $key => $value) {
+            // Replace both {variable} and {{variable}} formats
+            $text = str_replace(['{' . $key . '}', '{{' . $key . '}}'], $value, $text);
+        }
+        
+        return $text;
     }
 
     /**

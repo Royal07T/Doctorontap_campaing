@@ -195,14 +195,37 @@ class BulkEmailController extends Controller
 
         foreach ($recipients as $email) {
             try {
-                Mail::send([], [], function ($message) use ($email, $subject, $content, $plainText, $campaign) {
+                // Get patient data for personalization
+                $patient = Patient::where('email', $email)->first();
+                
+                // Prepare personalization data
+                $personalData = [
+                    'name' => $patient->name ?? 'Valued Patient',
+                    'first_name' => $patient->name ? explode(' ', $patient->name)[0] : 'Valued',
+                    'last_name' => $patient->name && count(explode(' ', $patient->name)) > 1 ? explode(' ', $patient->name)[1] : 'Patient',
+                    'email' => $email,
+                    'phone' => $patient->phone ?? 'N/A',
+                    'company_name' => config('app.name', 'DoctorOnTap'),
+                    'date' => now()->format('F j, Y'),
+                    'time' => now()->format('g:i A'),
+                    'link' => url('/'),
+                    'unsubscribe_link' => url('/unsubscribe?email=' . urlencode($email)),
+                ];
+                
+                // Replace variables in subject and content
+                $personalizedSubject = $this->replaceVariables($subject, $personalData);
+                $personalizedContent = $this->replaceVariables($content, $personalData);
+                $personalizedPlainText = $plainText ? $this->replaceVariables($plainText, $personalData) : null;
+                
+                // Send personalized email
+                Mail::send([], [], function ($message) use ($email, $personalizedSubject, $personalizedContent, $personalizedPlainText, $campaign) {
                     $message->to($email)
-                            ->subject($subject)
+                            ->subject($personalizedSubject)
                             ->from($campaign->from_email, $campaign->from_name)
-                            ->html($content);
+                            ->html($personalizedContent);
                     
-                    if ($plainText) {
-                        $message->text($plainText);
+                    if ($personalizedPlainText) {
+                        $message->text($personalizedPlainText);
                     }
                 });
 
@@ -234,6 +257,19 @@ class BulkEmailController extends Controller
             'status' => 'completed',
             'completed_at' => now(),
         ]);
+    }
+    
+    /**
+     * Replace variables in text with actual data
+     */
+    protected function replaceVariables(string $text, array $data): string
+    {
+        foreach ($data as $key => $value) {
+            // Replace both {variable} and {{variable}} formats
+            $text = str_replace(['{' . $key . '}', '{{' . $key . '}}'], $value, $text);
+        }
+        
+        return $text;
     }
 
     /**
