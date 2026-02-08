@@ -1,8 +1,8 @@
 <!-- Sidebar -->
-<aside class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-right border-gray-200 shadow-xl transform transition-transform duration-500 ease-in-out lg:translate-x-0 lg:static lg:inset-0"
+<aside class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-right border-gray-200 shadow-xl transform transition-transform duration-500 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col"
        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-    <!-- Sidebar Header -->
-    <div class="purple-gradient p-8 flex items-center justify-between rounded-br-[3rem] shadow-lg mb-6">
+    <!-- Sidebar Header (Fixed) -->
+    <div class="purple-gradient p-8 flex items-center justify-between rounded-br-[3rem] shadow-lg flex-shrink-0">
         <div class="flex items-center space-x-3">
             <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-10 w-auto filter drop-shadow-md">
         </div>
@@ -13,8 +13,10 @@
         </button>
     </div>
 
+    <!-- Scrollable Content Area -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar">
     <!-- User Info -->
-    <div class="px-6 mb-8 group">
+        <div class="px-6 my-6 group">
         <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 transition-all duration-300 group-hover:shadow-md">
             <div class="flex items-center space-x-4">
                 <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg ring-4 ring-purple-100">
@@ -29,7 +31,7 @@
     </div>
 
     <!-- Navigation (Scrollable) -->
-    <nav class="px-6 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
+        <nav class="px-6 space-y-1 pb-6">
         <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">Main Navigation</p>
         
         <!-- Dashboard -->
@@ -86,9 +88,10 @@
             <span>Bulk Email</span>
         </a>
     </nav>
+    </div>
 
     <!-- Sidebar Footer (Fixed Bottom) -->
-    <div class="px-6 py-4 mt-auto border-t border-slate-100 bg-white">
+    <div class="px-6 py-4 border-t border-slate-100 bg-white flex-shrink-0">
         <!-- View Website -->
         <a href="{{ url('/') }}" target="_blank" class="flex items-center justify-between px-4 py-3 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-2xl font-bold transition-all group">
             <div class="flex items-center space-x-3 text-xs">

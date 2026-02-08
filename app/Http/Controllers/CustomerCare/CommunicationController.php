@@ -54,7 +54,7 @@ class CommunicationController extends Controller
                 'direction' => 'outbound',
                 'content' => $request->message,
                 'status' => 'pending',
-                'created_by' => auth()->id(),
+                'created_by' => auth()->guard('customer_care')->user()->user_id ?? null,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);

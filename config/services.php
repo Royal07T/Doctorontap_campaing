@@ -60,8 +60,10 @@ return [
     'vonage' => [
         // SMS Configuration - Choose one method:
         // Method 1: Legacy SMS API (simpler, uses API key/secret)
-        'api_key' => env('VONAGE_API_KEY'),
-        'api_secret' => env('VONAGE_API_SECRET'),
+        'api_key' => env('VONAGE_API_KEY') ?: env('VONAGE_KEY'),
+        'api_secret' => env('VONAGE_API_SECRET') ?: env('VONAGE_SECRET'),
+        'key' => env('VONAGE_KEY') ?: env('VONAGE_API_KEY'), // Alias for backward compatibility
+        'secret' => env('VONAGE_SECRET') ?: env('VONAGE_API_SECRET'), // Alias for backward compatibility
         
         // Method 2: Messages API (newer, uses Application with JWT)
         'application_id' => env('VONAGE_APPLICATION_ID'),
@@ -70,6 +72,7 @@ return [
         
         // Common settings
         'brand_name' => env('VONAGE_BRAND_NAME', 'DoctorOnTap'),
+        'sms_from' => env('VONAGE_SMS_FROM') ?: env('VONAGE_BRAND_NAME', 'DoctorOnTap'),
         'api_method' => env('VONAGE_API_METHOD', 'legacy'), // 'legacy' or 'messages'
         'enabled' => env('VONAGE_ENABLED', false),
         'messages_sandbox' => env('VONAGE_WHATSAPP_SANDBOX', false),
@@ -107,7 +110,7 @@ return [
     | The selected provider must be enabled in its respective config above.
     |
     */
-    'sms_provider' => env('SMS_PROVIDER', 'termii'), // Options: 'termii' or 'vonage'
+    'sms_provider' => env('SMS_PROVIDER', 'vonage'), // Options: 'termii' or 'vonage'
 
     /*
     |--------------------------------------------------------------------------

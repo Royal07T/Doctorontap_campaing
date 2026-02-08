@@ -504,6 +504,9 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     
     Route::get('/dashboard', [CustomerCareDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard-enhanced', [CustomerCareDashboardController::class, 'index'])->name('dashboard.enhanced');
+    Route::get('/dashboard/realtime-activity', [CustomerCareDashboardController::class, 'getRealtimeActivity'])->name('dashboard.realtime-activity');
+    Route::get('/dashboard/realtime-stats', [CustomerCareDashboardController::class, 'getRealtimeStats'])->name('dashboard.realtime-stats');
     
     // Consultation Management
     Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
@@ -539,6 +542,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     Route::get('/patients/{id}/details', [CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
     
     // Communications
+    Route::post('/communications/send', [\App\Http\Controllers\CustomerCare\CommunicationController::class, 'send'])->name('communications.send');
     Route::post('/communications/send-sms', [CustomerCareController::class, 'sendSms'])->name('communications.send-sms');
     Route::post('/communications/send-whatsapp', [CustomerCareController::class, 'sendWhatsApp'])->name('communications.send-whatsapp');
     Route::post('/communications/initiate-call', [CustomerCareController::class, 'initiateCall'])->name('communications.initiate-call');
