@@ -66,7 +66,7 @@ return [
         'secret' => env('VONAGE_SECRET') ?: env('VONAGE_API_SECRET'), // Alias for backward compatibility
         
         // Method 2: Messages API (newer, uses Application with JWT)
-        'application_id' => env('VONAGE_APPLICATION_ID'),
+        'application_id' => env('VONAGE_APPLICATION_ID', '250782187688'), // DoctorOnTap LLC Application ID
         'private_key_path' => env('VONAGE_PRIVATE_KEY_PATH'), // Path to private key file
         'private_key' => env('VONAGE_PRIVATE_KEY'), // Or inline private key (newlines as \n)
         
@@ -79,7 +79,10 @@ return [
         
         // WhatsApp Configuration (requires Messages API)
         'whatsapp_enabled' => env('VONAGE_WHATSAPP_ENABLED', false),
-        'whatsapp_number' => env('VONAGE_WHATSAPP_NUMBER'), // Your WhatsApp Business Number
+        'whatsapp_number' => env('VONAGE_WHATSAPP_NUMBER', '405228299348572'), // DoctorOnTap LLC WhatsApp Business Number
+        'whatsapp' => [
+            'from_phone_number' => env('WHATSAPP_PHONE_NUMBER') ?: env('VONAGE_WHATSAPP_NUMBER', '405228299348572'),
+        ],
         
         // Voice API Configuration
         'voice_enabled' => env('VONAGE_VOICE_ENABLED', false),

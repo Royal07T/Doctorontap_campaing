@@ -19,6 +19,7 @@
         "slim/psr7": "^1.6",
         "slim/slim": "^4.12",
         "vonage/client": "*",
+        "vonage/video": "^1.4",
         "vonage/vonage-laravel": "^1.0"
     },
     "require-dev": {

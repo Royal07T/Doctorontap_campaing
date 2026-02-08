@@ -40,7 +40,7 @@ return [
     */
 
     'private_key' => function_exists('env') ? env('VONAGE_PRIVATE_KEY', '') : '',
-    'application_id' => function_exists('env') ? env('VONAGE_APPLICATION_ID', '') : '',
+    'application_id' => function_exists('env') ? env('VONAGE_APPLICATION_ID', '250782187688') : '250782187688', // DoctorOnTap LLC Application ID
 
     /*
     |--------------------------------------------------------------------------
@@ -77,7 +77,7 @@ return [
     */
 
     'whatsapp_enabled' => function_exists('env') ? env('VONAGE_WHATSAPP_ENABLED', false) : false,
-    'whatsapp_number'  => function_exists('env') ? env('VONAGE_WHATSAPP_NUMBER', '') : '',
+    'whatsapp_number'  => function_exists('env') ? env('VONAGE_WHATSAPP_NUMBER', '405228299348572') : '405228299348572', // DoctorOnTap LLC WhatsApp Number
     'whatsapp_sandbox' => function_exists('env') ? env('VONAGE_WHATSAPP_SANDBOX', false) : false,
 
     'voice_enabled'    => function_exists('env') ? env('VONAGE_VOICE_ENABLED', false) : false,

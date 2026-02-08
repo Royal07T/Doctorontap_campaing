@@ -110,9 +110,12 @@ class VideoRoomController extends Controller
             ], 500);
         }
 
+        // Get the correct identifier: Application ID (JWT) or API Key (Legacy)
+        $applicationId = $this->videoService->getApplicationId();
+
         return response()->json([
             'success' => true,
-            'api_key' => config('services.vonage.api_key'),
+            'applicationId' => $applicationId, // Application ID (JWT) or API Key (Legacy)
             'session_id' => $room->vonage_session_id,
             'token' => $tokenResult['token'],
             'room' => [
@@ -157,9 +160,12 @@ class VideoRoomController extends Controller
             ], 500);
         }
 
+        // Get the correct identifier: Application ID (JWT) or API Key (Legacy)
+        $applicationId = $this->videoService->getApplicationId();
+
         return response()->json([
             'success' => true,
-            'api_key' => config('services.vonage.api_key'),
+            'applicationId' => $applicationId, // Application ID (JWT) or API Key (Legacy)
             'session_id' => $room->vonage_session_id,
             'token' => $tokenResult['token'],
             'room_uuid' => $room->uuid,

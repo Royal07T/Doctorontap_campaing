@@ -46,15 +46,16 @@ class VonageService
         $this->brandName = config('vonage.brand_name', 'DoctorOnTap');
         $this->apiMethod = config('services.vonage.api_method', 'legacy'); // Keeping migration logic
         $this->enabled = config('services.vonage.enabled', true);
-        $this->whatsappEnabled = config('vonage.whatsapp_enabled', false);
-        $this->messagesSandbox = config('vonage.whatsapp_sandbox', false);
+        $this->whatsappEnabled = config('services.vonage.whatsapp_enabled', false);
+        // Disable sandbox for production WhatsApp
+        $this->messagesSandbox = config('services.vonage.messages_sandbox', false);
         
-        // Use sandbox number if enabled, otherwise use configured number
-        $rawNumber = $this->messagesSandbox 
-            ? '14157386102' 
-            : config('vonage.whatsapp_number', '');
+        // Get WhatsApp number from new config structure (production)
+        $rawNumber = config('services.vonage.whatsapp.from_phone_number') 
+            ?: config('services.vonage.whatsapp_number') 
+            ?: config('vonage.whatsapp_number', '');
             
-        $this->whatsappNumber = $this->formatPhoneNumber($rawNumber);
+        $this->whatsappNumber = $rawNumber ? $this->formatPhoneNumber($rawNumber) : '';
     }
 
     /**

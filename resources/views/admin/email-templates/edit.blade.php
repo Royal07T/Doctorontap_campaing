@@ -7,9 +7,22 @@
     <title>Edit Email Template - Admin</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Quill WYSIWYG Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <style>
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
+        }
+        #editor {
+            min-height: 400px;
+            background: white;
+        }
+        .ql-editor {
+            min-height: 400px;
+        }
+        #content {
+            display: none;
         }
     </style>
 </head>
@@ -91,13 +104,31 @@
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                             </div>
 
-                            <!-- HTML Content -->
+                            <!-- HTML Content with WYSIWYG Editor -->
                             <div class="mt-6">
-                                <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
-                                    HTML Email Content <span class="text-red-500">*</span>
-                                </label>
-                                <textarea id="content" name="content" rows="15" required
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm">{{ old('content', $emailTemplate->content) }}</textarea>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label for="content" class="block text-sm font-medium text-gray-700">
+                                        Email Content <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="flex items-center space-x-2">
+                                        <button type="button" onclick="toggleEditorMode()" 
+                                            class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition"
+                                            id="toggleModeBtn">
+                                            Switch to HTML
+                                        </button>
+                                        <button type="button" onclick="insertVariable()" 
+                                            class="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition">
+                                            Insert Variable
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Quill Editor Container -->
+                                <div id="editor" class="border border-gray-300 rounded-lg overflow-hidden"></div>
+                                <!-- Hidden textarea for form submission -->
+                                <textarea id="content" name="content" required style="display: none;">{{ old('content', $emailTemplate->content) }}</textarea>
+                                <p class="mt-2 text-xs text-gray-500">
+                                    Use the visual editor above to format your email. Click "Switch to HTML" to edit raw HTML code.
+                                </p>
                             </div>
 
                             <!-- Plain Text Content -->
@@ -194,6 +225,108 @@
             </main>
         </div>
     </div>
+
+    <script>
+        let editorMode = 'visual'; // 'visual' or 'code'
+        let quill = null;
+
+        // Initialize Quill Editor
+        document.addEventListener('DOMContentLoaded', function() {
+            const content = document.getElementById('content').value;
+            
+            quill = new Quill('#editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Start typing your email content...'
+            });
+
+            // Load existing content
+            if (content) {
+                quill.root.innerHTML = content;
+            }
+
+            // Update hidden textarea on content change
+            quill.on('text-change', function() {
+                document.getElementById('content').value = quill.root.innerHTML;
+            });
+        });
+
+        // Toggle between visual and code editor
+        function toggleEditorMode() {
+            const editorDiv = document.getElementById('editor');
+            const textarea = document.getElementById('content');
+            const toggleBtn = document.getElementById('toggleModeBtn');
+            
+            if (editorMode === 'visual') {
+                // Switch to code mode
+                editorMode = 'code';
+                if (quill) {
+                    textarea.value = quill.root.innerHTML;
+                    editorDiv.style.display = 'none';
+                    textarea.style.display = 'block';
+                    textarea.style.minHeight = '400px';
+                    textarea.style.fontFamily = 'monospace';
+                    textarea.style.fontSize = '14px';
+                    textarea.style.padding = '1rem';
+                    textarea.style.border = '1px solid #d1d5db';
+                    textarea.style.borderRadius = '0.5rem';
+                    toggleBtn.textContent = 'Switch to Visual Editor';
+                }
+            } else {
+                // Switch to visual mode
+                editorMode = 'visual';
+                if (quill) {
+                    quill.root.innerHTML = textarea.value;
+                    editorDiv.style.display = 'block';
+                    textarea.style.display = 'none';
+                    toggleBtn.textContent = 'Switch to HTML';
+                }
+            }
+        }
+
+        // Insert variable placeholder
+        function insertVariable() {
+            const variables = [
+                'name', 'email', 'phone', 'date', 
+                'consultation_reference', 'doctor_name', 
+                'amount', 'link', 'company_name'
+            ];
+            
+            const varName = prompt('Enter variable name:\n\nAvailable: ' + variables.join(', '));
+            if (varName) {
+                const varText = '{{' + varName + '}}';
+                if (editorMode === 'visual' && quill) {
+                    const range = quill.getSelection(true);
+                    quill.insertText(range.index, varText, 'user');
+                    quill.setSelection(range.index + varText.length);
+                } else {
+                    const textarea = document.getElementById('content');
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, start) + varText + textarea.value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + varText.length;
+                    textarea.focus();
+                }
+            }
+        }
+
+        // Before form submit, sync content from editor
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (quill && editorMode === 'visual') {
+                document.getElementById('content').value = quill.root.innerHTML;
+            }
+        });
+    </script>
 </body>
 </html>
 
