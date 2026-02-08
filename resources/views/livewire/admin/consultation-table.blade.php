@@ -1,4 +1,51 @@
 <div>
+    <!-- Fixed Position Export Button - Always Visible -->
+    <div class="fixed bottom-6 right-6 z-50" style="display: block !important; visibility: visible !important;">
+        <button 
+            wire:click="exportToCsv"
+            wire:loading.attr="disabled"
+            wire:target="exportToCsv"
+            type="button"
+            class="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-all font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl hover:shadow-3xl transform hover:scale-110 border-4 border-white animate-pulse"
+            style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+            <svg wire:loading.remove wire:target="exportToCsv" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <svg wire:loading wire:target="exportToCsv" class="animate-spin w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span wire:loading.remove wire:target="exportToCsv" class="font-bold">📥 CSV</span>
+            <span wire:loading wire:target="exportToCsv" class="font-bold">Exporting...</span>
+        </button>
+    </div>
+
+    <!-- Export Button - Very Prominent with multiple placement options -->
+    <div class="mb-4 bg-white rounded-lg shadow-sm p-4 border-2 border-green-200">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Consultations Management</h2>
+                <p class="text-xs text-gray-500 mt-1">Export all consultations to CSV for analysis</p>
+            </div>
+            <button 
+                wire:click="exportToCsv"
+                wire:loading.attr="disabled"
+                wire:target="exportToCsv"
+                type="button"
+                class="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-all font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-green-700">
+                <svg wire:loading.remove wire:target="exportToCsv" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <svg wire:loading wire:target="exportToCsv" class="animate-spin w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span wire:loading.remove wire:target="exportToCsv" class="font-bold">📥 Export to CSV</span>
+                <span wire:loading wire:target="exportToCsv" class="font-bold">Exporting...</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Filters Section - Real-time filtering! -->
     <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">

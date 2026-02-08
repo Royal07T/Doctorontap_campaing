@@ -190,6 +190,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/consultations-livewire', function() {
         return view('admin.consultations-livewire');
     })->name('consultations.livewire');
+    Route::get('/consultations/export-csv', [DashboardController::class, 'exportConsultationsToCsv'])->name('consultations.export-csv');
     Route::get('/consultation/{id}', [DashboardController::class, 'showConsultation'])->name('consultation.show');
     Route::post('/consultation/{id}/status', [DashboardController::class, 'updateStatus'])->name('consultation.status');
     Route::post('/consultation/{id}/assign-nurse', [DashboardController::class, 'assignNurse'])->name('consultation.assign-nurse');

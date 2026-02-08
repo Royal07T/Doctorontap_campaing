@@ -171,6 +171,28 @@ class ConsultationTable extends Component
     }
     
     /**
+     * Export consultations to CSV
+     * Redirects to route with current filter parameters
+     */
+    public function exportToCsv()
+    {
+        // Build query parameters from current filters
+        $params = [];
+        if ($this->search) {
+            $params['search'] = $this->search;
+        }
+        if ($this->status) {
+            $params['status'] = $this->status;
+        }
+        if ($this->payment_status) {
+            $params['payment_status'] = $this->payment_status;
+        }
+        
+        // Redirect to CSV export route with filter parameters
+        return redirect()->route('admin.consultations.export-csv', $params);
+    }
+    
+    /**
      * Render the component
      */
     public function render()

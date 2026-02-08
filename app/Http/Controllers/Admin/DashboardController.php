@@ -243,6 +243,167 @@ class DashboardController extends Controller
     }
 
     /**
+     * Export consultations to CSV
+     * Respects all filters (search, status, payment_status, doctor_id, canvasser_id, nurse_id, date_from, date_to)
+     */
+    public function exportConsultationsToCsv(Request $request)
+    {
+        try {
+            $query = Consultation::with(['doctor', 'payment', 'canvasser', 'nurse', 'booking']);
+
+            // Filter by status
+            if ($request->has('status') && $request->status != '') {
+                $query->where('status', $request->status);
+            }
+
+            // Filter by payment status
+            if ($request->has('payment_status') && $request->payment_status != '') {
+                $query->where('payment_status', $request->payment_status);
+            }
+            
+            // Filter by doctor
+            if ($request->filled('doctor_id')) {
+                $query->where('doctor_id', $request->doctor_id);
+            }
+            
+            // Filter by canvasser
+            if ($request->filled('canvasser_id')) {
+                $query->where('canvasser_id', $request->canvasser_id);
+            }
+            
+            // Filter by nurse
+            if ($request->filled('nurse_id')) {
+                $query->where('nurse_id', $request->nurse_id);
+            }
+            
+            // Date range filters
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // Search
+            if ($request->has('search') && $request->search != '') {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('reference', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                    
+                    // If search contains a space, try searching first and last name separately
+                    if (strpos($search, ' ') !== false) {
+                        $parts = explode(' ', trim($search), 2);
+                        if (count($parts) == 2) {
+                            $q->orWhere(function($subQ) use ($parts) {
+                                $subQ->where('first_name', 'like', "%{$parts[0]}%")
+                                     ->where('last_name', 'like', "%{$parts[1]}%");
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Get all consultations (not paginated)
+            $consultations = $query->latest()->get();
+            
+            // Generate filename with timestamp
+            $filename = 'consultations_export_' . now()->format('Y-m-d_His') . '.csv';
+            
+            // Create CSV response
+            return response()->streamDownload(function() use ($consultations) {
+                $file = fopen('php://output', 'w');
+                
+                // Add UTF-8 BOM for Excel compatibility
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+                
+                // CSV Headers
+                $headers = [
+                    'Reference',
+                    'Patient Name',
+                    'Email',
+                    'Mobile',
+                    'Age',
+                    'Gender',
+                    'Problem',
+                    'Service Type',
+                    'Status',
+                    'Payment Status',
+                    'Doctor Name',
+                    'Doctor Email',
+                    'Doctor Specialization',
+                    'Consultation Mode',
+                    'Scheduled At',
+                    'Started At',
+                    'Ended At',
+                    'Completed At',
+                    'Canvasser',
+                    'Nurse',
+                    'Payment Amount',
+                    'Payment Method',
+                    'Payment Date',
+                    'Payment Request Sent',
+                    'Payment Request Sent At',
+                    'Treatment Plan Created',
+                    'Treatment Plan Created At',
+                    'Created At',
+                    'Updated At',
+                ];
+                
+                fputcsv($file, $headers);
+                
+                // Add data rows
+                foreach ($consultations as $consultation) {
+                    $row = [
+                        $consultation->reference ?? '',
+                        trim(($consultation->first_name ?? '') . ' ' . ($consultation->last_name ?? '')),
+                        $consultation->email ?? '',
+                        $consultation->mobile ?? '',
+                        $consultation->age ?? '',
+                        $consultation->gender ?? '',
+                        $consultation->problem ?? '',
+                        $consultation->service_type ?? 'full_consultation',
+                        ucfirst($consultation->status ?? ''),
+                        ucfirst($consultation->payment_status ?? ''),
+                        $consultation->doctor ? $consultation->doctor->full_name : 'N/A',
+                        $consultation->doctor ? ($consultation->doctor->email ?? '') : '',
+                        $consultation->doctor ? ($consultation->doctor->specialization ?? '') : '',
+                        $consultation->consultation_mode ?? '',
+                        $consultation->scheduled_at ? $consultation->scheduled_at->format('Y-m-d H:i:s') : '',
+                        $consultation->started_at ? $consultation->started_at->format('Y-m-d H:i:s') : '',
+                        $consultation->ended_at ? $consultation->ended_at->format('Y-m-d H:i:s') : '',
+                        $consultation->consultation_completed_at ? $consultation->consultation_completed_at->format('Y-m-d H:i:s') : '',
+                        $consultation->canvasser ? $consultation->canvasser->name : '',
+                        $consultation->nurse ? $consultation->nurse->name : '',
+                        $consultation->payment ? ($consultation->payment->amount ?? '') : '',
+                        $consultation->payment ? ($consultation->payment->payment_method ?? '') : '',
+                        $consultation->payment && $consultation->payment->paid_at ? $consultation->payment->paid_at->format('Y-m-d H:i:s') : '',
+                        $consultation->payment_request_sent ? 'Yes' : 'No',
+                        $consultation->payment_request_sent_at ? $consultation->payment_request_sent_at->format('Y-m-d H:i:s') : '',
+                        $consultation->treatment_plan_created ? 'Yes' : 'No',
+                        $consultation->treatment_plan_created_at ? $consultation->treatment_plan_created_at->format('Y-m-d H:i:s') : '',
+                        $consultation->created_at ? $consultation->created_at->format('Y-m-d H:i:s') : '',
+                        $consultation->updated_at ? $consultation->updated_at->format('Y-m-d H:i:s') : '',
+                    ];
+                    
+                    fputcsv($file, $row);
+                }
+                
+                fclose($file);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+            
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to export CSV: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Display all patient records
      */
     public function patients(Request $request)
