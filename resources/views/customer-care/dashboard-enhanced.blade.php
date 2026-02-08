@@ -391,6 +391,9 @@ function dashboardApp() {
             type: 'success',
             message: ''
         },
+        // Chart instances
+        hourlyChart: null,
+        statusChart: null,
         quickActions: [
             { name: 'Search Patients', icon: '🔍', shortcut: 'Ctrl+S', action: 'search', description: 'Quick patient search' },
             { name: 'New Ticket', icon: '🎫', shortcut: 'Ctrl+N', action: 'new-ticket', description: 'Create support ticket' },
@@ -404,7 +407,14 @@ function dashboardApp() {
         
         init() {
             this.filteredQuickActions = this.quickActions;
-            this.initCharts();
+            
+            // Wait for DOM to be ready before initializing charts
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.initCharts();
+                }, 100);
+            });
+            
             this.startRealTimeUpdates();
             
             // Focus quick search when modal opens
@@ -485,56 +495,78 @@ function dashboardApp() {
         },
         
         initCharts() {
-            // Hourly Distribution Chart
-            const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
-            new Chart(hourlyCtx, {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: 24}, (_, i) => i + ':00'),
-                    datasets: [{
-                        label: 'Consultations',
-                        data: @json($kpiMetrics['hourly_distribution']),
-                        borderColor: 'rgb(147, 51, 234)',
-                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
+            try {
+                // Destroy existing charts if they exist
+                if (this.hourlyChart) {
+                    this.hourlyChart.destroy();
+                    this.hourlyChart = null;
                 }
-            });
-            
-            // Status Distribution Chart
-            const statusCtx = document.getElementById('statusChart').getContext('2d');
-            const statusData = @json($kpiMetrics['status_distribution']);
-            new Chart(statusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(statusData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-                    datasets: [{
-                        data: Object.values(statusData),
-                        backgroundColor: [
-                            'rgb(147, 51, 234)',
-                            'rgb(59, 130, 246)',
-                            'rgb(16, 185, 129)',
-                            'rgb(245, 158, 11)',
-                            'rgb(239, 68, 68)',
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
+                if (this.statusChart) {
+                    this.statusChart.destroy();
+                    this.statusChart = null;
                 }
-            });
+                
+                // Hourly Distribution Chart
+                const hourlyCtx = document.getElementById('hourlyChart');
+                if (hourlyCtx && hourlyCtx.getContext) {
+                    this.hourlyChart = new Chart(hourlyCtx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({length: 24}, (_, i) => i + ':00'),
+                            datasets: [{
+                                label: 'Consultations',
+                                data: @json($kpiMetrics['hourly_distribution']),
+                                borderColor: 'rgb(147, 51, 234)',
+                                backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                } else {
+                    console.warn('Hourly chart canvas not found');
+                }
+                
+                // Status Distribution Chart
+                const statusCtx = document.getElementById('statusChart');
+                const statusData = @json($kpiMetrics['status_distribution']);
+                if (statusCtx && statusCtx.getContext) {
+                    this.statusChart = new Chart(statusCtx.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(statusData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+                            datasets: [{
+                                data: Object.values(statusData),
+                                backgroundColor: [
+                                    'rgb(147, 51, 234)',
+                                    'rgb(59, 130, 246)',
+                                    'rgb(16, 185, 129)',
+                                    'rgb(245, 158, 11)',
+                                    'rgb(239, 68, 68)',
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                } else {
+                    console.warn('Status chart canvas not found');
+                }
+            } catch (error) {
+                console.error('Error initializing charts:', error);
+            }
         },
         
         startRealTimeUpdates() {
