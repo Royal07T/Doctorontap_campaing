@@ -422,13 +422,23 @@ class DashboardController extends Controller
     {
         $customerCare = Auth::guard('customer_care')->user();
         
+        // Count online agents (active in last 15 minutes)
+        $onlineThreshold = now()->subMinutes(15);
+        $teamOnline = CustomerCare::where('is_active', true)
+            ->where(function($query) use ($onlineThreshold) {
+                $query->where('last_activity_at', '>=', $onlineThreshold)
+                      ->orWhereHas('consultations', function($q) {
+                          $q->whereIn('status', ['pending', 'in_progress']);
+                      });
+            })
+            ->count();
+        
         $stats = [
             'pending_consultations' => Consultation::where('customer_care_id', $customerCare->id)
                 ->where('status', 'pending')->count(),
             'active_tickets' => SupportTicket::where('agent_id', $customerCare->id)
                 ->whereIn('status', ['pending', 'in_progress'])->count(),
-            'team_online' => CustomerCare::where('is_active', true)
-                ->where('status', '!=', 'offline')->count(),
+            'team_online' => $teamOnline,
         ];
         
         return response()->json([
