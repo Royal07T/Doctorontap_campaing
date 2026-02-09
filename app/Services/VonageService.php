@@ -35,16 +35,18 @@ class VonageService
     protected $enabled;
     protected $whatsappEnabled;
     protected $whatsappNumber;
+    protected $whatsappBusinessId; // WhatsApp Business Number ID (for Messages API)
     protected $messagesSandbox;
 
     public function __construct()
     {
-        $this->apiKey = config('vonage.api_key');
-        $this->apiSecret = config('vonage.api_secret');
-        $this->applicationId = config('vonage.application_id');
+        // Use services.vonage config (standardized)
+        $this->apiKey = config('services.vonage.api_key') ?: config('vonage.api_key');
+        $this->apiSecret = config('services.vonage.api_secret') ?: config('vonage.api_secret');
+        $this->applicationId = config('services.vonage.application_id') ?: config('vonage.application_id');
         $this->privateKey = $this->getPrivateKey();
-        $this->brandName = config('vonage.brand_name', 'DoctorOnTap');
-        $this->apiMethod = config('services.vonage.api_method', 'legacy'); // Keeping migration logic
+        $this->brandName = config('services.vonage.brand_name') ?: config('vonage.brand_name', 'DoctorOnTap');
+        $this->apiMethod = config('services.vonage.api_method', 'legacy');
         $this->enabled = config('services.vonage.enabled', true);
         $this->whatsappEnabled = config('services.vonage.whatsapp_enabled', false);
         // Disable sandbox for production WhatsApp
@@ -56,6 +58,12 @@ class VonageService
             ?: config('vonage.whatsapp_number', '');
             
         $this->whatsappNumber = $rawNumber ? $this->formatPhoneNumber($rawNumber) : '';
+        
+        // Get WhatsApp Business Number ID (preferred for Messages API 'from' parameter)
+        // This is the ID shown in the dashboard (e.g., 2347089146888 or 250782187688)
+        $this->whatsappBusinessId = config('services.vonage.whatsapp.business_number_id') 
+            ?: config('services.vonage.whatsapp_id') 
+            ?: config('vonage.whatsapp_id');
     }
 
     /**
@@ -64,7 +72,7 @@ class VonageService
     protected function getPrivateKey()
     {
         $privateKeyPath = config('services.vonage.private_key_path');
-        $privateKey = config('vonage.private_key');
+        $privateKey = config('services.vonage.private_key') ?: config('vonage.private_key');
 
         if ($privateKeyPath && file_exists($privateKeyPath)) {
             return file_get_contents($privateKeyPath);
@@ -167,6 +175,10 @@ class VonageService
         try {
             $credentials = new Basic($this->apiKey, $this->apiSecret);
             $client = new Client($credentials);
+            
+            // Configure HTTP client timeout (if supported by SDK version)
+            // Note: The Vonage SDK uses Guzzle HTTP client internally
+            // Timeout configuration may need to be set via environment or SDK config
 
             $response = $client->sms()->send(
                 new SMS($formattedPhone, $this->brandName, $message)
@@ -584,10 +596,27 @@ class VonageService
             // Use the Vonage Facade
             $client = Vonage::getFacadeRoot();
 
+            // For WhatsApp Messages API, use WhatsApp Business Number ID (not phone number)
+            // The Business Number ID is what the API expects in the 'from' parameter
+            // Format: Use the ID as-is (e.g., 2347089146888 or 250782187688)
+            $fromNumber = $this->whatsappBusinessId;
+            
+            // If Business Number ID not available, fallback to phone number (remove +)
+            if (empty($fromNumber)) {
+                $fromNumber = str_replace('+', '', $this->whatsappNumber);
+            }
+            
+            Log::debug('Vonage WhatsApp using from parameter', [
+                'from_number' => $fromNumber,
+                'whatsapp_business_id' => $this->whatsappBusinessId,
+                'whatsapp_number' => $this->whatsappNumber,
+                'using_business_id' => !empty($this->whatsappBusinessId)
+            ]);
+            
             // Create WhatsApp text message
             $whatsappMessage = new WhatsAppText(
                 $formattedPhone,
-                $this->whatsappNumber,
+                $fromNumber,
                 $message
             );
 
@@ -708,10 +737,13 @@ class VonageService
             // Use the Vonage Facade
             $client = Vonage::getFacadeRoot();
 
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = $this->whatsappBusinessId ?: $this->whatsappNumber;
+            
             // Create WhatsApp template message
             $whatsappTemplate = new WhatsAppTemplate(
                 $formattedPhone,
-                $this->whatsappNumber,
+                $fromNumber,
                 $templateName,
                 $templateLanguage,
                 $templateParameters
@@ -823,7 +855,8 @@ class VonageService
             }
 
             $imageObject = new ImageObject($imageUrl, $caption);
-            $whatsappImage = new WhatsAppImage($formattedPhone, $this->whatsappNumber, $imageObject);
+                $fromNumber = $this->whatsappBusinessId ?: $this->whatsappNumber;
+                $whatsappImage = new WhatsAppImage($formattedPhone, $fromNumber, $imageObject);
 
             $response = $client->messages()->send($whatsappImage);
             
@@ -907,7 +940,8 @@ class VonageService
             }
 
             $videoObject = new VideoObject($videoUrl, $caption);
-            $whatsappVideo = new WhatsAppVideo($formattedPhone, $this->whatsappNumber, $videoObject);
+                $fromNumber = $this->whatsappBusinessId ?: $this->whatsappNumber;
+                $whatsappVideo = new WhatsAppVideo($formattedPhone, $fromNumber, $videoObject);
 
             $response = $client->messages()->send($whatsappVideo);
             
@@ -990,7 +1024,8 @@ class VonageService
             }
 
             $audioObject = new AudioObject($audioUrl);
-            $whatsappAudio = new WhatsAppAudio($formattedPhone, $this->whatsappNumber, $audioObject);
+                $fromNumber = $this->whatsappBusinessId ?: $this->whatsappNumber;
+                $whatsappAudio = new WhatsAppAudio($formattedPhone, $fromNumber, $audioObject);
 
             $response = $client->messages()->send($whatsappAudio);
             
@@ -1075,7 +1110,8 @@ class VonageService
             }
 
             $fileObject = new FileObject($fileUrl, $caption, $fileName);
-            $whatsappFile = new WhatsAppFile($formattedPhone, $this->whatsappNumber, $fileObject);
+                $fromNumber = $this->whatsappBusinessId ?: $this->whatsappNumber;
+                $whatsappFile = new WhatsAppFile($formattedPhone, $fromNumber, $fileObject);
 
             $response = $client->messages()->send($whatsappFile);
             

@@ -76,9 +76,9 @@ class TestVonageServices extends Command
 
         $vonageService = new VonageService();
 
-        // Check configuration
-        $apiKey = config('vonage.api_key');
-        $apiSecret = config('vonage.api_secret');
+        // Check configuration (standardized config access)
+        $apiKey = config('services.vonage.api_key') ?: config('vonage.api_key');
+        $apiSecret = config('services.vonage.api_secret') ?: config('vonage.api_secret');
         $enabled = config('services.vonage.enabled', false);
         $apiMethod = config('services.vonage.api_method', 'legacy');
 
@@ -289,10 +289,10 @@ class TestVonageServices extends Command
 
         if ($result['success']) {
             $this->info('  ✅ Video session created successfully!');
-            $this->line("     Session ID: " . ($result['data']['session_id'] ?? 'N/A'));
+            $sessionId = $result['session_id'] ?? null;
+            $this->line("     Session ID: " . ($sessionId ?? 'N/A'));
 
             // Test generating token
-            $sessionId = $result['data']['session_id'] ?? null;
             if ($sessionId) {
                 $this->line("  Testing token generation...");
                 $tokenResult = $videoService->generateToken($sessionId, 'publisher');

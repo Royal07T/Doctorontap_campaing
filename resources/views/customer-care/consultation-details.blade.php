@@ -32,6 +32,7 @@
 @endpush
 
 @section('content')
+<div x-data="{ showCommModal: false, selectedChannel: 'sms' }">
     <!-- Back Navigation -->
     <div class="mb-8 flex items-center justify-between animate-fade-in">
         <a href="{{ route('customer-care.consultations') }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-all shadow-sm group">
@@ -39,8 +40,13 @@
             Return to Registry
         </a>
         <div class="flex items-center space-x-3">
-             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cycle Reference:</span>
-             <span class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-black text-slate-800 tracking-tight border border-slate-200">#{{ $consultation->reference }}</span>
+            <button @click="showCommModal = true" class="px-6 py-3 bg-slate-800 text-white rounded-xl text-[12px] font-bold uppercase tracking-normal hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 flex items-center space-x-2 group">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <span style="color: white !important;">Send Message</span>
+                <span class="text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Quick Contact</span>
+            </button>
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cycle Reference:</span>
+            <span class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-black text-slate-800 tracking-tight border border-slate-200">#{{ $consultation->reference }}</span>
         </div>
     </div>
 
@@ -79,12 +85,37 @@
                 @if($consultation->patient)
                 <div class="mt-10 pt-8 border-t border-slate-100">
                     <a href="{{ route('customer-care.customers.show', $consultation->patient) }}" class="inline-flex items-center text-xs font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors">
-                        Access Master Patient Record
+                        View Customer Profile (No Medical Info)
                         <svg class="w-3.5 h-3.5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 7l5 5m0 0l-5 5m5-5H6" stroke-width="2.5"/></svg>
                     </a>
                 </div>
                 @endif
             </div>
+
+            <!-- Next Action Hint -->
+            @if($consultation->payment_status === 'unpaid' || ($consultation->status === 'pending' && $consultation->created_at->diffInHours(now()) >= 1))
+            <div class="clean-card p-6 mb-8 border-l-4 {{ $consultation->payment_status === 'unpaid' ? 'border-l-rose-500' : 'border-l-amber-500' }} bg-gradient-to-r {{ $consultation->payment_status === 'unpaid' ? 'from-rose-50 to-white' : 'from-amber-50 to-white' }}">
+                <div class="flex items-start space-x-4">
+                    <div class="p-3 {{ $consultation->payment_status === 'unpaid' ? 'bg-rose-100' : 'bg-amber-100' }} rounded-xl flex-shrink-0">
+                        <svg class="w-6 h-6 {{ $consultation->payment_status === 'unpaid' ? 'text-rose-600' : 'text-amber-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-black text-slate-800 mb-2">Recommended Next Action</h3>
+                        @if($consultation->payment_status === 'unpaid')
+                        <p class="text-xs font-bold text-slate-600 mb-3">This consultation requires payment. Contact the patient to request payment.</p>
+                        <button @click="showCommModal = true" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all">
+                            Send Payment Request
+                        </button>
+                        @elseif($consultation->status === 'pending' && $consultation->created_at->diffInHours(now()) >= 1)
+                        <p class="text-xs font-bold text-slate-600 mb-3">This consultation has been pending for {{ $consultation->created_at->diffInHours(now()) }} hours. Follow up with the patient or doctor.</p>
+                        <button @click="showCommModal = true" class="px-4 py-2 bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all">
+                            Send Follow-up Message
+                        </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- Medical Data (Restricted Blur) -->
             <div class="clean-card p-8 border-l-4 border-l-rose-500 relative overflow-hidden">
@@ -242,4 +273,14 @@
             </div>
         </div>
     </div>
+
+    <!-- Communication Modal -->
+    @if($consultation->patient)
+    @include('components.customer-care.communication-modal', [
+        'userName' => $consultation->full_name,
+        'userId' => $consultation->patient->id,
+        'userType' => 'patient'
+    ])
+    @endif
+</div>
 @endsection

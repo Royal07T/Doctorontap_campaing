@@ -119,15 +119,91 @@
         </div>
     </div>
 
-    <!-- Main Stats Cards with Trending -->
+    <!-- Priority Queue - What Needs Attention Now -->
+    @if($priorityQueue['urgent_consultations']->count() > 0 || $priorityQueue['unpaid_consultations']->count() > 0 || $priorityQueue['active_tickets']->count() > 0 || $priorityQueue['active_interactions']->count() > 0)
+    <div class="clean-card p-6 mb-8 border-l-4 border-l-rose-500 animate-slide-up">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-lg font-black text-slate-800 flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <span>Priority Queue - Action Required</span>
+                </h2>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Items needing immediate attention</p>
+            </div>
+            <span class="px-4 py-1.5 bg-rose-100 text-rose-700 text-[10px] font-black rounded-full uppercase tracking-widest">
+                {{ $priorityQueue['urgent_consultations']->count() + $priorityQueue['unpaid_consultations']->count() + $priorityQueue['active_tickets']->count() + $priorityQueue['active_interactions']->count() }} Items
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            @if($priorityQueue['urgent_consultations']->count() > 0)
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-black text-amber-800 uppercase tracking-widest">Urgent Consultations</span>
+                    <span class="text-lg font-black text-amber-600">{{ $priorityQueue['urgent_consultations']->count() }}</span>
+                </div>
+                <p class="text-[10px] font-bold text-amber-700 mb-3">Pending >1 hour</p>
+                <a href="{{ route('customer-care.consultations', ['status' => 'pending']) }}" class="text-xs font-black text-amber-700 hover:text-amber-900 uppercase tracking-widest flex items-center space-x-1">
+                    <span>View All</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
+                </a>
+            </div>
+            @endif
+            
+            @if($priorityQueue['unpaid_consultations']->count() > 0)
+            <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-black text-rose-800 uppercase tracking-widest">Unpaid Consultations</span>
+                    <span class="text-lg font-black text-rose-600">{{ $priorityQueue['unpaid_consultations']->count() }}</span>
+                </div>
+                <p class="text-[10px] font-bold text-rose-700 mb-3">Payment required</p>
+                <a href="{{ route('customer-care.consultations', ['payment_status' => 'unpaid']) }}" class="text-xs font-black text-rose-700 hover:text-rose-900 uppercase tracking-widest flex items-center space-x-1">
+                    <span>View All</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
+                </a>
+            </div>
+            @endif
+            
+            @if($priorityQueue['active_tickets']->count() > 0)
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-black text-purple-800 uppercase tracking-widest">High Priority Tickets</span>
+                    <span class="text-lg font-black text-purple-600">{{ $priorityQueue['active_tickets']->count() }}</span>
+                </div>
+                <p class="text-[10px] font-bold text-purple-700 mb-3">Needs response</p>
+                <a href="{{ route('customer-care.tickets.index', ['priority' => 'high']) }}" class="text-xs font-black text-purple-700 hover:text-purple-900 uppercase tracking-widest flex items-center space-x-1">
+                    <span>View All</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
+                </a>
+            </div>
+            @endif
+            
+            @if($priorityQueue['active_interactions']->count() > 0)
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-black text-blue-800 uppercase tracking-widest">Active Interactions</span>
+                    <span class="text-lg font-black text-blue-600">{{ $priorityQueue['active_interactions']->count() }}</span>
+                </div>
+                <p class="text-[10px] font-bold text-blue-700 mb-3">In progress</p>
+                <a href="{{ route('customer-care.interactions.index', ['status' => 'active']) }}" class="text-xs font-black text-blue-700 hover:text-blue-900 uppercase tracking-widest flex items-center space-x-1">
+                    <span>View All</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
+                </a>
+            </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    <!-- Main Stats Cards with Trending (Clickable) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         @foreach([
-            ['title' => 'Total Consultations', 'value' => $stats['total_consultations'], 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'purple', 'trend' => '+12%'],
-            ['title' => 'Pending Queue', 'value' => $stats['pending_consultations'], 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'amber', 'trend' => '-5%'],
-            ['title' => 'Scheduled Today', 'value' => $stats['scheduled_consultations'], 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'color' => 'blue', 'trend' => '+8%'],
-            ['title' => 'Completed', 'value' => $stats['completed_consultations'], 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'emerald', 'trend' => '+15%']
+            ['title' => 'Total Consultations', 'value' => $stats['total_consultations'], 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'purple', 'trend' => '+12%', 'link' => route('customer-care.consultations')],
+            ['title' => 'Pending Queue', 'value' => $stats['pending_consultations'], 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'amber', 'trend' => '-5%', 'link' => route('customer-care.consultations', ['status' => 'pending'])],
+            ['title' => 'Scheduled Today', 'value' => $stats['scheduled_consultations'], 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'color' => 'blue', 'trend' => '+8%', 'link' => route('customer-care.consultations', ['status' => 'scheduled'])],
+            ['title' => 'Completed', 'value' => $stats['completed_consultations'], 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'emerald', 'trend' => '+15%', 'link' => route('customer-care.consultations', ['status' => 'completed'])]
         ] as $stat)
-        <div class="clean-card p-6 border-l-4 border-l-{{ $stat['color'] }}-600 hover:shadow-lg transition-all duration-300 group cursor-pointer">
+        <a href="{{ $stat['link'] }}" class="clean-card p-6 border-l-4 border-l-{{ $stat['color'] }}-600 hover:shadow-lg transition-all duration-300 group cursor-pointer block">
             <div class="flex items-center justify-between mb-4">
                 <div class="p-3 bg-{{ $stat['color'] }}-50 rounded-xl group-hover:bg-{{ $stat['color'] }}-600 transition-colors">
                     <svg class="w-6 h-6 text-{{ $stat['color'] }}-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,8 +217,9 @@
             <div>
                 <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{{ $stat['title'] }}</p>
                 <p class="text-3xl font-black text-slate-800">{{ $stat['value'] }}</p>
+                <p class="text-[9px] font-bold text-{{ $stat['color'] }}-600 uppercase tracking-widest mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view →</p>
             </div>
-        </div>
+        </a>
         @endforeach
     </div>
 
@@ -440,6 +517,25 @@ function dashboardApp() {
             else if (e.ctrlKey && e.key === 'n') {
                 e.preventDefault();
                 window.location.href = '{{ route("customer-care.tickets.create") }}';
+            }
+            // Ctrl+I - New Interaction
+            else if (e.ctrlKey && e.key === 'i') {
+                e.preventDefault();
+                window.location.href = '{{ route("customer-care.interactions.create") }}';
+            }
+            // Ctrl+C - Consultations
+            else if (e.ctrlKey && e.key === 'c') {
+                e.preventDefault();
+                window.location.href = '{{ route("customer-care.consultations") }}';
+            }
+            // Slash (/) - Focus search (when not in input)
+            else if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                const searchInput = document.querySelector('input[name="search"], input[type="search"]');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
             }
             // Ctrl+S - Search
             else if (e.ctrlKey && e.key === 's') {

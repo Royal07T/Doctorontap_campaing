@@ -56,8 +56,14 @@ class VonageVideoService
 
                 Log::info('Vonage Video Service initialized with JWT (Application ID + Private Key)', [
                     'application_id' => substr($this->applicationId, 0, 20) . '...',
-                    'auth_method' => 'jwt'
+                    'auth_method' => 'jwt',
+                    'note' => 'Using JWT for both session creation and token generation. OpenTok SDK not needed.'
                 ]);
+                
+                // Note: We're using JWT for token generation via generateClientToken() method
+                // OpenTok SDK is no longer needed when using JWT authentication
+                // Skip OpenTok SDK initialization to avoid unnecessary warnings
+                
                 return;
             } catch (\Exception $e) {
                 Log::warning('Failed to initialize Vonage Video Service with JWT, falling back to legacy method', [
@@ -194,8 +200,10 @@ class VonageVideoService
             if ($this->authMethod === 'jwt' && $this->videoClient) {
                 // Use Vonage Video SDK (JWT auth)
                 // Simple peer-to-peer session (default)
+                $mediaMode = null;
                 if (empty($options)) {
                     $session = $this->videoClient->createSession();
+                    $mediaMode = 'default';
                 } else {
                     // Routed session (needed for archiving, etc.)
                     $mediaMode = isset($options['mediaMode']) && $options['mediaMode'] === 'RELAYED' 
@@ -213,7 +221,7 @@ class VonageVideoService
 
                 Log::info('Vonage Video session created (JWT)', [
                     'session_id' => $sessionId,
-                    'media_mode' => $mediaMode
+                    'media_mode' => is_string($mediaMode) ? $mediaMode : 'ROUTED'
                 ]);
 
                 return [
@@ -291,23 +299,35 @@ class VonageVideoService
         try {
             $expiresIn = min(max(60, $expiresIn), 7200);
 
+            // Try using Vonage Video SDK with JWT first (preferred method)
             if ($this->authMethod === 'jwt' && $this->videoClient) {
-                // Use Vonage Video SDK (JWT auth)
+                // Use Vonage Video SDK's generateClientToken with JWT credentials
+                // This is the modern approach using Application ID + Private Key
                 $roleEnum = match($role) {
                     'MODERATOR' => Role::MODERATOR,
                     'SUBSCRIBER' => Role::SUBSCRIBER,
                     default => Role::PUBLISHER
                 };
 
-                $token = $this->videoClient->generateToken($sessionId, [
+                $tokenOptions = [
                     'role' => $roleEnum,
-                    'expiresIn' => $expiresIn,
-                    'data' => json_encode(['name' => $userName])
-                ]);
+                    'expireTime' => time() + $expiresIn,
+                ];
+
+                if (!empty($userName) && $userName !== 'User') {
+                    $tokenOptions['data'] = json_encode(['name' => $userName]);
+                }
+
+                if (!empty($initialLayoutClassList)) {
+                    $tokenOptions['initialLayoutClassList'] = $initialLayoutClassList;
+                }
+
+                $token = $this->videoClient->generateClientToken($sessionId, $tokenOptions);
 
                 Log::info('Vonage Video token generated (JWT)', [
                     'session_id' => $sessionId,
-                    'role' => $role
+                    'role' => $role,
+                    'auth_method' => 'jwt'
                 ]);
 
                 return [
@@ -315,8 +335,8 @@ class VonageVideoService
                     'token' => $token,
                     'expires_in' => $expiresIn
                 ];
-            } else {
-                // Use Legacy OpenTok SDK
+            } elseif ($this->opentok) {
+                // Fallback to OpenTok SDK for token generation (legacy/Basic credentials)
                 $roleEnum = match($role) {
                     'MODERATOR' => OpenTokRole::MODERATOR,
                     'SUBSCRIBER' => OpenTokRole::SUBSCRIBER,
@@ -337,13 +357,34 @@ class VonageVideoService
 
                 Log::info('OpenTok Video token generated (Legacy)', [
                     'session_id' => $sessionId,
-                    'role' => $role
+                    'role' => $role,
+                    'auth_method' => $this->authMethod ?? 'legacy'
                 ]);
 
                 return [
                     'success' => true,
                     'token' => $token,
                     'expires_in' => $expiresIn
+                ];
+            } else {
+                // OpenTok SDK not available for token generation
+                // OpenTok SDK not available for token generation
+                // Note: Even with JWT for session creation, token generation requires OpenTok SDK
+                // with Basic credentials (API Key + Secret) for backward compatibility
+                Log::error('Cannot generate token: OpenTok SDK not initialized', [
+                    'session_id' => $sessionId,
+                    'auth_method' => $this->authMethod ?? 'unknown',
+                    'has_video_client' => !empty($this->videoClient),
+                    'has_opentok' => !empty($this->opentok),
+                    'api_key_configured' => !empty($this->apiKey),
+                    'api_secret_configured' => !empty($this->apiSecret)
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Token generation requires OpenTok SDK with Basic credentials (API Key + Secret). Configure VONAGE_VIDEO_API_KEY and VONAGE_VIDEO_API_SECRET (string values, not file paths).',
+                    'error' => 'opentok_not_initialized',
+                    'hint' => 'Get your OpenTok API Key (numeric) and API Secret (string) from Vonage Dashboard. These are different from Application ID + Private Key used for session creation.'
                 ];
             }
         } catch (\Exception $e) {

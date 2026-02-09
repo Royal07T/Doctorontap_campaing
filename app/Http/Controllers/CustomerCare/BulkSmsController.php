@@ -183,12 +183,15 @@ class BulkSmsController extends Controller
                 // Get patient data for personalization
                 $patient = Patient::where('phone', $phone)->first();
                 
-                // Prepare personalization data
+                // Prepare personalization data (handle null patient safely)
+                $patientName = $patient?->name ?? 'Valued Patient';
+                $patientEmail = $patient?->email ?? 'N/A';
+                
                 $personalData = [
-                    'name' => $patient->name ?? 'Valued Patient',
-                    'first_name' => $patient->name ? explode(' ', $patient->name)[0] : 'Valued',
-                    'last_name' => $patient->name && count(explode(' ', $patient->name)) > 1 ? explode(' ', $patient->name)[1] : 'Patient',
-                    'email' => $patient->email ?? 'N/A',
+                    'name' => $patientName,
+                    'first_name' => $patientName ? explode(' ', $patientName)[0] : 'Valued',
+                    'last_name' => $patientName && count(explode(' ', $patientName)) > 1 ? explode(' ', $patientName)[1] : 'Patient',
+                    'email' => $patientEmail,
                     'phone' => $phone,
                     'company_name' => config('app.name', 'DoctorOnTap'),
                     'date' => now()->format('F j, Y'),

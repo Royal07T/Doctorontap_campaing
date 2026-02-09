@@ -191,6 +191,184 @@ class VonageWebhookController extends Controller
     }
 
     /**
+     * Handle inbound messages from Vonage Messages API
+     * POST /webhooks/inbound-message
+     * 
+     * This is the standard Messages API webhook endpoint that handles all channels:
+     * SMS, MMS, WhatsApp, Facebook, Viber, RCS
+     */
+    public function handleInboundMessage(Request $request)
+    {
+        Log::info('Vonage Messages API inbound webhook received', [
+            'data' => $request->all()
+        ]);
+
+        $data = $request->all();
+
+        // Messages API format: from, to, message, timestamp, message_uuid, channel, etc.
+        $from = $data['from']['number'] ?? $data['from'] ?? null;
+        $to = $data['to']['number'] ?? $data['to'] ?? null;
+        $messageUuid = $data['message_uuid'] ?? null;
+        $timestamp = $data['timestamp'] ?? now();
+        $channel = $data['channel'] ?? 'sms'; // sms, whatsapp, messenger, viber, rcs
+
+        // Extract message content based on channel
+        $messageData = $data['message'] ?? [];
+        $messageType = $messageData['type'] ?? 'text';
+        $messageText = null;
+        $mediaUrl = null;
+        $mediaType = null;
+        $mediaCaption = null;
+
+        // Handle different message types
+        switch ($messageType) {
+            case 'text':
+                $messageText = $messageData['text'] ?? null;
+                break;
+            case 'image':
+                $messageText = $messageData['caption'] ?? null;
+                $mediaUrl = $messageData['image']['url'] ?? null;
+                $mediaType = 'image';
+                break;
+            case 'video':
+                $messageText = $messageData['caption'] ?? null;
+                $mediaUrl = $messageData['video']['url'] ?? null;
+                $mediaType = 'video';
+                break;
+            case 'audio':
+                $mediaUrl = $messageData['audio']['url'] ?? null;
+                $mediaType = 'audio';
+                break;
+            case 'file':
+                $messageText = $messageData['caption'] ?? null;
+                $mediaUrl = $messageData['file']['url'] ?? null;
+                $mediaType = 'file';
+                break;
+        }
+
+        // Store inbound message
+        try {
+            // Try to find associated patient/consultation
+            $patient = null;
+            $consultation = null;
+
+            if ($from) {
+                $patient = Patient::where('phone', 'like', '%' . substr($from, -10) . '%')
+                    ->orWhere('phone', $from)
+                    ->first();
+
+                if ($patient) {
+                    $consultation = Consultation::where('patient_id', $patient->id)
+                        ->where('status', '!=', 'completed')
+                        ->latest()
+                        ->first();
+                }
+            }
+
+            // Create inbound message record
+            $inboundMessage = InboundMessage::create([
+                'message_uuid' => $messageUuid,
+                'channel' => $channel,
+                'message_type' => $messageType,
+                'from_number' => $from,
+                'to_number' => $to,
+                'message_text' => $messageText,
+                'media_url' => $mediaUrl,
+                'media_type' => $mediaType,
+                'media_caption' => $mediaCaption,
+                'status' => 'received',
+                'received_at' => $timestamp,
+                'raw_data' => $data,
+                'consultation_id' => $consultation?->id,
+                'patient_id' => $patient?->id,
+            ]);
+
+            Log::info('Vonage Messages API inbound message stored', [
+                'message_uuid' => $messageUuid,
+                'channel' => $channel,
+                'from' => $from,
+                'type' => $messageType,
+            ]);
+
+            // Process the message
+            $this->processInboundMessage($inboundMessage);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to process Vonage Messages API inbound message', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'data' => $data
+            ]);
+        }
+
+        // Return 200 OK to acknowledge receipt
+        return response('OK', 200);
+    }
+
+    /**
+     * Handle message status updates from Vonage Messages API
+     * POST /webhooks/message-status
+     * 
+     * This is the standard Messages API status webhook endpoint
+     */
+    public function handleMessageStatus(Request $request)
+    {
+        Log::info('Vonage Messages API status webhook received', [
+            'data' => $request->all()
+        ]);
+
+        $data = $request->all();
+
+        // Messages API format: message_uuid, status, timestamp, channel, etc.
+        $messageUuid = $data['message_uuid'] ?? null;
+        $status = $data['status'] ?? null;
+        $timestamp = $data['timestamp'] ?? now();
+        $channel = $data['channel'] ?? 'sms';
+        $errorCode = $data['error_code'] ?? null;
+        $errorText = $data['error_text'] ?? null;
+
+        // Map Vonage status to our internal status
+        $internalStatus = $this->mapStatus($status);
+
+        // Update notification tracking if message UUID exists
+        if ($messageUuid) {
+            try {
+                DB::table('sms_inbound_logs')
+                    ->where('message_id', $messageUuid)
+                    ->orWhere('message_uuid', $messageUuid)
+                    ->update([
+                        'status' => $internalStatus,
+                        'error_code' => $errorCode,
+                        'error_text' => $errorText,
+                        'updated_at' => now(),
+                    ]);
+
+                // Also update InboundMessage if exists
+                InboundMessage::where('message_uuid', $messageUuid)
+                    ->update([
+                        'status' => $internalStatus,
+                        'updated_at' => now(),
+                    ]);
+
+                Log::info('Vonage Messages API status updated', [
+                    'message_uuid' => $messageUuid,
+                    'status' => $status,
+                    'internal_status' => $internalStatus,
+                    'channel' => $channel,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to update message status', [
+                    'message_uuid' => $messageUuid,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Return 200 OK to acknowledge receipt
+        return response('OK', 200);
+    }
+
+    /**
      * Handle inbound WhatsApp messages from Vonage
      * POST /vonage/webhook/whatsapp/inbound
      * 

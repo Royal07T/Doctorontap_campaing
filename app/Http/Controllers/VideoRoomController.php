@@ -43,10 +43,15 @@ class VideoRoomController extends Controller
             ]);
 
             if (!$sessionResult['success']) {
-                abort(503, $sessionResult['message'] ?? 'Failed to create video session');
+                // Log the error but don't abort - return error response instead
+                \Log::error('Failed to create video session for consultation', [
+                    'consultation_id' => $consultation->id,
+                    'error' => $sessionResult['error'] ?? $sessionResult['message'] ?? 'Unknown error'
+                ]);
+                throw new \Exception($sessionResult['message'] ?? 'Failed to create video session');
             }
 
-            return VideoRoom::create([
+            $room = VideoRoom::create([
                 'name' => $request->string('name')->toString() ?: ('Consultation ' . $consultation->id),
                 'consultation_id' => $consultation->id,
                 'active_consultation_id' => $consultation->id,
@@ -54,6 +59,17 @@ class VideoRoomController extends Controller
                 'status' => 'pending',
                 'created_by' => $actor->user_id ?? null,
             ]);
+
+            // Update consultation session_status if not already set
+            if (!$consultation->session_status) {
+                $consultation->update([
+                    'session_status' => $consultation->scheduled_at && $consultation->scheduled_at->isFuture() 
+                        ? 'scheduled' 
+                        : 'waiting'
+                ]);
+            }
+
+            return $room;
         });
 
         return response()->json([
@@ -179,18 +195,60 @@ class VideoRoomController extends Controller
             return response()->json(['success' => false, 'message' => 'Authentication required'], 401);
         }
 
+        // Refresh consultation to get latest session_status
+        $consultation->refresh();
+
         $room = VideoRoom::where('consultation_id', $consultation->id)
             ->latest()
             ->first();
 
+        // Map room status to session status for waiting room compatibility
+        $sessionStatus = $consultation->session_status;
+        
+        // If no room exists but consultation has session_status, use that
         if (!$room) {
-            return response()->json(['success' => true, 'room' => null]);
+            // If consultation is scheduled and hasn't started, return scheduled
+            if ($consultation->scheduled_at && $consultation->scheduled_at->isFuture()) {
+                $sessionStatus = 'scheduled';
+            } elseif (!$sessionStatus) {
+                $sessionStatus = 'waiting'; // Default to waiting if no status set
+            }
+            
+            return response()->json([
+                'success' => true,
+                'session_status' => $sessionStatus,
+                'consultation_status' => $consultation->status,
+                'room' => null,
+            ]);
         }
 
         Gate::forUser($actor)->authorize('view', $room);
 
+        // Map room status to session status
+        // Room statuses: pending, active, ended
+        // Session statuses: scheduled, waiting, active, completed, cancelled
+        if (!$sessionStatus) {
+            switch ($room->status) {
+                case 'pending':
+                    $sessionStatus = $consultation->scheduled_at && $consultation->scheduled_at->isFuture() 
+                        ? 'scheduled' 
+                        : 'waiting';
+                    break;
+                case 'active':
+                    $sessionStatus = 'active';
+                    break;
+                case 'ended':
+                    $sessionStatus = 'completed';
+                    break;
+                default:
+                    $sessionStatus = 'waiting';
+            }
+        }
+
         return response()->json([
             'success' => true,
+            'session_status' => $sessionStatus,
+            'consultation_status' => $consultation->status,
             'room' => [
                 'id' => $room->id,
                 'uuid' => $room->uuid,

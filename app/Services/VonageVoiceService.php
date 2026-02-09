@@ -27,12 +27,13 @@ class VonageVoiceService
 
     public function __construct()
     {
-        $this->apiKey = config('vonage.api_key');
-        $this->apiSecret = config('vonage.api_secret');
-        $this->applicationId = config('vonage.application_id');
+        // Use services.vonage config (standardized) with fallback to vonage.* for backward compatibility
+        $this->apiKey = config('services.vonage.api_key') ?: config('vonage.api_key');
+        $this->apiSecret = config('services.vonage.api_secret') ?: config('vonage.api_secret');
+        $this->applicationId = config('services.vonage.application_id') ?: config('vonage.application_id');
         $this->privateKey = $this->getPrivateKey();
-        $this->fromNumber = config('vonage.voice_number');
-        $this->enabled = config('vonage.voice_enabled', false);
+        $this->fromNumber = config('services.vonage.voice_number') ?: config('vonage.voice_number');
+        $this->enabled = config('services.vonage.voice_enabled') ?: config('vonage.voice_enabled', false);
         $this->webhookUrl = config('services.vonage.voice_webhook_url');
     }
 
@@ -42,7 +43,7 @@ class VonageVoiceService
     protected function getPrivateKey()
     {
         $privateKeyPath = config('services.vonage.private_key_path');
-        $privateKey = config('vonage.private_key');
+        $privateKey = config('services.vonage.private_key') ?: config('vonage.private_key');
 
         if ($privateKeyPath && file_exists($privateKeyPath)) {
             return file_get_contents($privateKeyPath);

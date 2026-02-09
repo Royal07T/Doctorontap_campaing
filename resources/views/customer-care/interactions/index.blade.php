@@ -110,12 +110,19 @@
                             </div>
                         </td>
                         <td class="px-6 py-5">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest 
-                                {{ $interaction->status == 'active' ? 'bg-amber-50 text-amber-600' : '' }}
-                                {{ $interaction->status == 'resolved' ? 'bg-emerald-50 text-emerald-600' : '' }}
-                                {{ $interaction->status == 'pending' ? 'bg-slate-100 text-slate-500' : '' }}">
-                                {{ $interaction->status }}
-                            </span>
+                            <div class="flex flex-col space-y-1.5">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit
+                                    {{ $interaction->status == 'active' ? 'bg-amber-50 text-amber-600' : '' }}
+                                    {{ $interaction->status == 'resolved' ? 'bg-emerald-50 text-emerald-600' : '' }}
+                                    {{ $interaction->status == 'pending' ? 'bg-slate-100 text-slate-500' : '' }}">
+                                    {{ $interaction->status }}
+                                </span>
+                                @if($interaction->status == 'active')
+                                <span class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Action: Continue or End</span>
+                                @elseif($interaction->status == 'pending')
+                                <span class="text-[9px] font-black text-slate-600 uppercase tracking-widest">Action: Respond</span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-6 py-5">
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{ $interaction->created_at->format('d M Y') }}</div>
@@ -135,7 +142,17 @@
                                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                             </div>
                             <h3 class="text-lg font-black text-slate-800">No Interactions Found</h3>
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Try adjusting your filters or search terms</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 mb-4">Try adjusting your filters or search terms</p>
+                            <div class="flex items-center justify-center space-x-3">
+                                @if(request()->hasAny(['search', 'status', 'channel']))
+                                <a href="{{ route('customer-care.interactions.index') }}" class="px-6 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                                    Clear Filters
+                                </a>
+                                @endif
+                                <a href="{{ route('customer-care.interactions.create') }}" class="px-6 py-2 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-purple-700 transition-all">
+                                    Create New Interaction
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     @endforelse

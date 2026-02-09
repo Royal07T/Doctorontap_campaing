@@ -30,12 +30,14 @@
                 <div class="lg:col-span-4">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Search Patient/Ref</label>
                     <div class="relative">
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Reference, name, or email..."
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none">
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Reference, name, or email..." autofocus
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 pl-11 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none">
+                        <svg class="absolute left-4 top-3.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </div>
                     @if(request('my_consultations'))
                     <input type="hidden" name="my_consultations" value="1">
                     @endif
+                    <p class="text-[9px] font-bold text-slate-400 mt-1.5 ml-1">Tip: Press Enter to search instantly</p>
                 </div>
 
                 <!-- Status -->
@@ -119,28 +121,52 @@
                             @endif
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
-                            <span class="px-4 py-1.5 inline-flex text-[10px] leading-5 font-black rounded-full uppercase tracking-widest
-                                @if($consultation->status === 'completed') bg-emerald-100 text-emerald-700
-                                @elseif($consultation->status === 'pending') bg-amber-100 text-amber-700
-                                @elseif($consultation->status === 'scheduled') bg-indigo-100 text-indigo-700
-                                @else bg-slate-100 text-slate-700
-                                @endif">
-                                {{ $consultation->status }}
-                            </span>
+                            <div class="flex flex-col space-y-1.5">
+                                <span class="px-4 py-1.5 inline-flex text-[10px] leading-5 font-black rounded-full uppercase tracking-widest w-fit
+                                    @if($consultation->status === 'completed') bg-emerald-100 text-emerald-700
+                                    @elseif($consultation->status === 'pending') bg-amber-100 text-amber-700
+                                    @elseif($consultation->status === 'scheduled') bg-indigo-100 text-indigo-700
+                                    @else bg-slate-100 text-slate-700
+                                    @endif">
+                                    {{ $consultation->status }}
+                                </span>
+                                @if($consultation->status === 'pending' && $consultation->created_at->diffInHours(now()) >= 1)
+                                <span class="text-[9px] font-black text-rose-600 uppercase tracking-widest flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    <span>Needs Attention</span>
+                                </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
-                            <span class="px-4 py-1.5 inline-flex text-[10px] leading-5 font-black rounded-full uppercase tracking-widest
-                                @if($consultation->payment_status === 'paid') bg-green-100 text-green-700
-                                @elseif($consultation->payment_status === 'pending') bg-yellow-100 text-yellow-700
-                                @else bg-rose-100 text-rose-700
-                                @endif">
-                                {{ $consultation->payment_status }}
-                            </span>
+                            <div class="flex flex-col space-y-1.5">
+                                <span class="px-4 py-1.5 inline-flex text-[10px] leading-5 font-black rounded-full uppercase tracking-widest w-fit
+                                    @if($consultation->payment_status === 'paid') bg-green-100 text-green-700
+                                    @elseif($consultation->payment_status === 'pending') bg-yellow-100 text-yellow-700
+                                    @else bg-rose-100 text-rose-700
+                                    @endif">
+                                    {{ $consultation->payment_status }}
+                                </span>
+                                @if($consultation->payment_status === 'unpaid')
+                                <span class="text-[9px] font-black text-rose-600 uppercase tracking-widest">Action: Request Payment</span>
+                                @endif
+                            </div>
                         </td>
-                        <td class="px-8 py-6 whitespace-nowrap text-center">
-                            <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-purple-600 hover:border-purple-600 hover:shadow-lg transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
-                            </a>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <div class="flex items-center justify-center space-x-2">
+                                <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" 
+                                   class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-purple-600 hover:border-purple-600 hover:shadow-lg transition-all group"
+                                   title="View Details">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
+                                </a>
+                                @if($consultation->patient)
+                                <a href="{{ route('customer-care.consultations.show', $consultation->id) }}#message" 
+                                   class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:shadow-lg transition-all group"
+                                   title="Send Message">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                </a>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -149,8 +175,19 @@
         </div>
         @else
         <div class="p-20 text-center border-dashed border-2 border-slate-100 m-8 rounded-[2.5rem]">
-            <h3 class="text-xl font-black text-slate-400 tracking-tight">Zero Results</h3>
-            <p class="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mt-2">No records match the current filter criteria</p>
+            <div class="w-20 h-20 bg-slate-50 text-slate-200 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-400 tracking-tight">No Consultations Found</h3>
+            <p class="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mt-2 mb-4">No records match the current filter criteria</p>
+            <div class="flex items-center justify-center space-x-3 mt-6">
+                <a href="{{ route('customer-care.consultations') }}" class="px-6 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Clear Filters
+                </a>
+                <a href="{{ route('customer-care.dashboard') }}" class="px-6 py-2 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-purple-700 transition-all">
+                    Back to Dashboard
+                </a>
+            </div>
         </div>
         @endif
     </div>

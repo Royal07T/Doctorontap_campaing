@@ -80,8 +80,10 @@ return [
         // WhatsApp Configuration (requires Messages API)
         'whatsapp_enabled' => env('VONAGE_WHATSAPP_ENABLED', false),
         'whatsapp_number' => env('VONAGE_WHATSAPP_NUMBER', '405228299348572'), // DoctorOnTap LLC WhatsApp Business Number
+        'whatsapp_id' => env('VONAGE_WHATSAPP_ID'), // WhatsApp Business Number ID (for Messages API 'from' parameter)
         'whatsapp' => [
             'from_phone_number' => env('WHATSAPP_PHONE_NUMBER') ?: env('VONAGE_WHATSAPP_NUMBER', '405228299348572'),
+            'business_number_id' => env('VONAGE_WHATSAPP_ID'), // WhatsApp Business Number ID (preferred for Messages API)
         ],
         
         // Voice API Configuration

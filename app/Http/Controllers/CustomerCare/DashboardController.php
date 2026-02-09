@@ -87,6 +87,9 @@ class DashboardController extends Controller
         
         // Get activity feed
         $activityFeed = $this->getActivityFeed($customerCare->id);
+        
+        // Get priority queue items (urgent items needing attention)
+        $priorityQueue = $this->getPriorityQueue($customerCare->id);
 
         return view('customer-care.dashboard-enhanced', compact(
             'stats',
@@ -98,8 +101,48 @@ class DashboardController extends Controller
             'queueData',
             'teamStatus',
             'performanceMetrics',
-            'activityFeed'
+            'activityFeed',
+            'priorityQueue'
         ));
+    }
+    
+    /**
+     * Get priority queue - urgent items needing immediate attention
+     */
+    private function getPriorityQueue($agentId)
+    {
+        $oneHourAgo = Carbon::now()->subHour();
+        $twoHoursAgo = Carbon::now()->subHours(2);
+        
+        return [
+            'urgent_consultations' => Consultation::where('customer_care_id', $agentId)
+                ->where('status', 'pending')
+                ->where('created_at', '<', $oneHourAgo)
+                ->with(['patient', 'doctor'])
+                ->orderBy('created_at', 'asc')
+                ->limit(5)
+                ->get(),
+            'unpaid_consultations' => Consultation::where('customer_care_id', $agentId)
+                ->where('payment_status', 'unpaid')
+                ->where('status', '!=', 'cancelled')
+                ->with(['patient', 'doctor'])
+                ->orderBy('created_at', 'asc')
+                ->limit(5)
+                ->get(),
+            'active_tickets' => \App\Models\SupportTicket::where('agent_id', $agentId)
+                ->whereIn('status', ['open', 'pending'])
+                ->where('priority', 'high')
+                ->with(['user'])
+                ->orderBy('created_at', 'asc')
+                ->limit(5)
+                ->get(),
+            'active_interactions' => \App\Models\CustomerInteraction::where('agent_id', $agentId)
+                ->where('status', 'active')
+                ->with(['user'])
+                ->orderBy('created_at', 'asc')
+                ->limit(5)
+                ->get(),
+        ];
     }
     
     /**

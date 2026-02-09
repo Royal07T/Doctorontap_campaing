@@ -37,6 +37,13 @@ use App\Http\Controllers\VonageWebhookController;
 use Illuminate\Support\Facades\File;
 
 // Vonage Webhooks (must be public, no CSRF protection)
+// Messages API standard webhook routes (recommended)
+Route::post('/webhooks/inbound-message', [VonageWebhookController::class, 'handleInboundMessage'])
+    ->name('vonage.webhook.messages.inbound');
+Route::post('/webhooks/message-status', [VonageWebhookController::class, 'handleMessageStatus'])
+    ->name('vonage.webhook.messages.status');
+
+// Legacy webhook routes (for backward compatibility)
 Route::post('/vonage/webhook/inbound', [VonageWebhookController::class, 'handleInbound'])
     ->name('vonage.webhook.inbound');
 Route::post('/vonage/webhook/status', [VonageWebhookController::class, 'handleStatus'])

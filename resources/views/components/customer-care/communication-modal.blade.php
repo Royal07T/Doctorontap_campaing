@@ -5,9 +5,22 @@
         title: '',
         message: ''
     },
+    messageText: '',
+    templates: {
+        greeting: 'Hello {{ $userName }}, thank you for contacting DoctorOnTap. How can I assist you today?',
+        followup: 'Hello {{ $userName }}, I wanted to follow up on your recent consultation. Is there anything else you need help with?'
+    },
     showNotification(type, title, message) {
         this.notification = { show: true, type, title, message };
         setTimeout(() => this.notification.show = false, 4000);
+    },
+    useTemplate(templateKey) {
+        this.messageText = this.templates[templateKey] || '';
+        const textarea = $el.querySelector('textarea[name=message]');
+        if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
     }
 }">
     <!-- Custom Notification Toast -->
@@ -190,8 +203,18 @@
                     </div>
 
                     <label class="block">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Message Body</span>
-                        <textarea name="message" rows="4" required class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-emerald-50 transition-all outline-none resize-none" placeholder="Enter your personalized message here..."></textarea>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Message Body</span>
+                            <div class="flex items-center space-x-2">
+                                <button type="button" @click="useTemplate('greeting')" class="text-[9px] font-bold text-purple-600 hover:text-purple-800 uppercase tracking-widest">Quick: Greeting</button>
+                                <button type="button" @click="useTemplate('followup')" class="text-[9px] font-bold text-purple-600 hover:text-purple-800 uppercase tracking-widest">Quick: Follow-up</button>
+                            </div>
+                        </div>
+                        <textarea name="message" x-model="messageText" rows="4" required class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-emerald-50 transition-all outline-none resize-none" placeholder="Enter your personalized message here..."></textarea>
+                        <div class="mt-2 flex items-center justify-between text-[9px] text-slate-400">
+                            <span>Tip: Use quick templates above for faster messaging</span>
+                            <span x-text="messageText ? messageText.length + ' characters' : ''"></span>
+                        </div>
                     </label>
                 </div>
 

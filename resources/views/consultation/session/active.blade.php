@@ -28,7 +28,8 @@
                 x-data="vonageConsultation({
                     consultationId: {{ $consultation->id }},
                     mode: '{{ $consultation->consultation_mode }}',
-                    vonageApiKey: '{{ config('services.vonage.api_key') }}',
+                    vonageApiKey: '{{ config('services.vonage.api_key') }}', // Legacy fallback
+                    applicationId: '{{ config('services.vonage.application_id') }}', // JWT Application ID (preferred)
                     tokenUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.token" : "patient.consultations.session.token", $consultation->id) }}',
                     statusUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.status" : "patient.consultations.session.status", $consultation->id) }}',
                     endSessionUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.end" : "patient.consultations.session.end", $consultation->id) }}',
@@ -209,7 +210,8 @@ function vonageConsultation(config) {
         // Configuration
         consultationId: config.consultationId,
         mode: config.mode,
-        vonageApiKey: config.vonageApiKey,
+        vonageApiKey: config.vonageApiKey, // Legacy fallback
+        applicationId: config.applicationId, // JWT Application ID (preferred)
         tokenUrl: config.tokenUrl,
         statusUrl: config.statusUrl,
         endSessionUrl: config.endSessionUrl,
@@ -399,7 +401,9 @@ function vonageConsultation(config) {
                     return;
                 }
 
-                await this.initializeVonage(data.api_key || this.vonageApiKey, data.token, data.session_id);
+                // Use applicationId (JWT) from backend, fallback to api_key or config values for legacy
+                const apiKey = data.applicationId || data.api_key || this.applicationId || this.vonageApiKey;
+                await this.initializeVonage(apiKey, data.token, data.session_id);
             } catch (error) {
                 console.error('Error joining video room:', error);
                 this.showError('generic', 'Network Error', 'Network error. Please check your connection and try again.');
@@ -501,7 +505,9 @@ function vonageConsultation(config) {
                 }
 
                 this.cleanupVonage();
-                await this.initializeVonage(data.api_key || this.vonageApiKey, data.token, data.session_id);
+                // Use applicationId (JWT) from backend, fallback to vonageApiKey for legacy
+                const apiKey = data.applicationId || data.api_key || this.vonageApiKey;
+                await this.initializeVonage(apiKey, data.token, data.session_id);
             } catch (e) {
                 console.error('Token refresh failed:', e);
                 this.showError('generic', 'Session Expired', 'Your session expired. Please re-join the consultation.');

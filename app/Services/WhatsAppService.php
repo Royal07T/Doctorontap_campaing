@@ -35,12 +35,25 @@ class WhatsAppService
         try {
             // Format phone number (ensure E.164 format)
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // For WhatsApp Messages API, use WhatsApp Business Number ID (required)
+            // The Business Number ID is what the API expects in the 'from' parameter
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id');
+            
+            // If Business Number ID not available, fallback to phone number (remove +)
+            if (empty($fromNumber)) {
+                $fromNumber = config('services.vonage.whatsapp.from_phone_number') 
+                    ?: config('services.vonage.whatsapp_number');
+                if ($fromNumber) {
+                    $fromNumber = str_replace('+', '', $fromNumber);
+                }
+            }
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured. Please set WHATSAPP_PHONE_NUMBER in .env',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured. Please set VONAGE_WHATSAPP_ID or VONAGE_WHATSAPP_NUMBER in .env',
                     'error' => 'configuration_error'
                 ];
             }
@@ -125,12 +138,16 @@ class WhatsAppService
     ): array {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id')
+                ?: config('services.vonage.whatsapp.from_phone_number');
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured',
                     'error' => 'configuration_error'
                 ];
             }
@@ -242,12 +259,16 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id')
+                ?: config('services.vonage.whatsapp.from_phone_number');
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured',
                     'error' => 'configuration_error'
                 ];
             }
@@ -305,12 +326,16 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id')
+                ?: config('services.vonage.whatsapp.from_phone_number');
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured',
                     'error' => 'configuration_error'
                 ];
             }
@@ -361,12 +386,16 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id')
+                ?: config('services.vonage.whatsapp.from_phone_number');
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured',
                     'error' => 'configuration_error'
                 ];
             }
@@ -419,12 +448,16 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id')
+                ?: config('services.vonage.whatsapp.from_phone_number');
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured',
                     'error' => 'configuration_error'
                 ];
             }
@@ -483,12 +516,16 @@ class WhatsAppService
     ): array {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            $fromNumber = config('services.vonage.whatsapp.from_phone_number');
+            
+            // Use WhatsApp Business Number ID if available (preferred for Messages API)
+            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+                ?: config('services.vonage.whatsapp_id')
+                ?: config('services.vonage.whatsapp.from_phone_number');
 
             if (empty($fromNumber)) {
                 return [
                     'success' => false,
-                    'message' => 'WhatsApp phone number not configured',
+                    'message' => 'WhatsApp Business Number ID or phone number not configured',
                     'error' => 'configuration_error'
                 ];
             }

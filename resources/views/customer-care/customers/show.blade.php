@@ -5,32 +5,21 @@
 @section('content')
 <div class="px-6 py-8">
     <!-- Breadcrumbs & Header -->
-    <div class="flex items-center justify-between mb-10" x-data="{ showCommModal: false, selectedChannel: 'sms' }">
+    <div class="flex items-center justify-between mb-10">
         <div class="flex items-center space-x-4">
             <a href="{{ route('customer-care.customers.index') }}" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-purple-600 hover:text-white transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </a>
             <div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">Patient Profile</h1>
-                <p class="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mt-1">Medical dossier & support history</p>
+                <p class="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mt-1">Customer support & interaction history</p>
             </div>
         </div>
         <div class="flex items-center space-x-3">
-            <button @click="showCommModal = true" class="px-6 py-3 bg-slate-800 text-white rounded-xl text-[12px] font-bold uppercase tracking-normal hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 flex items-center space-x-2">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                <span style="color: white !important;">Initiate Outreach</span>
-            </button>
             <span class="inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest {{ $patient->is_verified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100' }}">
                 {{ $patient->is_verified ? 'Verified Identity' : 'Pending Verification' }}
             </span>
         </div>
-
-        <!-- Communication Modal -->
-        @include('components.customer-care.communication-modal', [
-            'userName' => $patient->name,
-            'userId' => $patient->id,
-            'userType' => 'patient'
-        ])
     </div>
 
     <!-- Central Dossier Profile -->
@@ -70,9 +59,9 @@
                 </div>
             </div>
 
-            <!-- Medical Tags -->
+            <!-- Basic Info -->
             <div class="clean-card p-6 animate-slide-up" style="animation-delay: 0.1s;">
-                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Biometric Data</p>
+                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Basic Information</p>
                  <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Age</p>
@@ -82,70 +71,29 @@
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Gender</p>
                         <p class="text-sm font-black text-slate-800">{{ ucfirst($patient->gender ?? 'NA') }}</p>
                     </div>
-                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Blood Type</p>
-                        <p class="text-sm font-black text-rose-600">{{ $patient->blood_group ?? 'NA' }}</p>
-                    </div>
-                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Genotype</p>
-                        <p class="text-sm font-black text-indigo-600">{{ $patient->genotype ?? 'NA' }}</p>
-                    </div>
                  </div>
             </div>
         </div>
 
         <!-- Detailed Dossier Info -->
         <div class="lg:col-span-2 space-y-8">
-            <!-- Medical History -->
-            <div class="clean-card p-8 animate-slide-up">
-                <div class="flex items-center space-x-3 mb-8">
-                    <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+            <!-- Information Notice -->
+            <div class="clean-card p-8 animate-slide-up border-l-4 border-l-amber-500">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
-                    <h3 class="text-xl font-black text-slate-800 tracking-tight">Medical Information</h3>
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight">Medical Information Restricted</h3>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Allergies</p>
-                        <div class="p-4 bg-rose-50/50 rounded-2xl border border-rose-100">
-                             <p class="text-sm font-bold text-rose-700 leading-relaxed">{{ $patient->allergies ?? 'Strictly None Declared' }}</p>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Chronic Conditions</p>
-                        <div class="p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
-                             <p class="text-sm font-bold text-amber-700 leading-relaxed">{{ $patient->chronic_conditions ?? 'No Records Found' }}</p>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Active Medications</p>
-                        <div class="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                             <p class="text-sm font-bold text-indigo-700 leading-relaxed">{{ $patient->current_medications ?? 'Not On Medication' }}</p>
-                        </div>
-                    </div>
+                <p class="text-sm font-bold text-slate-600 leading-relaxed">
+                    Medical information is restricted to licensed medical professionals only. To communicate with this patient, please use the consultation details page where you can send messages via email, SMS, or WhatsApp.
+                </p>
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                    <a href="{{ route('customer-care.consultations') }}" class="inline-flex items-center text-xs font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors">
+                        View Consultations
+                        <svg class="w-3.5 h-3.5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 7l5 5m0 0l-5 5m5-5H6" stroke-width="2.5"/></svg>
+                    </a>
                 </div>
-
-                <!-- Emergency Contact -->
-                @if($patient->emergency_contact_name)
-                <div class="mt-10 pt-8 border-t border-slate-50">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Emergency Contact Verification</p>
-                    <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-wrap gap-8">
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Full Legal Name</p>
-                            <p class="text-sm font-black text-slate-800">{{ $patient->emergency_contact_name }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Direct Line</p>
-                            <p class="text-sm font-black text-slate-800">{{ $patient->emergency_contact_phone }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Kinship Relation</p>
-                            <p class="text-sm font-black text-slate-800 uppercase tracking-widest text-[11px]">{{ $patient->emergency_contact_relationship }}</p>
-                        </div>
-                    </div>
-                </div>
-                @endif
             </div>
 
             <!-- Stats & Engagement -->

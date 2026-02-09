@@ -23,7 +23,8 @@ class VonageConversationService
 
     public function __construct()
     {
-        $this->applicationId = config('services.vonage.application_id');
+        // Use services.vonage config (standardized) with fallback to vonage.* for backward compatibility
+        $this->applicationId = config('services.vonage.application_id') ?: config('vonage.application_id');
         $this->privateKey = $this->getPrivateKey();
         $this->enabled = config('services.vonage.conversation_enabled', false);
     }
@@ -34,7 +35,7 @@ class VonageConversationService
     protected function getPrivateKey()
     {
         $privateKeyPath = config('services.vonage.private_key_path');
-        $privateKey = config('services.vonage.private_key');
+        $privateKey = config('services.vonage.private_key') ?: config('vonage.private_key');
 
         if ($privateKeyPath && file_exists($privateKeyPath)) {
             return file_get_contents($privateKeyPath);
