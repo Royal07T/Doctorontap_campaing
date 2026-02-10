@@ -1,248 +1,280 @@
-# Vonage WhatsApp Integration Setup
+# Vonage WhatsApp Integration (Production - Non-Sandbox) ✅
 
-This application supports both **Termii** and **Vonage** as WhatsApp providers. You can switch between them using environment variables.
+## Overview
+This guide explains how to use Vonage WhatsApp in production mode (non-sandbox) for sending WhatsApp messages.
+
+---
 
 ## Prerequisites
 
-1. **Vonage API Account**: Sign up at [https://dashboard.nexmo.com/](https://dashboard.nexmo.com/)
-2. **WhatsApp Business Account (WABA)**: Set up via Vonage Dashboard
-   - Navigate to **Messaging > External Accounts > WhatsApp**
-   - Click **Continue with Meta** to set up your WhatsApp Business Account
-   - Follow the onboarding process
-3. **WhatsApp Business Number**: Link your WhatsApp-enabled phone number to Vonage
+✅ **Package Already Installed**
+- `vonage/vonage-laravel` package is already installed
+- Vonage config file exists at `config/vonage.php`
 
-## Important Notes
+---
 
-⚠️ **WhatsApp requires the Messages API (not Legacy SMS API)**
-- WhatsApp messaging uses Vonage's Messages API, which requires:
-  - Application ID
-  - Private Key (JWT authentication)
-- The Legacy SMS API (API Key/Secret) cannot be used for WhatsApp
+## Configuration Steps
 
-⚠️ **24-Hour Customer Care Window**
-- Regular WhatsApp messages can only be sent within 24 hours after:
-  - A user sends a message to your business, OR
-  - A user replies to a template message you sent
-- Outside this window, you must use **approved message templates**
+### **Step 1: Configure .env File**
 
-⚠️ **Message Templates**
-- Templates must be approved by WhatsApp before use
-- Templates are created in WhatsApp Manager (via Meta)
-- Contact your Vonage Account Manager to submit templates for approval
-- Only templates in your own namespace will work
-
-## Installation
-
-The Vonage client package is already installed:
-```bash
-composer require vonage/client
-```
-
-## Configuration
-
-### 1. Get Your Vonage Messages API Credentials
-
-1. Go to [Vonage Dashboard](https://dashboard.nexmo.com/)
-2. Navigate to **Applications** → **Create Application**
-3. Create a new application for Messages API
-4. Download the private key file or copy the private key
-5. Note your **Application ID**
-
-### 2. Set Up WhatsApp Business Account
-
-1. In Vonage Dashboard, go to **Messaging > External Accounts > WhatsApp**
-2. Click **Continue with Meta** to set up WhatsApp Business Account
-3. Complete the Meta onboarding process
-4. Link your WhatsApp Business Number to Vonage
-5. Note your **WhatsApp Business Number** (e.g., +14155552671)
-
-### 3. Configure Environment Variables
-
-Add these to your `.env` file:
+Add the following to your `.env` file:
 
 ```env
-# WhatsApp Provider Selection (options: 'termii' or 'vonage')
-WHATSAPP_PROVIDER=vonage
+# Vonage API Credentials
+VONAGE_KEY=YOUR-API-KEY-HERE
+VONAGE_SECRET=YOUR-VONAGE-SECRET-HERE
 
-# Vonage Messages API Configuration (Required for WhatsApp)
-VONAGE_APPLICATION_ID=your_application_id_here
-VONAGE_PRIVATE_KEY_PATH=/path/to/private.key  # Path to private key file
-# OR use inline private key (with \n for newlines):
-# VONAGE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# WhatsApp Phone Number (Your WhatsApp Business Number from Vonage)
+WHATSAPP_PHONE_NUMBER=YOUR-WHATSAPP-PHONE-NUMBER
 
-# WhatsApp Configuration
+# Disable Sandbox Mode (for production)
+VONAGE_WHATSAPP_SANDBOX=false
 VONAGE_WHATSAPP_ENABLED=true
-VONAGE_WHATSAPP_NUMBER=+14155552671  # Your WhatsApp Business Number
-
-# Optional: Legacy SMS API (for SMS only, not WhatsApp)
-VONAGE_API_KEY=your_api_key_here
-VONAGE_API_SECRET=your_api_secret_here
-VONAGE_BRAND_NAME=DoctorOnTap
-VONAGE_ENABLED=true
 ```
 
 **Important Notes:**
-- Never commit your private key to version control
-- Keep your `.env` file secure and never share it
-- The WhatsApp number must be in E.164 format (e.g., +14155552671)
-- Private key can be provided as a file path OR inline string
+- `VONAGE_KEY` and `VONAGE_SECRET` are your Vonage API credentials
+- `WHATSAPP_PHONE_NUMBER` is your WhatsApp Business Number (e.g., `447123456789` or `+447123456789`)
+- Set `VONAGE_WHATSAPP_SANDBOX=false` to use production (non-sandbox) mode
 
-### 4. Create and Approve Message Templates
+---
 
-1. Go to [Meta Business Manager](https://business.facebook.com/)
-2. Navigate to **WhatsApp Manager**
-3. Create message templates for your use cases:
-   - **Utility templates**: Transaction updates, post-purchase notifications
-   - **Authentication templates**: OTP codes, verification
-   - **Marketing templates**: Promotional messages (requires opt-in)
-4. Submit templates for WhatsApp approval
-5. Wait for approval (can take 24-48 hours)
-6. Note the template names for use in your code
+### **Step 2: Config File Already Updated**
 
-## How It Works
+The `config/services.php` file has been updated with:
 
-1. The application checks the `WHATSAPP_PROVIDER` config value
-2. Based on the provider, it uses either `VonageService` or `TermiiService`
-3. Both services have similar interfaces, so switching is seamless
-4. All WhatsApp notifications throughout the app will use the selected provider
+```php
+'vonage' => [
+    // ... existing config ...
+    'whatsapp' => [
+        'from_phone_number' => env('WHATSAPP_PHONE_NUMBER') ?: env('VONAGE_WHATSAPP_NUMBER'),
+    ],
+],
+```
+
+You can access it with: `config('services.vonage.whatsapp.from_phone_number')`
+
+---
 
 ## Usage Examples
 
-### Sending a Regular WhatsApp Message (Within 24-Hour Window)
+### **Method 1: Using WhatsAppService (Recommended)**
+
+A new `WhatsAppService` class has been created for easy WhatsApp messaging:
+
+```php
+use App\Services\WhatsAppService;
+
+$whatsappService = new WhatsAppService();
+
+// Send a text message
+$result = $whatsappService->sendText(
+    toNumber: '447123456789', // Recipient phone number
+    message: 'Hello, this is a test message.'
+);
+
+if ($result['success']) {
+    echo "Message sent! UUID: " . $result['data']['message_uuid'];
+} else {
+    echo "Error: " . $result['message'];
+}
+```
+
+### **Method 2: Using Vonage Client Directly**
+
+```php
+use Vonage\Client;
+use Vonage\Messages\Channel\WhatsApp\WhatsAppText;
+
+$toNumber = '447123456789';
+$message = 'Hello, this is a test message.';
+
+$whatsAppMessage = new WhatsAppText(
+    to: $toNumber,
+    from: config('services.vonage.whatsapp.from_phone_number'),
+    text: $message,
+);
+
+$response = app(Client::class)
+    ->messages()
+    ->send($whatsAppMessage);
+
+$messageUuid = $response->getMessageUuid();
+```
+
+### **Method 3: Using Existing VonageService**
+
+The existing `VonageService` has been updated to use the new config:
 
 ```php
 use App\Services\VonageService;
 
-$vonage = new VonageService();
-$result = $vonage->sendWhatsAppMessage(
-    '+2347081114942',
-    'Hello! This is a test message.'
+$vonageService = new VonageService();
+
+$result = $vonageService->sendWhatsApp(
+    to: '447123456789',
+    message: 'Hello from DoctorOnTap!'
 );
 ```
 
-### Sending a WhatsApp Template Message
+---
+
+## Sending Template Messages (MTM)
+
+Template messages are required to start a new conversation window:
 
 ```php
-use App\Services\VonageService;
+use App\Services\WhatsAppService;
 
-$vonage = new VonageService();
-$result = $vonage->sendWhatsAppTemplate(
-    '+2347081114942',
-    'consultation_confirmation',  // Template name (must be approved)
-    'en',  // Language code
-    [
-        [
-            'type' => 'text',
-            'text' => 'John Doe'  // Parameter 1
-        ],
-        [
-            'type' => 'text',
-            'text' => 'CON123456'  // Parameter 2
-        ]
-    ]
+$whatsappService = new WhatsAppService();
+
+$result = $whatsappService->sendTemplate(
+    toNumber: '447123456789',
+    templateName: 'welcome_message', // Must be approved by WhatsApp
+    templateLanguage: 'en',
+    templateParameters: ['John', 'DoctorOnTap'] // Parameters for template
 );
 ```
 
-### Using the Notification Class
+---
 
-```php
-use App\Notifications\ConsultationWhatsAppNotification;
+## Phone Number Format
 
-$whatsapp = new ConsultationWhatsAppNotification();
+Phone numbers should be in **E.164 format**:
+- ✅ Correct: `+447123456789` or `447123456789`
+- ❌ Wrong: `07123456789` or `+44 7123 456789`
 
-// Send template (automatically uses configured provider)
-$result = $whatsapp->sendConsultationConfirmationTemplate(
-    [
-        'mobile' => '+2347081114942',
-        'consultation_reference' => 'CON123456',
-        'first_name' => 'John Doe'
-    ],
-    'consultation_confirmation'  // Template name (Vonage) or ID (Termii)
-);
+The service automatically formats numbers, but it's best to provide them in E.164 format.
+
+---
+
+## Production vs Sandbox
+
+### **Sandbox Mode (Testing)**
+- URL: `https://messages-sandbox.nexmo.com/v1/messages`
+- Limited to test numbers
+- Free for testing
+- Set `VONAGE_WHATSAPP_SANDBOX=true` in `.env`
+
+### **Production Mode (Current Setup)**
+- URL: `https://api.nexmo.com/v1/messages` (default)
+- Real WhatsApp Business Number
+- Requires approved WhatsApp Business Account
+- Set `VONAGE_WHATSAPP_SANDBOX=false` in `.env`
+
+**Current Configuration:** Production mode (sandbox disabled)
+
+---
+
+## Verification Checklist
+
+✅ **Package Installed**
+```bash
+composer show vonage/vonage-laravel
 ```
+
+✅ **Config Published**
+- Config file exists at `config/vonage.php`
+
+✅ **Environment Variables Set**
+- `VONAGE_KEY` - Your Vonage API key
+- `VONAGE_SECRET` - Your Vonage API secret
+- `WHATSAPP_PHONE_NUMBER` - Your WhatsApp Business Number
+- `VONAGE_WHATSAPP_SANDBOX=false` - Production mode
+
+✅ **Service Updated**
+- `VonageService` updated to use new config structure
+- `WhatsAppService` created for easy messaging
+
+---
 
 ## Testing
 
-### Test WhatsApp Message
+### **Test Sending a Message**
 
-```bash
-php artisan vonage:test-whatsapp 07081114942 --message="Hello! This is a test."
+Create a test route or use tinker:
+
+```php
+// In routes/web.php (temporary test route)
+Route::get('/test-whatsapp', function() {
+    $service = new \App\Services\WhatsAppService();
+    $result = $service->sendText(
+        '447123456789', // Replace with your test number
+        'Test message from DoctorOnTap'
+    );
+    return response()->json($result);
+});
 ```
 
-### Test WhatsApp Template
-
+Or use Laravel Tinker:
 ```bash
-php artisan vonage:test-whatsapp 07081114942 --template=consultation_confirmation --language=en
+php artisan tinker
 ```
 
-## Webhooks
+```php
+$service = new \App\Services\WhatsAppService();
+$result = $service->sendText('447123456789', 'Test message');
+dd($result);
+```
 
-Vonage will send webhooks for:
-- **Inbound messages**: When users send messages to your WhatsApp number
-- **Delivery receipts**: Status updates for sent messages
-
-### Configure Webhooks in Vonage Dashboard
-
-1. Go to **Settings > Webhooks** in Vonage Dashboard
-2. Set **Inbound Message URL**: `https://yourdomain.com/vonage/webhook/whatsapp/inbound`
-3. Set **Status URL**: `https://yourdomain.com/vonage/webhook/whatsapp/status`
-
-### Webhook Routes (Already Configured)
-
-The application already has webhook routes set up:
-- `POST /vonage/webhook/whatsapp/inbound` - Handle inbound messages
-- `POST /vonage/webhook/whatsapp/status` - Handle delivery status
-
-## Features
-
-- ✅ **No Hardcoded Secrets**: All credentials come from environment variables
-- ✅ **Easy Switching**: Change providers by updating one environment variable
-- ✅ **Automatic Phone Formatting**: Handles Nigerian phone numbers (+234 format)
-- ✅ **Comprehensive Logging**: All WhatsApp attempts are logged for debugging
-- ✅ **Error Handling**: Graceful error handling with detailed error messages
-- ✅ **Template Support**: Send approved WhatsApp message templates
-- ✅ **24-Hour Window**: Send regular messages within customer care window
-
-## Pricing
-
-Vonage WhatsApp pricing consists of:
-1. **Vonage platform fee** - per message
-2. **WhatsApp fee** - per template message (varies by category):
-   - **Utility templates**: Lower cost
-   - **Authentication templates**: Medium cost
-   - **Marketing templates**: Higher cost
-
-See [Vonage Messages API Pricing](https://www.vonage.com/communications-apis/messages/pricing/) for details.
+---
 
 ## Troubleshooting
 
-### "Messages API credentials not configured"
-- Ensure `VONAGE_APPLICATION_ID` is set
-- Ensure `VONAGE_PRIVATE_KEY_PATH` or `VONAGE_PRIVATE_KEY` is set
-- Verify the private key file exists and is readable
+### **Error: "WhatsApp phone number not configured"**
+- Check that `WHATSAPP_PHONE_NUMBER` is set in `.env`
+- Run `php artisan config:clear` to refresh config
 
-### "WhatsApp number not configured"
-- Set `VONAGE_WHATSAPP_NUMBER` in `.env`
-- Ensure the number is in E.164 format (e.g., +14155552671)
+### **Error: "Authentication failed"**
+- Verify `VONAGE_KEY` and `VONAGE_SECRET` are correct
+- Check that credentials have WhatsApp API access
 
-### "Template not found" or Error 1022
-- Ensure the template name matches exactly (case-sensitive)
-- Verify the template is in your own namespace
-- Check that the template is approved in WhatsApp Manager
+### **Error: "Invalid phone number"**
+- Ensure phone number is in E.164 format
+- Remove spaces, dashes, and parentheses
 
-### "Message outside 24-hour window"
-- Use an approved message template instead
-- Or wait for the user to send you a message first
+### **Messages not sending**
+- Verify WhatsApp Business Account is approved
+- Check that recipient has opted in (for production)
+- Ensure `VONAGE_WHATSAPP_SANDBOX=false` for production
 
-### Regular messages not working
-- Regular messages only work within the 24-hour customer care window
-- For initial messages, use approved templates
-- Ensure the user has opted in to receive messages
+---
 
-## Further Reading
+## Files Modified
 
-- [Vonage WhatsApp Documentation](https://developer.vonage.com/en/messages/concepts/whatsapp)
-- [WhatsApp Template Management](https://developer.vonage.com/en/messages/guides/whatsapp-template-management)
-- [WhatsApp Interactive Messages](https://developer.vonage.com/en/messages/guides/whatsapp-interactive-messages)
-- [WhatsApp Pricing Updates](https://developers.facebook.com/docs/whatsapp/pricing/updates-to-pricing)
+1. ✅ `config/services.php` - Added WhatsApp config structure
+2. ✅ `app/Services/VonageService.php` - Updated to use new config
+3. ✅ `app/Services/WhatsAppService.php` - New service class created
+
+---
+
+## Next Steps
+
+1. **Set Environment Variables**
+   - Add `VONAGE_KEY`, `VONAGE_SECRET`, and `WHATSAPP_PHONE_NUMBER` to `.env`
+   - Set `VONAGE_WHATSAPP_SANDBOX=false`
+
+2. **Clear Config Cache**
+   ```bash
+   php artisan config:clear
+   ```
+
+3. **Test Sending**
+   - Use the test route or tinker to send a test message
+
+4. **Integrate into Application**
+   - Use `WhatsAppService` in your controllers, notifications, or jobs
+
+---
+
+## Summary
+
+✅ **Setup Complete**
+- Package installed
+- Config updated
+- Service classes ready
+- Production mode configured
+
+**Status:** Ready for production use (non-sandbox)  
+**Date:** February 8, 2026
 
