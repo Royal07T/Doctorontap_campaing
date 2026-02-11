@@ -198,10 +198,10 @@
     <!-- Main Stats Cards with Trending (Clickable) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         @foreach([
-            ['title' => 'Total Consultations', 'value' => $stats['total_consultations'], 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'purple', 'trend' => '+12%', 'link' => route('customer-care.consultations')],
-            ['title' => 'Pending Queue', 'value' => $stats['pending_consultations'], 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'amber', 'trend' => '-5%', 'link' => route('customer-care.consultations', ['status' => 'pending'])],
-            ['title' => 'Scheduled Today', 'value' => $stats['scheduled_consultations'], 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'color' => 'blue', 'trend' => '+8%', 'link' => route('customer-care.consultations', ['status' => 'scheduled'])],
-            ['title' => 'Completed', 'value' => $stats['completed_consultations'], 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'emerald', 'trend' => '+15%', 'link' => route('customer-care.consultations', ['status' => 'completed'])]
+            ['title' => 'Total Consultations', 'value' => $stats['total_consultations'], 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'purple', 'trend' => $stats['total_trend'] ?? '0%', 'link' => route('customer-care.consultations')],
+            ['title' => 'Pending Queue', 'value' => $stats['pending_consultations'], 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'amber', 'trend' => $stats['pending_trend'] ?? '0%', 'link' => route('customer-care.consultations', ['status' => 'pending'])],
+            ['title' => 'Scheduled Today', 'value' => $stats['scheduled_consultations'], 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'color' => 'blue', 'trend' => $stats['scheduled_trend'] ?? '0%', 'link' => route('customer-care.consultations', ['status' => 'scheduled'])],
+            ['title' => 'Completed', 'value' => $stats['completed_consultations'], 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'emerald', 'trend' => $stats['completed_trend'] ?? '0%', 'link' => route('customer-care.consultations', ['status' => 'completed'])]
         ] as $stat)
         <a href="{{ $stat['link'] }}" class="clean-card p-6 border-l-4 border-l-{{ $stat['color'] }}-600 hover:shadow-lg transition-all duration-300 group cursor-pointer block">
             <div class="flex items-center justify-between mb-4">

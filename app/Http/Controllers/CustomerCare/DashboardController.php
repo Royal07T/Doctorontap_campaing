@@ -9,6 +9,7 @@ use App\Models\Doctor;
 use App\Models\CustomerCare;
 use App\Models\CustomerInteraction;
 use App\Models\SupportTicket;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,18 +25,8 @@ class DashboardController extends Controller
     {
         $customerCare = Auth::guard('customer_care')->user();
         
-        // Get statistics
-        $stats = [
-            'total_consultations' => Consultation::where('customer_care_id', $customerCare->id)->count(),
-            'pending_consultations' => Consultation::where('customer_care_id', $customerCare->id)
-                                                  ->where('status', 'pending')->count(),
-            'scheduled_consultations' => Consultation::where('customer_care_id', $customerCare->id)
-                                                     ->where('status', 'scheduled')->count(),
-            'completed_consultations' => Consultation::where('customer_care_id', $customerCare->id)
-                                                    ->where('status', 'completed')->count(),
-            'cancelled_consultations' => Consultation::where('customer_care_id', $customerCare->id)
-                                                    ->where('status', 'cancelled')->count(),
-        ];
+        // Get statistics with trends
+        $stats = $this->getStatisticsWithTrends($customerCare->id);
 
         // Get Customer Care Module statistics
         $interactionService = app(\App\Services\CustomerInteractionService::class);
@@ -52,9 +43,8 @@ class DashboardController extends Controller
             'avg_response_time' => $interactionService->getAverageResponseTime($customerCare->id),
         ];
 
-        // Get recent consultations
-        $recentConsultations = Consultation::where('customer_care_id', $customerCare->id)
-                                          ->with(['doctor', 'patient'])
+        // Get recent consultations - Show all consultations (customer care can manage all)
+        $recentConsultations = Consultation::with(['doctor', 'patient'])
                                           ->latest()
                                           ->limit(10)
                                           ->get();
@@ -107,7 +97,86 @@ class DashboardController extends Controller
     }
     
     /**
+     * Get statistics with trend calculations
+     * Note: Customer care agents can see all consultations, not just assigned ones
+     */
+    private function getStatisticsWithTrends($agentId)
+    {
+        $now = Carbon::now();
+        $currentPeriodStart = Carbon::now()->subDays(30);
+        
+        // Current period counts - Show all consultations (customer care can manage all)
+        $currentTotal = Consultation::where('created_at', '>=', $currentPeriodStart)
+            ->count();
+        $currentPending = Consultation::where('status', 'pending')
+            ->where('created_at', '>=', $currentPeriodStart)
+            ->count();
+        $currentScheduled = Consultation::where('status', 'scheduled')
+            ->where('created_at', '>=', $currentPeriodStart)
+            ->count();
+        $currentCompleted = Consultation::where('status', 'completed')
+            ->where('created_at', '>=', $currentPeriodStart)
+            ->count();
+        
+        // Previous period counts (30-60 days ago)
+        $previousPeriodStart = Carbon::now()->subDays(60);
+        $previousPeriodEnd = Carbon::now()->subDays(30);
+        
+        $previousTotal = Consultation::whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+        $previousPending = Consultation::where('status', 'pending')
+            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+        $previousScheduled = Consultation::where('status', 'scheduled')
+            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+        $previousCompleted = Consultation::where('status', 'completed')
+            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+        
+        // Calculate trends
+        $calculateTrend = function($current, $previous) {
+            if ($previous == 0) {
+                return $current > 0 ? '+100%' : '0%';
+            }
+            $change = (($current - $previous) / $previous) * 100;
+            $sign = $change >= 0 ? '+' : '';
+            return $sign . round($change, 1) . '%';
+        };
+        
+        // All-time totals for display - Show all consultations
+        $totalConsultations = Consultation::count();
+        $pendingConsultations = Consultation::where('status', 'pending')->count();
+        
+        // Scheduled today (consultations scheduled for today's date)
+        $scheduledToday = Consultation::where('status', 'scheduled')
+            ->whereDate('scheduled_at', today())
+            ->count();
+        
+        // Previous day scheduled for trend calculation
+        $previousScheduledToday = Consultation::where('status', 'scheduled')
+            ->whereDate('scheduled_at', Carbon::yesterday())
+            ->count();
+        
+        $completedConsultations = Consultation::where('status', 'completed')->count();
+        
+        return [
+            'total_consultations' => $totalConsultations,
+            'pending_consultations' => $pendingConsultations,
+            'scheduled_consultations' => $scheduledToday, // Today's scheduled
+            'completed_consultations' => $completedConsultations,
+            'cancelled_consultations' => Consultation::where('status', 'cancelled')->count(),
+            // Trends
+            'total_trend' => $calculateTrend($currentTotal, $previousTotal),
+            'pending_trend' => $calculateTrend($currentPending, $previousPending),
+            'scheduled_trend' => $calculateTrend($scheduledToday, $previousScheduledToday),
+            'completed_trend' => $calculateTrend($currentCompleted, $previousCompleted),
+        ];
+    }
+    
+    /**
      * Get priority queue - urgent items needing immediate attention
+     * Shows all consultations that need attention (customer care can manage all)
      */
     private function getPriorityQueue($agentId)
     {
@@ -115,15 +184,13 @@ class DashboardController extends Controller
         $twoHoursAgo = Carbon::now()->subHours(2);
         
         return [
-            'urgent_consultations' => Consultation::where('customer_care_id', $agentId)
-                ->where('status', 'pending')
+            'urgent_consultations' => Consultation::where('status', 'pending')
                 ->where('created_at', '<', $oneHourAgo)
                 ->with(['patient', 'doctor'])
                 ->orderBy('created_at', 'asc')
                 ->limit(5)
                 ->get(),
-            'unpaid_consultations' => Consultation::where('customer_care_id', $agentId)
-                ->where('payment_status', 'unpaid')
+            'unpaid_consultations' => Consultation::where('payment_status', 'unpaid')
                 ->where('status', '!=', 'cancelled')
                 ->with(['patient', 'doctor'])
                 ->orderBy('created_at', 'asc')
@@ -157,8 +224,7 @@ class DashboardController extends Controller
         
         return [
             'today' => [
-                'consultations' => Consultation::where('customer_care_id', $agentId)
-                    ->whereDate('created_at', $today)->count(),
+                'consultations' => Consultation::whereDate('created_at', $today)->count(),
                 'tickets_resolved' => SupportTicket::where('agent_id', $agentId)
                     ->where('status', 'resolved')
                     ->whereDate('updated_at', $today)->count(),
@@ -166,17 +232,14 @@ class DashboardController extends Controller
                     ->whereDate('created_at', $today)->count(),
             ],
             'yesterday' => [
-                'consultations' => Consultation::where('customer_care_id', $agentId)
-                    ->whereDate('created_at', $yesterday)->count(),
+                'consultations' => Consultation::whereDate('created_at', $yesterday)->count(),
                 'tickets_resolved' => SupportTicket::where('agent_id', $agentId)
                     ->where('status', 'resolved')
                     ->whereDate('updated_at', $yesterday)->count(),
             ],
             'week' => [
-                'consultations' => Consultation::where('customer_care_id', $agentId)
-                    ->whereBetween('created_at', [$thisWeek, now()])->count(),
-                'last_week' => Consultation::where('customer_care_id', $agentId)
-                    ->whereBetween('created_at', [$lastWeek, $thisWeek])->count(),
+                'consultations' => Consultation::whereBetween('created_at', [$thisWeek, now()])->count(),
+                'last_week' => Consultation::whereBetween('created_at', [$lastWeek, $thisWeek])->count(),
             ],
             'hourly_distribution' => $this->getHourlyDistribution($agentId),
             'status_distribution' => $this->getStatusDistribution($agentId),
@@ -189,8 +252,7 @@ class DashboardController extends Controller
      */
     private function getHourlyDistribution($agentId)
     {
-        $data = Consultation::where('customer_care_id', $agentId)
-            ->whereDate('created_at', '>=', Carbon::now()->subDays(7))
+        $data = Consultation::whereDate('created_at', '>=', Carbon::now()->subDays(7))
             ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('COUNT(*) as count'))
             ->groupBy('hour')
             ->orderBy('hour')
@@ -212,8 +274,7 @@ class DashboardController extends Controller
      */
     private function getStatusDistribution($agentId)
     {
-        return Consultation::where('customer_care_id', $agentId)
-            ->select('status', DB::raw('COUNT(*) as count'))
+        return Consultation::select('status', DB::raw('COUNT(*) as count'))
             ->groupBy('status')
             ->get()
             ->pluck('count', 'status')
@@ -241,6 +302,7 @@ class DashboardController extends Controller
     
     /**
      * Get queue management data
+     * Shows all consultations (customer care can manage all)
      */
     private function getQueueData()
     {
@@ -335,9 +397,8 @@ class DashboardController extends Controller
                 : 0,
             'avg_handle_time' => $this->calculateAvgHandleTime($agentId),
             'customer_satisfaction' => $this->getCustomerSatisfactionScore($agentId),
-            'cases_today' => Consultation::where('customer_care_id', $agentId)
-                ->whereDate('created_at', today())->count(),
-            'target_cases' => 20, // Daily target
+            'cases_today' => Consultation::whereDate('created_at', today())->count(),
+            'target_cases' => $this->calculateDailyTarget($agentId),
         ];
     }
     
@@ -376,12 +437,31 @@ class DashboardController extends Controller
     
     /**
      * Get customer satisfaction score
+     * Shows overall satisfaction for all consultations
      */
     private function getCustomerSatisfactionScore($agentId)
     {
-        // This would come from a reviews/ratings table
-        // For now, return a placeholder
-        return 4.5;
+        // Get average rating from all published reviews
+        $avgRating = Review::where('is_published', true)
+            ->avg('rating');
+        
+        // Round to 1 decimal place, default to 0 if no reviews
+        return round($avgRating ?? 0, 1);
+    }
+    
+    /**
+     * Calculate daily target based on historical average
+     */
+    private function calculateDailyTarget($agentId)
+    {
+        // Calculate average daily consultations over last 30 days (all consultations)
+        $avgDaily = Consultation::where('created_at', '>=', Carbon::now()->subDays(30))
+            ->select(DB::raw('COUNT(*) / 30 as avg_daily'))
+            ->value('avg_daily');
+        
+        // Round up to nearest 5, minimum 10
+        $target = ceil(($avgDaily ?? 10) / 5) * 5;
+        return max($target, 10);
     }
     
     /**
@@ -391,9 +471,8 @@ class DashboardController extends Controller
     {
         $activities = [];
         
-        // Recent consultations
-        $consultations = Consultation::where('customer_care_id', $agentId)
-            ->with('patient')
+        // Recent consultations - Show all consultations
+        $consultations = Consultation::with('patient')
             ->latest()
             ->limit(5)
             ->get()
@@ -477,8 +556,7 @@ class DashboardController extends Controller
             ->count();
         
         $stats = [
-            'pending_consultations' => Consultation::where('customer_care_id', $customerCare->id)
-                ->where('status', 'pending')->count(),
+            'pending_consultations' => Consultation::where('status', 'pending')->count(),
             'active_tickets' => SupportTicket::where('agent_id', $customerCare->id)
                 ->whereIn('status', ['pending', 'in_progress'])->count(),
             'team_online' => $teamOnline,
