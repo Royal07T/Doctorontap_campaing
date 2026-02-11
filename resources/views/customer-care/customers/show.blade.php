@@ -46,11 +46,11 @@
                 <div class="pt-6 mt-6 border-t border-slate-50 space-y-4">
                     <div class="flex items-center justify-between text-left">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</span>
-                        <span class="text-sm font-bold text-slate-800">{{ $patient->email }}</span>
+                        <span class="text-sm font-bold text-slate-800">{{ \App\Helpers\PrivacyHelper::maskEmail($patient->email) }}</span>
                     </div>
                     <div class="flex items-center justify-between text-left">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</span>
-                        <span class="text-sm font-bold text-slate-800">{{ $patient->phone ?? 'NR' }}</span>
+                        <span class="text-sm font-bold text-slate-800">{{ \App\Helpers\PrivacyHelper::maskPhone($patient->phone) }}</span>
                     </div>
                     <div class="flex items-center justify-between text-left">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Joined On</span>

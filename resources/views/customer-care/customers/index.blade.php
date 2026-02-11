@@ -71,8 +71,8 @@
                             </div>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="text-sm font-bold text-slate-600">{{ $customer->email }}</div>
-                            <div class="text-[10px] font-medium text-slate-400">{{ $customer->phone ?? 'Unlisted Mobile' }}</div>
+                            <div class="text-sm font-bold text-slate-600">{{ \App\Helpers\PrivacyHelper::maskEmail($customer->email) }}</div>
+                            <div class="text-[10px] font-medium text-slate-400">{{ \App\Helpers\PrivacyHelper::maskPhone($customer->phone) }}</div>
                         </td>
                         <td class="px-6 py-5">
                             <div class="flex items-center space-x-4">

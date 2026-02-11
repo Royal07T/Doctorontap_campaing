@@ -75,8 +75,22 @@ class CustomerCareController extends Controller
         ->limit(20)
         ->get(['id', 'name', 'phone', 'email', 'date_of_birth']);
 
+        // Mask sensitive information for customer care display
+        $maskedPatients = $patients->map(function($patient) {
+            return [
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'phone' => \App\Helpers\PrivacyHelper::maskPhone($patient->phone),
+                'email' => \App\Helpers\PrivacyHelper::maskEmail($patient->email),
+                'date_of_birth' => $patient->date_of_birth,
+                // Keep real values for backend use (not exposed to frontend)
+                '_real_phone' => $patient->phone,
+                '_real_email' => $patient->email,
+            ];
+        });
+
         return response()->json([
-            'patients' => $patients
+            'patients' => $maskedPatients
         ]);
     }
 
@@ -89,8 +103,21 @@ class CustomerCareController extends Controller
             $query->orderBy('created_at', 'desc')->take(5);
         }])->findOrFail($id);
 
+        // Mask sensitive information for display
+        $maskedPatient = [
+            'id' => $patient->id,
+            'name' => $patient->name,
+            'phone' => \App\Helpers\PrivacyHelper::maskPhone($patient->phone),
+            'email' => \App\Helpers\PrivacyHelper::maskEmail($patient->email),
+            'gender' => $patient->gender,
+            'date_of_birth' => $patient->date_of_birth,
+            // Keep real values for backend use (not exposed to frontend)
+            '_real_phone' => $patient->phone,
+            '_real_email' => $patient->email,
+        ];
+
         return response()->json([
-            'patient' => $patient,
+            'patient' => $maskedPatient,
             'age' => $patient->date_of_birth ? $patient->date_of_birth->age : $patient->age,
             'recent_consultations' => $patient->consultations
         ]);

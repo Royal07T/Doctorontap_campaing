@@ -121,13 +121,13 @@
                     </div>
                     <div>
                         <h4 class="text-sm font-black text-slate-800 leading-tight">{{ $interaction->user->name }}</h4>
-                        <p class="text-[10px] font-bold text-slate-400 tracking-tighter">{{ $interaction->user->email }}</p>
+                        <p class="text-[10px] font-bold text-slate-400 tracking-tighter">{{ \App\Helpers\PrivacyHelper::maskEmail($interaction->user->email) }}</p>
                     </div>
                 </div>
                 <div class="space-y-2 mb-6">
                     <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span class="text-[9px] font-black text-slate-400 uppercase">Phone</span>
-                        <span class="text-[11px] font-bold text-slate-800">{{ $interaction->user->phone ?? 'Unlisted' }}</span>
+                        <span class="text-[11px] font-bold text-slate-800">{{ \App\Helpers\PrivacyHelper::maskPhone($interaction->user->phone) }}</span>
                     </div>
                 </div>
                 <a href="{{ route('customer-care.customers.show', $interaction->user) }}" class="block w-full text-center py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all">

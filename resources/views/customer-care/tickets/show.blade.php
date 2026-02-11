@@ -93,13 +93,13 @@
                     </div>
                     <div>
                         <h4 class="text-sm font-black text-slate-800 leading-tight">{{ $ticket->user->name }}</h4>
-                        <p class="text-[10px] font-bold text-slate-400 tracking-tighter">{{ $ticket->user->email }}</p>
+                        <p class="text-[10px] font-bold text-slate-400 tracking-tighter">{{ \App\Helpers\PrivacyHelper::maskEmail($ticket->user->email) }}</p>
                     </div>
                 </div>
                 <div class="space-y-2 mb-6 text-[11px] font-bold text-slate-600">
                     <div class="flex justify-between p-3 bg-slate-50 rounded-xl">
                         <span class="text-slate-400 uppercase tracking-widest text-[9px]">Mobile</span>
-                        <span>{{ $ticket->user->phone ?? 'NR' }}</span>
+                        <span>{{ \App\Helpers\PrivacyHelper::maskPhone($ticket->user->phone) }}</span>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 gap-2">

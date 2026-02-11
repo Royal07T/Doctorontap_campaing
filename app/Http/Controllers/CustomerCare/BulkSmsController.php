@@ -107,6 +107,18 @@ class BulkSmsController extends Controller
         }
 
         $patients = $query->take(50)->get(['id', 'name', 'phone', 'email']);
+        
+        // Mask sensitive information for display
+        $patients = $patients->map(function($patient) {
+            return [
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'phone' => \App\Helpers\PrivacyHelper::maskPhone($patient->phone),
+                'email' => \App\Helpers\PrivacyHelper::maskEmail($patient->email),
+                // Keep real phone for backend use (when adding recipient)
+                '_real_phone' => $patient->phone,
+            ];
+        });
 
         return response()->json([
             'success' => true,
