@@ -173,10 +173,38 @@ function notificationComponent(routePrefix, userType, userId) {
             if (this.userId) {
                 this.fetchNotifications(); // One-time fetch
                 this.setupWebSocket();
+                this.setupPusherBeams();
                 window.addEventListener('beforeunload', () => {
                     this.cleanup();
                 });
             }
+        },
+
+        async setupPusherBeams() {
+            // Register device with Pusher Beams for push notifications
+            if (typeof window.registerPusherBeamsDevice === 'function') {
+                try {
+                    await window.registerPusherBeamsDevice(routePrefix, this.userType, this.userId);
+                } catch (error) {
+                    console.warn('Failed to register Pusher Beams device:', error);
+                }
+            }
+
+            // Listen for Pusher Beams notifications
+            window.addEventListener('pusher-beams-notification', (event) => {
+                const notification = event.detail;
+                // Add to notifications list
+                this.notifications.unshift({
+                    id: notification.notification_id || Date.now(),
+                    title: notification.title || 'New Notification',
+                    message: notification.body || notification.message || '',
+                    type: notification.type || 'info',
+                    action_url: notification.action_url || notification.url,
+                    read_at: null,
+                    created_at: new Date().toISOString(),
+                });
+                this.unreadCount = (this.unreadCount || 0) + 1;
+            });
         },
 
         setupWebSocket() {

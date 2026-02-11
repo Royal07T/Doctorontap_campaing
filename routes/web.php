@@ -33,8 +33,19 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PusherBeamsController;
+use App\Http\Controllers\PusherBeamsWebhookController;
 use App\Http\Controllers\VonageWebhookController;
 use Illuminate\Support\Facades\File;
+
+// Pusher Beams Webhooks (must be public, no CSRF protection)
+Route::post('/webhooks/pusher-beams', [PusherBeamsWebhookController::class, 'handle'])
+    ->name('pusher-beams.webhook');
+
+// Pusher Beams Auth Endpoint (called by SDK when setting user ID)
+Route::post('/pusher-beams/auth', [PusherBeamsController::class, 'auth'])
+    ->middleware('web')
+    ->name('pusher-beams.auth');
 
 // Vonage Webhooks (must be public, no CSRF protection)
 // Messages API standard webhook routes (recommended)
@@ -191,6 +202,9 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Pusher Beams - Push Notifications
+    Route::get('/pusher-beams/token', [PusherBeamsController::class, 'generateToken'])->name('pusher-beams.token');
     
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
@@ -391,6 +405,9 @@ Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'c
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     
+    // Pusher Beams - Push Notifications
+    Route::get('/pusher-beams/token', [PusherBeamsController::class, 'generateToken'])->name('pusher-beams.token');
+    
     Route::get('/dashboard', [CanvasserDashboardController::class, 'index'])->name('dashboard');
     
     // Patient Management
@@ -435,6 +452,9 @@ Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verifie
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Pusher Beams - Push Notifications
+    Route::get('/pusher-beams/token', [PusherBeamsController::class, 'generateToken'])->name('pusher-beams.token');
     
     Route::get('/dashboard', [NurseDashboardController::class, 'index'])->name('dashboard');
     
@@ -510,6 +530,9 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Pusher Beams - Push Notifications
+    Route::get('/pusher-beams/token', [PusherBeamsController::class, 'generateToken'])->name('pusher-beams.token');
     
     Route::get('/dashboard', [CustomerCareDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard-enhanced', [CustomerCareDashboardController::class, 'index'])->name('dashboard.enhanced');
@@ -620,6 +643,9 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Pusher Beams - Push Notifications
+    Route::get('/pusher-beams/token', [PusherBeamsController::class, 'generateToken'])->name('pusher-beams.token');
     
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
     
@@ -756,6 +782,9 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Pusher Beams - Push Notifications
+    Route::get('/pusher-beams/token', [PusherBeamsController::class, 'generateToken'])->name('pusher-beams.token');
     
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');

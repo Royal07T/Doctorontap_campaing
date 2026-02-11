@@ -115,26 +115,142 @@ async function syncConsultations() {
 
 // Push notifications
 self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'New notification from DoctorOnTap',
+  console.log('[ServiceWorker] Push notification received', event);
+  
+  let notificationData = {
+    title: 'DoctorOnTap',
+    body: 'New notification from DoctorOnTap',
     icon: '/img/pwa/icon-192x192.png',
     badge: '/img/pwa/icon-72x72.png',
-    vibrate: [200, 100, 200],
     tag: 'doctorontap-notification',
+    data: {},
     requireInteraction: false,
   };
 
+  // Parse notification data
+  if (event.data) {
+    try {
+      // Try to parse as JSON (Pusher Beams format)
+      const jsonData = event.data.json();
+      
+      // Pusher Beams sends notification data in web.notification format
+      if (jsonData.web && jsonData.web.notification) {
+        notificationData.title = jsonData.web.notification.title || notificationData.title;
+        notificationData.body = jsonData.web.notification.body || notificationData.body;
+        notificationData.icon = jsonData.web.notification.icon || notificationData.icon;
+        notificationData.badge = jsonData.web.notification.badge || notificationData.badge;
+        notificationData.tag = jsonData.web.notification.tag || `notification-${jsonData.web.data?.notification_id || Date.now()}`;
+      }
+      
+      // Extract data payload (for action_url, notification_id, etc.)
+      if (jsonData.web && jsonData.web.data) {
+        notificationData.data = jsonData.web.data;
+        // Store action_url in data for click handler
+        if (jsonData.web.data.action_url) {
+          notificationData.data.url = jsonData.web.data.action_url;
+        }
+      }
+      
+      // Fallback: if data is at root level
+      if (jsonData.title) {
+        notificationData.title = jsonData.title;
+      }
+      if (jsonData.body) {
+        notificationData.body = jsonData.body;
+      }
+      if (jsonData.icon) {
+        notificationData.icon = jsonData.icon;
+      }
+      if (jsonData.data) {
+        notificationData.data = { ...notificationData.data, ...jsonData.data };
+        if (jsonData.data.action_url) {
+          notificationData.data.url = jsonData.data.action_url;
+        }
+      }
+      
+    } catch (e) {
+      // If JSON parsing fails, try text format
+      try {
+        const textData = event.data.text();
+        if (textData) {
+          notificationData.body = textData;
+        }
+      } catch (textError) {
+        console.error('[ServiceWorker] Failed to parse push notification data:', textError);
+      }
+    }
+  }
+
+  // Add vibrate pattern for mobile devices
+  notificationData.vibrate = [200, 100, 200];
+
+  console.log('[ServiceWorker] Showing notification:', notificationData);
+
   event.waitUntil(
-    self.registration.showNotification('DoctorOnTap', options)
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: notificationData.tag,
+      data: notificationData.data,
+      vibrate: notificationData.vibrate,
+      requireInteraction: notificationData.requireInteraction,
+      // Add actions if needed
+      actions: notificationData.data?.action_url ? [
+        {
+          action: 'open',
+          title: 'View',
+        },
+        {
+          action: 'close',
+          title: 'Close',
+        }
+      ] : undefined,
+    })
   );
 });
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
+  console.log('[ServiceWorker] Notification clicked', event);
+  
   event.notification.close();
 
+  // Determine URL to open
+  let urlToOpen = '/';
+  
+  if (event.action === 'open' || !event.action) {
+    // Get URL from notification data
+    if (event.notification.data && event.notification.data.url) {
+      urlToOpen = event.notification.data.url;
+    } else if (event.notification.data && event.notification.data.action_url) {
+      urlToOpen = event.notification.data.action_url;
+    }
+    
+    // Ensure URL is absolute or relative to current origin
+    if (!urlToOpen.startsWith('http://') && !urlToOpen.startsWith('https://') && !urlToOpen.startsWith('/')) {
+      urlToOpen = '/' + urlToOpen;
+    }
+  }
+
   event.waitUntil(
-    clients.openWindow('/')
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then((clientList) => {
+      // Check if there's already a window/tab open with the target URL
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      // If no matching window, open a new one
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });
 

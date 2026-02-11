@@ -129,4 +129,12 @@ return [
     */
     'whatsapp_provider' => env('WHATSAPP_PROVIDER', 'vonage'), // Options: 'termii' or 'vonage'
 
+    'pusher_beams' => [
+        'instance_id' => env('PUSHER_BEAMS_INSTANCE_ID'),
+        'secret_key' => env('PUSHER_BEAMS_SECRET_KEY'),
+        'enabled' => env('PUSHER_BEAMS_ENABLED', false),
+        'webhook_username' => env('PUSHER_BEAMS_WEBHOOK_USERNAME'),
+        'webhook_password' => env('PUSHER_BEAMS_WEBHOOK_PASSWORD'),
+    ],
+
 ];
