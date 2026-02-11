@@ -11,23 +11,48 @@ Alpine.plugin(collapse);
 // Make Alpine available globally
 window.Alpine = Alpine;
 
-// Initialize Laravel Echo for WebSockets (optional - graceful degradation)
+// Initialize Laravel Echo for WebSockets using Pusher (optional - graceful degradation)
 window.Pusher = Pusher;
 
 try {
-    // Only initialize if WebSocket keys are configured
-    const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
-    const reverbHost = import.meta.env.VITE_REVERB_HOST;
+    // Only initialize if Pusher keys are configured
+    const pusherKey = import.meta.env.VITE_PUSHER_APP_KEY;
+    const pusherCluster = import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1';
     
-    if (reverbKey && reverbHost) {
+    if (pusherKey) {
+        // Suppress expected Pusher connection retry errors during initial connection
+        const originalError = console.error;
+        let connectionEstablished = false;
+        let retryErrorCount = 0;
+        const maxRetryErrors = 5; // Allow a few retry errors before suppressing
+        
+        // Temporarily suppress connection retry errors during initial connection phase
+        console.error = function(...args) {
+            const message = args[0]?.toString() || '';
+            const errorString = args.join(' ');
+            
+            // Suppress expected WebSocket retry errors during initial connection
+            if (!connectionEstablished && (
+                message.includes('WebSocket is closed before the connection is established') ||
+                (errorString.includes('WebSocket connection to') && errorString.includes('failed') && 
+                 errorString.includes('ws-mt1.pusher.com'))
+            )) {
+                retryErrorCount++;
+                // Only suppress if we haven't seen too many (to avoid hiding real issues)
+                if (retryErrorCount <= maxRetryErrors) {
+                    return; // Suppress this expected retry error
+                }
+            }
+            // Log all other errors normally
+            originalError.apply(console, args);
+        };
+        
         window.Echo = new Echo({
-            broadcaster: 'reverb',
-            key: reverbKey,
-            wsHost: reverbHost,
-            wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-            wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-            forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-            enabledTransports: ['ws', 'wss'],
+            broadcaster: 'pusher',
+            key: pusherKey,
+            cluster: pusherCluster,
+            forceTLS: true,
+            encrypted: true,
             authEndpoint: '/broadcasting/auth',
             auth: {
                 headers: {
@@ -40,13 +65,26 @@ try {
                 withCredentials: true,
             },
         });
-        console.log('✅ WebSocket connection initialized');
+        
+        // Restore console.error after connection is established or timeout
+        const restoreError = () => {
+            console.error = originalError;
+            connectionEstablished = true;
+        };
+        
+        // Restore after 5 seconds (connection should be established by then)
+        setTimeout(restoreError, 5000);
+        
+        // Also restore when connection is confirmed (via notification component)
+        window.addEventListener('pusher-connected', restoreError, { once: true });
+        
+        console.log('✅ Pusher WebSocket connection initialized');
     } else {
-        console.info('ℹ️ WebSocket not configured - notifications will work via polling');
+        console.info('ℹ️ Pusher not configured - notifications will work via polling');
         window.Echo = undefined;
     }
 } catch (error) {
-    console.warn('⚠️ WebSocket connection failed - notifications will work via polling:', error.message);
+    console.warn('⚠️ Pusher connection failed - notifications will work via polling:', error.message);
     window.Echo = undefined;
 }
 

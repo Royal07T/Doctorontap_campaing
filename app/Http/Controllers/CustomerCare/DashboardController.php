@@ -252,7 +252,9 @@ class DashboardController extends Controller
      */
     private function getHourlyDistribution($agentId)
     {
-        $data = Consultation::whereDate('created_at', '>=', Carbon::now()->subDays(7))
+        $sevenDaysAgo = Carbon::now()->subDays(7);
+        
+        $data = Consultation::where('created_at', '>=', $sevenDaysAgo)
             ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('COUNT(*) as count'))
             ->groupBy('hour')
             ->orderBy('hour')
@@ -263,7 +265,7 @@ class DashboardController extends Controller
         $hours = range(0, 23);
         $distribution = [];
         foreach ($hours as $hour) {
-            $distribution[] = $data[$hour] ?? 0;
+            $distribution[] = (int)($data[$hour] ?? 0);
         }
         
         return $distribution;
@@ -274,11 +276,25 @@ class DashboardController extends Controller
      */
     private function getStatusDistribution($agentId)
     {
-        return Consultation::select('status', DB::raw('COUNT(*) as count'))
+        $data = Consultation::select('status', DB::raw('COUNT(*) as count'))
             ->groupBy('status')
             ->get()
-            ->pluck('count', 'status')
+            ->mapWithKeys(function($item) {
+                return [$item->status => (int)$item->count];
+            })
             ->toArray();
+        
+        // Ensure we have at least empty array structure
+        if (empty($data)) {
+            return [
+                'pending' => 0,
+                'scheduled' => 0,
+                'completed' => 0,
+                'cancelled' => 0,
+            ];
+        }
+        
+        return $data;
     }
     
     /**

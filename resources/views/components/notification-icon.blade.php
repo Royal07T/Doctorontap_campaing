@@ -235,6 +235,8 @@ function notificationComponent(routePrefix, userType, userId) {
                 this.echoChannel.subscribed(() => {
                     this.websocketConnected = true;
                     console.log('✅ WebSocket connected for real-time notifications');
+                    // Dispatch event to restore console.error in app.js
+                    window.dispatchEvent(new Event('pusher-connected'));
                 });
 
                 this.echoChannel.error((error) => {

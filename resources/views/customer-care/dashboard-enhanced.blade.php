@@ -34,6 +34,11 @@
     .chart-container {
         position: relative;
         height: 300px;
+        min-height: 300px;
+    }
+    
+    .chart-container canvas {
+        max-height: 300px;
     }
     
     /* Team status colors */
@@ -100,22 +105,6 @@
                     </svg>
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- Keyboard Shortcuts Help -->
-    <div class="mb-4 bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
-        <div class="flex items-center space-x-6 text-xs">
-            <span class="text-slate-600 font-medium">Keyboard Shortcuts:</span>
-            <span><span class="shortcut-hint">Ctrl+K</span> Quick Actions</span>
-            <span><span class="shortcut-hint">Ctrl+S</span> Search</span>
-            <span><span class="shortcut-hint">Ctrl+N</span> New Ticket</span>
-            <span><span class="shortcut-hint">Ctrl+R</span> Refresh</span>
-        </div>
-        <div class="flex items-center space-x-2">
-            <span class="text-xs text-slate-500">Auto-refresh:</span>
-            <span class="pulse-dot w-2 h-2 bg-green-500 rounded-full"></span>
-            <span class="text-xs font-medium text-green-600">Active</span>
         </div>
     </div>
 
@@ -455,6 +444,12 @@
 @push('scripts')
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Ensure Chart.js is loaded before initializing
+if (typeof Chart === 'undefined') {
+    console.error('Chart.js failed to load');
+}
+</script>
 
 <script>
 function dashboardApp() {
@@ -485,11 +480,34 @@ function dashboardApp() {
         init() {
             this.filteredQuickActions = this.quickActions;
             
-            // Wait for DOM to be ready before initializing charts
+            // Wait for DOM and Chart.js to be ready before initializing charts
             this.$nextTick(() => {
-                setTimeout(() => {
-                    this.initCharts();
+                // Wait for Chart.js to load and canvas elements to be in DOM
+                const checkReady = setInterval(() => {
+                    const chartJsReady = typeof Chart !== 'undefined';
+                    const hourlyCanvas = document.getElementById('hourlyChart');
+                    const statusCanvas = document.getElementById('statusChart');
+                    const canvasesReady = hourlyCanvas && statusCanvas;
+                    
+                    if (chartJsReady && canvasesReady) {
+                        clearInterval(checkReady);
+                        // Wait a bit more to ensure everything is fully rendered
+                        setTimeout(() => {
+                            this.initCharts();
+                        }, 300);
+                    }
                 }, 100);
+                
+                // Timeout after 5 seconds if not ready
+                setTimeout(() => {
+                    clearInterval(checkReady);
+                    if (typeof Chart !== 'undefined') {
+                        // Try to initialize anyway, but with better error handling
+                        this.initCharts();
+                    } else {
+                        console.error('Chart.js failed to load after 5 seconds');
+                    }
+                }, 5000);
             });
             
             this.startRealTimeUpdates();
@@ -591,78 +609,256 @@ function dashboardApp() {
         },
         
         initCharts() {
-            try {
-                // Destroy existing charts if they exist
-                if (this.hourlyChart) {
-                    this.hourlyChart.destroy();
-                    this.hourlyChart = null;
-                }
-                if (this.statusChart) {
-                    this.statusChart.destroy();
-                    this.statusChart = null;
-                }
-                
-                // Hourly Distribution Chart
-                const hourlyCtx = document.getElementById('hourlyChart');
-                if (hourlyCtx && hourlyCtx.getContext) {
-                    this.hourlyChart = new Chart(hourlyCtx.getContext('2d'), {
-                        type: 'line',
-                        data: {
-                            labels: Array.from({length: 24}, (_, i) => i + ':00'),
-                            datasets: [{
-                                label: 'Consultations',
-                                data: @json($kpiMetrics['hourly_distribution']),
-                                borderColor: 'rgb(147, 51, 234)',
-                                backgroundColor: 'rgba(147, 51, 234, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: { beginAtZero: true }
-                            }
-                        }
-                    });
-                } else {
-                    console.warn('Hourly chart canvas not found');
-                }
-                
-                // Status Distribution Chart
-                const statusCtx = document.getElementById('statusChart');
-                const statusData = @json($kpiMetrics['status_distribution']);
-                if (statusCtx && statusCtx.getContext) {
-                    this.statusChart = new Chart(statusCtx.getContext('2d'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: Object.keys(statusData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-                            datasets: [{
-                                data: Object.values(statusData),
-                                backgroundColor: [
-                                    'rgb(147, 51, 234)',
-                                    'rgb(59, 130, 246)',
-                                    'rgb(16, 185, 129)',
-                                    'rgb(245, 158, 11)',
-                                    'rgb(239, 68, 68)',
-                                ]
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false
-                        }
-                    });
-                } else {
-                    console.warn('Status chart canvas not found');
-                }
-            } catch (error) {
-                console.error('Error initializing charts:', error);
+            // Prevent multiple initializations
+            if (this._chartsInitializing) {
+                return;
             }
+            this._chartsInitializing = true;
+            
+            // Wait a bit more to ensure Chart.js is loaded and DOM is ready
+            setTimeout(() => {
+                try {
+                    // Check if Chart is available
+                    if (typeof Chart === 'undefined') {
+                        console.error('Chart.js library is not loaded');
+                        this._chartsInitializing = false;
+                        return;
+                    }
+                    
+                    // Destroy existing charts if they exist
+                    if (this.hourlyChart) {
+                        try {
+                            this.hourlyChart.destroy();
+                        } catch (e) {
+                            console.warn('Error destroying hourly chart:', e);
+                        }
+                        this.hourlyChart = null;
+                    }
+                    if (this.statusChart) {
+                        try {
+                            this.statusChart.destroy();
+                        } catch (e) {
+                            console.warn('Error destroying status chart:', e);
+                        }
+                        this.statusChart = null;
+                    }
+                    
+                    // Hourly Distribution Chart
+                    const hourlyCtx = document.getElementById('hourlyChart');
+                    if (!hourlyCtx || !hourlyCtx.getContext) {
+                        console.warn('Hourly chart canvas not found or not ready');
+                        return;
+                    }
+                    
+                    let hourlyCanvas;
+                    try {
+                        hourlyCanvas = hourlyCtx.getContext('2d');
+                    } catch (e) {
+                        console.error('Could not get 2d context for hourly chart:', e);
+                        return;
+                    }
+                    
+                    if (!hourlyCanvas) {
+                        console.error('Could not get 2d context for hourly chart');
+                        return;
+                    }
+                    
+                    // Verify canvas is still in DOM
+                    if (!hourlyCtx.isConnected) {
+                        console.warn('Hourly chart canvas is not connected to DOM');
+                        return;
+                    }
+                    
+                    try {
+                        @php
+                            $hourlyDistribution = $kpiMetrics['hourly_distribution'] ?? [];
+                        @endphp
+                        const hourlyData = @json($hourlyDistribution);
+                        const hasData = Array.isArray(hourlyData) && hourlyData.length > 0 && hourlyData.some(v => v > 0);
+                        
+                        if (hasData) {
+                            this.hourlyChart = new Chart(hourlyCtx, {
+                                type: 'line',
+                                data: {
+                                    labels: Array.from({length: 24}, (_, i) => {
+                                        const hour = i.toString().padStart(2, '0');
+                                        return hour + ':00';
+                                    }),
+                                    datasets: [{
+                                        label: 'Consultations',
+                                        data: hourlyData,
+                                        borderColor: 'rgb(147, 51, 234)',
+                                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                                        tension: 0.4,
+                                        fill: true,
+                                        pointRadius: 3,
+                                        pointHoverRadius: 5
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { 
+                                            display: true,
+                                            position: 'top'
+                                        },
+                                        tooltip: {
+                                            mode: 'index',
+                                            intersect: false
+                                        }
+                                    },
+                                    scales: {
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: 'Hour of Day'
+                                            }
+                                        },
+                                        y: { 
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Number of Consultations'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        } else {
+                            // Show chart with zero data so it's not blank
+                            this.hourlyChart = new Chart(hourlyCtx, {
+                                type: 'line',
+                                data: {
+                                    labels: Array.from({length: 24}, (_, i) => {
+                                        const hour = i.toString().padStart(2, '0');
+                                        return hour + ':00';
+                                    }),
+                                    datasets: [{
+                                        label: 'Consultations',
+                                        data: Array(24).fill(0),
+                                        borderColor: 'rgb(200, 200, 200)',
+                                        backgroundColor: 'rgba(200, 200, 200, 0.1)',
+                                        tension: 0.4,
+                                        fill: true
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: { enabled: false }
+                                    },
+                                    scales: {
+                                        x: { title: { display: true, text: 'Hour of Day' } },
+                                        y: { beginAtZero: true, title: { display: true, text: 'Number of Consultations' } }
+                                    }
+                                }
+                            });
+                            }
+                    } catch (e) {
+                        console.error('Error creating hourly chart:', e);
+                    }
+                    
+                    // Status Distribution Chart
+                    const statusCtx = document.getElementById('statusChart');
+                    if (!statusCtx || !statusCtx.getContext) {
+                        console.warn('Status chart canvas not found or not ready');
+                        return;
+                    }
+                    
+                    let statusCanvas;
+                    try {
+                        statusCanvas = statusCtx.getContext('2d');
+                    } catch (e) {
+                        console.error('Could not get 2d context for status chart:', e);
+                        return;
+                    }
+                    
+                    if (!statusCanvas) {
+                        console.error('Could not get 2d context for status chart');
+                        return;
+                    }
+                    
+                    // Verify canvas is still in DOM
+                    if (!statusCtx.isConnected) {
+                        console.warn('Status chart canvas is not connected to DOM');
+                        return;
+                    }
+                    
+                    try {
+                        @php
+                            $statusDistribution = $kpiMetrics['status_distribution'] ?? [];
+                        @endphp
+                        const statusData = @json($statusDistribution);
+                        const statusKeys = Object.keys(statusData);
+                        const statusValues = Object.values(statusData);
+                        const colors = [
+                            'rgb(147, 51, 234)',  // purple
+                            'rgb(59, 130, 246)',  // blue
+                            'rgb(16, 185, 129)',  // green
+                            'rgb(245, 158, 11)',  // amber
+                            'rgb(239, 68, 68)',   // red
+                            'rgb(139, 92, 246)',  // indigo
+                            'rgb(236, 72, 153)',  // pink
+                        ];
+                        
+                        // Always create chart, even with zero data
+                        if (statusKeys.length > 0) {
+                            this.statusChart = new Chart(statusCtx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: statusKeys.map(s => s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')),
+                                    datasets: [{
+                                        data: statusValues,
+                                        backgroundColor: colors.slice(0, statusKeys.length)
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'bottom',
+                                            labels: {
+                                                padding: 15,
+                                                font: { size: 12 }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        } else {
+                            // Show empty chart with placeholder
+                            this.statusChart = new Chart(statusCtx, {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: ['No Data'],
+                                        datasets: [{
+                                            data: [1],
+                                            backgroundColor: ['rgb(200, 200, 200)']
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: { display: false },
+                                            tooltip: { enabled: false }
+                                        }
+                                    }
+                                });
+                            }
+                    } catch (e) {
+                        console.error('Error creating status chart:', e);
+                    }
+                } catch (error) {
+                    console.error('Error initializing charts:', error);
+                } finally {
+                    this._chartsInitializing = false;
+                }
+            }, 800);
         },
         
         startRealTimeUpdates() {
