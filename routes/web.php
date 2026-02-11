@@ -128,6 +128,75 @@ Route::get('/test-notification/{consultation_id}', function($consultationId) {
     return response()->json(['message' => 'Test notification sent successfully!']);
 })->name('test.notification');
 
+// Test route for Pusher Beams (remove in production)
+Route::get('/test-pusher-beams', function() {
+    $beamsService = app(\App\Services\PusherBeamsService::class);
+    
+    if (!$beamsService->isEnabled()) {
+        return response()->json([
+            'success' => false,
+            'error' => 'Pusher Beams is not enabled. Check your .env configuration.',
+        ], 503);
+    }
+    
+    // Get authenticated user or use default
+    $user = auth()->user();
+    if (!$user) {
+        // Try to get from any guard
+        $guards = ['admin', 'doctor', 'patient', 'nurse', 'canvasser', 'customer_care'];
+        foreach ($guards as $guard) {
+            if (auth()->guard($guard)->check()) {
+                $user = auth()->guard($guard)->user();
+                break;
+            }
+        }
+    }
+    
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'error' => 'Please log in to test Pusher Beams notifications.',
+        ], 401);
+    }
+    
+    // Determine user type
+    $userType = 'patient';
+    $class = get_class($user);
+    $typeMap = [
+        \App\Models\Patient::class => 'patient',
+        \App\Models\Doctor::class => 'doctor',
+        \App\Models\AdminUser::class => 'admin',
+        \App\Models\Nurse::class => 'nurse',
+        \App\Models\Canvasser::class => 'canvasser',
+        \App\Models\CustomerCare::class => 'customer_care',
+    ];
+    $userType = $typeMap[$class] ?? 'patient';
+    $userId = "{$userType}_{$user->id}";
+    
+    // Create test notification
+    $notification = \App\Models\Notification::create([
+        'user_type' => $userType,
+        'user_id' => $user->id,
+        'title' => 'Test Push Notification',
+        'message' => 'This is a test push notification from Pusher Beams! If you see this, Pusher Beams is working correctly.',
+        'type' => 'info',
+        'action_url' => route('notifications.index'),
+        'data' => [
+            'test' => true,
+            'pusher_beams_test' => true,
+        ],
+    ]);
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Test notification created and push notification sent!',
+        'notification_id' => $notification->id,
+        'user_id' => $userId,
+        'user_type' => $userType,
+        'note' => 'Check your device/browser for the push notification. Also check the notifications dropdown in the app.',
+    ]);
+})->middleware('web')->name('test.pusher-beams');
+
 // Payment Routes
 Route::prefix('payment')->group(function () {
     Route::post('/initialize', [PaymentController::class, 'initialize'])->name('payment.initialize');

@@ -106,12 +106,51 @@ class PusherBeamsService
                 ],
             ];
 
-            $response = $this->beamsClient->publishToUsers($userIds, $publishBody);
+            // Retry logic for network errors (DNS, connection issues)
+            $maxRetries = 3;
+            $retryDelay = 1; // seconds
+            $response = null;
+            $lastException = null;
+
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                try {
+                    $response = $this->beamsClient->publishToUsers($userIds, $publishBody);
+                    break; // Success, exit retry loop
+                } catch (\Exception $e) {
+                    $lastException = $e;
+                    
+                    // Check if it's a network/DNS error that might be retryable
+                    $isRetryable = str_contains($e->getMessage(), 'Could not resolve host') ||
+                                   str_contains($e->getMessage(), 'cURL error 6') ||
+                                   str_contains($e->getMessage(), 'Connection timed out') ||
+                                   str_contains($e->getMessage(), 'Network is unreachable');
+                    
+                    if (!$isRetryable || $attempt === $maxRetries) {
+                        // Not retryable or last attempt, throw/rethrow
+                        throw $e;
+                    }
+                    
+                    // Wait before retry
+                    if ($attempt < $maxRetries) {
+                        Log::warning("Pusher Beams notification attempt {$attempt} failed, retrying...", [
+                            'error' => $e->getMessage(),
+                            'attempt' => $attempt,
+                            'max_retries' => $maxRetries,
+                        ]);
+                        sleep($retryDelay);
+                    }
+                }
+            }
 
             Log::info('Pusher Beams notification sent successfully', [
                 'user_count' => count($userIds),
                 'title' => $title,
             ]);
+
+            // Convert stdClass to array if needed
+            if (is_object($response)) {
+                $response = json_decode(json_encode($response), true);
+            }
 
             return $response;
         } catch (\Exception $e) {
@@ -197,6 +236,11 @@ class PusherBeamsService
                 'title' => $title,
             ]);
 
+            // Convert stdClass to array if needed
+            if (is_object($response)) {
+                $response = json_decode(json_encode($response), true);
+            }
+
             return $response;
         } catch (\Exception $e) {
             Log::error('Failed to send Pusher Beams notification to interests', [
@@ -229,6 +273,11 @@ class PusherBeamsService
             Log::info('Pusher Beams token generated successfully', [
                 'user_id' => $userId,
             ]);
+
+            // Convert stdClass to array if needed
+            if (is_object($token)) {
+                $token = json_decode(json_encode($token), true);
+            }
 
             return $token;
         } catch (\Exception $e) {
