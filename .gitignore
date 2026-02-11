@@ -36,3 +36,14 @@ yarn-error.log
 
 # Termii SMS Credentials (contains API keys)
 TERMII_CREDENTIALS.txt
+
+# Documentation files that might contain real secrets (if accidentally created)
+# Note: Current documentation files contain only placeholders and are safe to commit
+documentations/*_REAL_CREDENTIALS.md
+documentations/*_ACTUAL_SECRETS.md
+documentations/*_PRODUCTION_KEYS.md
+documentations/.env.*
+documentations/*.key
+documentations/*.pem
+documentations/*_secrets.txt
+documentations/*_keys.txt
