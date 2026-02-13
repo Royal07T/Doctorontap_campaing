@@ -262,12 +262,30 @@ class ConsultationSessionController extends Controller
         }
 
         $session = $consultation->activeSession();
+        
+        // Get session status, checking if scheduled time has passed
+        $sessionStatus = $consultation->session_status;
+        
+        // If scheduled time has passed and status is still "scheduled", change to "waiting"
+        if ($consultation->scheduled_at && $consultation->scheduled_at->isPast()) {
+            if ($sessionStatus === 'scheduled') {
+                $sessionStatus = 'waiting';
+                // Update the consultation status in database
+                $consultation->update(['session_status' => 'waiting']);
+            }
+        } elseif ($consultation->scheduled_at && $consultation->scheduled_at->isFuture()) {
+            // If scheduled time hasn't arrived yet, ensure status is "scheduled"
+            if (!$sessionStatus || $sessionStatus === 'waiting') {
+                $sessionStatus = 'scheduled';
+                $consultation->update(['session_status' => 'scheduled']);
+            }
+        }
 
         return response()->json([
             'success' => true,
             'has_session' => $session !== null,
-            'session_status' => $session ? $session->status : null,
-            'consultation_status' => $consultation->session_status,
+            'session_status' => $session ? $session->status : $sessionStatus,
+            'consultation_status' => $sessionStatus,
             'mode' => $consultation->consultation_mode,
         ]);
     }

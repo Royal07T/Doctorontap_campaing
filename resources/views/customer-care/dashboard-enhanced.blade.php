@@ -492,8 +492,8 @@ function dashboardApp() {
                     if (chartJsReady && canvasesReady) {
                         clearInterval(checkReady);
                         // Wait a bit more to ensure everything is fully rendered
-                        setTimeout(() => {
-                            this.initCharts();
+                setTimeout(() => {
+                    this.initCharts();
                         }, 300);
                     }
                 }, 100);
@@ -625,26 +625,26 @@ function dashboardApp() {
                         return;
                     }
                     
-                    // Destroy existing charts if they exist
-                    if (this.hourlyChart) {
+                // Destroy existing charts if they exist
+                if (this.hourlyChart) {
                         try {
-                            this.hourlyChart.destroy();
+                    this.hourlyChart.destroy();
                         } catch (e) {
                             console.warn('Error destroying hourly chart:', e);
                         }
-                        this.hourlyChart = null;
-                    }
-                    if (this.statusChart) {
+                    this.hourlyChart = null;
+                }
+                if (this.statusChart) {
                         try {
-                            this.statusChart.destroy();
+                    this.statusChart.destroy();
                         } catch (e) {
                             console.warn('Error destroying status chart:', e);
                         }
-                        this.statusChart = null;
-                    }
-                    
-                    // Hourly Distribution Chart
-                    const hourlyCtx = document.getElementById('hourlyChart');
+                    this.statusChart = null;
+                }
+                
+                // Hourly Distribution Chart
+                const hourlyCtx = document.getElementById('hourlyChart');
                     if (!hourlyCtx || !hourlyCtx.getContext) {
                         console.warn('Hourly chart canvas not found or not ready');
                         return;
@@ -678,17 +678,17 @@ function dashboardApp() {
                         
                         if (hasData) {
                             this.hourlyChart = new Chart(hourlyCtx, {
-                                type: 'line',
-                                data: {
+                        type: 'line',
+                        data: {
                                     labels: Array.from({length: 24}, (_, i) => {
                                         const hour = i.toString().padStart(2, '0');
                                         return hour + ':00';
                                     }),
-                                    datasets: [{
-                                        label: 'Consultations',
+                            datasets: [{
+                                label: 'Consultations',
                                         data: hourlyData,
-                                        borderColor: 'rgb(147, 51, 234)',
-                                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                                borderColor: 'rgb(147, 51, 234)',
+                                backgroundColor: 'rgba(147, 51, 234, 0.1)',
                                         tension: 0.4,
                                         fill: true,
                                         pointRadius: 3,
@@ -739,30 +739,30 @@ function dashboardApp() {
                                         data: Array(24).fill(0),
                                         borderColor: 'rgb(200, 200, 200)',
                                         backgroundColor: 'rgba(200, 200, 200, 0.1)',
-                                        tension: 0.4,
-                                        fill: true
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
                                         legend: { display: false },
                                         tooltip: { enabled: false }
-                                    },
-                                    scales: {
+                            },
+                            scales: {
                                         x: { title: { display: true, text: 'Hour of Day' } },
                                         y: { beginAtZero: true, title: { display: true, text: 'Number of Consultations' } }
-                                    }
-                                }
-                            });
+                            }
+                        }
+                    });
                             }
                     } catch (e) {
                         console.error('Error creating hourly chart:', e);
-                    }
-                    
-                    // Status Distribution Chart
-                    const statusCtx = document.getElementById('statusChart');
+                }
+                
+                // Status Distribution Chart
+                const statusCtx = document.getElementById('statusChart');
                     if (!statusCtx || !statusCtx.getContext) {
                         console.warn('Status chart canvas not found or not ready');
                         return;
@@ -807,16 +807,16 @@ function dashboardApp() {
                         // Always create chart, even with zero data
                         if (statusKeys.length > 0) {
                             this.statusChart = new Chart(statusCtx, {
-                                type: 'doughnut',
-                                data: {
+                        type: 'doughnut',
+                        data: {
                                     labels: statusKeys.map(s => s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')),
-                                    datasets: [{
+                            datasets: [{
                                         data: statusValues,
                                         backgroundColor: colors.slice(0, statusKeys.length)
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
                                     maintainAspectRatio: false,
                                     plugins: {
                                         legend: {
@@ -827,9 +827,9 @@ function dashboardApp() {
                                             }
                                         }
                                     }
-                                }
-                            });
-                        } else {
+                        }
+                    });
+                } else {
                             // Show empty chart with placeholder
                             this.statusChart = new Chart(statusCtx, {
                                     type: 'doughnut',
@@ -852,12 +852,12 @@ function dashboardApp() {
                             }
                     } catch (e) {
                         console.error('Error creating status chart:', e);
-                    }
-                } catch (error) {
-                    console.error('Error initializing charts:', error);
+                }
+            } catch (error) {
+                console.error('Error initializing charts:', error);
                 } finally {
                     this._chartsInitializing = false;
-                }
+            }
             }, 800);
         },
         

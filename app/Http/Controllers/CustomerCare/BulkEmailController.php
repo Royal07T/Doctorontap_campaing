@@ -98,7 +98,7 @@ class BulkEmailController extends Controller
         }
 
         $patients = $query->whereNotNull('email')->take(50)->get(['id', 'name', 'email', 'phone']);
-        
+
         // Mask sensitive information for display
         $patients = $patients->map(function($patient) {
             return [

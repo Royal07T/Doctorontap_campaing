@@ -83,11 +83,27 @@ class SecurityMonitoring
         }
         
         // Check for rapid requests from same IP
+        // Exclude consultation session pages, video endpoints, and status polling endpoints (legitimate high-frequency requests)
+        $path = $request->path();
+        $isLegitimateHighFrequency = str_contains($path, '/session/active') || 
+                                     str_contains($path, '/session/waiting-room') ||
+                                     str_contains($path, '/session/status') ||
+                                     str_contains($path, '/session/token') ||
+                                     str_contains($path, '/video/status') ||
+                                     str_contains($path, '/video/join') ||
+                                     str_contains($path, '/video/create') ||
+                                     str_contains($path, '/video/refresh') ||
+                                     str_contains($path, '/service-worker.js') ||
+                                     str_contains($path, '/reverb') || // Laravel Reverb WebSocket
+                                     str_contains($path, '/broadcasting/auth'); // Laravel Broadcasting auth
+        
         try {
             $key = "rapid_requests:{$ip}";
             $requests = Cache::get($key, 0);
             
-            if ($requests > 100) { // More than 100 requests in 1 minute
+            // Only alert if not on legitimate high-frequency endpoints and exceeds threshold
+            // Increased threshold to 200 requests per minute to reduce false positives
+            if ($requests > 200 && !$isLegitimateHighFrequency) { // More than 200 requests in 1 minute
                 $this->logSecurityEvent('rapid_requests', [
                     'ip' => $ip,
                     'user_agent' => $userAgent,
@@ -97,6 +113,7 @@ class SecurityMonitoring
                 ]);
             }
             
+            // Still track requests, but don't alert on legitimate high-frequency endpoints
             Cache::put($key, $requests + 1, 60); // 1 minute cache
         } catch (\Exception $e) {
             // Cache might not be available - continue without rate tracking

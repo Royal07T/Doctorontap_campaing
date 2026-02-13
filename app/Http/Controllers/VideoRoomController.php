@@ -38,8 +38,14 @@ class VideoRoomController extends Controller
                 return $existing;
             }
 
+            // Create session with optimized settings for consultations
+            // Media Mode: ROUTED (required for archiving, better for multiparty, supports Media Router features)
+            // Archive Mode: MANUAL (archives only when explicitly started, not automatic)
+            // Note: ROUTED mode is required even for MANUAL archiving per Vonage documentation
+            // https://developer.vonage.com/en/video/guides/create-session#the-media-router-and-media-modes
             $sessionResult = $this->videoService->createSession([
-                'archiveMode' => ArchiveMode::MANUAL,
+                'mediaMode' => 'ROUTED', // Explicitly set ROUTED for archiving support and better reliability
+                'archiveMode' => ArchiveMode::MANUAL, // Manual archiving - only archive when explicitly requested
             ]);
 
             if (!$sessionResult['success']) {
@@ -99,7 +105,18 @@ class VideoRoomController extends Controller
             ->first();
 
         if (!$room) {
-            return response()->json(['success' => false, 'message' => 'No active room found'], 404);
+            // Check if user is a patient - provide more helpful message
+            $isPatient = $actor instanceof \App\Models\Patient;
+            $message = $isPatient 
+                ? 'The video room has not been created yet. Please wait for the doctor to start the session.'
+                : 'No active room found. Please create a room first.';
+            
+            return response()->json([
+                'success' => false, 
+                'message' => $message,
+                'error_code' => 'room_not_found',
+                'can_create' => !$isPatient // Only doctors can create rooms
+            ], 404);
         }
 
         Gate::forUser($actor)->authorize('join', $room);
@@ -195,21 +212,43 @@ class VideoRoomController extends Controller
             return response()->json(['success' => false, 'message' => 'Authentication required'], 401);
         }
 
-        // Refresh consultation to get latest session_status
-        $consultation->refresh();
-
+        // Use efficient query - only refresh consultation if we need to update status
+        // For status polling, we can use the already-loaded model
+        // Only refresh if we detect a status change is needed
+        
         $room = VideoRoom::where('consultation_id', $consultation->id)
             ->latest()
             ->first();
+        
+        // Only refresh consultation if we need to check/update session_status
+        // This avoids unnecessary DB queries during frequent status polling
+        $needsRefresh = false;
+        if (!$room && $consultation->scheduled_at && $consultation->scheduled_at->isPast() && $consultation->session_status === 'scheduled') {
+            $needsRefresh = true;
+        }
+        
+        if ($needsRefresh) {
+            $consultation->refresh();
+        }
 
         // Map room status to session status for waiting room compatibility
         $sessionStatus = $consultation->session_status;
         
         // If no room exists but consultation has session_status, use that
         if (!$room) {
-            // If consultation is scheduled and hasn't started, return scheduled
+            // Check if scheduled time has passed
+            $scheduledTimePassed = $consultation->scheduled_at && $consultation->scheduled_at->isPast();
+            
+            // If consultation is scheduled and time hasn't arrived, return scheduled
             if ($consultation->scheduled_at && $consultation->scheduled_at->isFuture()) {
                 $sessionStatus = 'scheduled';
+            } elseif ($scheduledTimePassed && ($sessionStatus === 'scheduled' || !$sessionStatus)) {
+                // If scheduled time has passed, change status to waiting to allow joining
+                $sessionStatus = 'waiting';
+                // Optionally update the consultation status in database
+                if ($consultation->session_status === 'scheduled') {
+                    $consultation->update(['session_status' => 'waiting']);
+                }
             } elseif (!$sessionStatus) {
                 $sessionStatus = 'waiting'; // Default to waiting if no status set
             }
@@ -227,12 +266,24 @@ class VideoRoomController extends Controller
         // Map room status to session status
         // Room statuses: pending, active, ended
         // Session statuses: scheduled, waiting, active, completed, cancelled
-        if (!$sessionStatus) {
+        if (!$sessionStatus || $sessionStatus === 'scheduled') {
+            // Check if scheduled time has passed
+            $scheduledTimePassed = $consultation->scheduled_at && $consultation->scheduled_at->isPast();
+            
             switch ($room->status) {
                 case 'pending':
-                    $sessionStatus = $consultation->scheduled_at && $consultation->scheduled_at->isFuture() 
-                        ? 'scheduled' 
-                        : 'waiting';
+                    // If scheduled time has passed, allow joining (waiting status)
+                    if ($scheduledTimePassed) {
+                        $sessionStatus = 'waiting';
+                        // Update consultation status if still scheduled
+                        if ($consultation->session_status === 'scheduled') {
+                            $consultation->update(['session_status' => 'waiting']);
+                        }
+                    } else {
+                        $sessionStatus = $consultation->scheduled_at && $consultation->scheduled_at->isFuture() 
+                            ? 'scheduled' 
+                            : 'waiting';
+                    }
                     break;
                 case 'active':
                     $sessionStatus = 'active';

@@ -88,6 +88,19 @@
                 </div>
             </div>
 
+            <!-- Join Button (hidden by default, shown when ready) -->
+            <div id="joinButtonContainer" class="hidden mb-4">
+                <div class="text-center">
+                    <a href="{{ route(auth()->guard('doctor')->check() ? 'doctor.consultations.session.active' : 'patient.consultations.session.active', $consultation->id) }}" 
+                       class="inline-flex items-center px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        Join Consultation Now
+                    </a>
+                </div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex justify-center gap-4 mt-6">
                 <a href="{{ route(auth()->guard('doctor')->check() ? 'doctor.consultations.view' : 'patient.consultation.view', $consultation->id) }}" 
@@ -127,6 +140,8 @@
                 if (countdownContainer) {
                     countdownContainer.classList.add('hidden');
                 }
+                // When countdown reaches zero, check status and show join button if ready
+                checkSessionStatus();
             } else {
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -203,6 +218,22 @@
         }
     }
     
+    // Show join button
+    function showJoinButton() {
+        const joinButtonContainer = document.getElementById('joinButtonContainer');
+        if (joinButtonContainer) {
+            joinButtonContainer.classList.remove('hidden');
+        }
+    }
+    
+    // Hide join button
+    function hideJoinButton() {
+        const joinButtonContainer = document.getElementById('joinButtonContainer');
+        if (joinButtonContainer) {
+            joinButtonContainer.classList.add('hidden');
+        }
+    }
+    
     // Check session status
     function checkSessionStatus() {
         fetch(statusUrl, {
@@ -234,14 +265,31 @@
             
             const sessionStatus = data.session_status || data.consultation_status || 'unknown';
             
+            // Check if scheduled time has passed (client-side check)
+            const now = new Date().getTime();
+            const scheduledTime = scheduledAt ? new Date(scheduledAt).getTime() : null;
+            const timeHasPassed = scheduledTime && now >= scheduledTime;
+            
             // Handle different states
             switch(sessionStatus) {
                 case 'scheduled':
-                    updateStatusDisplay('scheduled', 'Waiting for start time', isDoctor ? 'Patient will join when consultation starts' : 'Doctor will join when consultation starts');
+                    // If scheduled time has passed, allow joining
+                    if (timeHasPassed) {
+                        updateStatusDisplay('waiting', 'Consultation is ready', 'You can now join the consultation.');
+                        showJoinButton();
+                    } else {
+                        updateStatusDisplay('scheduled', 'Waiting for start time', isDoctor ? 'Patient will join when consultation starts' : 'Doctor will join when consultation starts');
+                        hideJoinButton();
+                    }
                     break;
                     
                 case 'waiting':
-                    updateStatusDisplay('waiting', 'Waiting for other participant', isDoctor ? 'Waiting for patient to join...' : 'Waiting for doctor to join...');
+                    // Show appropriate message based on user type
+                    const waitingMessage = isDoctor 
+                        ? 'Waiting for patient to join...' 
+                        : 'Waiting for doctor to join...';
+                    updateStatusDisplay('waiting', 'Waiting for other participant', waitingMessage);
+                    showJoinButton();
                     break;
                     
                 case 'active':
@@ -287,9 +335,11 @@
         });
     }
     
-    // Start polling
-    checkSessionStatus(); // Initial check
-    pollInterval = setInterval(checkSessionStatus, 15000); // Poll every 15 seconds (reduced from 5 to avoid security alerts)
+            // Start polling
+            checkSessionStatus(); // Initial check
+            // Poll every 15 seconds (reduced from 5 to avoid security alerts)
+            // Both doctor and patient use the same polling interval
+            pollInterval = setInterval(checkSessionStatus, 15000);
     
     // Cleanup on page unload
     window.addEventListener('beforeunload', function() {

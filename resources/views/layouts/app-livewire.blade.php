@@ -81,7 +81,25 @@
                             <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100 z-50" style="display: none;">
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
-                                <form method="POST" action="{{ route('logout') }}">
+                                @php
+                                    $logoutRoute = '#';
+                                    if (auth()->guard('doctor')->check()) {
+                                        $logoutRoute = route('doctor.logout');
+                                    } elseif (auth()->guard('patient')->check()) {
+                                        $logoutRoute = route('patient.logout');
+                                    } elseif (auth()->guard('admin')->check()) {
+                                        $logoutRoute = route('admin.logout');
+                                    } elseif (auth()->guard('nurse')->check()) {
+                                        $logoutRoute = route('nurse.logout');
+                                    } elseif (auth()->guard('canvasser')->check()) {
+                                        $logoutRoute = route('canvasser.logout');
+                                    } elseif (auth()->guard('customer_care')->check()) {
+                                        $logoutRoute = route('customer-care.logout');
+                                    } elseif (auth()->guard('care_giver')->check()) {
+                                        $logoutRoute = route('care_giver.logout');
+                                    }
+                                @endphp
+                                <form method="POST" action="{{ $logoutRoute }}">
                                     @csrf
                                     <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Log Out</button>
                                 </form>
@@ -93,7 +111,7 @@
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
-                {{ $slot }}
+                @yield('content')
             </main>
         </div>
     </div>
@@ -234,6 +252,10 @@
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
+            // Check if we're on a consultation session page (skip service worker updates/reloads)
+            const isConsultationSession = window.location.pathname.includes('/session/active') || 
+                                         window.location.pathname.includes('/session/waiting-room');
+            
             window.addEventListener('load', async () => {
                 try {
                     // Unregister any existing service workers from different origins
@@ -251,22 +273,46 @@
                     const registration = await navigator.serviceWorker.register('/sw.js');
                     console.log('ServiceWorker registered:', registration.scope);
                     
-                    // Check for updates periodically
-                    setInterval(() => {
-                        registration.update();
-                    }, 60000); // Check every minute
+                    // Check for updates periodically (skip on consultation session pages)
+                    if (!isConsultationSession) {
+                        setInterval(() => {
+                            registration.update();
+                        }, 60000); // Check every minute
+                    } else {
+                        console.log('Skipping service worker update checks on consultation session page');
+                    }
                 } catch (error) {
                     console.log('ServiceWorker registration failed:', error);
                 }
             });
             
             // Handle service worker updates
-            let refreshing = false;
+            // Skip auto-reload on consultation session pages to prevent interruption
+            
+            // Use sessionStorage to prevent rapid reloads
+            const wasRefreshing = sessionStorage.getItem('sw-refreshing');
+            if (wasRefreshing) {
+                sessionStorage.removeItem('sw-refreshing');
+            }
+            
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing) {
-                    refreshing = true;
-                    window.location.reload();
+                // Don't reload if we're in a consultation session
+                if (isConsultationSession) {
+                    console.log('Service worker updated, but skipping reload on consultation session page');
+                    return;
                 }
+                
+                // Prevent rapid reloads
+                if (wasRefreshing) {
+                    console.log('Service worker reload already in progress, skipping');
+                    return;
+                }
+                
+                // Mark as refreshing and reload after a short delay
+                sessionStorage.setItem('sw-refreshing', 'true');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             });
         }
         

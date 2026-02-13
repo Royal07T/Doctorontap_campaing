@@ -107,7 +107,7 @@ class BulkSmsController extends Controller
         }
 
         $patients = $query->take(50)->get(['id', 'name', 'phone', 'email']);
-        
+
         // Mask sensitive information for display
         $patients = $patients->map(function($patient) {
             return [

@@ -114,7 +114,13 @@
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
                             <div class="mb-5 pb-4 border-b border-gray-200">
                                 <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-1">Weekly Schedule</h3>
-                                <p class="text-xs text-gray-500">Set your available days and time slots for each day of the week</p>
+                                <p class="text-xs text-gray-500 mb-2">Set your available days and time slots for each day of the week</p>
+                                <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <p class="text-xs text-blue-700 leading-relaxed">
+                                        <strong>24-Hour Availability:</strong> You can set availability for any time within 24 hours (00:00 to 23:59). 
+                                        For example, you can set 18:00 to 06:00 for overnight availability.
+                                    </p>
+                                </div>
                             </div>
                             
                             <div class="space-y-3">
@@ -152,19 +158,32 @@
                                                 <label class="block text-xs font-medium text-gray-700 mb-1.5 uppercase tracking-wide">Start Time</label>
                                                 <input type="time" 
                                                        name="availability_schedule[{{ $dayKey }}][start]" 
-                                                       value="{{ $schedule[$dayKey]['start'] ?? '09:00' }}"
+                                                       value="{{ $schedule[$dayKey]['start'] ?? '00:00' }}"
+                                                       min="00:00"
+                                                       max="23:59"
+                                                       step="300"
                                                        class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 transition"
-                                                       id="start-{{ $dayKey }}">
+                                                       id="start-{{ $dayKey }}"
+                                                       title="Set your start time (24-hour format: 00:00 to 23:59)">
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-gray-700 mb-1.5 uppercase tracking-wide">End Time</label>
                                                 <input type="time" 
                                                        name="availability_schedule[{{ $dayKey }}][end]" 
-                                                       value="{{ $schedule[$dayKey]['end'] ?? '17:00' }}"
+                                                       value="{{ $schedule[$dayKey]['end'] ?? '23:59' }}"
+                                                       min="00:00"
+                                                       max="23:59"
+                                                       step="300"
                                                        class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 transition"
-                                                       id="end-{{ $dayKey }}">
+                                                       id="end-{{ $dayKey }}"
+                                                       title="Set your end time (24-hour format: 00:00 to 23:59)">
                                             </div>
                                         </div>
+                                        @if(($schedule[$dayKey]['enabled'] ?? false))
+                                        <p class="text-[9px] text-gray-500 mt-2 italic">
+                                            Available: {{ $schedule[$dayKey]['start'] ?? '00:00' }} - {{ $schedule[$dayKey]['end'] ?? '23:59' }} (24-hour format)
+                                        </p>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>

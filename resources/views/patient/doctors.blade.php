@@ -446,18 +446,44 @@ document.addEventListener('alpine:init', () => {
                     this.availableSlots = [];
 
                     if (schedule && schedule.enabled) {
-                        const start = schedule.start; // e.g. "09:00"
-                        const end = schedule.end;     // e.g. "17:00"
+                        const start = schedule.start; // e.g. "09:00" or "18:00"
+                        const end = schedule.end;     // e.g. "17:00" or "06:00"
                         
                         // Parse start/end to minutes for easier calculation
                         const [startHour, startMin] = start.split(':').map(Number);
                         const [endHour, endMin] = end.split(':').map(Number);
                         
+                        // Check if this is an overnight schedule (end < start)
+                        const isOvernight = endHour < startHour || (endHour === startHour && endMin < startMin);
+                        
                         let currentHour = startHour;
                         let currentMin = startMin;
+                        let iterations = 0;
+                        const maxIterations = isOvernight ? 48 : 24; // Prevent infinite loops
                         
                         // Loop to generate 30 min slots
-                        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+                        while (iterations < maxIterations) {
+                            // For overnight schedules, handle day rollover
+                            if (isOvernight) {
+                                // Stop when we've passed end time on the next day
+                                if (currentHour > 23) {
+                                    currentHour = 0;
+                                    currentMin = 0;
+                                }
+                                // Check if we've passed end time (on next day)
+                                if (currentHour > endHour || (currentHour === endHour && currentMin >= endMin)) {
+                                    // Only break if we're past midnight
+                                    if (currentHour < startHour || (currentHour === startHour && currentMin < startMin)) {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                // Normal schedule: stop when we reach or pass end time
+                                if (currentHour > endHour || (currentHour === endHour && currentMin >= endMin)) {
+                                    break;
+                                }
+                            }
+                            
                             // Format time string HH:mm
                             const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
                             
@@ -484,6 +510,10 @@ document.addEventListener('alpine:init', () => {
                                 currentHour++;
                                 currentMin -= 60;
                             }
+                            if (currentHour >= 24) {
+                                currentHour = 0;
+                            }
+                            iterations++;
                         }
                     }
                 }

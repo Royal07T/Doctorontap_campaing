@@ -82,6 +82,19 @@ class VonageSessionWebhookController extends Controller
                 case 'session.failed':
                     return $this->handleSessionFailed($payload);
                 
+                // Archive webhook events
+                case 'archive.started':
+                    return $this->handleArchiveStarted($payload);
+                
+                case 'archive.stopped':
+                    return $this->handleArchiveStopped($payload);
+                
+                case 'archive.ready':
+                    return $this->handleArchiveReady($payload);
+                
+                case 'archive.failed':
+                    return $this->handleArchiveFailed($payload);
+                
                 default:
                     Log::warning('Unknown Vonage session webhook event type', [
                         'event_type' => $eventType,
@@ -290,5 +303,196 @@ class VonageSessionWebhookController extends Controller
         $expectedSignature = hash_hmac('sha256', $payload, $secretKey);
 
         return hash_equals($expectedSignature, $signature);
+    }
+
+    /**
+     * Handle archive.started event
+     */
+    protected function handleArchiveStarted(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $archiveId = $payload['id'] ?? $payload['archive_id'] ?? null;
+        $sessionId = $payload['session_id'] ?? null;
+
+        if (!$archiveId || !$sessionId) {
+            Log::warning('Archive started event missing required fields', [
+                'payload' => $payload
+            ]);
+            return response()->json(['status' => 'error', 'message' => 'Missing required fields'], 400);
+        }
+
+        // Find video room by session ID
+        $videoRoom = \App\Models\VideoRoom::where('vonage_session_id', $sessionId)
+            ->whereIn('status', ['pending', 'active'])
+            ->latest()
+            ->first();
+
+        if ($videoRoom) {
+            // Update or create archive record
+            $archive = \App\Models\VideoRoomArchive::updateOrCreate(
+                ['vonage_archive_id' => $archiveId],
+                [
+                    'video_room_id' => $videoRoom->id,
+                    'status' => 'started',
+                    'started_at' => now(),
+                    'metadata' => [
+                        'name' => $payload['name'] ?? null,
+                        'output_mode' => $payload['outputMode'] ?? null,
+                        'resolution' => $payload['resolution'] ?? null,
+                    ],
+                ]
+            );
+
+            Log::info('Archive started via webhook', [
+                'event_type' => 'archive.started',
+                'archive_id' => $archiveId,
+                'video_room_id' => $videoRoom->id,
+                'consultation_id' => $videoRoom->active_consultation_id ?? $videoRoom->consultation_id,
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } else {
+            Log::warning('Archive started event for unknown session', [
+                'archive_id' => $archiveId,
+                'session_id' => $sessionId,
+                'payload' => $payload
+            ]);
+        }
+
+        return response()->json(['status' => 'success'], 200);
+    }
+
+    /**
+     * Handle archive.stopped event
+     */
+    protected function handleArchiveStopped(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $archiveId = $payload['id'] ?? $payload['archive_id'] ?? null;
+        $sessionId = $payload['session_id'] ?? null;
+
+        if (!$archiveId) {
+            Log::warning('Archive stopped event missing archive_id', [
+                'payload' => $payload
+            ]);
+            return response()->json(['status' => 'error', 'message' => 'Missing archive_id'], 400);
+        }
+
+        $archive = \App\Models\VideoRoomArchive::where('vonage_archive_id', $archiveId)->first();
+
+        if ($archive) {
+            $archive->status = 'stopped';
+            $archive->stopped_at = now();
+            $archive->duration = $payload['duration'] ?? null;
+            
+            if (isset($payload['size'])) {
+                $archive->size_bytes = $payload['size'];
+            }
+            
+            $archive->save();
+
+            Log::info('Archive stopped via webhook', [
+                'event_type' => 'archive.stopped',
+                'archive_id' => $archiveId,
+                'video_room_id' => $archive->video_room_id,
+                'duration' => $archive->duration,
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } else {
+            Log::warning('Archive stopped event for unknown archive', [
+                'archive_id' => $archiveId,
+                'payload' => $payload
+            ]);
+        }
+
+        return response()->json(['status' => 'success'], 200);
+    }
+
+    /**
+     * Handle archive.ready event (archive is available for download)
+     */
+    protected function handleArchiveReady(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $archiveId = $payload['id'] ?? $payload['archive_id'] ?? null;
+        $url = $payload['url'] ?? $payload['download_url'] ?? null;
+
+        if (!$archiveId) {
+            Log::warning('Archive ready event missing archive_id', [
+                'payload' => $payload
+            ]);
+            return response()->json(['status' => 'error', 'message' => 'Missing archive_id'], 400);
+        }
+
+        $archive = \App\Models\VideoRoomArchive::where('vonage_archive_id', $archiveId)->first();
+
+        if ($archive) {
+            $archive->status = 'available';
+            $archive->download_url = $url;
+            $archive->duration = $payload['duration'] ?? $archive->duration;
+            $archive->size_bytes = $payload['size'] ?? $archive->size_bytes;
+            
+            if (isset($payload['createdAt'])) {
+                $archive->started_at = now()->setTimestamp((int) $payload['createdAt']);
+            }
+            
+            $archive->save();
+
+            Log::info('Archive ready via webhook', [
+                'event_type' => 'archive.ready',
+                'archive_id' => $archiveId,
+                'video_room_id' => $archive->video_room_id,
+                'download_url' => $url ? 'present' : 'missing',
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } else {
+            Log::warning('Archive ready event for unknown archive', [
+                'archive_id' => $archiveId,
+                'payload' => $payload
+            ]);
+        }
+
+        return response()->json(['status' => 'success'], 200);
+    }
+
+    /**
+     * Handle archive.failed event
+     */
+    protected function handleArchiveFailed(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $archiveId = $payload['id'] ?? $payload['archive_id'] ?? null;
+        $error = $payload['error'] ?? $payload['error_message'] ?? 'Unknown error';
+
+        if (!$archiveId) {
+            Log::warning('Archive failed event missing archive_id', [
+                'payload' => $payload
+            ]);
+            return response()->json(['status' => 'error', 'message' => 'Missing archive_id'], 400);
+        }
+
+        $archive = \App\Models\VideoRoomArchive::where('vonage_archive_id', $archiveId)->first();
+
+        if ($archive) {
+            $archive->status = 'failed';
+            $archive->stopped_at = now();
+            
+            $metadata = $archive->metadata ?? [];
+            $metadata['error'] = $error;
+            $archive->metadata = $metadata;
+            
+            $archive->save();
+
+            Log::error('Archive failed via webhook', [
+                'event_type' => 'archive.failed',
+                'archive_id' => $archiveId,
+                'video_room_id' => $archive->video_room_id,
+                'error' => $error,
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } else {
+            Log::warning('Archive failed event for unknown archive', [
+                'archive_id' => $archiveId,
+                'error' => $error,
+                'payload' => $payload
+            ]);
+        }
+
+        return response()->json(['status' => 'success'], 200);
     }
 }

@@ -615,6 +615,33 @@ class DashboardController extends Controller
         // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+            
+            // For completed status, also filter out any that might have future scheduled_at dates
+            // (edge case: consultation marked completed but scheduled_at is in future)
+            if ($request->status === 'completed') {
+                $query->where(function($q) {
+                    $q->whereNull('scheduled_at')
+                      ->orWhere('scheduled_at', '<=', now());
+                });
+            }
+        } else {
+            // Default "Upcoming" tab: Show consultations that are scheduled in the future
+            // Include: scheduled consultations with future dates, pending consultations
+            $query->where(function($q) {
+                $q->where(function($subQ) {
+                    // Scheduled consultations with future dates
+                    $subQ->where('status', 'scheduled')
+                         ->whereNotNull('scheduled_at')
+                         ->where('scheduled_at', '>', now());
+                })->orWhere(function($subQ) {
+                    // Pending consultations (not yet scheduled or scheduled in future)
+                    $subQ->where('status', 'pending')
+                         ->where(function($pendingQ) {
+                             $pendingQ->whereNull('scheduled_at')
+                                      ->orWhere('scheduled_at', '>', now());
+                         });
+                });
+            });
         }
 
         // Filter by payment status
@@ -635,7 +662,24 @@ class DashboardController extends Controller
             });
         }
 
-        $consultations = $query->latest()->paginate(15);
+        // Sort based on status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'completed') {
+                // Past sessions: Order by scheduled_at DESC (most recent first), fallback to created_at
+                $query->orderByRaw('COALESCE(scheduled_at, created_at) DESC');
+            } elseif ($request->status === 'cancelled') {
+                // Cancelled: Order by created_at DESC
+                $query->latest('created_at');
+            } else {
+                // Other statuses: Order by created_at DESC
+                $query->latest('created_at');
+            }
+        } else {
+            // Upcoming: Order by scheduled_at ASC (earliest first), fallback to created_at
+            $query->orderByRaw('COALESCE(scheduled_at, created_at) ASC');
+        }
+
+        $consultations = $query->paginate(15);
 
         // Statistics
         $stats = [
@@ -1477,11 +1521,25 @@ class DashboardController extends Controller
         }
 
         // Check if time is within doctor's availability window
+        // Handle both normal schedules (09:00-17:00) and overnight schedules (18:00-06:00)
         $startTime = \Carbon\Carbon::parse($daySchedule['start']);
         $endTime = \Carbon\Carbon::parse($daySchedule['end']);
         $requestTime = \Carbon\Carbon::parse($time);
 
-        if ($requestTime->lt($startTime) || $requestTime->gte($endTime)) {
+        $isWithinAvailability = false;
+        
+        // Check if this is an overnight schedule (end time is before start time)
+        if ($endTime->lt($startTime)) {
+            // Overnight schedule: e.g., 18:00 to 06:00
+            // Time is valid if it's >= start OR <= end
+            $isWithinAvailability = $requestTime->gte($startTime) || $requestTime->lte($endTime);
+        } else {
+            // Normal schedule: e.g., 09:00 to 17:00
+            // Time is valid if it's >= start AND < end
+            $isWithinAvailability = $requestTime->gte($startTime) && $requestTime->lt($endTime);
+        }
+        
+        if (!$isWithinAvailability) {
             return response()->json([
                 'success' => false,
                 'available' => false,
@@ -1565,6 +1623,32 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Doctor is not available on this day'
+            ], 400);
+        }
+        
+        // Validate time is within doctor's availability window (handles 24-hour schedules)
+        $time = $scheduledAt->format('H:i');
+        $startTime = \Carbon\Carbon::parse($daySchedule['start']);
+        $endTime = \Carbon\Carbon::parse($daySchedule['end']);
+        $requestTime = \Carbon\Carbon::parse($time);
+        
+        $isWithinAvailability = false;
+        
+        // Check if this is an overnight schedule (end time is before start time)
+        if ($endTime->lt($startTime)) {
+            // Overnight schedule: e.g., 18:00 to 06:00
+            // Time is valid if it's >= start OR <= end
+            $isWithinAvailability = $requestTime->gte($startTime) || $requestTime->lte($endTime);
+        } else {
+            // Normal schedule: e.g., 09:00 to 17:00
+            // Time is valid if it's >= start AND < end
+            $isWithinAvailability = $requestTime->gte($startTime) && $requestTime->lt($endTime);
+        }
+        
+        if (!$isWithinAvailability) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Time slot is outside doctor\'s availability hours'
             ], 400);
         }
 
