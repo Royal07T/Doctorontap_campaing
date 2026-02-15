@@ -99,6 +99,18 @@ class BulkEmailController extends Controller
 
         $patients = $query->whereNotNull('email')->take(50)->get(['id', 'name', 'email', 'phone']);
 
+        // Mask sensitive information for display
+        $patients = $patients->map(function($patient) {
+            return [
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'email' => \App\Helpers\PrivacyHelper::maskEmail($patient->email),
+                'phone' => \App\Helpers\PrivacyHelper::maskPhone($patient->phone),
+                // Keep real email for backend use (when adding recipient)
+                '_real_email' => $patient->email,
+            ];
+        });
+
         return response()->json([
             'success' => true,
             'patients' => $patients,

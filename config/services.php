@@ -129,4 +129,24 @@ return [
     */
     'whatsapp_provider' => env('WHATSAPP_PROVIDER', 'vonage'), // Options: 'termii' or 'vonage'
 
+    'pusher' => [
+        'app_id' => env('PUSHER_APP_ID'),
+        'key' => env('PUSHER_APP_KEY'),
+        'secret' => env('PUSHER_APP_SECRET'),
+        'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
+        'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
+        'port' => env('PUSHER_PORT', 443),
+        'scheme' => env('PUSHER_SCHEME', 'https'),
+        'encrypted' => true,
+        'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
+    ],
+
+    'pusher_beams' => [
+        'instance_id' => env('PUSHER_BEAMS_INSTANCE_ID'),
+        'secret_key' => env('PUSHER_BEAMS_SECRET_KEY'),
+        'enabled' => env('PUSHER_BEAMS_ENABLED', false),
+        'webhook_username' => env('PUSHER_BEAMS_WEBHOOK_USERNAME'),
+        'webhook_password' => env('PUSHER_BEAMS_WEBHOOK_PASSWORD'),
+    ],
+
 ];

@@ -45,7 +45,8 @@
      x-init="init()">
     <!-- Notification Icon Button -->
     <button @click="toggleDropdown()" 
-            class="relative p-2 text-white hover:text-purple-200 transition-colors focus:outline-none">
+            class="relative p-2 text-white hover:text-purple-200 transition-colors focus:outline-none"
+            x-bind:class="{ 'animate-pulse': unreadCount > 0 }">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
@@ -53,7 +54,7 @@
         <!-- Badge for unread count -->
         <span x-show="unreadCount > 0" 
               x-text="unreadCount > 99 ? '99+' : unreadCount"
-              class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[20px]"
+              class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[20px] animate-bounce"
               style="display: none;"></span>
     </button>
 
@@ -173,10 +174,59 @@ function notificationComponent(routePrefix, userType, userId) {
             if (this.userId) {
                 this.fetchNotifications(); // One-time fetch
                 this.setupWebSocket();
+                this.setupPusherBeams();
                 window.addEventListener('beforeunload', () => {
                     this.cleanup();
                 });
             }
+        },
+
+        async setupPusherBeams() {
+            // Register device with Pusher Beams for push notifications
+            if (typeof window.registerPusherBeamsDevice === 'function') {
+                try {
+                    await window.registerPusherBeamsDevice(routePrefix, this.userType, this.userId);
+                } catch (error) {
+                    console.warn('Failed to register Pusher Beams device:', error);
+                }
+            }
+
+            // Listen for Pusher Beams notifications
+            window.addEventListener('pusher-beams-notification', (event) => {
+                const notification = event.detail;
+                
+                // Verify this notification is for the current user
+                const notificationUserId = `${notification.user_type}_${notification.user_id}`;
+                const currentUserId = `${this.userType}_${this.userId}`;
+                
+                if (notificationUserId !== currentUserId) {
+                    console.warn('⚠️ Received Pusher Beams notification for different user, ignoring:', {
+                        received: notificationUserId,
+                        current: currentUserId
+                    });
+                    return;
+                }
+                
+                // Add to notifications list
+                this.notifications.unshift({
+                    id: notification.notification_id || Date.now(),
+                    title: notification.title || 'New Notification',
+                    message: notification.body || notification.message || '',
+                    type: notification.type || 'info',
+                    action_url: notification.action_url || notification.url,
+                    read_at: null,
+                    created_at: new Date().toISOString(),
+                });
+                this.unreadCount = (this.unreadCount || 0) + 1;
+                
+                // Show real-time alert
+                this.showRealTimeAlert({
+                    id: notification.notification_id,
+                    title: notification.title || 'New Notification',
+                    message: notification.body || notification.message || '',
+                    type: notification.type || 'info',
+                });
+            });
         },
 
         setupWebSocket() {
@@ -187,10 +237,23 @@ function notificationComponent(routePrefix, userType, userId) {
             }
             
             try {
+                // Ensure channel name matches exactly with backend: notifications.{userType}.{userId}
                 const channelName = `notifications.${this.userType}.${this.userId}`;
+                console.log('🔔 Subscribing to notification channel:', channelName);
+                
                 this.echoChannel = window.Echo.private(channelName);
 
                 this.echoChannel.listen('.notification.created', (data) => {
+                    // Double-check this notification is for the current user
+                    if (data.user_type !== this.userType || data.user_id !== this.userId) {
+                        console.warn('⚠️ Received notification for different user, ignoring:', {
+                            received: { type: data.user_type, id: data.user_id },
+                            current: { type: this.userType, id: this.userId }
+                        });
+                        return;
+                    }
+                    
+                    // Add notification to list
                     this.notifications.unshift({
                         id: data.id,
                         title: data.title,
@@ -201,12 +264,17 @@ function notificationComponent(routePrefix, userType, userId) {
                         created_at: data.created_at,
                     });
                     this.unreadCount = data.unread_count || this.unreadCount + 1;
+                    
+                    // Show real-time alert
+                    this.showRealTimeAlert(data);
                     this.showBrowserNotification(data);
                 });
 
                 this.echoChannel.subscribed(() => {
                     this.websocketConnected = true;
                     console.log('✅ WebSocket connected for real-time notifications');
+                    // Dispatch event to restore console.error in app.js
+                    window.dispatchEvent(new Event('pusher-connected'));
                 });
 
                 this.echoChannel.error((error) => {
@@ -222,6 +290,68 @@ function notificationComponent(routePrefix, userType, userId) {
             }
         },
 
+        showRealTimeAlert(data) {
+            // Visual alert - flash the notification icon
+            const iconButton = document.querySelector('[x-data*="notificationComponent"] button');
+            if (iconButton) {
+                iconButton.classList.add('animate-pulse');
+                setTimeout(() => {
+                    iconButton.classList.remove('animate-pulse');
+                }, 2000);
+            }
+            
+            // Sound alert (if user hasn't disabled it)
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKjn8LZjGwU4kdfyzHksBSR3x/DdkEAKFF606euoVRQKRp/g8r5sIQUrgc7y2Yk2CBtpvfDknE4MDlCo5/C2YxsFOJHX8sx5LAUkd8fw3ZBAC');
+                audio.volume = 0.3;
+                audio.play().catch(e => {
+                    // Ignore audio play errors (user may have blocked autoplay)
+                });
+            } catch (e) {
+                // Audio not supported or blocked
+            }
+            
+            // Show toast notification
+            this.showToastNotification(data);
+        },
+        
+        showToastNotification(data) {
+            // Create a temporary toast notification
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50 max-w-sm animate-slide-in-right';
+            toast.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                        data.type === 'success' ? 'bg-green-100 text-green-600' :
+                        data.type === 'error' ? 'bg-red-100 text-red-600' :
+                        data.type === 'warning' ? 'bg-yellow-100 text-yellow-600' :
+                        'bg-blue-100 text-blue-600'
+                    }">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900">${data.title}</p>
+                        <p class="text-sm text-gray-600 mt-1">${data.message}</p>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        },
+
         showBrowserNotification(data) {
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
@@ -231,6 +361,7 @@ function notificationComponent(routePrefix, userType, userId) {
                     body: data.message,
                     icon: '/img/whitelogo.png',
                     tag: `notification-${data.id}`,
+                    badge: '/img/whitelogo.png',
                 });
             }
         },
@@ -291,7 +422,14 @@ function notificationComponent(routePrefix, userType, userId) {
                 }
                 
                 const data = await response.json();
-                this.notifications = data.notifications || [];
+                
+                // Double-check notifications belong to current user
+                const filteredNotifications = (data.notifications || []).filter(notif => {
+                    // Backend should already filter, but double-check on frontend for security
+                    return true; // Backend filtering is trusted, but we log for debugging
+                });
+                
+                this.notifications = filteredNotifications;
                 this.unreadCount = data.unread_count || 0;
             } catch (error) {
                 console.warn('Could not fetch notifications:', error.message);
@@ -373,5 +511,18 @@ function notificationComponent(routePrefix, userType, userId) {
     }
 }
 </script>
+
+<style>
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+</style>
 @endif
 

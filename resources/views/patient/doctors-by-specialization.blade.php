@@ -724,25 +724,76 @@ function bookingModal() {
                         return;
                     }
                     const slots = [];
-                    const start = new Date(`${this.selectedDate}T${daySchedule.start}`);
-                    const end = new Date(`${this.selectedDate}T${daySchedule.end}`);
-                    let current = new Date(start);
-                    while (current < end) {
-                        const timeStr = current.toTimeString().slice(0, 5);
+                    const startTime = daySchedule.start; // e.g., "18:00"
+                    const endTime = daySchedule.end; // e.g., "06:00"
+                    
+                    // Parse times
+                    const [startHour, startMin] = startTime.split(':').map(Number);
+                    const [endHour, endMin] = endTime.split(':').map(Number);
+                    
+                    // Check if this is an overnight schedule (end < start)
+                    const isOvernight = endHour < startHour || (endHour === startHour && endMin < startMin);
+                    
+                    let currentHour = startHour;
+                    let currentMin = startMin;
+                    let slotDate = new Date(`${this.selectedDate}T${startTime}`);
+                    const maxIterations = isOvernight ? 48 : 24; // Prevent infinite loops
+                    let iterations = 0;
+                    
+                    while (iterations < maxIterations) {
+                        const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
                         const slotDateTimeObj = new Date(`${this.selectedDate}T${timeStr}`);
+                        
+                        // Check if we've reached the end time
+                        if (!isOvernight) {
+                            // Normal schedule: stop when we reach or pass end time
+                            if (currentHour > endHour || (currentHour === endHour && currentMin >= endMin)) {
+                                break;
+                            }
+                        } else {
+                            // Overnight schedule: stop when we pass end time (on same day)
+                            // For overnight, we generate slots from start to 23:59, then 00:00 to end
+                            if (currentHour > 23) {
+                                // Reset to next day 00:00
+                                currentHour = 0;
+                                currentMin = 0;
+                                slotDate = new Date(slotDate);
+                                slotDate.setDate(slotDate.getDate() + 1);
+                            }
+                            // Stop when we've passed end time on the next day
+                            if (slotDate.getDate() > new Date(this.selectedDate).getDate() && 
+                                (currentHour > endHour || (currentHour === endHour && currentMin >= endMin))) {
+                                break;
+                            }
+                        }
+                        
                         const isBooked = this.bookedSlots.some(booked => {
                             const bookedDateTime = new Date(`${booked.date}T${booked.time}`);
                             const timeDiff = Math.abs(slotDateTimeObj - bookedDateTime) / 1000 / 60;
                             return timeDiff < 30;
                         });
+                        
                         slots.push({
                             value: timeStr,
-                            label: current.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                            label: slotDateTimeObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
                             booked: isBooked,
                             conflict: false
                         });
-                        current.setMinutes(current.getMinutes() + 30);
+                        
+                        // Move to next 30-minute slot
+                        currentMin += 30;
+                        if (currentMin >= 60) {
+                            currentMin = 0;
+                            currentHour++;
+                        }
+                        if (currentHour >= 24) {
+                            currentHour = 0;
+                        }
+                        
+                        slotDate.setHours(currentHour, currentMin, 0, 0);
+                        iterations++;
                     }
+                    
                     this.availableSlots = slots;
                 } else {
                     this.dateError = 'Error loading doctor availability';

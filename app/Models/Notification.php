@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use App\Events\NotificationCreated;
+use App\Services\PusherBeamsService;
+use Illuminate\Support\Facades\Log;
 
 class Notification extends Model
 {
@@ -71,11 +73,48 @@ class Notification extends Model
     protected static function booted(): void
     {
         static::created(function (Notification $notification) {
-            // Dispatch broadcast event when notification is created
+            // Dispatch broadcast event when notification is created (WebSocket/Reverb)
             try {
                 event(new NotificationCreated($notification));
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning('Failed to broadcast notification', [
+                Log::warning('Failed to broadcast notification', [
+                    'error' => $e->getMessage(),
+                    'notification_id' => $notification->id,
+                ]);
+            }
+
+            // Send push notification via Pusher Beams
+            try {
+                $beamsService = app(PusherBeamsService::class);
+                
+                if ($beamsService->isEnabled()) {
+                    // Create user ID in format: user_type_user_id (e.g., patient_123, doctor_456)
+                    $userId = "{$notification->user_type}_{$notification->user_id}";
+                    
+                    // Prepare notification data
+                    $data = [
+                        'notification_id' => $notification->id,
+                        'type' => $notification->type,
+                        'user_type' => $notification->user_type,
+                        'user_id' => $notification->user_id,
+                    ];
+                    
+                    // Merge any additional data from the notification
+                    if ($notification->data && is_array($notification->data)) {
+                        $data = array_merge($data, $notification->data);
+                    }
+                    
+                    // Send push notification
+                    $beamsService->publishToUsers(
+                        [$userId],
+                        $notification->title,
+                        $notification->message,
+                        $data,
+                        $notification->action_url
+                    );
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to send Pusher Beams push notification', [
                     'error' => $e->getMessage(),
                     'notification_id' => $notification->id,
                 ]);

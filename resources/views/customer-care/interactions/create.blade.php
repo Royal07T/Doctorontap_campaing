@@ -59,7 +59,7 @@
                             <option value="">Select a customer from registry</option>
                             @foreach($patients as $patient)
                             <option value="{{ $patient->id }}">
-                                {{ $patient->name }} | {{ $patient->email }} {{ $patient->phone ? '| ' . $patient->phone : '' }}
+                                {{ $patient->name }} | {{ \App\Helpers\PrivacyHelper::maskEmail($patient->email) }} {{ $patient->phone ? '| ' . \App\Helpers\PrivacyHelper::maskPhone($patient->phone) : '' }}
                             </option>
                             @endforeach
                         </select>

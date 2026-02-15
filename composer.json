@@ -16,6 +16,7 @@
         "livewire/livewire": "^3.6",
         "nyholm/psr7-server": "^1.0",
         "opentok/opentok": "^4.0",
+        "pusher/pusher-push-notifications": "^2.0",
         "slim/psr7": "^1.6",
         "slim/slim": "^4.12",
         "vonage/client": "*",

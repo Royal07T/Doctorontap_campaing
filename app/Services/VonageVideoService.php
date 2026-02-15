@@ -199,29 +199,83 @@ class VonageVideoService
         try {
             if ($this->authMethod === 'jwt' && $this->videoClient) {
                 // Use Vonage Video SDK (JWT auth)
-                // Simple peer-to-peer session (default)
-                $mediaMode = null;
-                if (empty($options)) {
+                // According to Vonage documentation: https://developer.vonage.com/en/video/guides/create-session
+                
+                // Build session options based on provided options
+                $sessionOptionsArray = [];
+                
+                // Media Mode: ROUTED (default, required for archiving) or RELAYED (peer-to-peer)
+                // Per Vonage best practices:
+                // - Use RELAYED for 1-on-1 sessions without archiving (lower latency, better quality)
+                // - Use ROUTED for sessions with archiving, multiparty (>2-3 participants), or advanced features
+                // - ROUTED mode is required if archiveMode is set (even MANUAL archiving requires ROUTED)
+                // https://developer.vonage.com/en/video/guides/create-session#choosing-relayed-vs-routed-session-type
+                if (isset($options['mediaMode'])) {
+                    $requestedMediaMode = is_string($options['mediaMode']) 
+                        ? strtoupper($options['mediaMode']) 
+                        : $options['mediaMode'];
+                    
+                    // If archiveMode is set, force ROUTED (archiving requires ROUTED mode)
+                    if (isset($options['archiveMode']) && $requestedMediaMode === 'RELAYED') {
+                        Log::warning('Media mode RELAYED requested but archiveMode is set. Forcing ROUTED mode (archiving requires ROUTED).', [
+                            'requested_media_mode' => $requestedMediaMode,
+                            'archive_mode' => $options['archiveMode']
+                        ]);
+                        $sessionOptionsArray['mediaMode'] = MediaMode::ROUTED;
+                    } else {
+                        $sessionOptionsArray['mediaMode'] = ($requestedMediaMode === 'RELAYED') 
+                            ? MediaMode::RELAYED 
+                            : MediaMode::ROUTED;
+                    }
+                } else {
+                    // Default to ROUTED for better reliability and feature support
+                    // If archiveMode is set, ROUTED is required
+                    $sessionOptionsArray['mediaMode'] = MediaMode::ROUTED;
+                }
+                
+                // Archive Mode: MANUAL (default), ALWAYS (automatic), or null
+                // Handle both Vonage\Video\ArchiveMode and OpenTok\ArchiveMode constants
+                if (isset($options['archiveMode'])) {
+                    $archiveModeValue = $options['archiveMode'];
+                    
+                    // Convert to string for comparison (works with both OpenTok and Vonage constants)
+                    // Both use the same string values: 'always' or 'manual'
+                    $archiveModeString = strtolower((string)$archiveModeValue);
+                    
+                    $sessionOptionsArray['archiveMode'] = ($archiveModeString === 'always') 
+                        ? ArchiveMode::ALWAYS 
+                        : ArchiveMode::MANUAL;
+                }
+                
+                // Location hint (IP address for session routing)
+                $location = $options['location'] ?? config('services.vonage.video_location');
+                if (is_string($location) && filter_var($location, FILTER_VALIDATE_IP)) {
+                    $sessionOptionsArray['location'] = $location;
+                }
+                
+                // Create session with options if any are provided, otherwise use default
+                if (empty($sessionOptionsArray)) {
                     $session = $this->videoClient->createSession();
                     $mediaMode = 'default';
+                    $archiveMode = 'default';
                 } else {
-                    // Routed session (needed for archiving, etc.)
-                    $mediaMode = isset($options['mediaMode']) && $options['mediaMode'] === 'RELAYED' 
-                        ? MediaMode::RELAYED 
-                        : MediaMode::ROUTED;
-
-                    $sessionOptions = new SessionOptions([
-                        'mediaMode' => $mediaMode
-                    ]);
-
+                    $sessionOptions = new SessionOptions($sessionOptionsArray);
                     $session = $this->videoClient->createSession($sessionOptions);
+                    $mediaMode = isset($sessionOptionsArray['mediaMode']) 
+                        ? ($sessionOptionsArray['mediaMode'] === MediaMode::ROUTED ? 'ROUTED' : 'RELAYED')
+                        : 'default';
+                    $archiveMode = isset($sessionOptionsArray['archiveMode']) 
+                        ? ($sessionOptionsArray['archiveMode'] === ArchiveMode::ALWAYS ? 'ALWAYS' : 'MANUAL')
+                        : 'default';
                 }
                 
                 $sessionId = $session->getSessionId();
 
                 Log::info('Vonage Video session created (JWT)', [
                     'session_id' => $sessionId,
-                    'media_mode' => is_string($mediaMode) ? $mediaMode : 'ROUTED'
+                    'media_mode' => $mediaMode,
+                    'archive_mode' => $archiveMode,
+                    'location' => $location ?? 'none'
                 ]);
 
                 return [

@@ -152,7 +152,7 @@
     </div>
 </div>
 
-@if($sessionStatus === 'scheduled' && $consultation->scheduled_at && $consultation->scheduled_at->isFuture())
+@if($sessionStatus === 'scheduled' && $consultation->scheduled_at)
 <script>
 (function() {
     const consultationId = {{ $consultation->id }};
@@ -161,13 +161,43 @@
     
     if (!countdownEl) return;
     
+    let hasReloaded = false; // Prevent multiple reloads
+    let reloadTimeout = null;
+    
+    // Check if time has already passed on page load
+    const now = new Date().getTime();
+    if (scheduledAt <= now) {
+        // Time has already passed, reload once to get updated status
+        if (!sessionStorage.getItem('countdown-reloaded-' + consultationId)) {
+            sessionStorage.setItem('countdown-reloaded-' + consultationId, 'true');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+        return;
+    }
+    
     const updateCountdown = function() {
         const now = new Date().getTime();
         const distance = scheduledAt - now;
         
         if (distance < 0) {
             countdownEl.textContent = 'Starting now...';
-            location.reload(); // Reload to get updated status
+            
+            // Only reload once, and add a delay to allow status update
+            if (!hasReloaded && !sessionStorage.getItem('countdown-reloaded-' + consultationId)) {
+                hasReloaded = true;
+                sessionStorage.setItem('countdown-reloaded-' + consultationId, 'true');
+                // Clear any existing timeout
+                if (reloadTimeout) clearTimeout(reloadTimeout);
+                // Wait 2 seconds before reloading to allow backend to update status
+                reloadTimeout = setTimeout(() => {
+                    // Check if we're still on the same page (prevent reload loop)
+                    if (window.location.pathname.includes('/consultations/' + consultationId)) {
+                        location.reload();
+                    }
+                }, 2000);
+            }
             return;
         }
         

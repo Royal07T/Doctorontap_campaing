@@ -68,9 +68,21 @@
                         </div>
                         <h2 class="text-xl font-bold text-gray-900 mb-2">Ready to Join Consultation</h2>
                         <p class="text-gray-600 mb-6" x-text="`Click the button below to join the ${mode === 'voice' ? 'voice call' : (mode === 'video' ? 'video call' : 'chat session')}.`"></p>
+                        
+                        <!-- SDK Loading Indicator (for video/voice modes) -->
+                        <div x-show="(mode === 'video' || mode === 'voice') && !sdkLoaded" class="mb-4 text-sm text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div class="flex items-center justify-center">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Loading video call SDK...</span>
+                            </div>
+                        </div>
+                        
                         <button 
-                            @click="joinConsultation()"
-                            :disabled="loading"
+                            @click="(mode === 'video' || mode === 'voice') ? runPreCallTest() : joinConsultation()"
+                            :disabled="loading || ((mode === 'video' || mode === 'voice') && !sdkLoaded)"
                             class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span x-show="!loading">Join Consultation</span>
@@ -83,8 +95,8 @@
                 <div x-show="state === 'loading'" class="mb-6">
                     <div class="bg-blue-50 rounded-lg border border-blue-200 p-8 text-center">
                         <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                        <p class="text-gray-700 font-medium">Connecting to consultation...</p>
-                        <p class="text-sm text-gray-500 mt-2">Please wait while we establish the connection.</p>
+                        <p class="text-gray-700 font-medium" x-text="mode === 'video' && isPatient && videoJoinRetries > 0 ? 'Waiting for doctor to start the video room...' : 'Connecting to consultation...'"></p>
+                        <p class="text-sm text-gray-500 mt-2" x-text="mode === 'video' && isPatient && videoJoinRetries > 0 ? `Attempt ${videoJoinRetries}/${maxVideoJoinRetries} - Please wait...` : 'Please wait while we establish the connection.'"></p>
                     </div>
                 </div>
 
@@ -137,8 +149,34 @@
 
                 <!-- Connected State -->
                 <div x-show="state === 'connected'" class="mb-6">
-                    <div id="vonage-container" class="bg-gray-100 rounded-lg p-8 min-h-[400px]">
+                    <div id="vonage-container" class="bg-gray-100 rounded-lg p-8 min-h-[400px] relative">
                         <!-- Vonage SDK will render here -->
+                        
+                        <!-- Live Captions Overlay -->
+                        <div 
+                            x-show="showCaptions && captions.length > 0"
+                            class="absolute bottom-4 left-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded-lg max-h-32 overflow-y-auto"
+                            style="display: none;"
+                        >
+                            <div class="text-sm font-medium mb-2">Live Captions</div>
+                            <div class="text-sm space-y-1">
+                                <template x-for="(caption, index) in captions.slice(-3)" :key="index">
+                                    <div x-text="caption.text" class="opacity-90"></div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Captions Toggle Button -->
+                    <div x-show="state === 'connected' && (mode === 'video' || mode === 'voice')" class="mt-4 flex justify-center">
+                        <button 
+                            @click="toggleCaptions()"
+                            :class="showCaptions ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'"
+                            class="px-4 py-2 text-white rounded-lg transition-colors text-sm"
+                        >
+                            <span x-show="!showCaptions">Enable Captions</span>
+                            <span x-show="showCaptions">Disable Captions</span>
+                        </button>
                     </div>
                 </div>
 
@@ -158,6 +196,203 @@
                         <span x-show="!ending">End Consultation</span>
                         <span x-show="ending">Ending...</span>
                     </button>
+                </div>
+                
+                <!-- Pre-Call Test Modal -->
+                <div 
+                    x-show="showPreCallTest"
+                    @click.away="showPreCallTest = false"
+                    class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+                    style="display: none;"
+                >
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 p-6">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-4">Pre-Call Test</h3>
+                        <p class="text-gray-600 mb-6">Checking your device and connection before joining...</p>
+                        
+                        <!-- Test Results -->
+                        <div class="space-y-4 mb-6">
+                            <!-- Browser Support -->
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">Browser Support</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <template x-if="preCallTestResults.browser === null">
+                                        <div class="flex items-center text-gray-500">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Checking...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.browser === 'passed'">
+                                        <div class="flex items-center text-green-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Supported
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.browser === 'failed'">
+                                        <div class="flex items-center text-red-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Not Supported
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- Camera Test -->
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">Camera</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <template x-if="preCallTestResults.camera === null">
+                                        <div class="flex items-center text-gray-500">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Checking...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.camera === 'checking'">
+                                        <div class="flex items-center text-blue-600">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Testing...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.camera === 'passed'">
+                                        <div class="flex items-center text-green-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Working
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.camera === 'failed'">
+                                        <div class="flex items-center text-red-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Not Available
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- Microphone Test -->
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">Microphone</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <template x-if="preCallTestResults.microphone === null">
+                                        <div class="flex items-center text-gray-500">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Checking...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.microphone === 'checking'">
+                                        <div class="flex items-center text-blue-600">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Testing...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.microphone === 'passed'">
+                                        <div class="flex items-center text-green-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Working
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.microphone === 'failed'">
+                                        <div class="flex items-center text-red-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Not Available
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- Bandwidth Test -->
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-700">Connection</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <template x-if="preCallTestResults.bandwidth === null">
+                                        <div class="flex items-center text-gray-500">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Checking...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.bandwidth === 'checking'">
+                                        <div class="flex items-center text-blue-600">
+                                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Testing...
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.bandwidth === 'passed'">
+                                        <div class="flex items-center text-green-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Good
+                                        </div>
+                                    </template>
+                                    <template x-if="preCallTestResults.bandwidth === 'failed'">
+                                        <div class="flex items-center text-yellow-600">
+                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Limited
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="flex justify-end space-x-3">
+                            <button 
+                                @click="showPreCallTest = false; preCallTestInProgress = false"
+                                :disabled="preCallTestInProgress"
+                                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                @click="joinConsultation()"
+                                :disabled="preCallTestInProgress || preCallTestResults.browser === 'failed'"
+                                class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+                            >
+                                Join Anyway
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -205,6 +440,51 @@
 
 @push('scripts')
 <script>
+// Prevent infinite reload loops
+(function() {
+    const reloadKey = 'consultation_session_reload_prevent';
+    const maxReloads = 3;
+    const reloadWindow = 30000; // 30 seconds
+    
+    // Check if we've reloaded too many times
+    const reloadCount = parseInt(sessionStorage.getItem(reloadKey) || '0');
+    const lastReloadTime = parseInt(sessionStorage.getItem(reloadKey + '_time') || '0');
+    const now = Date.now();
+    
+    if (reloadCount >= maxReloads && (now - lastReloadTime) < reloadWindow) {
+        console.error('Preventing infinite reload loop detected');
+        sessionStorage.setItem(reloadKey, '0');
+        sessionStorage.setItem(reloadKey + '_time', '0');
+        alert('Page reload loop detected. Please refresh manually if needed.');
+        return;
+    }
+    
+    // Track reloads
+    if (performance.navigation.type === 1) { // Reload
+        sessionStorage.setItem(reloadKey, (reloadCount + 1).toString());
+        sessionStorage.setItem(reloadKey + '_time', now.toString());
+    } else {
+        // Reset on fresh load
+        sessionStorage.setItem(reloadKey, '0');
+        sessionStorage.setItem(reloadKey + '_time', '0');
+    }
+})();
+
+// Global error handler to prevent reload loops
+window.addEventListener('error', function(event) {
+    console.error('Global error caught:', event.error, event.filename, event.lineno);
+    // Prevent default error handling that might cause reload
+    event.preventDefault();
+    return false;
+});
+
+// Prevent unhandled promise rejections from causing issues
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Prevent default handling
+    event.preventDefault();
+});
+
 function vonageConsultation(config) {
     return {
         // Configuration
@@ -227,19 +507,40 @@ function vonageConsultation(config) {
         isPatient: config.isPatient,
         
         // State
-        state: 'idle', // idle, loading, connected, error, ended
+        state: 'idle', // idle, loading, connected, error, ended, precall-test
         loading: false,
         ending: false,
         errorType: null,
         errorTitle: '',
         errorMessage: '',
         showReviewModal: false,
+        sdkLoaded: false, // Track if OpenTok SDK is loaded
+        initialized: false, // Track if component has been initialized
+        videoJoinRetries: 0, // Track retry attempts for video join
+        maxVideoJoinRetries: 20, // Maximum retries (20 * 3 seconds = 60 seconds)
+        beforeUnloadListenerAdded: false, // Track if beforeunload listener was added
+        
+        // Pre-Call Test
+        showPreCallTest: false,
+        preCallTestResults: {
+            camera: null, // null, 'checking', 'passed', 'failed'
+            microphone: null,
+            bandwidth: null,
+            browser: null
+        },
+        preCallTestInProgress: false,
+        
+        // Live Captions
+        captionsEnabled: false,
+        captions: [], // Array of caption objects {text, timestamp}
+        showCaptions: false,
         
         // OpenTok SDK
         session: null,
         publisher: null,
         subscribers: [], // Array to track all subscribers
         statusPollInterval: null,
+        connectionQualityInterval: null,
         currentArchiveId: null,
         
         // Chat SDK
@@ -262,19 +563,199 @@ function vonageConsultation(config) {
         fileInput: null,
         
         init() {
-            // Check if OpenTok.js SDK is loaded
-            // OpenTok.js is the official SDK for Vonage Video API
-            if (typeof OT === 'undefined') {
-                console.warn('OpenTok.js SDK not loaded. Video/voice consultations may not work.');
-                // Don't show error immediately - wait for user to click join
-            }
+            try {
+                // Prevent multiple initializations
+                if (this.initialized) {
+                    console.warn('Component already initialized, skipping...');
+                    return;
+                }
+                this.initialized = true;
+                
+                // Ensure state is initialized
+                this.state = this.state || 'idle';
+                this.loading = false;
+                
+                // Check if OpenTok SDK is already loaded
+                this.checkSDKStatus();
+                
+                // Wait for OpenTok.js SDK to load (for video/voice modes)
+                // Don't await this - let it run in background to prevent blocking
+                if (this.mode === 'video' || this.mode === 'voice') {
+                    this.waitForOpenTokSDK().catch(err => {
+                        console.error('Error waiting for OpenTok SDK:', err);
+                        // Don't show error immediately, let user manually join
+                    });
+                }
 
-            window.addEventListener('beforeunload', () => {
-                this.cleanupVonage();
-            });
+                // Only add beforeunload listener once
+                if (!this.beforeUnloadListenerAdded) {
+                    window.addEventListener('beforeunload', () => {
+                        this.cleanupVonage();
+                    });
+                    this.beforeUnloadListenerAdded = true;
+                }
+            } catch (error) {
+                console.error('Error in init():', error);
+                this.showError('generic', 'Initialization Error', 
+                    'Failed to initialize consultation session. Please refresh the page.');
+                // Don't reload - just show error
+            }
+        },
+        
+        checkSDKStatus() {
+            // Check if SDK is loaded and update reactive property
+            this.sdkLoaded = typeof OT !== 'undefined';
+            
+            // If not loaded yet, check periodically
+            if (!this.sdkLoaded && (this.mode === 'video' || this.mode === 'voice')) {
+                const checkInterval = setInterval(() => {
+                    this.sdkLoaded = typeof OT !== 'undefined';
+                    if (this.sdkLoaded) {
+                        clearInterval(checkInterval);
+                        console.log('OpenTok.js SDK loaded successfully');
+                    }
+                }, 500);
+                
+                // Stop checking after 10 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    if (!this.sdkLoaded) {
+                        console.error('OpenTok.js SDK failed to load after 10 seconds');
+                    }
+                }, 10000);
+            }
+        },
+        
+        async waitForOpenTokSDK() {
+            // Wait up to 10 seconds for OpenTok SDK to load
+            let attempts = 0;
+            const maxAttempts = 20; // 20 attempts * 500ms = 10 seconds
+            
+            while (typeof OT === 'undefined' && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                attempts++;
+            }
+            
+            this.sdkLoaded = typeof OT !== 'undefined';
+            
+            if (!this.sdkLoaded) {
+                console.error('OpenTok.js SDK failed to load after 10 seconds');
+                this.showError('generic', 'SDK Loading Error', 'The video call SDK failed to load. Please refresh the page and check your internet connection.');
+                return false;
+            }
+            
+            console.log('OpenTok.js SDK loaded successfully');
+            return true;
+        },
+        
+        async runPreCallTest() {
+            if (this.mode !== 'video' && this.mode !== 'voice') {
+                return this.joinConsultation();
+            }
+            
+            this.showPreCallTest = true;
+            this.preCallTestInProgress = true;
+            
+            // Reset results
+            this.preCallTestResults = {
+                camera: null,
+                microphone: null,
+                bandwidth: null,
+                browser: null
+            };
+            
+            try {
+                // Check browser support first
+                if (typeof OT === 'undefined') {
+                    await this.waitForOpenTokSDK();
+                }
+                
+                if (typeof OT === 'undefined') {
+                    this.preCallTestResults.browser = 'failed';
+                    this.preCallTestInProgress = false;
+                    return;
+                }
+                
+                const systemRequirements = OT.checkSystemRequirements();
+                this.preCallTestResults.browser = systemRequirements === 1 ? 'passed' : 'failed';
+                
+                if (systemRequirements !== 1) {
+                    this.preCallTestInProgress = false;
+                    return;
+                }
+                
+                // Test camera
+                this.preCallTestResults.camera = 'checking';
+                try {
+                    const devices = await OT.getDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoInput');
+                    this.preCallTestResults.camera = videoDevices.length > 0 ? 'passed' : 'failed';
+                } catch (error) {
+                    console.error('Camera test error:', error);
+                    this.preCallTestResults.camera = 'failed';
+                }
+                
+                // Test microphone
+                this.preCallTestResults.microphone = 'checking';
+                try {
+                    const devices = await OT.getDevices();
+                    const audioDevices = devices.filter(device => device.kind === 'audioInput');
+                    this.preCallTestResults.microphone = audioDevices.length > 0 ? 'passed' : 'failed';
+                } catch (error) {
+                    console.error('Microphone test error:', error);
+                    this.preCallTestResults.microphone = 'failed';
+                }
+                
+                // Test bandwidth (simplified - check connection quality)
+                this.preCallTestResults.bandwidth = 'checking';
+                try {
+                    // Create a temporary test publisher to check bandwidth
+                    const testContainer = document.createElement('div');
+                    testContainer.style.position = 'absolute';
+                    testContainer.style.left = '-9999px';
+                    document.body.appendChild(testContainer);
+                    
+                    const testPublisher = OT.initPublisher(testContainer, {
+                        videoSource: null, // Audio only for bandwidth test
+                        publishAudio: true,
+                        publishVideo: false,
+                        width: 0,
+                        height: 0
+                    }, (error) => {
+                        if (error) {
+                            this.preCallTestResults.bandwidth = 'failed';
+                        } else {
+                            // Check stats after a short delay
+                            setTimeout(() => {
+                                testPublisher.getStats((err, stats) => {
+                                    if (err || !stats) {
+                                        this.preCallTestResults.bandwidth = 'failed';
+                                    } else {
+                                        // Simple check - if we can get stats, connection is good
+                                        this.preCallTestResults.bandwidth = 'passed';
+                                    }
+                                    testPublisher.destroy();
+                                    document.body.removeChild(testContainer);
+                                });
+                            }, 1000);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Bandwidth test error:', error);
+                    this.preCallTestResults.bandwidth = 'failed';
+                }
+                
+            } catch (error) {
+                console.error('Pre-call test error:', error);
+            } finally {
+                this.preCallTestInProgress = false;
+            }
         },
         
         async joinConsultation() {
+            // Close pre-call test if open
+            this.showPreCallTest = false;
+            
             if (this.mode === 'video') {
                 return this.joinVideoRoom();
             }
@@ -347,13 +828,23 @@ function vonageConsultation(config) {
         },
 
         async joinVideoRoom() {
+            // Check if OpenTok SDK is loaded before proceeding
+            if (typeof OT === 'undefined') {
+                console.warn('OpenTok.js SDK not loaded, waiting for it to load...');
+                const sdkLoaded = await this.waitForOpenTokSDK();
+                if (!sdkLoaded) {
+                    this.loading = false;
+                    return;
+                }
+            }
+            
             this.state = 'loading';
             this.loading = true;
             this.errorType = null;
 
             try {
                 if (!this.isPatient) {
-                    await fetch(this.videoCreateUrl, {
+                    const createResponse = await fetch(this.videoCreateUrl, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -362,6 +853,13 @@ function vonageConsultation(config) {
                         },
                         body: JSON.stringify({})
                     });
+                    
+                    if (!createResponse.ok) {
+                        const createData = await createResponse.json();
+                        console.error('Failed to create video room:', createData);
+                        this.showError('generic', 'Room Creation Failed', createData.message || 'Failed to create video room. Please try again.');
+                        return;
+                    }
                 }
 
                 const response = await fetch(this.videoJoinUrl, {
@@ -377,7 +875,26 @@ function vonageConsultation(config) {
                 const data = await response.json();
 
                 if (response.status === 404 && this.isPatient) {
-                    this.showError('generic', 'Waiting for Doctor', 'The doctor has not started the video room yet. Please wait a moment and try again.');
+                    // Room doesn't exist yet - retry after a delay
+                    this.videoJoinRetries++;
+                    
+                    // Use message from backend if available
+                    const errorMessage = data.message || 'The video room has not been created yet. Please wait for the doctor to start the session.';
+                    
+                    if (this.videoJoinRetries >= this.maxVideoJoinRetries) {
+                        this.showError('generic', 'Room Not Available', errorMessage + ' Please ask the doctor to start the session or try again later.');
+                        this.loading = false;
+                        return;
+                    }
+                    
+                    // Increase delay with each retry to avoid rate limiting (3s, 5s, 7s, etc.)
+                    const retryDelay = Math.min(3000 + (this.videoJoinRetries * 2000), 10000);
+                    console.log(`Video room not found, retrying in ${retryDelay/1000} seconds... (attempt ${this.videoJoinRetries}/${this.maxVideoJoinRetries})`);
+                    // Keep loading state and show waiting message
+                    this.state = 'loading';
+                    setTimeout(() => {
+                        this.joinVideoRoom();
+                    }, retryDelay);
                     return;
                 }
 
@@ -392,7 +909,21 @@ function vonageConsultation(config) {
                 }
 
                 if (response.status === 429) {
-                    this.showError('429', 'Too Many Requests', 'You have made too many requests. Please wait a moment and try again.');
+                    // Rate limited - wait longer before retrying
+                    this.videoJoinRetries++;
+                    const retryAfter = data.retry_after || 10; // Use server's retry_after or default to 10 seconds
+                    
+                    if (this.videoJoinRetries >= this.maxVideoJoinRetries) {
+                        this.showError('429', 'Too Many Requests', 'You have made too many requests. Please wait a moment and try again.');
+                        this.loading = false;
+                        return;
+                    }
+                    
+                    console.log(`Rate limited, retrying after ${retryAfter} seconds... (attempt ${this.videoJoinRetries}/${this.maxVideoJoinRetries})`);
+                    this.state = 'loading';
+                    setTimeout(() => {
+                        this.joinVideoRoom();
+                    }, retryAfter * 1000);
                     return;
                 }
 
@@ -401,12 +932,29 @@ function vonageConsultation(config) {
                     return;
                 }
 
+                // Reset retry counter on successful response
+                this.videoJoinRetries = 0;
+                
+                // Validate required data
+                if (!data.token || !data.session_id) {
+                    console.error('Missing required data from server:', data);
+                    this.showError('generic', 'Invalid Response', 'The server returned incomplete data. Please try again.');
+                    return;
+                }
+                
                 // Use applicationId (JWT) from backend, fallback to api_key or config values for legacy
                 const apiKey = data.applicationId || data.api_key || this.applicationId || this.vonageApiKey;
+                
+                if (!apiKey) {
+                    console.error('No API key or Application ID available');
+                    this.showError('generic', 'Configuration Error', 'Video call configuration is missing. Please contact support.');
+                    return;
+                }
+                
                 await this.initializeVonage(apiKey, data.token, data.session_id);
             } catch (error) {
                 console.error('Error joining video room:', error);
-                this.showError('generic', 'Network Error', 'Network error. Please check your connection and try again.');
+                this.showError('generic', 'Network Error', error.message || 'Network error. Please check your connection and try again.');
             } finally {
                 this.loading = false;
             }
@@ -419,39 +967,169 @@ function vonageConsultation(config) {
                     throw new Error('OpenTok.js SDK not loaded. Please refresh the page.');
                 }
                 
-                // Initialize OpenTok session
-                // OpenTok.js uses OT.initSession() to create a session
-                this.session = OT.initSession(apiKey, sessionId);
-                
-                // Handle session events
-                this.session.on('sessionConnected', () => {
-                    console.log('OpenTok session connected');
-                });
-                
-                this.session.on('sessionDisconnected', () => {
-                    console.log('OpenTok session disconnected');
-                    this.state = 'ended';
-                });
-                
-                this.session.on('error', (error) => {
-                    console.error('OpenTok session error:', error);
-                    if ((error.code === 1004 || error.code === 1006 || error.code === 1008) && this.mode === 'video') {
-                        this.refreshVideoToken();
-                        return;
-                    }
-                    this.showError('generic', 'Session Error', 'An error occurred with the consultation session. Please try again.');
+                // Check system requirements before initializing (per Vonage documentation)
+                // https://developer.vonage.com/en/video/guides/join-session
+                const systemRequirements = OT.checkSystemRequirements();
+                if (systemRequirements !== 1) {
+                    const errorMsg = 'Your browser does not support WebRTC. Please use a modern browser like Chrome, Firefox, or Safari.';
+                    this.showError('generic', 'Browser Not Supported', errorMsg);
                     this.state = 'error';
+                    return;
+                }
+                
+                // Initialize OpenTok session with performance optimizations
+                // According to Vonage documentation: https://developer.vonage.com/en/video/guides/create-session
+                // singlePeerConnection: All subscriber streams delivered with a single connection to Media Router
+                // Benefits: Reduced client resource consumption, improved rate control, support for larger sessions
+                const sessionOptions = {
+                    singlePeerConnection: true // Available in OpenTok.js 2.28.0+
+                };
+                this.session = OT.initSession(apiKey, sessionId, sessionOptions);
+                
+                // Track connection count for monitoring
+                let connectionCount = 0;
+                
+                // Handle session events using object syntax (per Vonage documentation)
+                // https://developer.vonage.com/en/video/guides/join-session
+                this.session.on({
+                    // Session connection
+                    sessionConnected: () => {
+                        console.log('OpenTok session connected');
+                        connectionCount = 1; // Include own connection
+                        
+                        // Enable captions if available
+                        if (this.captionsEnabled && this.session.caption) {
+                            this.session.caption.start((error) => {
+                                if (error) {
+                                    console.error('Failed to start captions:', error);
+                                } else {
+                                    console.log('Captions started');
+                                }
+                            });
+                        }
+                    },
+                    
+                    // Live Captions events
+                    captionReceived: (event) => {
+                        if (this.showCaptions) {
+                            this.captions.push({
+                                text: event.text,
+                                timestamp: Date.now()
+                            });
+                            // Keep only last 10 captions
+                            if (this.captions.length > 10) {
+                                this.captions.shift();
+                            }
+                        }
+                    },
+                    
+                    // Automatic reconnection (per Vonage documentation)
+                    sessionReconnecting: () => {
+                        console.log('Session reconnecting...');
+                        this.showNotification('Reconnecting to session...', 'info');
+                    },
+                    
+                    sessionReconnected: () => {
+                        console.log('Session reconnected successfully');
+                        this.showNotification('Reconnected to session', 'success');
+                    },
+                    
+                    // Session disconnection with reason checking (per Vonage documentation)
+                    sessionDisconnected: (event) => {
+                        console.log('OpenTok session disconnected', event);
+                        
+                        // Check disconnection reason (per Vonage documentation)
+                        if (event.reason === 'networkDisconnected') {
+                            this.showError('generic', 'Connection Lost', 
+                                'You lost your internet connection. Please check your connection and try connecting again.');
+                        } else if (event.reason === 'clientDisconnected') {
+                            console.log('Client disconnected normally');
+                        } else {
+                            console.log('Session disconnected:', event.reason || 'Unknown reason');
+                        }
+                        
+                        this.state = 'ended';
+                    },
+                    
+                    // Track when other clients connect/disconnect (per Vonage documentation)
+                    connectionCreated: (event) => {
+                        connectionCount++;
+                        if (event.connection.connectionId !== this.session.connection.connectionId) {
+                            console.log(`Another client connected. ${connectionCount} total connections.`);
+                            this.showNotification('Participant joined the session', 'info');
+                        }
+                    },
+                    
+                    connectionDestroyed: (event) => {
+                        connectionCount--;
+                        console.log(`A client disconnected. ${connectionCount} total connections.`);
+                        if (connectionCount <= 1) {
+                            this.showNotification('Participant left the session', 'warning');
+                        }
+                    },
+                    
+                    // Handle session errors
+                    error: (error) => {
+                        console.error('OpenTok session error:', error);
+                        
+                        // Handle connection limit exceeded (per Vonage documentation)
+                        // https://developer.vonage.com/en/video/guides/broadcast/interactive#connection-and-stream-limit-errors-in-the-opentok-js-web
+                        if (error.name === 'OT_CONNECTION_LIMIT_EXCEEDED') {
+                            this.showError('connection_limit', 'Session Full', 
+                                'The consultation session has reached the maximum number of participants (15,000). Please try again later or contact support.');
+                            this.state = 'error';
+                            return;
+                        }
+                        
+                        // Handle specific error codes (per Vonage documentation)
+                        if (error.code === 1004 || error.code === 1006 || error.code === 1008) {
+                            // Token expired or network issues
+                            if (this.mode === 'video') {
+                                this.refreshVideoToken();
+                                return;
+                            }
+                        }
+                        
+                        this.showError('generic', 'Session Error', 
+                            'An error occurred with the consultation session. Please try again.');
+                        this.state = 'error';
+                    }
                 });
                 
-                // Connect to session with token
+                // Connect to session with token (per Vonage documentation)
+                // https://developer.vonage.com/en/video/guides/join-session#troubleshooting-session-connection-issues-javascript
                 this.session.connect(token, (error) => {
                     if (error) {
                         console.error('Error connecting to OpenTok session:', error);
-                        if ((error.code === 1004 || error.code === 1006 || error.code === 1008) && this.mode === 'video') {
-                            this.refreshVideoToken();
+                        
+                        // Handle connection limit exceeded (per Vonage documentation)
+                        // https://developer.vonage.com/en/video/guides/broadcast/interactive#connection-and-stream-limit-errors-in-the-opentok-js-web
+                        if (error.name === 'OT_CONNECTION_LIMIT_EXCEEDED') {
+                            this.showError('connection_limit', 'Session Full', 
+                                'The consultation session has reached the maximum number of participants (15,000). Please try again later or contact support.');
+                            this.state = 'error';
                             return;
                         }
-                        this.showError('generic', 'Connection Error', error.message || 'Failed to connect to consultation session.');
+                        
+                        // Handle specific connection errors (per Vonage documentation)
+                        if (error.name === 'OT_NOT_CONNECTED' || error.code === 1006) {
+                            this.showError('generic', 'Connection Failed', 
+                                'Failed to connect. Please check your connection and try connecting again.');
+                        } else if (error.code === 1004) {
+                            // Invalid or expired token
+                            if (this.mode === 'video') {
+                                this.refreshVideoToken();
+                                return;
+                            } else {
+                                this.showError('generic', 'Token Error', 
+                                    'Your session token is invalid or expired. Please refresh and try again.');
+                            }
+                        } else {
+                            // Unknown error
+                            this.showError('generic', 'Connection Error', 
+                                error.message || 'An unknown error occurred connecting. Please try again later.');
+                        }
+                        
                         this.state = 'error';
                         return;
                     }
@@ -479,7 +1157,8 @@ function vonageConsultation(config) {
                 
             } catch (error) {
                 console.error('Error initializing Vonage:', error);
-                this.showError('generic', 'Initialization Error', error.message || 'Failed to initialize consultation. Please try again.');
+                this.showError('generic', 'Initialization Error', 
+                    error.message || 'Failed to initialize consultation. Please try again.');
             }
         },
 
@@ -565,7 +1244,10 @@ function vonageConsultation(config) {
             container.appendChild(qualityIndicator);
             
             // Publish local video/audio stream
+            // Per Vonage documentation: https://developer.vonage.com/en/use-cases/one-on-one-video-with-vonage-video-api
             this.publisher = OT.initPublisher(publisherContainer, {
+                insertMode: 'append', // Ensures video is appended to container
+                resolution: '1280x720', // HD quality (720p)
                 videoSource: 'camera',
                 audioSource: 'microphone',
                 publishAudio: true,
@@ -599,16 +1281,29 @@ function vonageConsultation(config) {
             this.monitorConnectionQuality();
             
             // Subscribe to remote streams
+            // Per Vonage documentation: https://developer.vonage.com/en/use-cases/one-on-one-video-with-vonage-video-api
             this.session.on('streamCreated', (event) => {
                 console.log('Remote stream created:', event.stream);
-                const subscriber = this.session.subscribe(event.stream, subscriberContainer, {
+                const subscriberOptions = {
+                    insertMode: 'append', // Ensures subscriber video is appended to container
                     width: '100%',
                     height: '100%',
                     subscribeToAudio: true,
                     subscribeToVideo: true
-                }, (error) => {
+                };
+                const subscriber = this.session.subscribe(event.stream, subscriberContainer, subscriberOptions, (error) => {
                     if (error) {
                         console.error('Error subscribing to stream:', error);
+                        
+                        // Handle stream limit exceeded (per Vonage documentation)
+                        // https://developer.vonage.com/en/video/guides/broadcast/interactive#connection-and-stream-limit-errors-in-the-opentok-js-web
+                        if (error.name === 'OT_STREAM_LIMIT_EXCEEDED') {
+                            this.showError('stream_limit', 'Stream Limit Reached', 
+                                'The consultation session has reached the maximum number of streams (15,000). Please try again later or contact support.');
+                            return;
+                        }
+                        
+                        this.showNotification('Failed to subscribe to participant stream', 'error');
                     } else {
                         console.log('Subscribed to remote stream');
                         this.subscribers.push(subscriber);
@@ -691,7 +1386,9 @@ function vonageConsultation(config) {
             container.appendChild(publisherContainer);
             
             // Publish audio-only stream
+            // Per Vonage documentation: https://developer.vonage.com/en/use-cases/one-on-one-video-with-vonage-video-api
             this.publisher = OT.initPublisher(publisherContainer, {
+                insertMode: 'append', // Ensures audio publisher is appended to container
                 videoSource: null, // No video
                 audioSource: 'microphone',
                 publishAudio: true,
@@ -726,6 +1423,7 @@ function vonageConsultation(config) {
             this.monitorConnectionQuality();
             
             // Subscribe to remote audio streams
+            // Per Vonage documentation: https://developer.vonage.com/en/use-cases/one-on-one-video-with-vonage-video-api
             this.session.on('streamCreated', (event) => {
                 console.log('Remote audio stream created:', event.stream);
                 const subscriberContainer = document.createElement('div');
@@ -733,14 +1431,26 @@ function vonageConsultation(config) {
                 subscriberContainer.className = 'hidden';
                 container.appendChild(subscriberContainer);
                 
-                const subscriber = this.session.subscribe(event.stream, subscriberContainer, {
+                const subscriberOptions = {
+                    insertMode: 'append', // Ensures subscriber audio is appended to container
                     width: '100%',
                     height: 'auto',
                     subscribeToAudio: true,
                     subscribeToVideo: false // Audio-only
-                }, (error) => {
+                };
+                const subscriber = this.session.subscribe(event.stream, subscriberContainer, subscriberOptions, (error) => {
                     if (error) {
                         console.error('Error subscribing to audio stream:', error);
+                        
+                        // Handle stream limit exceeded (per Vonage documentation)
+                        // https://developer.vonage.com/en/video/guides/broadcast/interactive#connection-and-stream-limit-errors-in-the-opentok-js-web
+                        if (error.name === 'OT_STREAM_LIMIT_EXCEEDED') {
+                            this.showError('stream_limit', 'Stream Limit Reached', 
+                                'The consultation session has reached the maximum number of streams (15,000). Please try again later or contact support.');
+                            return;
+                        }
+                        
+                        this.showNotification('Failed to subscribe to participant audio stream', 'error');
                     } else {
                         console.log('Subscribed to remote audio stream');
                         this.subscribers.push(subscriber);
@@ -1089,6 +1799,46 @@ function vonageConsultation(config) {
             return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         },
         
+        toggleCaptions() {
+            if (!this.session) return;
+            
+            this.showCaptions = !this.showCaptions;
+            this.captionsEnabled = this.showCaptions;
+            
+            if (this.showCaptions) {
+                // Start captions if session is connected
+                if (this.session.connection && this.session.caption) {
+                    this.session.caption.start((error) => {
+                        if (error) {
+                            console.error('Failed to start captions:', error);
+                            this.showNotification('Failed to enable captions. They may not be available for this session.', 'warning');
+                            this.showCaptions = false;
+                            this.captionsEnabled = false;
+                        } else {
+                            console.log('Captions enabled');
+                            this.showNotification('Live captions enabled', 'info');
+                        }
+                    });
+                } else {
+                    this.showNotification('Captions are not available for this session', 'warning');
+                    this.showCaptions = false;
+                    this.captionsEnabled = false;
+                }
+            } else {
+                // Stop captions
+                if (this.session.caption) {
+                    this.session.caption.stop((error) => {
+                        if (error) {
+                            console.error('Failed to stop captions:', error);
+                        } else {
+                            console.log('Captions disabled');
+                        }
+                    });
+                }
+                this.captions = [];
+            }
+        },
+        
         async saveMessageToBackend(message) {
             try {
                 await fetch(`/consultations/${this.consultationId}/chat/messages`, {
@@ -1216,7 +1966,10 @@ function vonageConsultation(config) {
             try {
                 if (!this.isScreenSharing) {
                     // Start screen sharing
+                    // Per Vonage documentation: https://developer.vonage.com/en/video/guides/publish-stream
                     const screenPublisher = OT.initPublisher('publisher-container', {
+                        insertMode: 'append', // Ensures screen share is appended to container
+                        resolution: '1280x720', // HD quality (720p) for screen sharing
                         videoSource: 'screen',
                         publishAudio: false,
                         publishVideo: true,
@@ -1330,11 +2083,11 @@ function vonageConsultation(config) {
         },
         
         monitorConnectionQuality() {
-            if (!this.session) return;
+            if (!this.session || this.connectionQualityInterval) return;
             
-            setInterval(() => {
-                if (this.publisher) {
-                    const stats = this.publisher.getStats((error, stats) => {
+            this.connectionQualityInterval = setInterval(() => {
+                if (this.publisher && this.state === 'connected') {
+                    this.publisher.getStats((error, stats) => {
                         if (error || !stats) return;
                         
                         // Analyze connection quality
@@ -1384,6 +2137,34 @@ function vonageConsultation(config) {
             this.errorType = type;
             this.errorTitle = title;
             this.errorMessage = message;
+        },
+        
+        showNotification(message, type = 'info') {
+            // Display a temporary notification without changing error state
+            // Types: 'info', 'success', 'warning', 'error'
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg max-w-sm ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'warning' ? 'bg-yellow-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            notification.style.transition = 'opacity 0.3s ease-in-out';
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
         },
         
         async endSession() {
@@ -1467,6 +2248,11 @@ function vonageConsultation(config) {
             if (this.statusPollInterval) {
                 clearInterval(this.statusPollInterval);
                 this.statusPollInterval = null;
+            }
+            
+            if (this.connectionQualityInterval) {
+                clearInterval(this.connectionQualityInterval);
+                this.connectionQualityInterval = null;
             }
             
             // Stop typing

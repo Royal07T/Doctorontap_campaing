@@ -130,7 +130,7 @@
                     <!-- Search Results -->
                     <div x-show="searchResults.length > 0" class="mt-2 max-h-60 overflow-y-auto border-2 border-slate-200 rounded-xl">
                         <template x-for="patient in searchResults" :key="patient.id">
-                            <div @click="addRecipient(patient.phone, patient.name)" 
+                            <div @click="addRecipient(patient._real_phone || patient.phone, patient.name)" 
                                 class="p-3 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0">
                                 <p class="font-semibold text-slate-800" x-text="patient.name"></p>
                                 <p class="text-sm text-slate-500" x-text="patient.phone"></p>

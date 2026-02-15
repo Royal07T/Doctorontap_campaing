@@ -30,7 +30,7 @@
                             <select name="user_id" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-purple-50 transition-all outline-none appearance-none">
                                 <option value="">Identify Asset</option>
                                 @foreach($patients as $patient)
-                                <option value="{{ $patient->id }}">{{ $patient->name }} | {{ $patient->email }}</option>
+                                <option value="{{ $patient->id }}">{{ $patient->name }} | {{ \App\Helpers\PrivacyHelper::maskEmail($patient->email) }}</option>
                                 @endforeach
                             </select>
                             @error('user_id')

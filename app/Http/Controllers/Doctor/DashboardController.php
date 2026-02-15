@@ -1499,20 +1499,30 @@ class DashboardController extends Controller
         
         foreach ($days as $day) {
             $enabled = $request->has("availability_schedule.{$day}.enabled");
-            $start = $request->input("availability_schedule.{$day}.start", '09:00');
-            $end = $request->input("availability_schedule.{$day}.end", '17:00');
+            $start = $request->input("availability_schedule.{$day}.start", '00:00');
+            $end = $request->input("availability_schedule.{$day}.end", '23:59');
             
-            // Validate time format
+            // Validate time format (24-hour format: 00:00 to 23:59)
             if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $start)) {
-                $start = '09:00';
+                $start = '00:00';
             }
             if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $end)) {
-                $end = '17:00';
+                $end = '23:59';
             }
             
-            // Ensure end time is after start time
-            if (strtotime($end) <= strtotime($start)) {
-                $end = date('H:i', strtotime($start . ' +8 hours'));
+            // Handle end time that wraps to next day (e.g., 22:00 to 02:00)
+            // For now, ensure end time is after start time within same day
+            // If end is before start, it means availability spans midnight - we'll allow this
+            $startTime = strtotime($start);
+            $endTime = strtotime($end);
+            
+            // If end time is before start time, it means availability spans midnight
+            // We'll keep it as is - the booking system should handle this
+            // But for validation, we'll ensure at least 1 hour difference
+            if ($endTime <= $startTime && $endTime < strtotime('23:59')) {
+                // Same day, end must be after start
+                $endTime = $startTime + 3600; // Add 1 hour minimum
+                $end = date('H:i', $endTime);
             }
             
             $schedule[$day] = [

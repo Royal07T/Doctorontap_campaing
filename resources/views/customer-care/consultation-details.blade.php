@@ -70,11 +70,11 @@
                     </div>
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Official Mailbox</p>
-                        <p class="text-sm font-bold text-slate-800 underline decoration-purple-200 decoration-2 underline-offset-4">{{ $consultation->email }}</p>
+                        <p class="text-sm font-bold text-slate-800 underline decoration-purple-200 decoration-2 underline-offset-4">{{ \App\Helpers\PrivacyHelper::maskEmail($consultation->email) }}</p>
                     </div>
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Encrypted Contact</p>
-                        <p class="text-sm font-bold text-slate-800">{{ $consultation->mobile ?? 'N/A' }}</p>
+                        <p class="text-sm font-bold text-slate-800">{{ \App\Helpers\PrivacyHelper::maskPhone($consultation->mobile) }}</p>
                     </div>
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Demographics</p>

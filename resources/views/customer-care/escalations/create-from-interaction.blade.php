@@ -116,7 +116,7 @@
                     </div>
                     <div>
                         <h4 class="text-xs font-black text-slate-800">{{ $interaction->user->name ?? 'Anonymous Asset' }}</h4>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{{ $interaction->user->phone ?? 'NR' }}</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{{ \App\Helpers\PrivacyHelper::maskPhone($interaction->user->phone) }}</p>
                     </div>
                  </div>
             </div>

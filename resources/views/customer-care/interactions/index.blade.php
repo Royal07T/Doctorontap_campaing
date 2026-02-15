@@ -92,7 +92,7 @@
                                 </div>
                                 <div>
                                     <div class="text-sm font-black text-slate-800">{{ $interaction->user->name ?? 'N/A' }}</div>
-                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ $interaction->user->email ?? '' }}</div>
+                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ $interaction->user ? \App\Helpers\PrivacyHelper::maskEmail($interaction->user->email) : '' }}</div>
                                 </div>
                             </div>
                         </td>

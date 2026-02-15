@@ -44,6 +44,8 @@ class NotificationCreated implements ShouldBroadcast
             'action_url' => $this->notification->action_url,
             'read_at' => $this->notification->read_at,
             'created_at' => $this->notification->created_at->toIso8601String(),
+            'user_type' => $this->notification->user_type, // Include for frontend verification
+            'user_id' => $this->notification->user_id, // Include for frontend verification
             'unread_count' => \App\Models\Notification::forUser(
                 $this->notification->user_type,
                 $this->notification->user_id

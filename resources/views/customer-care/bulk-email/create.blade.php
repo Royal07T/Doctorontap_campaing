@@ -218,6 +218,7 @@
                                 <template x-for="(recipient, index) in recipients" :key="index">
                                     <span class="recipient-chip">
                                         <span x-text="recipient.name"></span>
+                                        <span class="ml-2 text-xs text-gray-500" x-text="recipient.email"></span>
                                         <button type="button" @click="removeRecipient(index)">×</button>
                                     </span>
                                 </template>
@@ -404,7 +405,12 @@ function emailCampaignForm() {
         
         addRecipient(patient) {
             if (!this.recipients.some(r => r.id === patient.id)) {
-                this.recipients.push(patient);
+                // Use real email for sending, but keep masked for display
+                const recipient = {
+                    ...patient,
+                    email: patient._real_email || patient.email, // Use real email for backend
+                };
+                this.recipients.push(recipient);
                 this.searchResults = [];
                 this.patientSearch = '';
             }

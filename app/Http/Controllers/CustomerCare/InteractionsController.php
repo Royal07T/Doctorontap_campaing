@@ -103,9 +103,31 @@ class InteractionsController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $interaction->load(['user', 'agent', 'notes.creator']);
+        $interaction->load(['user', 'agent', 'notes.creator', 'escalations']);
 
-        return view('customer-care.interactions.show', compact('interaction'));
+        // Get related data for context
+        $relatedInteractions = CustomerInteraction::where('user_id', $interaction->user_id)
+            ->where('id', '!=', $interaction->id)
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'summary', 'status', 'channel', 'created_at']);
+        
+        $relatedTickets = \App\Models\SupportTicket::where('user_id', $interaction->user_id)
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'ticket_number', 'subject', 'status', 'created_at']);
+        
+        $relatedConsultations = \App\Models\Consultation::where('patient_id', $interaction->user_id)
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'reference', 'status', 'created_at']);
+
+        return view('customer-care.interactions.show', compact(
+            'interaction',
+            'relatedInteractions',
+            'relatedTickets',
+            'relatedConsultations'
+        ));
     }
 
     /**
