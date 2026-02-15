@@ -91,11 +91,26 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
-                    @forelse($tickets as $ticket)
-                    <tr class="hover:bg-slate-50/80 transition-colors group">
+                    @php
+                        $sortedTickets = $tickets->getCollection()->sortBy(function($ticket) {
+                            $priorityOrder = ['urgent' => 1, 'high' => 2, 'medium' => 3, 'low' => 4];
+                            return $priorityOrder[$ticket->priority] ?? 5;
+                        });
+                    @endphp
+                    @forelse($sortedTickets as $ticket)
+                    <tr class="hover:bg-purple-50/30 transition-all duration-200 group cursor-pointer {{ in_array($ticket->priority, ['urgent', 'high']) ? 'bg-red-50/20' : '' }}" onclick="window.location.href='{{ route('customer-care.tickets.show', $ticket) }}'">
                         <td class="px-6 py-5">
-                            <div class="text-sm font-black text-slate-800">#{{ $ticket->ticket_number }}</div>
-                            <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ $ticket->created_at->format('d M Y') }}</div>
+                            <div class="flex items-center space-x-2">
+                                @if($ticket->priority === 'urgent')
+                                <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                @elseif($ticket->priority === 'high')
+                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                @endif
+                                <div>
+                                    <div class="text-sm font-mono font-black text-slate-800">#{{ $ticket->ticket_number }}</div>
+                                    <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ $ticket->created_at->format('d M Y') }}</div>
+                                </div>
+                            </div>
                         </td>
                         <td class="px-6 py-5">
                             @if($ticket->user_type === 'doctor' && $ticket->doctor)
@@ -109,53 +124,61 @@
                             @endif
                         </td>
                         <td class="px-6 py-5">
-                            <div class="text-xs font-bold text-slate-700 mb-1 max-w-xs truncate">{{ $ticket->subject }}</div>
-                            <span class="inline-flex px-2 py-0.5 rounded bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                            <div class="text-xs font-bold text-slate-700 mb-1.5 max-w-xs truncate group-hover:text-purple-700 transition-colors">{{ $ticket->subject }}</div>
+                            <span class="inline-flex px-2 py-0.5 rounded-lg bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest border border-slate-200">
                                 {{ $ticket->category }}
                             </span>
                         </td>
                         <td class="px-6 py-5">
-                            <div class="flex flex-col space-y-1.5">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest w-fit
-                                    {{ $ticket->priority == 'urgent' ? 'bg-red-50 text-red-600' : '' }}
-                                    {{ $ticket->priority == 'high' ? 'bg-orange-50 text-orange-600' : '' }}
-                                    {{ $ticket->priority == 'medium' ? 'bg-amber-50 text-amber-600' : '' }}
-                                    {{ $ticket->priority == 'low' ? 'bg-slate-100 text-slate-500' : '' }}">
-                                    {{ $ticket->priority }} Priority
+                            <div class="flex flex-col space-y-2">
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest w-fit border-2
+                                    {{ $ticket->priority == 'urgent' ? 'bg-red-100 text-red-700 border-red-300' : '' }}
+                                    {{ $ticket->priority == 'high' ? 'bg-orange-100 text-orange-700 border-orange-300' : '' }}
+                                    {{ $ticket->priority == 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' : '' }}
+                                    {{ $ticket->priority == 'low' ? 'bg-green-100 text-green-700 border-green-300' : '' }}">
+                                    <span class="w-2 h-2 rounded-full mr-1.5
+                                        {{ $ticket->priority == 'urgent' ? 'bg-red-500' : '' }}
+                                        {{ $ticket->priority == 'high' ? 'bg-orange-500' : '' }}
+                                        {{ $ticket->priority == 'medium' ? 'bg-yellow-500' : '' }}
+                                        {{ $ticket->priority == 'low' ? 'bg-green-500' : '' }}"></span>
+                                    {{ ucfirst($ticket->priority) }}
                                 </span>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest w-fit
-                                    {{ $ticket->status == 'open' ? 'bg-emerald-50 text-emerald-600' : '' }}
-                                    {{ $ticket->status == 'pending' ? 'bg-amber-50 text-amber-600' : '' }}
-                                    {{ $ticket->status == 'resolved' ? 'bg-slate-50 text-slate-400' : '' }}
-                                    {{ $ticket->status == 'escalated' ? 'bg-purple-50 text-purple-600' : '' }}">
-                                    Status: {{ $ticket->status }}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest w-fit border
+                                    {{ $ticket->status == 'open' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : '' }}
+                                    {{ $ticket->status == 'pending' ? 'bg-amber-100 text-amber-700 border-amber-200' : '' }}
+                                    {{ $ticket->status == 'resolved' ? 'bg-slate-100 text-slate-500 border-slate-200' : '' }}
+                                    {{ $ticket->status == 'escalated' ? 'bg-purple-100 text-purple-700 border-purple-200' : '' }}">
+                                    {{ ucfirst($ticket->status) }}
                                 </span>
                                 @if(in_array($ticket->status, ['open', 'pending']) && in_array($ticket->priority, ['urgent', 'high']))
                                 <span class="text-[9px] font-black text-rose-600 uppercase tracking-widest flex items-center space-x-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                     <span>Action Required</span>
                                 </span>
-                                @elseif($ticket->status == 'open')
-                                <span class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Action: Review & Respond</span>
                                 @endif
                             </div>
                         </td>
                         <td class="px-6 py-5">
                             @if($ticket->agent_id && $ticket->agent)
                                 <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
+                                    <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-[10px] font-black text-purple-600">
                                         {{ substr($ticket->agent->name, 0, 1) }}
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-600">{{ $ticket->agent->name }}</div>
                                 </div>
                             @else
-                                <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Awaiting Assignee</span>
+                                <form method="POST" action="{{ route('customer-care.tickets.assign-to-me', $ticket) }}" onclick="event.stopPropagation()">
+                                    @csrf
+                                    <button type="submit" class="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all border border-emerald-200">
+                                        Assign to Me
+                                    </button>
+                                </form>
                             @endif
                         </td>
-                        <td class="px-6 py-5 text-right">
+                        <td class="px-6 py-5 text-right" onclick="event.stopPropagation()">
                             <a href="{{ route('customer-care.tickets.show', $ticket) }}" 
                                class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all">
-                                Manage Ticket
+                                View
                             </a>
                         </td>
                     </tr>

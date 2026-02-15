@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="px-6 py-8">
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-3xl font-black text-slate-800 tracking-tight">Customer Interactions</h1>
-            <p class="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mt-1">Full interaction history & tracking</p>
+            <p class="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mt-1">Live support sessions & communication</p>
         </div>
         <a href="{{ route('customer-care.interactions.create') }}" class="purple-gradient text-white px-8 py-4 rounded-[1.5rem] font-black text-sm shadow-xl shadow-purple-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
@@ -26,18 +26,21 @@
     <div class="clean-card p-6 mb-8 animate-slide-up">
         <form method="GET" action="{{ route('customer-care.interactions.index') }}" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <div class="lg:col-span-2">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Search Database</label>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1 flex items-center">
+                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2"/></svg>
+                    Search
+                </label>
                 <div class="relative">
                     <input type="text" name="search" value="{{ request('search') }}" 
                            placeholder="Customer name or email..." 
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none">
-                    <svg class="absolute right-4 top-3.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2"/></svg>
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pl-11 text-sm focus:ring-4 focus:ring-purple-50 focus:border-purple-300 transition-all outline-none">
+                    <svg class="absolute left-4 top-3.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2"/></svg>
                 </div>
             </div>
             
             <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Current Status</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none appearance-none">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Status</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 focus:border-purple-300 transition-all outline-none appearance-none">
                     <option value="">All Status</option>
                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                     <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
@@ -47,7 +50,7 @@
 
             <div>
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Channel</label>
-                <select name="channel" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none appearance-none">
+                <select name="channel" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-purple-50 focus:border-purple-300 transition-all outline-none appearance-none">
                     <option value="">All Channels</option>
                     <option value="chat" {{ request('channel') == 'chat' ? 'selected' : '' }}>Chat</option>
                     <option value="call" {{ request('channel') == 'call' ? 'selected' : '' }}>Call</option>
@@ -56,8 +59,8 @@
             </div>
 
             <div class="flex items-end space-x-2">
-                <button type="submit" class="flex-1 bg-slate-800 text-white rounded-xl px-4 py-3 text-sm font-bold hover:bg-slate-900 transition-all">
-                    Filter Results
+                <button type="submit" class="flex-1 bg-purple-600 text-white rounded-xl px-4 py-3 text-sm font-black hover:bg-purple-700 transition-all">
+                    Filter
                 </button>
                 @if(request()->hasAny(['search', 'status', 'channel']))
                 <a href="{{ route('customer-care.interactions.index') }}" class="bg-slate-100 text-slate-600 rounded-xl px-4 py-3 hover:bg-slate-200 transition-all">
@@ -84,23 +87,23 @@
                 </thead>
                 <tbody class="divide-y divide-slate-50">
                     @forelse($interactions as $interaction)
-                    <tr class="hover:bg-slate-50/80 transition-colors group">
+                    <tr class="hover:bg-purple-50/30 transition-all duration-200 group cursor-pointer" onclick="window.location.href='{{ route('customer-care.interactions.show', $interaction) }}'">
                         <td class="px-6 py-5">
                             <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black text-xs shadow-inner">
+                                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black text-xs shadow-inner group-hover:bg-purple-100 transition-all">
                                     {{ substr($interaction->user->name ?? 'NA', 0, 1) }}
                                 </div>
                                 <div>
-                                    <div class="text-sm font-black text-slate-800">{{ $interaction->user->name ?? 'N/A' }}</div>
+                                    <div class="text-sm font-black text-slate-800 group-hover:text-purple-700 transition-colors">{{ $interaction->user->name ?? 'N/A' }}</div>
                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ $interaction->user ? \App\Helpers\PrivacyHelper::maskEmail($interaction->user->email) : '' }}</div>
                                 </div>
                             </div>
                         </td>
                         <td class="px-6 py-5">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest 
-                                {{ $interaction->channel == 'chat' ? 'bg-blue-50 text-blue-600' : '' }}
-                                {{ $interaction->channel == 'call' ? 'bg-emerald-50 text-emerald-600' : '' }}
-                                {{ $interaction->channel == 'email' ? 'bg-purple-50 text-purple-600' : '' }}">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border
+                                {{ $interaction->channel == 'chat' ? 'bg-blue-50 text-blue-600 border-blue-200' : '' }}
+                                {{ $interaction->channel == 'call' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : '' }}
+                                {{ $interaction->channel == 'email' ? 'bg-purple-50 text-purple-600 border-purple-200' : '' }}">
                                 {{ $interaction->channel }}
                             </span>
                         </td>
@@ -111,11 +114,14 @@
                         </td>
                         <td class="px-6 py-5">
                             <div class="flex flex-col space-y-1.5">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit
-                                    {{ $interaction->status == 'active' ? 'bg-amber-50 text-amber-600' : '' }}
-                                    {{ $interaction->status == 'resolved' ? 'bg-emerald-50 text-emerald-600' : '' }}
-                                    {{ $interaction->status == 'pending' ? 'bg-slate-100 text-slate-500' : '' }}">
-                                    {{ $interaction->status }}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit border
+                                    {{ $interaction->status == 'active' ? 'bg-amber-50 text-amber-600 border-amber-200' : '' }}
+                                    {{ $interaction->status == 'resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : '' }}
+                                    {{ $interaction->status == 'pending' ? 'bg-slate-100 text-slate-500 border-slate-200' : '' }}">
+                                    @if($interaction->status == 'active')
+                                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5 animate-pulse"></span>
+                                    @endif
+                                    {{ ucfirst($interaction->status) }}
                                 </span>
                                 @if($interaction->status == 'active')
                                 <span class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Action: Continue or End</span>
@@ -128,10 +134,10 @@
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{ $interaction->created_at->format('d M Y') }}</div>
                             <div class="text-[10px] font-medium text-slate-400">{{ $interaction->created_at->format('H:i') }}</div>
                         </td>
-                        <td class="px-6 py-5 text-right">
+                        <td class="px-6 py-5 text-right" onclick="event.stopPropagation()">
                             <a href="{{ route('customer-care.interactions.show', $interaction) }}" 
                                class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all">
-                                View Full Profile
+                                View
                             </a>
                         </td>
                     </tr>

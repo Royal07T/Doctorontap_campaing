@@ -60,24 +60,51 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <!-- Main Content Area -->
-        <div class="lg:col-span-2 space-y-8">
+    <!-- Escalation Timeline -->
+    <div class="clean-card p-6 mb-6 border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/20 to-white animate-slide-up">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-xs font-black uppercase tracking-widest border-2 border-amber-300">
+                    Escalated to {{ ucfirst($escalation->escalated_to_type) }}
+                </div>
+                <div class="text-sm font-bold text-slate-600">
+                    {{ $escalation->escalatedTo->name ?? 'Pending Assignment' }}
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="px-3 py-1.5 inline-flex items-center text-[10px] font-black rounded-full uppercase tracking-widest border-2
+                    @if($escalation->status === 'pending') bg-amber-100 text-amber-700 border-amber-300
+                    @elseif($escalation->status === 'in_progress') bg-blue-100 text-blue-700 border-blue-300
+                    @elseif($escalation->status === 'resolved') bg-emerald-100 text-emerald-700 border-emerald-300
+                    @else bg-slate-100 text-slate-500 border-slate-300
+                    @endif">
+                    @if($escalation->status === 'pending')
+                        <span class="w-2 h-2 bg-amber-500 rounded-full mr-1.5 animate-pulse"></span>
+                    @endif
+                    {{ ucfirst(str_replace('_', ' ', $escalation->status)) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+        <!-- LEFT COLUMN: Main Content -->
+        <div class="lg:col-span-7 space-y-6">
             <!-- Escalation Reason -->
-            <div class="clean-card p-8 animate-slide-up">
+            <div class="clean-card p-8 animate-slide-up border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/30 to-white">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        <div class="p-3 bg-amber-100 text-amber-700 rounded-xl border-2 border-amber-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         </div>
                         <div>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight">Reason for Escalation</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Why this issue was escalated</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Critical issue requiring expert attention</p>
                         </div>
                     </div>
                 </div>
-                <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                    <p class="text-sm font-bold text-slate-700 leading-relaxed">{{ $escalation->reason }}</p>
+                <div class="p-6 bg-amber-50/50 rounded-2xl border-2 border-amber-200">
+                    <p class="text-sm font-bold text-slate-800 leading-relaxed">{{ $escalation->reason }}</p>
                 </div>
             </div>
 

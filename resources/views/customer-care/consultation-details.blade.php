@@ -50,9 +50,57 @@
         </div>
     </div>
 
+    <!-- Sticky Action Bar -->
+    <div class="sticky top-4 z-40 mb-8 animate-slide-up" x-data="{ showActions: true }">
+        <div class="clean-card p-4 bg-white/95 backdrop-blur-sm border-2 border-purple-100 shadow-lg">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center space-x-3">
+                    <span class="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg text-xs font-black uppercase tracking-widest border border-purple-200">
+                        #{{ $consultation->reference }}
+                    </span>
+                    <span class="px-3 py-1.5 inline-flex items-center text-[10px] font-black rounded-full uppercase tracking-widest border
+                        @if($consultation->status === 'completed') bg-emerald-100 text-emerald-700 border-emerald-200
+                        @elseif($consultation->status === 'pending') bg-amber-100 text-amber-700 border-amber-200
+                        @elseif($consultation->status === 'scheduled') bg-blue-100 text-blue-700 border-blue-200
+                        @else bg-red-100 text-red-700 border-red-200
+                        @endif">
+                        {{ ucfirst($consultation->status) }}
+                    </span>
+                    <span class="px-3 py-1.5 inline-flex items-center text-[10px] font-black rounded-full uppercase tracking-widest border
+                        @if($consultation->payment_status === 'paid') bg-green-100 text-green-700 border-green-200
+                        @elseif($consultation->payment_status === 'pending') bg-yellow-100 text-yellow-700 border-yellow-200
+                        @else bg-red-100 text-red-700 border-red-200
+                        @endif">
+                        {{ ucfirst($consultation->payment_status) }}
+                    </span>
+                </div>
+                @if($consultation->patient)
+                <div class="flex items-center space-x-2">
+                    <button @click="showCommModal = true; selectedChannel = 'email'" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all border border-blue-200 flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        <span>Email</span>
+                    </button>
+                    <button @click="showCommModal = true; selectedChannel = 'sms'" class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all border border-emerald-200 flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <span>SMS</span>
+                    </button>
+                    <a href="{{ route('customer-care.tickets.create', ['patient_id' => $consultation->patient->id, 'consultation_id' => $consultation->id]) }}" class="px-4 py-2 bg-orange-50 text-orange-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border border-orange-200 flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span>Ticket</span>
+                    </a>
+                    <a href="{{ route('customer-care.escalations.create-from-ticket', $consultation->id) }}" class="px-4 py-2 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all border border-rose-200 flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
+                        <span>Escalate</span>
+                    </a>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Main Panel: Data Blocks -->
-        <div class="lg:col-span-8 space-y-8 animate-slide-up">
+        <!-- LEFT COLUMN: Patient + Consultation Info -->
+        <div class="lg:col-span-7 space-y-6 animate-slide-up">
             <!-- Patient Profile & Primary Details -->
             <div class="clean-card p-8 border-l-4 border-l-purple-600">
                 <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
@@ -163,42 +211,67 @@
                 </div>
             </div>
 
-            <!-- Consultation Life-Cycle -->
+            <!-- Consultation Timeline -->
             <div class="clean-card p-8 border-l-4 border-l-indigo-600">
                 <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
                     <h2 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em] flex items-center">
-                        <svg class="w-4 h-4 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2"/></svg>
-                        Operational Details
+                        <svg class="w-4 h-4 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Consultation Timeline
                     </h2>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
-                     <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Engagement Mode</p>
-                        <span class="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-xl uppercase tracking-widest">{{ $consultation->consult_mode ?? 'Virtual' }}</span>
+                <div class="space-y-6 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                    <!-- Created -->
+                    <div class="flex items-start space-x-4 relative">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center text-emerald-600 z-10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div class="flex-1 pb-4">
+                            <div class="flex items-baseline justify-between mb-1">
+                                <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">Created</h4>
+                                <span class="text-[10px] font-bold text-slate-400">{{ $consultation->created_at->format('M d, Y • H:i') }}</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-600">Consultation request created</p>
+                        </div>
                     </div>
+
+                    <!-- Scheduled -->
                     @if($consultation->scheduled_at)
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Scheduled Window</p>
-                        <p class="text-sm font-bold text-slate-800">{{ $consultation->scheduled_at->format('M d, Y • h:i A') }}</p>
+                    <div class="flex items-start space-x-4 relative">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-50 border-2 border-blue-200 flex items-center justify-center text-blue-600 z-10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div class="flex-1 pb-4">
+                            <div class="flex items-baseline justify-between mb-1">
+                                <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">Scheduled</h4>
+                                <span class="text-[10px] font-bold text-slate-400">{{ $consultation->scheduled_at->format('M d, Y • H:i') }}</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-600">{{ $consultation->scheduled_at->format('M d, Y • h:i A') }}</p>
+                        </div>
                     </div>
                     @endif
-                     <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Lifecycle Start</p>
-                        <p class="text-sm font-bold text-slate-800">{{ $consultation->created_at->format('M d, Y • h:i A') }}</p>
-                    </div>
+
+                    <!-- Completed -->
                     @if($consultation->consultation_completed_at)
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Termination Date</p>
-                        <p class="text-sm font-bold text-slate-800">{{ $consultation->consultation_completed_at->format('M d, Y • h:i A') }}</p>
+                    <div class="flex items-start space-x-4 relative">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center text-emerald-600 z-10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-baseline justify-between mb-1">
+                                <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">Completed</h4>
+                                <span class="text-[10px] font-bold text-slate-400">{{ $consultation->consultation_completed_at->format('M d, Y • H:i') }}</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-600">Consultation finished</p>
+                        </div>
                     </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar: Status & Assignment -->
-        <div class="lg:col-span-4 space-y-8 animate-slide-up" style="animation-delay: 0.2s;">
+        <!-- RIGHT COLUMN: Communication Panel -->
+        <div class="lg:col-span-5 space-y-6 animate-slide-up" style="animation-delay: 0.2s;">
             <!-- Billing Meta -->
             <div class="clean-card p-8 border-t-4 border-t-emerald-500">
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Financial State</h3>
@@ -245,32 +318,33 @@
                 </div>
             </div>
 
-            <!-- Incident Timeline -->
-            <div class="clean-card p-8 border-t-4 border-t-amber-500">
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Tactical Timeline</h3>
-                <div class="space-y-6 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-slate-100">
-                    <div class="flex items-start space-x-4 relative">
-                        <div class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 z-10">
-                            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Origin Log</p>
-                            <p class="text-xs font-black text-slate-800">{{ $consultation->created_at->format('M d, Y • H:i') }}</p>
-                        </div>
-                    </div>
-                    @if($consultation->updated_at != $consultation->created_at)
-                    <div class="flex items-start space-x-4 relative">
-                        <div class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 z-10">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mutation Log</p>
-                            <p class="text-xs font-black text-slate-800">{{ $consultation->updated_at->format('M d, Y • H:i') }}</p>
-                        </div>
-                    </div>
-                    @endif
+            <!-- Communication Panel -->
+            @if($consultation->patient)
+            <div class="clean-card p-6 border-l-4 border-l-purple-600 sticky top-24">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6 flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    Quick Communication
+                </h3>
+                <div class="space-y-3">
+                    <button @click="showCommModal = true; selectedChannel = 'email'" class="w-full px-4 py-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all border border-blue-200 flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        <span>Send Email</span>
+                    </button>
+                    <button @click="showCommModal = true; selectedChannel = 'sms'" class="w-full px-4 py-3 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all border border-emerald-200 flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <span>Send SMS</span>
+                    </button>
+                    <a href="{{ route('customer-care.tickets.create', ['patient_id' => $consultation->patient->id, 'consultation_id' => $consultation->id]) }}" class="block w-full px-4 py-3 bg-orange-50 text-orange-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border border-orange-200 flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span>Create Ticket</span>
+                    </a>
+                    <a href="{{ route('customer-care.escalations.create-from-ticket', $consultation->id) }}" class="block w-full px-4 py-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all border border-rose-200 flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
+                        <span>Escalate</span>
+                    </a>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 

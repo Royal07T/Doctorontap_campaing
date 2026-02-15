@@ -94,22 +94,36 @@
                     class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-400 transition-all font-mono text-sm"
                     placeholder="Type your message here...">{{ old('message') }}</textarea>
                 
-                <div class="mt-2 flex items-center justify-between text-sm">
-                    <p class="text-slate-500">Final message after variable replacement</p>
-                    <p class="text-slate-600 font-semibold">
-                        <span x-text="charCount"></span> / 1000 characters
-                        <span class="ml-2" :class="charCount > 160 ? 'text-orange-600' : 'text-slate-500'">
-                            (~<span x-text="smsCount"></span> SMS)
-                        </span>
-                    </p>
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Characters</p>
+                        <p class="text-lg font-black text-slate-800">
+                            <span x-text="charCount"></span> / 1000
+                        </p>
+                    </div>
+                    <div class="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                        <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">SMS Segments</p>
+                        <p class="text-lg font-black text-blue-700">
+                            <span x-text="smsCount"></span>
+                        </p>
+                    </div>
+                    <div class="bg-purple-50 rounded-xl p-3 border border-purple-200">
+                        <p class="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">Est. Recipients</p>
+                        <p class="text-lg font-black text-purple-700">
+                            <span x-text="recipients.length"></span>
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Message Preview -->
-            <div x-show="message" class="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
-                <h4 class="font-bold text-purple-900 mb-2">Preview (with variables filled)</h4>
-                <div class="p-4 bg-white rounded-lg border border-purple-300">
-                    <p class="text-sm whitespace-pre-wrap" x-text="preview"></p>
+            <!-- Message Preview Card -->
+            <div x-show="message.length > 0" class="mb-6">
+                <label class="block text-sm font-bold text-slate-700 mb-2">Message Preview</label>
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-200 shadow-sm">
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
+                        <p class="text-sm font-bold text-slate-800 leading-relaxed whitespace-pre-wrap" x-text="preview || message"></p>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 text-center">Preview (with variables filled)</p>
                 </div>
             </div>
 
@@ -191,7 +205,7 @@
                 </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Send Actions -->
             <div class="flex items-center justify-end space-x-3 pt-6 border-t-2 border-slate-100">
                 <a href="{{ route('customer-care.bulk-sms.index') }}" 
                     class="px-8 py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-all font-bold">
@@ -201,7 +215,7 @@
                     :disabled="recipients.length === 0"
                     :class="recipients.length === 0 ? 'opacity-50 cursor-not-allowed' : ''"
                     class="px-8 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-bold shadow-lg">
-                    Send SMS Campaign
+                    Send to <span x-text="recipients.length"></span> Recipients
                 </button>
             </div>
         </form>
@@ -257,7 +271,10 @@
 
                 updateCharCount() {
                     this.charCount = this.message.length;
-                    this.smsCount = Math.ceil(this.charCount / 160) || 1;
+                    // SMS segments: 160 chars per segment (or 70 for Unicode)
+                    const hasUnicode = /[^\x00-\x7F]/.test(this.message);
+                    const charsPerSegment = hasUnicode ? 70 : 160;
+                    this.smsCount = Math.ceil(this.charCount / charsPerSegment) || 1;
                 },
 
                 async searchPatients() {

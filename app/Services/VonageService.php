@@ -177,65 +177,65 @@ class VonageService
         $retryDelay = 1; // seconds
         
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-            try {
-                $credentials = new Basic($this->apiKey, $this->apiSecret);
-                $client = new Client($credentials);
-                
-                // Configure HTTP client timeout (if supported by SDK version)
-                // Note: The Vonage SDK uses Guzzle HTTP client internally
-                // Timeout configuration may need to be set via environment or SDK config
+        try {
+            $credentials = new Basic($this->apiKey, $this->apiSecret);
+            $client = new Client($credentials);
+            
+            // Configure HTTP client timeout (if supported by SDK version)
+            // Note: The Vonage SDK uses Guzzle HTTP client internally
+            // Timeout configuration may need to be set via environment or SDK config
 
-                $response = $client->sms()->send(
-                    new SMS($formattedPhone, $this->brandName, $message)
-                );
+            $response = $client->sms()->send(
+                new SMS($formattedPhone, $this->brandName, $message)
+            );
 
-                $messageObj = $response->current();
+            $messageObj = $response->current();
 
-                if ($messageObj->getStatus() == 0) {
-                    Log::info('Vonage Legacy API SMS sent successfully', [
-                        'to' => $formattedPhone,
+            if ($messageObj->getStatus() == 0) {
+                Log::info('Vonage Legacy API SMS sent successfully', [
+                    'to' => $formattedPhone,
+                    'message_id' => $messageObj->getMessageId(),
+                    'remaining_balance' => $messageObj->getRemainingBalance(),
+                    'message_price' => $messageObj->getMessagePrice(),
+                        'network' => $messageObj->getNetwork(),
+                        'attempt' => $attempt
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'SMS sent successfully',
+                    'data' => [
                         'message_id' => $messageObj->getMessageId(),
+                        'status' => $messageObj->getStatus(),
                         'remaining_balance' => $messageObj->getRemainingBalance(),
                         'message_price' => $messageObj->getMessagePrice(),
                         'network' => $messageObj->getNetwork(),
-                        'attempt' => $attempt
-                    ]);
-
-                    return [
-                        'success' => true,
-                        'message' => 'SMS sent successfully',
-                        'data' => [
-                            'message_id' => $messageObj->getMessageId(),
-                            'status' => $messageObj->getStatus(),
-                            'remaining_balance' => $messageObj->getRemainingBalance(),
-                            'message_price' => $messageObj->getMessagePrice(),
-                            'network' => $messageObj->getNetwork(),
-                            'to' => $messageObj->getTo()
-                        ]
-                    ];
-                } else {
-                    $errorMessage = $this->getStatusErrorMessage($messageObj->getStatus());
-                    
-                    Log::error('Vonage Legacy API SMS failed', [
-                        'to' => $formattedPhone,
-                        'status' => $messageObj->getStatus(),
-                        'error_text' => $errorMessage,
+                        'to' => $messageObj->getTo()
+                    ]
+                ];
+            } else {
+                $errorMessage = $this->getStatusErrorMessage($messageObj->getStatus());
+                
+                Log::error('Vonage Legacy API SMS failed', [
+                    'to' => $formattedPhone,
+                    'status' => $messageObj->getStatus(),
+                    'error_text' => $errorMessage,
                         'error_label' => $messageObj->getErrorText(),
                         'attempt' => $attempt
-                    ]);
+                ]);
 
                     // Don't retry for API errors (status != 0), only for network issues
-                    return [
-                        'success' => false,
-                        'message' => 'Failed to send SMS',
-                        'error' => [
-                            'status' => $messageObj->getStatus(),
-                            'error_text' => $errorMessage,
-                            'error_label' => $messageObj->getErrorText()
-                        ],
-                        'status_code' => $messageObj->getStatus()
-                    ];
-                }
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send SMS',
+                    'error' => [
+                        'status' => $messageObj->getStatus(),
+                        'error_text' => $errorMessage,
+                        'error_label' => $messageObj->getErrorText()
+                    ],
+                    'status_code' => $messageObj->getStatus()
+                ];
+            }
             } catch (\GuzzleHttp\Exception\ConnectException $e) {
                 // DNS resolution or connection errors - retry with exponential backoff
                 $isDnsError = strpos($e->getMessage(), 'Could not resolve host') !== false 
@@ -271,22 +271,22 @@ class VonageService
                     'error_type' => 'network_error',
                     'attempts' => $attempt
                 ];
-            } catch (\Vonage\Client\Exception\Request $e) {
-                Log::error('Vonage Legacy API request exception', [
-                    'to' => $formattedPhone,
-                    'error' => $e->getMessage(),
+        } catch (\Vonage\Client\Exception\Request $e) {
+            Log::error('Vonage Legacy API request exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
                     'code' => $e->getCode(),
                     'attempt' => $attempt
-                ]);
-                
+            ]);
+            
                 // Don't retry for API request errors
-                return [
-                    'success' => false,
-                    'message' => 'Vonage API request failed',
-                    'error' => $e->getMessage(),
-                    'error_code' => $e->getCode()
-                ];
-            } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Vonage API request failed',
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ];
+        } catch (\Exception $e) {
                 // Check if it's a network/DNS error wrapped in another exception
                 $isNetworkError = strpos($e->getMessage(), 'Could not resolve host') !== false 
                                 || strpos($e->getMessage(), 'cURL error 6') !== false
@@ -306,21 +306,21 @@ class VonageService
                     continue; // Retry
                 }
                 
-                Log::error('Vonage Legacy API exception', [
-                    'to' => $formattedPhone,
-                    'error' => $e->getMessage(),
+            Log::error('Vonage Legacy API exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
                     'class' => get_class($e),
                     'attempt' => $attempt
-                ]);
-                
-                return [
-                    'success' => false,
-                    'message' => 'Exception occurred while calling Vonage API',
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Exception occurred while calling Vonage API',
                     'error' => $e->getMessage(),
                     'error_type' => 'exception',
                     'attempts' => $attempt
-                ];
-            }
+            ];
+        }
         }
         
         // Should not reach here, but just in case

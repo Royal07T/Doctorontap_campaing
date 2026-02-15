@@ -130,12 +130,12 @@
                                 <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">{{ $note->creator->name ?? 'System' }} added a note</h4>
                                 <span class="text-[10px] font-bold text-slate-400">{{ $note->created_at->diffForHumans() }}</span>
                             </div>
-                            <div class="p-4 rounded-2xl {{ $note->is_internal ? 'bg-amber-50/50 border border-amber-200' : 'bg-slate-50 border border-slate-200' }}">
+                            <div class="p-4 rounded-2xl {{ $note->is_internal ? 'bg-amber-50/80 border-2 border-amber-300' : 'bg-slate-50 border border-slate-200' }}">
                                 <p class="text-sm font-bold text-slate-700 leading-relaxed">{{ $note->note }}</p>
                                 @if($note->is_internal)
-                                <div class="mt-2 text-[8px] font-black text-amber-600 uppercase tracking-widest flex items-center">
-                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z" /></svg>
-                                    Internal Note (Not visible to customer)
+                                <div class="mt-3 pt-3 border-t border-amber-200 text-[9px] font-black text-amber-700 uppercase tracking-widest flex items-center">
+                                    <svg class="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z" /></svg>
+                                    Internal Note (Private - Not visible to customer)
                                 </div>
                                 @endif
                             </div>
@@ -329,15 +329,15 @@
                     @if($interaction->status === 'active')
                     <form method="POST" action="{{ route('customer-care.interactions.end', $interaction) }}" id="endInteractionForm">
                         @csrf
-                        <button type="button" onclick="handleEndInteraction()" class="w-full py-3.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            <span>Mark as Resolved</span>
+                        <button type="button" onclick="handleEndInteraction()" class="w-full py-4 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            <span>End Interaction</span>
                         </button>
                     </form>
                     @endif
-                    <a href="{{ route('customer-care.escalations.create-from-interaction', $interaction) }}" class="block w-full text-center py-3.5 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-900 transition-all flex items-center justify-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
-                        <span>Escalate to Admin</span>
+                    <a href="{{ route('customer-care.escalations.create-from-interaction', $interaction) }}" class="block w-full text-center py-4 bg-amber-50 text-amber-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-amber-600 hover:text-white transition-all border-2 border-amber-200 flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
+                        <span>Escalate</span>
                     </a>
                     <a href="{{ route('customer-care.interactions.index', ['search' => $interaction->user->name]) }}" class="block w-full text-center py-3.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-100 transition-all border border-indigo-200">
                         View All Sessions

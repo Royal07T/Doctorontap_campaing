@@ -127,126 +127,82 @@
                 </div>
             </div>
 
-            <!-- Tabbed Activity History -->
-            <div class="clean-card overflow-hidden animate-slide-up" style="animation-delay: 0.3s;" x-data="{ tab: 'interactions' }">
-                <div class="flex bg-slate-50 border-b border-slate-100">
-                    <button @click="tab = 'interactions'" :class="tab === 'interactions' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'" class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Recent Interactions</button>
-                    <button @click="tab = 'tickets'" :class="tab === 'tickets' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'" class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Support Queue</button>
-                    <button @click="tab = 'consultations'" :class="tab === 'consultations' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'" class="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Clinical Visits</button>
+            <!-- Unified Activity Timeline -->
+            <div class="clean-card p-8 animate-slide-up border-l-4 border-l-purple-600" style="animation-delay: 0.3s;">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight flex items-center">
+                        <svg class="w-5 h-5 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Activity Timeline
+                    </h3>
                 </div>
-
-                <!-- Interactions Tab -->
-                <div x-show="tab === 'interactions'" class="p-0 animate-fade-in">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-slate-50/50">
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Channel</th>
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Identity/Agent</th>
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Summary</th>
-                                <th class="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Finalize</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            @forelse($patient->customerInteractions->take(5) as $interaction)
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-6 py-5">
-                                    <span class="inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest 
-                                        {{ $interaction->channel == 'chat' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600' }}">
-                                        {{ $interaction->channel }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-5">
-                                    <div class="text-[10px] font-bold text-slate-800">{{ $interaction->agent->name ?? 'System' }}</div>
-                                    <div class="text-[9px] font-medium text-slate-400">{{ $interaction->created_at->format('d M - H:i') }}</div>
-                                </td>
-                                <td class="px-6 py-5">
-                                    <div class="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{{ $interaction->summary }}</div>
-                                </td>
-                                <td class="px-6 py-5 text-right">
-                                    <a href="{{ route('customer-care.interactions.show', $interaction) }}" class="text-purple-600 hover:text-purple-800 transition-colors">
-                                        <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                    </a>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-300 font-bold text-sm italic">No interaction records found</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Tickets Tab -->
-                <div x-show="tab === 'tickets'" class="p-0 animate-fade-in" style="display: none;">
-                    <table class="w-full text-left">
-                         <thead>
-                            <tr class="bg-slate-50/50">
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Ticket #</th>
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">State</th>
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Issue Summary</th>
-                                <th class="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            @forelse($patient->supportTickets->take(5) as $ticket)
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-6 py-5 font-black text-slate-800 text-xs">#{{ $ticket->ticket_number }}</td>
-                                <td class="px-6 py-5">
-                                    <span class="inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest 
-                                        {{ $ticket->status == 'open' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400' }}">
-                                        {{ $ticket->status }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-5">
-                                    <div class="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{{ $ticket->subject }}</div>
-                                </td>
-                                <td class="px-6 py-5 text-right">
-                                    <a href="{{ route('customer-care.tickets.show', $ticket) }}" class="text-purple-600 hover:text-purple-800 transition-colors">
-                                        <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                    </a>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-300 font-bold text-sm italic">No support tickets issued</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Consultations Tab -->
-                <div x-show="tab === 'consultations'" class="p-0 animate-fade-in" style="display: none;">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-slate-50/50">
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Session Date</th>
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Medical Pro</th>
-                                <th class="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Status</th>
-                                <th class="px-6 py-4 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Records</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            @forelse($patient->consultations->take(5) as $consultation)
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-6 py-5 text-xs font-black text-slate-800">{{ $consultation->created_at->format('d M Y') }}</td>
-                                <td class="px-6 py-5">
-                                    <div class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{{ $consultation->doctor->name ?? 'Assigned MD' }}</div>
-                                </td>
-                                <td class="px-6 py-5">
-                                    <span class="inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest 
-                                        {{ $consultation->status == 'completed' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400' }}">
-                                        {{ $consultation->status }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-5 text-right">
-                                    <a href="{{ route('customer-care.consultations.show', $consultation->id) }}" class="text-purple-600 hover:text-purple-800 transition-colors">
-                                        <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                    </a>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-300 font-bold text-sm italic">No clinical records found</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="space-y-4 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                    @php
+                        $activities = collect();
+                        foreach($patient->consultations->take(10) as $consultation) {
+                            $activities->push([
+                                'type' => 'consultation',
+                                'icon' => '📋',
+                                'color' => 'indigo',
+                                'title' => 'Consultation #' . $consultation->reference,
+                                'description' => 'Status: ' . ucfirst($consultation->status),
+                                'time' => $consultation->created_at,
+                                'url' => route('customer-care.consultations.show', $consultation->id)
+                            ]);
+                        }
+                        foreach($patient->supportTickets->take(10) as $ticket) {
+                            $activities->push([
+                                'type' => 'ticket',
+                                'icon' => '🎫',
+                                'color' => 'orange',
+                                'title' => 'Ticket #' . $ticket->ticket_number,
+                                'description' => $ticket->subject,
+                                'time' => $ticket->created_at,
+                                'url' => route('customer-care.tickets.show', $ticket)
+                            ]);
+                        }
+                        foreach($patient->customerInteractions->take(10) as $interaction) {
+                            $activities->push([
+                                'type' => 'interaction',
+                                'icon' => '💬',
+                                'color' => 'blue',
+                                'title' => ucfirst($interaction->channel) . ' Interaction',
+                                'description' => $interaction->summary,
+                                'time' => $interaction->created_at,
+                                'url' => route('customer-care.interactions.show', $interaction)
+                            ]);
+                        }
+                        $activities = $activities->sortByDesc('time')->take(15);
+                    @endphp
+                    @forelse($activities as $activity)
+                    <div class="flex items-start space-x-4 relative">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-xl border-2 flex items-center justify-center z-10
+                            @if($activity['color'] === 'indigo') bg-indigo-50 border-indigo-200 text-indigo-600
+                            @elseif($activity['color'] === 'orange') bg-orange-50 border-orange-200 text-orange-600
+                            @elseif($activity['color'] === 'blue') bg-blue-50 border-blue-200 text-blue-600
+                            @else bg-slate-50 border-slate-200 text-slate-600
+                            @endif">
+                            <span class="text-lg">{{ $activity['icon'] }}</span>
+                        </div>
+                        <div class="flex-1 pb-4">
+                            <div class="flex items-baseline justify-between mb-1">
+                                <a href="{{ $activity['url'] }}" class="text-sm font-black text-slate-800 hover:text-purple-600 transition-colors">
+                                    {{ $activity['title'] }}
+                                </a>
+                                <span class="text-[10px] font-bold text-slate-400 ml-4">{{ $activity['time']->format('M d, Y • H:i') }}</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-600 leading-relaxed">{{ Str::limit($activity['description'], 80) }}</p>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 z-10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div class="flex-1 pb-4">
+                            <p class="text-sm font-bold text-slate-400 italic">No activity history available</p>
+                        </div>
+                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>
