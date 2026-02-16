@@ -10,10 +10,163 @@
 @section('content')
 <div class="min-h-screen bg-gray-50 py-6 px-4 md:px-6">
     <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Profile & Credentials</h1>
-            <p class="text-sm text-gray-600 mt-1">Manage your professional identity, verification documents, and clinical details.</p>
+        <!-- Profile Header Card (LinkedIn-style) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 h-32"></div>
+            <div class="px-8 pb-8 -mt-16">
+                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                    <div class="flex items-end gap-6">
+                        <!-- Avatar -->
+                        <div class="relative">
+                            @if($doctor->photo_url)
+                                <img src="{{ $doctor->photo_url }}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg">
+                            @else
+                                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center border-4 border-white shadow-lg">
+                                    <span class="text-4xl font-bold text-indigo-600">{{ substr($doctor->name, 0, 1) }}</span>
+                                </div>
+                            @endif
+                            <label for="avatar-upload-header" class="absolute bottom-0 right-0 w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg border-2 border-white">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </label>
+                            <input type="file" id="avatar-upload-header" name="photo" accept="image/*" class="hidden">
+                        </div>
+                        
+                        <!-- Name & Info -->
+                        <div class="pb-4">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $doctor->name }}</h1>
+                            <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                @if($doctor->specialization)
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <span class="font-semibold">{{ $doctor->specialization }}</span>
+                                </div>
+                                @endif
+                                @if($doctor->location)
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>{{ $doctor->location }}</span>
+                                </div>
+                                @endif
+                                @if($doctor->experience)
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>{{ $doctor->experience }} years experience</span>
+                                </div>
+                                @endif
+                            </div>
+                            
+                            <!-- Verification Badges -->
+                            <div class="flex flex-wrap items-center gap-2 mt-3">
+                                @if($doctor->is_approved)
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Verified Doctor
+                                </span>
+                                @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Pending Verification
+                                </span>
+                                @endif
+                                @if($doctor->insurance_document)
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Insurance Verified
+                                </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KYC Completion Progress -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide">KYC Completion</h3>
+                @php
+                    $kycItems = [
+                        'profile' => $doctor->first_name && $doctor->last_name && $doctor->email && $doctor->phone,
+                        'specialization' => !empty($doctor->specialization),
+                        'mdcn' => true, // Assuming MDCN is always verified if shown
+                        'insurance' => !empty($doctor->insurance_document),
+                    ];
+                    $kycComplete = count(array_filter($kycItems));
+                    $kycTotal = count($kycItems);
+                    $kycPercentage = ($kycComplete / $kycTotal) * 100;
+                @endphp
+                <span class="text-sm font-bold text-indigo-600">{{ $kycComplete }}/{{ $kycTotal }} Complete</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 h-3 rounded-full transition-all duration-500" style="width: {{ $kycPercentage }}%"></div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="flex items-center gap-2">
+                    @if($kycItems['profile'])
+                    <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    @else
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    @endif
+                    <span class="text-xs font-semibold {{ $kycItems['profile'] ? 'text-gray-900' : 'text-gray-500' }}">Profile Info</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if($kycItems['specialization'])
+                    <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    @else
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    @endif
+                    <span class="text-xs font-semibold {{ $kycItems['specialization'] ? 'text-gray-900' : 'text-gray-500' }}">Specialization</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if($kycItems['mdcn'])
+                    <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    @else
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    @endif
+                    <span class="text-xs font-semibold {{ $kycItems['mdcn'] ? 'text-gray-900' : 'text-gray-500' }}">MDCN License</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if($kycItems['insurance'])
+                    <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    @else
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    @endif
+                    <span class="text-xs font-semibold {{ $kycItems['insurance'] ? 'text-gray-900' : 'text-gray-500' }}">Insurance</span>
+                </div>
+            </div>
         </div>
 
         <!-- Success/Error Messages -->
@@ -43,24 +196,44 @@
             <div class="border-b border-gray-200 overflow-x-auto">
                 <nav class="flex -mb-px min-w-max">
                     <button @click="activeTab = 'basic-info'"
-                            :class="activeTab === 'basic-info' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
-                        Basic Info
+                            :class="activeTab === 'basic-info' ? 'border-indigo-600 text-indigo-600 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Basic Info
+                        </span>
                     </button>
                     <button @click="activeTab = 'professional'"
-                            :class="activeTab === 'professional' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
-                        Professional Details
+                            :class="activeTab === 'professional' ? 'border-indigo-600 text-indigo-600 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            Professional Details
+                        </span>
                     </button>
                     <button @click="activeTab = 'licenses'"
-                            :class="activeTab === 'licenses' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
-                        Licenses & KYC
+                            :class="activeTab === 'licenses' ? 'border-indigo-600 text-indigo-600 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            Licenses & KYC
+                        </span>
                     </button>
                     <button @click="activeTab = 'bank'"
-                            :class="activeTab === 'bank' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-colors">
-                        Bank Accounts
+                            :class="activeTab === 'bank' ? 'border-indigo-600 text-indigo-600 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'"
+                            class="px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+                            Bank Accounts
+                        </span>
                     </button>
                 </nav>
             </div>
@@ -185,10 +358,16 @@
 
                     <div class="col-span-1 md:col-span-3">
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Biography</label>
-                        <textarea name="bio" rows="5" maxlength="1000"
+                        <textarea name="bio" rows="5" maxlength="1000" x-data="{ charCount: {{ strlen(old('bio', $doctor->bio ?? '')) }} }" 
+                                  @input="charCount = $event.target.value.length"
                                   placeholder="Compassionate and detail-oriented medical doctor dedicated to providing accurate diagnosis, effective treatment, and patient-centered care. Committed to improving health outcomes through professionalism, empathy, and evidence-based practice."
                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">{{ old('bio', $doctor->bio) }}</textarea>
-                        <p class="text-xs text-gray-500 mt-1 text-right"><span x-text="$el.parentElement.previousElementSibling.value.length">0</span>/1000 characters</p>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="text-xs text-gray-500">Write a professional bio to help patients understand your expertise</p>
+                            <p class="text-xs font-semibold" :class="charCount > 900 ? 'text-amber-600' : 'text-gray-500'">
+                                <span x-text="charCount">0</span>/1000 characters
+                            </p>
+                        </div>
                     </div>
                 </div>
                 

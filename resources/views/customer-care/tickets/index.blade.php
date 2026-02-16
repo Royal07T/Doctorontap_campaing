@@ -108,7 +108,7 @@
                                 @endif
                                 <div>
                                     <div class="text-sm font-mono font-black text-slate-800">#{{ $ticket->ticket_number }}</div>
-                                    <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ $ticket->created_at->format('d M Y') }}</div>
+                            <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ $ticket->created_at->format('d M Y') }}</div>
                                 </div>
                             </div>
                         </td>

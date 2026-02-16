@@ -89,10 +89,45 @@
         </div>
     </div>
 
-    <!-- Tabs Navigation -->
+    <!-- Filters & Tabs -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Compact Filter Bar -->
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <form method="GET" action="{{ route('doctor.consultations') }}" class="flex flex-wrap items-center gap-3">
+                <div class="flex-1 min-w-[200px]">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" name="search" value="{{ request('search') }}" 
+                               placeholder="Search by patient name, email, or reference..."
+                               class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select name="payment_status" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                        <option value="">All Payments</option>
+                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
+                        <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Unpaid</option>
+                    </select>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                        </svg>
+                        Filter
+                    </button>
+                    @if(request('search') || request('payment_status'))
+                    <a href="{{ route('doctor.consultations') }}" class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                        Clear
+                    </a>
+                    @endif
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabs Navigation -->
         <div class="border-b border-gray-100 px-6">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
                 <a href="{{ route('doctor.consultations') }}"
                    class="{{ !request('status') ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm uppercase tracking-tight transition-colors">
                     All
@@ -129,11 +164,11 @@
         @if($consultations->count() > 0)
             <div class="divide-y divide-gray-100">
                 @foreach($consultations as $consultation)
-                <div class="p-6 hover:bg-gray-50/50 transition-colors">
+                <div class="p-6 hover:bg-indigo-50/30 transition-all duration-200 group" x-data="{ showActions: false }">
                     <div class="flex flex-col md:flex-row md:items-center gap-4">
                         <!-- Patient Info -->
                         <div class="flex items-center gap-4 flex-1 min-w-0">
-                            <div class="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 border-2 border-white shadow-sm flex-shrink-0">
+                            <div class="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 border-2 border-white shadow-sm flex-shrink-0 ring-2 ring-transparent group-hover:ring-indigo-200 transition-all">
                                 <div class="w-full h-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-lg font-bold">
                                     {{ substr($consultation->full_name, 0, 1) }}
                                 </div>
@@ -142,7 +177,7 @@
                                 <h4 class="text-sm font-bold text-gray-900 truncate">
                                     {{ $consultation->full_name }}
                                 </h4>
-                                <p class="text-xs text-gray-500 truncate">{{ $consultation->reference }}</p>
+                                <p class="text-xs text-gray-500 truncate font-mono">{{ $consultation->reference }}</p>
                             </div>
                         </div>
 
@@ -162,52 +197,67 @@
                             </div>
                         </div>
 
-                        <!-- Status Badge -->
-                        <div class="flex-shrink-0">
+                        <!-- Status & Payment Badges -->
+                        <div class="flex-shrink-0 flex items-center gap-2">
+                            <!-- Status Badge -->
                             @if($consultation->status === 'completed')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 uppercase tracking-widest border border-emerald-100">
-                                    Completed
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-widest border border-emerald-200 shadow-sm">
+                                    ✓ Completed
                                 </span>
                             @elseif($consultation->status === 'pending')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 uppercase tracking-widest border border-amber-100">
-                                    Pending
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest border border-amber-200 shadow-sm">
+                                    ⏳ Pending
+                                </span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold bg-red-100 text-red-700 uppercase tracking-wider border border-red-200 animate-pulse">
+                                    Patient Waiting
                                 </span>
                             @elseif($consultation->status === 'scheduled')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 uppercase tracking-widest border border-indigo-100">
-                                    Scheduled
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-widest border border-indigo-200 shadow-sm">
+                                    📅 Scheduled
                                 </span>
+                                @if($consultation->scheduled_at && $consultation->scheduled_at->isFuture() && $consultation->scheduled_at->diffInMinutes(now()) <= 60)
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">
+                                        Starts in {{ $consultation->scheduled_at->diffInMinutes(now()) }}m
+                                    </span>
+                                @endif
                             @elseif($consultation->status === 'cancelled')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 uppercase tracking-widest border border-rose-100">
-                                    Cancelled
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 uppercase tracking-widest border border-rose-200 shadow-sm">
+                                    ✕ Cancelled
                                 </span>
                             @endif
-                        </div>
 
-                        <!-- Payment Status -->
-                        <div class="flex-shrink-0">
+                            <!-- Payment Status Badge -->
                             @if($consultation->payment_status === 'paid')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 uppercase tracking-widest border border-emerald-100">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-wider border border-emerald-200">
                                     ✓ Paid
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 uppercase tracking-tight border border-rose-100">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold bg-rose-100 text-rose-700 uppercase tracking-wider border border-rose-200">
                                     Unpaid
                                 </span>
                             @endif
                         </div>
 
-                        <!-- Actions -->
-                        <div class="flex-shrink-0 flex items-center gap-2">
+                        <!-- Quick Actions (Visible on Hover) -->
+                        <div class="flex-shrink-0 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             <a href="{{ route('doctor.consultations.view', $consultation->id) }}" 
-                               class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-indigo-100 uppercase tracking-widest">
-                                View Details
-                            </a>
-                            
-                            <button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                               class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm hover:shadow-md">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
-                            </button>
+                                View
+                            </a>
+                            @if($consultation->status === 'pending' || $consultation->status === 'scheduled')
+                            <a href="{{ route('doctor.consultations.view', $consultation->id) }}" 
+                               class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm hover:shadow-md">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Start
+                            </a>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -222,22 +272,26 @@
             @endif
         @else
             <!-- Empty State -->
-            <div class="p-12 text-center">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4 border-2 border-gray-100">
-                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            <div class="p-16 text-center">
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 mb-6 border-4 border-indigo-100">
+                    <svg class="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                     </svg>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900 mb-2">No Consultations Found</h3>
-                <p class="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                <h3 class="text-xl font-bold text-gray-900 mb-3">No Consultations Found</h3>
+                <p class="text-sm text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
                     @if(request('status'))
-                        You don't have any {{ request('status') }} consultations yet.
+                        You don't have any <span class="font-semibold text-indigo-600">{{ request('status') }}</span> consultations at this time. 
+                        New consultations will appear here as patients book appointments.
                     @else
-                        You don't have any consultations yet. New patient consultations will appear here.
+                        You don't have any consultations yet. New patient consultations will appear here once they book appointments with you.
                     @endif
                 </p>
                 @if(request('status'))
-                    <a href="{{ route('doctor.consultations') }}" class="text-indigo-600 font-bold hover:underline text-sm uppercase tracking-widest">
+                    <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
                         View All Consultations
                     </a>
                 @endif
