@@ -661,6 +661,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     
     // Settings
     Route::get('/settings', [\App\Http\Controllers\CustomerCare\SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/change-password', [\App\Http\Controllers\CustomerCare\SettingsController::class, 'changePassword'])->name('settings.change-password');
     
     // Booking on Behalf
     Route::get('/booking/create', [\App\Http\Controllers\CustomerCare\BookingController::class, 'create'])->name('booking.create');
