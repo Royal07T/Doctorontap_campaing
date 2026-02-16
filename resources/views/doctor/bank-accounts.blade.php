@@ -68,53 +68,91 @@
                 <!-- Bank Accounts List -->
                 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     @forelse($bankAccounts as $account)
-                        <div class="bg-white rounded-xl shadow-sm p-5 border {{ $account->is_default ? 'border-purple-500 border-2' : 'border-gray-200' }} hover:shadow-md transition-all">
-                            <div class="flex justify-between items-start mb-3">
+                        <div class="bg-white rounded-xl shadow-sm p-5 border-2 {{ $account->is_default ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200' }} hover:shadow-lg transition-all relative">
+                            <!-- Security Badge -->
+                            @if($account->is_verified)
+                            <div class="absolute top-4 right-4">
+                                <div class="w-10 h-10 rounded-full bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center shadow-sm">
+                                    <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            <div class="flex justify-between items-start mb-3 pr-12">
                                 <div class="flex flex-wrap gap-1.5">
                                     @if($account->is_default)
-                                        <span class="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-semibold">DEFAULT</span>
+                                        <span class="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-bold uppercase tracking-wider border border-indigo-200">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                            </svg>
+                                            Default
+                                        </span>
                                     @endif
                                     @if($account->is_verified)
-                                        <span class="inline-block bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-semibold">✓ VERIFIED</span>
+                                        <span class="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full font-bold uppercase tracking-wider border border-emerald-200">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Verified
+                                        </span>
                                     @else
-                                        <span class="inline-block bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-semibold">PENDING</span>
+                                        <span class="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-bold uppercase tracking-wider border border-amber-200">
+                                            Pending
+                                        </span>
                                     @endif
                                 </div>
                             </div>
 
-                            <h3 class="text-sm font-bold text-gray-900 mb-3">{{ $account->bank_name }}</h3>
-                            <div class="space-y-1.5 text-xs text-gray-600 mb-4">
-                                <p><strong class="text-gray-700">Account Name:</strong> {{ $account->account_name }}</p>
-                                <p><strong class="text-gray-700">Account Number:</strong> 
-                                    <span x-data="{ showFull: false }">
-                                        <span x-show="!showFull" class="font-mono">{{ $account->masked_account_number }}</span>
-                                        <span x-show="showFull" class="font-mono">{{ $account->account_number }}</span>
-                                        <button @click="showFull = !showFull" class="ml-1.5 text-purple-600 hover:text-purple-800 text-xs font-semibold">
-                                            <span x-show="!showFull">Show</span>
-                                            <span x-show="showFull">Hide</span>
-                                        </button>
-                                    </span>
-                                </p>
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">{{ $account->bank_name }}</h3>
+                            <div class="space-y-3 text-sm mb-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Account Name</p>
+                                    <p class="text-sm font-semibold text-gray-900">{{ $account->account_name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Account Number</p>
+                                    <div class="flex items-center gap-2">
+                                        <span x-data="{ showFull: false }" class="flex items-center gap-2">
+                                            <span x-show="!showFull" class="font-mono text-sm font-bold text-gray-900">{{ $account->masked_account_number }}</span>
+                                            <span x-show="showFull" class="font-mono text-sm font-bold text-gray-900">{{ $account->account_number }}</span>
+                                            <button @click="showFull = !showFull" 
+                                                    class="px-2 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                </svg>
+                                                <span x-text="showFull ? 'Hide' : 'Show'"></span>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
                                 @if($account->account_type)
-                                    <p><strong class="text-gray-700">Account Type:</strong> {{ ucfirst($account->account_type) }}</p>
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Account Type</p>
+                                    <p class="text-sm text-gray-900">{{ ucfirst($account->account_type) }}</p>
+                                </div>
                                 @endif
                             </div>
 
                             @if($account->verified_at)
-                                <div class="mb-4 flex items-center text-[10px] text-emerald-600">
-                                    <svg class="w-2 h-2 mr-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                    </svg>
-                                    <span>Verified on {{ $account->verified_at->format('M d, Y') }}</span>
+                                <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                    <div class="flex items-center gap-2 text-xs text-emerald-700">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="font-semibold">Verified on {{ $account->verified_at->format('M d, Y') }}</span>
+                                    </div>
                                 </div>
                             @else
-                                <div class="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-                                    <div class="flex items-start">
-                                        <svg class="w-3.5 h-3.5 text-amber-600 mr-1.5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <div class="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                    <div class="flex items-start gap-2">
+                                        <svg class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                                         </svg>
                                         <div class="text-xs text-amber-800 leading-relaxed">
-                                            <p class="font-semibold mb-0.5">Pending Verification</p>
+                                            <p class="font-bold mb-1">Pending Verification</p>
                                             <p>Admin team is verifying your account. Usually takes less than 24 hours.</p>
                                         </div>
                                     </div>
@@ -138,8 +176,9 @@
                                       id="deleteForm{{ $account->id }}" class="flex-1">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="button" onclick="confirmDeleteBankAccount({{ $account->id }})" class="w-full inline-flex items-center justify-center gap-0.5 px-1.5 py-1 text-[9px] font-medium text-white bg-red-600 rounded hover:bg-red-700 transition">
-                                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <button type="button" onclick="confirmDeleteBankAccount({{ $account->id }})" 
+                                            class="w-full inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all shadow-sm hover:shadow-md">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>
                                         Delete
@@ -315,13 +354,21 @@
                                     alpineData.verifying = false;
                                     if (data.success) {
                                         alpineData.verified = true;
-                                        alpineData.verificationMessage = '✓ Account verified successfully!';
+                                        alpineData.verificationMessage = '✓ Account verified successfully via KoraPay!';
                                         alpineData.verifiedAccountName = data.data?.account_name || '';
                                         // Auto-fill account name
                                         const accountNameInput = form.querySelector('input[name="account_name"]');
                                         if (accountNameInput) {
                                             accountNameInput.value = data.data?.account_name || '';
                                         }
+                                        // Show success message
+                                        setTimeout(() => {
+                                            const successMsg = document.createElement('div');
+                                            successMsg.className = 'fixed top-4 right-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg shadow-lg z-50';
+                                            successMsg.innerHTML = '<div class="flex items-center gap-2"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span class="font-semibold">Account verified successfully!</span></div>';
+                                            document.body.appendChild(successMsg);
+                                            setTimeout(() => successMsg.remove(), 3000);
+                                        }, 100);
                                     } else {
                                         alpineData.verified = false;
                                         alpineData.verificationMessage = '✗ ' + data.message;

@@ -6,49 +6,44 @@
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50/30" x-data="{ activeFilter: '{{ request('category') ?? 'all' }}', searchOpen: false }">
     <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-        <!-- Animated Header with Gradient -->
-        <div class="relative overflow-hidden bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 rounded-3xl shadow-2xl p-8 md:p-10">
-            <!-- Decorative Elements -->
-            <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-            <div class="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full -ml-48 -mb-48 blur-3xl"></div>
-            
-            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <!-- Professional Header -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path>
                             </svg>
                         </div>
                         <div>
-                            <h1 class="text-3xl md:text-4xl font-black text-white">Doctor's Forum</h1>
-                            <p class="text-purple-100 text-sm md:text-base mt-1">Connect, discuss, and share medical knowledge with fellow professionals</p>
+                            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Doctor's Forum</h1>
+                            <p class="text-sm text-gray-600 mt-1">Connect, discuss, and share medical knowledge with fellow professionals</p>
                         </div>
                     </div>
                     
                     <!-- Live Stats -->
-                    <div class="flex flex-wrap items-center gap-4 mt-6">
-                        <div class="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <span class="text-white text-sm font-semibold">{{ \App\Models\ForumPost::published()->whereDate('created_at', today())->count() }} posts today</span>
+                    <div class="flex flex-wrap items-center gap-4 mt-4">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                            <span class="text-sm font-semibold text-gray-700">{{ \App\Models\ForumPost::published()->whereDate('created_at', today())->count() }} posts today</span>
                         </div>
-                        <div class="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                            <svg class="w-4 h-4 text-purple-200" fill="currentColor" viewBox="0 0 20 20">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                            <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
                             </svg>
-                            <span class="text-white text-sm font-semibold">{{ \App\Models\Doctor::where('is_approved', true)->count() }} active doctors</span>
+                            <span class="text-sm font-semibold text-gray-700">{{ \App\Models\Doctor::where('is_approved', true)->count() }} active doctors</span>
                         </div>
                     </div>
                 </div>
                 
                 <!-- CTA Button -->
                 <a href="{{ route('doctor.forum.create') }}" 
-                   class="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-purple-600 font-bold rounded-2xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
-                    <svg class="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     <span>Start Discussion</span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </a>
             </div>
         </div>
@@ -110,11 +105,11 @@
                         </div>
                     </div>
                     
-                    <!-- Category Pills with Animation -->
+                    <!-- Category Pills -->
                     <div class="px-6 pb-6">
                         <div class="flex flex-wrap gap-2">
                             <a href="{{ route('doctor.forum.index', ['sort' => request('sort')]) }}" 
-                               class="group px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 {{ !request('category') ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/50' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                               class="px-4 py-2 rounded-lg text-sm font-semibold transition-all {{ !request('category') ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                                 <span class="flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
@@ -124,10 +119,9 @@
                             </a>
                             @foreach($categories as $category)
                             <a href="{{ route('doctor.forum.index', ['category' => $category->slug, 'sort' => request('sort')]) }}" 
-                               class="group px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 {{ request('category') == $category->slug ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
-                               style="{{ request('category') == $category->slug ? 'background: linear-gradient(135deg, ' . $category->color . ' 0%, ' . $category->color . 'dd 100%); box-shadow: 0 8px 16px ' . $category->color . '40;' : '' }}">
+                               class="px-4 py-2 rounded-lg text-sm font-semibold transition-all {{ request('category') == $category->slug ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                                 <span class="flex items-center gap-2">
-                                    <span class="text-base">{{ $category->icon }}</span>
+                                    <span>{{ $category->icon }}</span>
                                     {{ $category->name }}
                                 </span>
                             </a>
@@ -172,7 +166,7 @@
                                 @endif
                             </p>
                             <a href="{{ route('doctor.forum.create') }}" 
-                               class="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-105">
+                               class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
@@ -195,41 +189,36 @@
 
             <!-- Enhanced Sidebar -->
             <div class="space-y-6">
-                <!-- Stats Card with Gradient -->
-                <div class="relative overflow-hidden bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-700 rounded-2xl shadow-xl p-6 text-white">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                    <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-                    
-                    <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-4">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
-                            </svg>
-                            <h3 class="text-sm font-bold opacity-90 uppercase tracking-wider">Forum Stats</h3>
+                <!-- Stats Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
+                        </svg>
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Forum Stats</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="text-sm font-medium text-gray-700">Total Posts</span>
+                            <span class="text-xl font-bold text-gray-900">{{ number_format(\App\Models\ForumPost::published()->count()) }}</span>
                         </div>
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                                <span class="text-sm font-medium">Total Posts</span>
-                                <span class="text-2xl font-black">{{ number_format(\App\Models\ForumPost::published()->count()) }}</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                                <span class="text-sm font-medium">Active Today</span>
-                                <span class="text-2xl font-black">{{ number_format(\App\Models\ForumPost::published()->whereDate('created_at', today())->count()) }}</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                                <span class="text-sm font-medium">Total Replies</span>
-                                <span class="text-2xl font-black">{{ number_format(\App\Models\ForumReply::count()) }}</span>
-                            </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="text-sm font-medium text-gray-700">Active Today</span>
+                            <span class="text-xl font-bold text-gray-900">{{ number_format(\App\Models\ForumPost::published()->whereDate('created_at', today())->count()) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="text-sm font-medium text-gray-700">Total Replies</span>
+                            <span class="text-xl font-bold text-gray-900">{{ number_format(\App\Models\ForumReply::count()) }}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Trending Topics with Fire Icon -->
+                <!-- Trending Topics -->
                 @if($trendingPosts->count() > 0)
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-shadow">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center gap-2 mb-5">
-                        <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"></path>
                             </svg>
                         </div>
@@ -238,13 +227,13 @@
                     <div class="space-y-4">
                         @foreach($trendingPosts as $index => $trending)
                         <a href="{{ route('doctor.forum.show', $trending->slug) }}" 
-                           class="block group">
+                           class="block group p-3 rounded-lg hover:bg-gray-50 transition-colors">
                             <div class="flex gap-3">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center font-bold text-purple-600 text-sm">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm">
                                     {{ $index + 1 }}
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="text-sm font-bold text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-2 mb-2">
+                                    <h4 class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2 mb-2">
                                         {{ $trending->title }}
                                     </h4>
                                     <div class="flex items-center gap-3 text-xs text-gray-500">
@@ -274,9 +263,9 @@
                 @endif
 
                 <!-- Forum Guidelines Card -->
-                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
                     <div class="flex items-center gap-2 mb-4">
-                        <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                             </svg>
@@ -285,25 +274,25 @@
                     </div>
                     <ul class="space-y-3">
                         <li class="flex items-start gap-3 text-sm text-blue-900">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
                             <span class="font-medium">Be respectful and professional</span>
                         </li>
                         <li class="flex items-start gap-3 text-sm text-blue-900">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
                             <span class="font-medium">Share evidence-based information</span>
                         </li>
                         <li class="flex items-start gap-3 text-sm text-blue-900">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
                             <span class="font-medium">Maintain patient confidentiality</span>
                         </li>
                         <li class="flex items-start gap-3 text-sm text-blue-900">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
                             <span class="font-medium">No promotional content</span>

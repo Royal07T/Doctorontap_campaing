@@ -8,6 +8,30 @@
 @endpush
 
 @section('content')
+                <!-- Financial Summary Bar -->
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 mb-6 text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold">Financial Summary</h2>
+                        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-100 uppercase tracking-wide mb-1">Total Earned</p>
+                            <p class="text-2xl font-black">₦{{ number_format($stats['total_paid'], 2) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-100 uppercase tracking-wide mb-1">Platform Fee (30%)</p>
+                            <p class="text-xl font-bold opacity-90">₦{{ number_format($stats['total_paid'] * 0.3, 2) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-indigo-100 uppercase tracking-wide mb-1">Your Net Earnings (70%)</p>
+                            <p class="text-2xl font-black">₦{{ number_format($stats['total_paid'] * 0.7, 2) }}</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
@@ -93,15 +117,15 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 mb-1">
                                                 <h3 class="text-sm font-semibold text-gray-900 font-mono">{{ $payment->reference }}</h3>
-                                                <span class="px-2 py-0.5 text-xs font-medium rounded-full
-                                                    @if($payment->status === 'completed') bg-emerald-100 text-emerald-700
-                                                    @elseif($payment->status === 'pending') bg-amber-100 text-amber-700
-                                                    @elseif($payment->status === 'failed') bg-red-100 text-red-700
-                                                    @else bg-blue-100 text-blue-700 @endif">
+                                                <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider
+                                                    @if($payment->status === 'completed') bg-emerald-100 text-emerald-700 border border-emerald-200
+                                                    @elseif($payment->status === 'pending') bg-amber-100 text-amber-700 border border-amber-200
+                                                    @elseif($payment->status === 'failed') bg-red-100 text-red-700 border border-red-200
+                                                    @else bg-blue-100 text-blue-700 border border-blue-200 @endif">
                                                     {{ ucfirst($payment->status) }}
                                                 </span>
                                             </div>
-                                            <p class="text-xs text-gray-600">₦{{ number_format($payment->doctor_amount, 2) }} • {{ $payment->created_at->format('M d, Y') }}</p>
+                                            <p class="text-xs text-gray-600 font-semibold">₦{{ number_format($payment->doctor_amount, 2) }} • {{ $payment->created_at->format('M d, Y') }}</p>
                                         </div>
                                     </div>
                                     <div class="flex-shrink-0 ml-4">
@@ -163,17 +187,26 @@
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payout Status</p>
                                         @if($payment->korapay_reference)
-                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                                    @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-700
-                                                    @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-700
-                                                    @else bg-blue-100 text-blue-700 @endif">
-                                                    {{ ucfirst($payment->korapay_status ?? 'processing') }}
-                                                </span>
-                                                @if($payment->payout_completed_at)
-                                                    <p class="text-xs text-emerald-600 mt-1">Completed: {{ $payment->payout_completed_at->format('M d, Y') }}</p>
-                                                @elseif($payment->payout_initiated_at)
-                                                    <p class="text-xs text-blue-600 mt-1">Initiated: {{ $payment->payout_initiated_at->format('M d, Y') }}</p>
-                                                @endif
+                                                <div class="space-y-2">
+                                                    <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider
+                                                        @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-700 border border-emerald-200
+                                                        @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-700 border border-red-200
+                                                        @else bg-blue-100 text-blue-700 border border-blue-200 @endif">
+                                                        {{ ucfirst($payment->korapay_status ?? 'processing') }}
+                                                    </span>
+                                                    @if($payment->payout_initiated_at)
+                                                    <div class="flex items-center gap-2 text-xs">
+                                                        <div class="w-2 h-2 rounded-full {{ $payment->payout_completed_at ? 'bg-emerald-500' : 'bg-blue-500 animate-pulse' }}"></div>
+                                                        <span class="text-gray-600">
+                                                            @if($payment->payout_completed_at)
+                                                                Completed: {{ $payment->payout_completed_at->format('M d, Y') }}
+                                                            @else
+                                                                Processing since {{ $payment->payout_initiated_at->format('M d, Y') }}
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                    @endif
+                                                </div>
                                         @else
                                                 <p class="text-xs text-gray-400">Not initiated</p>
                                         @endif
