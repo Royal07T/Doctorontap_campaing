@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CustomerCare;
 use App\Http\Controllers\Controller;
 use App\Models\Patient;
 use App\Models\Doctor;
+use App\Models\CommunicationTemplate;
 use App\Services\VonageService;
 use App\Mail\CustomCommunication;
 use Illuminate\Http\Request;
@@ -22,7 +23,27 @@ class CommunicationController extends Controller
     }
 
     /**
-     * Send communication (SMS, WhatsApp, or Email)
+     * Get available templates for a channel
+     */
+    public function getTemplates(Request $request)
+    {
+        $request->validate([
+            'channel' => 'required|in:sms,whatsapp,email',
+        ]);
+
+        $templates = CommunicationTemplate::active()
+            ->byChannel($request->channel)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'templates' => $templates,
+        ]);
+    }
+
+    /**
+     * Send communication using template (NO FREE TEXT ALLOWED)
      */
     public function send(Request $request)
     {
@@ -30,9 +51,23 @@ class CommunicationController extends Controller
             'user_id' => 'required',
             'user_type' => 'required|in:patient,doctor',
             'channel' => 'required|in:sms,whatsapp,email',
-            'message' => 'required|string',
-            'subject' => 'required_if:channel,email|string|max:255',
+            'template_id' => 'required|exists:communication_templates,id',
         ]);
+
+        $agent = auth()->guard('customer_care')->user();
+
+        // Get template
+        $template = CommunicationTemplate::active()
+            ->byChannel($request->channel)
+            ->findOrFail($request->template_id);
+
+        // Verify template channel matches
+        if ($template->channel !== $request->channel) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Template channel mismatch'
+            ], 400);
+        }
 
         $user = null;
         if ($request->user_type === 'patient') {
@@ -42,6 +77,18 @@ class CommunicationController extends Controller
         }
 
         try {
+            // Replace template variables
+            $messageData = [
+                'first_name' => $user->first_name ?? $user->name ?? 'Valued Customer',
+                'last_name' => $user->last_name ?? '',
+                'name' => $user->name ?? ($user->first_name ?? 'Customer'),
+                'email' => $user->email ?? '',
+                'phone' => $user->phone ?? '',
+            ];
+
+            $message = $template->replaceVariables($messageData);
+            $subject = $template->replaceVariablesInSubject($messageData);
+
             $status = 'pending';
             $error = null;
             $messageId = null;
@@ -52,9 +99,10 @@ class CommunicationController extends Controller
                 'doctor_id' => $request->user_type === 'doctor' ? $user->id : null,
                 'type' => $request->channel,
                 'direction' => 'outbound',
-                'content' => $request->message,
+                'content' => $message,
                 'status' => 'pending',
-                'created_by' => auth()->guard('customer_care')->user()->user_id ?? null,
+                'template_id' => $template->id,
+                'created_by' => $agent->user_id ?? $agent->id,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -62,17 +110,17 @@ class CommunicationController extends Controller
             $result = ['success' => false, 'message' => 'Invalid channel'];
 
             if ($request->channel === 'email') {
-                Mail::to($user->email)->send(new CustomCommunication($request->message, $request->subject));
+                Mail::to($user->email)->send(new CustomCommunication($message, $subject ?? 'Message from DoctorOnTap'));
                 $result = ['success' => true, 'message' => 'Email sent successfully'];
             } elseif ($request->channel === 'sms') {
                 if ($this->vonageService) {
-                    $result = $this->vonageService->sendSMS($user->phone, $request->message);
+                    $result = $this->vonageService->sendSMS($user->phone, $message);
                 } else {
                     $result = ['success' => false, 'message' => 'SMS service not available'];
                 }
             } elseif ($request->channel === 'whatsapp') {
                 if ($this->vonageService) {
-                    $result = $this->vonageService->sendWhatsAppMessage($user->phone, $request->message);
+                    $result = $this->vonageService->sendWhatsAppMessage($user->phone, $message);
                 } else {
                     $result = ['success' => false, 'message' => 'WhatsApp service not available'];
                 }
@@ -94,6 +142,19 @@ class CommunicationController extends Controller
                 'sent_at' => $status === 'sent' ? now() : null,
                 'failed_at' => $status === 'failed' ? now() : null,
                 'updated_at' => now()
+            ]);
+
+            // Audit log
+            Log::info('Communication sent via template', [
+                'template_id' => $template->id,
+                'template_name' => $template->name,
+                'channel' => $request->channel,
+                'user_id' => $user->id,
+                'user_type' => $request->user_type,
+                'agent_id' => $agent->id,
+                'agent_name' => $agent->name,
+                'status' => $status,
+                'action' => 'communication_sent_template',
             ]);
 
             return response()->json($result);

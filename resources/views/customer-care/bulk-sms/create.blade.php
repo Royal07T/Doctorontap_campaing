@@ -56,9 +56,9 @@
                     <option value="">-- Select a template (optional) --</option>
                     @foreach($templates as $template)
                         <option value="{{ $template->id }}" 
-                            data-content="{{ addslashes($template->content) }}"
-                            data-variables="{{ json_encode($template->variables) }}">
-                            {{ $template->name }} ({{ ucfirst($template->category) }})
+                            data-content="{{ addslashes($template->body) }}"
+                            data-variables="{{ json_encode($template->variables ?? []) }}">
+                            {{ $template->name }}
                         </option>
                     @endforeach
                 </select>

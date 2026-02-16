@@ -96,6 +96,14 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get all prospects created by this agent
+     */
+    public function prospects(): HasMany
+    {
+        return $this->hasMany(Prospect::class, 'created_by');
+    }
+
+    /**
      * Get the email address that should be used for verification
      * Prefers user email (source of truth) if user relationship exists
      */

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\CustomerCare;
 
 use App\Http\Controllers\Controller;
-use App\Models\SmsTemplate;
+use App\Models\CommunicationTemplate;
 use App\Models\SmsCampaign;
 use App\Models\Patient;
 use App\Services\TermiiService;
@@ -34,7 +34,7 @@ class BulkSmsController extends Controller
      */
     public function index()
     {
-        $templates = SmsTemplate::active()->orderBy('name')->get();
+        $templates = CommunicationTemplate::active()->byChannel('sms')->orderBy('name')->get();
         
         // Get recent campaigns by this customer care
         $campaigns = SmsCampaign::with('template')
@@ -63,7 +63,7 @@ class BulkSmsController extends Controller
      */
     public function create()
     {
-        $templates = SmsTemplate::active()->orderBy('name')->get();
+        $templates = CommunicationTemplate::active()->byChannel('sms')->orderBy('name')->get();
         
         return view('customer-care.bulk-sms.create', compact('templates'));
     }
@@ -74,19 +74,22 @@ class BulkSmsController extends Controller
     public function preview(Request $request)
     {
         $request->validate([
-            'template_id' => 'required|exists:sms_templates,id',
+            'template_id' => 'required|exists:communication_templates,id',
             'variables' => 'nullable|array',
         ]);
 
-        $template = SmsTemplate::findOrFail($request->template_id);
+        $template = CommunicationTemplate::where('id', $request->template_id)
+            ->where('channel', 'sms')
+            ->firstOrFail();
         $preview = $template->render($request->variables ?? []);
+        $content = $template->body;
 
         return response()->json([
             'success' => true,
             'preview' => $preview,
             'length' => strlen($preview),
-            'variables' => $template->variables,
-            'content' => $template->content,
+            'variables' => $template->variables ?? [],
+            'content' => $content,
         ]);
     }
 
@@ -133,7 +136,7 @@ class BulkSmsController extends Controller
     {
         $request->validate([
             'campaign_name' => 'required|string|max:255',
-            'template_id' => 'nullable|exists:sms_templates,id',
+            'template_id' => 'nullable|exists:communication_templates,id',
             'message' => 'required|string|max:1000',
             'recipients' => 'required|array|min:1',
             'recipients.*' => 'required|string', // Phone numbers
@@ -155,8 +158,8 @@ class BulkSmsController extends Controller
 
             // Increment template usage if template was used
             if ($request->template_id) {
-                $template = SmsTemplate::find($request->template_id);
-                $template?->incrementUsage();
+                $template = CommunicationTemplate::find($request->template_id);
+                // Note: CommunicationTemplate doesn't have usage_count, but we keep this for future compatibility
             }
 
             DB::commit();

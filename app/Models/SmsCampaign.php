@@ -49,7 +49,7 @@ class SmsCampaign extends Model
      */
     public function template(): BelongsTo
     {
-        return $this->belongsTo(SmsTemplate::class, 'template_id');
+        return $this->belongsTo(CommunicationTemplate::class, 'template_id');
     }
 
     /**

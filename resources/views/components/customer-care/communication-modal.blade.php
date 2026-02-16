@@ -5,22 +5,31 @@
         title: '',
         message: ''
     },
-    messageText: '',
-    templates: {
-        greeting: 'Hello {{ $userName }}, thank you for contacting DoctorOnTap. How can I assist you today?',
-        followup: 'Hello {{ $userName }}, I wanted to follow up on your recent consultation. Is there anything else you need help with?'
-    },
+    selectedTemplateId: '',
+    templates: [],
+    selectedTemplate: null,
     showNotification(type, title, message) {
         this.notification = { show: true, type, title, message };
         setTimeout(() => this.notification.show = false, 4000);
     },
-    useTemplate(templateKey) {
-        this.messageText = this.templates[templateKey] || '';
-        const textarea = $el.querySelector('textarea[name=message]');
-        if (textarea) {
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    async loadTemplates(channel) {
+        try {
+            const response = await fetch(`{{ route('customer-care.communications.templates') }}?channel=${channel}`, {
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                this.templates = data.templates || [];
+            }
+        } catch (error) {
+            console.error('Error loading templates:', error);
         }
+    },
+    selectTemplate() {
+        this.selectedTemplate = this.templates.find(t => t.id == this.selectedTemplateId);
     }
 }">
     <!-- Custom Notification Toast -->
@@ -142,17 +151,21 @@
                 $el.querySelector('button[type=submit]').disabled = true;
                 $el.querySelector('button[type=submit]').innerText = 'TRANSMITTING...';
 
+                // Ensure template_id is included
+                const formData = {
+                        template_id: data.template_id,
+                        channel: data.channel,
+                        user_id: {{ $userId }},
+                        user_type: '{{ $userType }}'
+                    };
+
                 fetch('{{ route('customer-care.communications.send') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({
-                        ...data,
-                        user_id: {{ $userId }},
-                        user_type: '{{ $userType }}'
-                    })
+                    body: JSON.stringify(formData)
                 })
                 .then(res => res.json())
                 .then(res => {
@@ -195,27 +208,31 @@
                         </div>
                     </label>
 
-                    <div x-show="selectedChannel === 'email'" x-transition class="space-y-4">
+                    <div x-show="selectedChannel === 'email' && selectedTemplate" x-transition class="space-y-4">
                         <label class="block">
                             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Email Subject</span>
-                            <input type="text" name="subject" value="Regarding your DoctorOnTap status" class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-emerald-50 transition-all outline-none">
+                            <input type="text" :value="selectedTemplate?.subject || ''" readonly class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-600">
                         </label>
                     </div>
 
                     <label class="block">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Message Body</span>
-                            <div class="flex items-center space-x-2">
-                                <button type="button" @click="useTemplate('greeting')" class="text-[9px] font-bold text-purple-600 hover:text-purple-800 uppercase tracking-widest">Quick: Greeting</button>
-                                <button type="button" @click="useTemplate('followup')" class="text-[9px] font-bold text-purple-600 hover:text-purple-800 uppercase tracking-widest">Quick: Follow-up</button>
-                            </div>
-                        </div>
-                        <textarea name="message" x-model="messageText" rows="4" required class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-emerald-50 transition-all outline-none resize-none" placeholder="Enter your personalized message here..."></textarea>
-                        <div class="mt-2 flex items-center justify-between text-[9px] text-slate-400">
-                            <span>Tip: Use quick templates above for faster messaging</span>
-                            <span x-text="messageText ? messageText.length + ' characters' : ''"></span>
-                        </div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Select Template *</span>
+                        <select name="template_id" x-model="selectedTemplateId" @change="selectTemplate()" @click="loadTemplates(selectedChannel)" required
+                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-emerald-50 transition-all outline-none">
+                            <option value="">Choose a template...</option>
+                            <template x-for="template in templates" :key="template.id">
+                                <option :value="template.id" x-text="template.name"></option>
+                            </template>
+                        </select>
+                        <p class="mt-2 text-[9px] text-slate-500">Only pre-approved templates can be used. Free text messaging is not allowed.</p>
                     </label>
+
+                    <div x-show="selectedTemplate" x-transition class="space-y-4">
+                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Template Preview</p>
+                            <div class="text-sm text-gray-900 whitespace-pre-wrap" x-text="selectedTemplate?.body || ''"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="w-full py-5 bg-slate-800 text-white rounded-2xl text-[12px] font-bold uppercase tracking-normal hover:bg-slate-900 transition-all shadow-xl shadow-slate-200">

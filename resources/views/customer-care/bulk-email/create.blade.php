@@ -92,13 +92,9 @@
                                         <div class="flex items-start justify-between">
                                             <div>
                                                 <span class="block text-base font-bold text-gray-900">{{ $template->name }}</span>
-                                                <span class="block text-sm text-gray-600 mt-1">{{ $template->subject }}</span>
-                                                @if($template->description)
-                                                    <span class="block text-xs text-gray-500 mt-2">{{ Str::limit($template->description, 60) }}</span>
+                                                @if($template->subject)
+                                                    <span class="block text-sm text-gray-600 mt-1">{{ $template->subject }}</span>
                                                 @endif
-                                                <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-800 mt-3">
-                                                    {{ ucfirst($template->category) }}
-                                                </span>
                                             </div>
                                         </div>
                                         <button type="button" @click.prevent="previewTemplate({{ $template->id }})"

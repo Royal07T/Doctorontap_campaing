@@ -57,7 +57,7 @@ class EmailCampaign extends Model
      */
     public function template(): BelongsTo
     {
-        return $this->belongsTo(EmailTemplate::class, 'template_id');
+        return $this->belongsTo(CommunicationTemplate::class, 'template_id');
     }
 
     /**

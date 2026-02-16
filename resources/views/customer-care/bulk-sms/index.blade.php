@@ -102,18 +102,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($templates as $template)
                         <div class="p-5 border-2 border-slate-100 rounded-2xl hover:border-purple-300 hover:shadow-lg transition-all cursor-pointer"
-                            onclick="selectTemplate({{ $template->id }}, '{{ addslashes($template->name) }}', '{{ addslashes($template->content) }}')">
+                            onclick="selectTemplate({{ $template->id }}, '{{ addslashes($template->name) }}', '{{ addslashes($template->body) }}')">
                             <div class="flex items-start justify-between mb-3">
-                                <span class="px-3 py-1 text-xs font-bold rounded-full {{ 
-                                    $template->category == 'marketing' ? 'bg-blue-100 text-blue-800' : 
-                                    ($template->category == 'promotional' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800') 
-                                }}">
-                                    {{ ucfirst($template->category) }}
+                                <span class="px-3 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-800">
+                                    SMS
                                 </span>
-                                <span class="text-xs text-slate-500">Used {{ $template->usage_count }}x</span>
                             </div>
                             <h3 class="font-bold text-slate-800 mb-2">{{ $template->name }}</h3>
-                            <p class="text-sm text-slate-600 line-clamp-3">{{ $template->content }}</p>
+                            <p class="text-sm text-slate-600 line-clamp-3">{{ $template->body }}</p>
                         </div>
                     @endforeach
                 </div>

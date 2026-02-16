@@ -7,9 +7,9 @@ use App\Models\Consultation;
 use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\CustomerCare;
-use App\Models\CustomerInteraction;
 use App\Models\SupportTicket;
 use App\Models\Review;
+use App\Models\Prospect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,18 +29,14 @@ class DashboardController extends Controller
         $stats = $this->getStatisticsWithTrends($customerCare->id);
 
         // Get Customer Care Module statistics
-        $interactionService = app(\App\Services\CustomerInteractionService::class);
         $ticketService = app(\App\Services\SupportTicketService::class);
         $escalationService = app(\App\Services\EscalationService::class);
 
         $customerCareStats = [
-            'active_interactions' => \App\Models\CustomerInteraction::where('agent_id', $customerCare->id)
-                ->where('status', 'active')->count(),
             'pending_tickets' => \App\Models\SupportTicket::where('agent_id', $customerCare->id)
                 ->where('status', 'pending')->count(),
             'resolved_tickets_today' => $ticketService->getResolvedTodayCount($customerCare->id),
             'escalated_cases' => $escalationService->getEscalatedCasesCount($customerCare->id),
-            'avg_response_time' => $interactionService->getAverageResponseTime($customerCare->id),
         ];
 
         // Get recent consultations - Show all consultations (customer care can manage all)
@@ -48,13 +44,6 @@ class DashboardController extends Controller
                                           ->latest()
                                           ->limit(10)
                                           ->get();
-
-        // Get recent interactions
-        $recentInteractions = \App\Models\CustomerInteraction::where('agent_id', $customerCare->id)
-            ->with(['user'])
-            ->latest()
-            ->limit(5)
-            ->get();
 
         // Get recent tickets
         $recentTickets = \App\Models\SupportTicket::where('agent_id', $customerCare->id)
@@ -80,19 +69,22 @@ class DashboardController extends Controller
         
         // Get priority queue items (urgent items needing attention)
         $priorityQueue = $this->getPriorityQueue($customerCare->id);
+        
+        // Get pipeline metrics
+        $pipelineMetrics = $this->getPipelineMetrics($customerCare->id);
 
         return view('customer-care.dashboard-enhanced', compact(
             'stats',
             'customerCareStats',
             'recentConsultations',
-            'recentInteractions',
             'recentTickets',
             'kpiMetrics',
             'queueData',
             'teamStatus',
             'performanceMetrics',
             'activityFeed',
-            'priorityQueue'
+            'priorityQueue',
+            'pipelineMetrics'
         ));
     }
     
@@ -203,12 +195,6 @@ class DashboardController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->limit(5)
                 ->get(),
-            'active_interactions' => \App\Models\CustomerInteraction::where('agent_id', $agentId)
-                ->where('status', 'active')
-                ->with(['user'])
-                ->orderBy('created_at', 'asc')
-                ->limit(5)
-                ->get(),
         ];
     }
     
@@ -228,8 +214,7 @@ class DashboardController extends Controller
                 'tickets_resolved' => SupportTicket::where('agent_id', $agentId)
                     ->where('status', 'resolved')
                     ->whereDate('updated_at', $today)->count(),
-                'interactions' => CustomerInteraction::where('agent_id', $agentId)
-                    ->whereDate('created_at', $today)->count(),
+                'prospects' => \App\Models\Prospect::whereDate('created_at', $today)->count(),
             ],
             'yesterday' => [
                 'consultations' => Consultation::whereDate('created_at', $yesterday)->count(),
@@ -443,12 +428,9 @@ class DashboardController extends Controller
      */
     private function calculateAvgHandleTime($agentId)
     {
-        $avgMinutes = CustomerInteraction::where('agent_id', $agentId)
-            ->whereNotNull('ended_at')
-            ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, started_at, ended_at)) as avg_time'))
-            ->value('avg_time');
-            
-        return round($avgMinutes ?? 0);
+        // Average handle time calculation removed (interactions feature deprecated)
+        // Can be replaced with ticket resolution time if needed
+        return 0;
     }
     
     /**
@@ -478,6 +460,57 @@ class DashboardController extends Controller
         // Round up to nearest 5, minimum 10
         $target = ceil(($avgDaily ?? 10) / 5) * 5;
         return max($target, 10);
+    }
+    
+    /**
+     * Get pipeline metrics for Customer Care
+     */
+    private function getPipelineMetrics($agentId)
+    {
+        // Total Prospects (all prospects, not just by this agent)
+        $totalProspects = Prospect::count();
+        
+        // Conversion Rate = (Converted Prospects / Total Prospects) * 100
+        $convertedProspects = Prospect::where('status', 'Converted')->count();
+        $conversionRate = $totalProspects > 0 
+            ? round(($convertedProspects / $totalProspects) * 100, 1) 
+            : 0;
+        
+        // Revenue from CS Bookings (consultations booked by customer service)
+        $csBookings = Consultation::where('booked_by_customer_service', true)
+            ->where('booked_by_agent_id', $agentId)
+            ->where('status', 'completed')
+            ->where('payment_status', 'paid')
+            ->with('payment')
+            ->get();
+        
+        $revenueFromCSBookings = $csBookings->sum(function($consultation) {
+            return $consultation->payment->amount ?? 0;
+        });
+        
+        // Average Response Time (for tickets assigned to this agent)
+        $resolvedTickets = SupportTicket::where('agent_id', $agentId)
+            ->where('status', 'resolved')
+            ->whereNotNull('resolved_at')
+            ->get();
+        
+        $avgResponseTime = 0;
+        if ($resolvedTickets->count() > 0) {
+            $totalMinutes = $resolvedTickets->sum(function($ticket) {
+                return Carbon::parse($ticket->created_at)
+                    ->diffInMinutes(Carbon::parse($ticket->resolved_at));
+            });
+            $avgResponseTime = round($totalMinutes / $resolvedTickets->count(), 1);
+        }
+        
+        return [
+            'total_prospects' => $totalProspects,
+            'conversion_rate' => $conversionRate,
+            'revenue_from_cs_bookings' => $revenueFromCSBookings,
+            'avg_response_time' => $avgResponseTime,
+            'converted_prospects' => $convertedProspects,
+            'cs_bookings_count' => $csBookings->count(),
+        ];
     }
     
     /**

@@ -108,8 +108,19 @@
         </div>
     </div>
 
+    <!-- Quick Actions -->
+    <div class="mb-6 flex items-center justify-end">
+        <button onclick="openQuickAddModal()" 
+                class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            + Quick Add Prospect
+        </button>
+    </div>
+
     <!-- Priority Queue - What Needs Attention Now -->
-    @if($priorityQueue['urgent_consultations']->count() > 0 || $priorityQueue['unpaid_consultations']->count() > 0 || $priorityQueue['active_tickets']->count() > 0 || $priorityQueue['active_interactions']->count() > 0)
+    @if($priorityQueue['urgent_consultations']->count() > 0 || $priorityQueue['unpaid_consultations']->count() > 0 || $priorityQueue['active_tickets']->count() > 0)
     <div class="clean-card p-6 mb-8 border-l-4 border-l-rose-500 animate-slide-up">
         <div class="flex items-center justify-between mb-6">
             <div>
@@ -120,7 +131,7 @@
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Items needing immediate attention</p>
             </div>
             <span class="px-4 py-1.5 bg-rose-100 text-rose-700 text-[10px] font-black rounded-full uppercase tracking-widest">
-                {{ $priorityQueue['urgent_consultations']->count() + $priorityQueue['unpaid_consultations']->count() + $priorityQueue['active_tickets']->count() + $priorityQueue['active_interactions']->count() }} Items
+                {{ $priorityQueue['urgent_consultations']->count() + $priorityQueue['unpaid_consultations']->count() + $priorityQueue['active_tickets']->count() }} Items
             </span>
         </div>
         
@@ -167,19 +178,6 @@
             </div>
             @endif
             
-            @if($priorityQueue['active_interactions']->count() > 0)
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-black text-blue-800 uppercase tracking-widest">Active Interactions</span>
-                    <span class="text-lg font-black text-blue-600">{{ $priorityQueue['active_interactions']->count() }}</span>
-                </div>
-                <p class="text-[10px] font-bold text-blue-700 mb-3">In progress</p>
-                <a href="{{ route('customer-care.interactions.index', ['status' => 'active']) }}" class="text-xs font-black text-blue-700 hover:text-blue-900 uppercase tracking-widest flex items-center space-x-1">
-                    <span>View All</span>
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
-                </a>
-            </div>
-            @endif
         </div>
     </div>
     @endif
@@ -261,9 +259,75 @@
                     <p class="text-lg font-black text-blue-600">{{ $kpiMetrics['today']['tickets_resolved'] }}</p>
                     <p class="text-xs text-slate-600">Resolved</p>
                 </div>
-                <div class="text-center p-3 bg-purple-50 rounded-xl">
-                    <p class="text-lg font-black text-purple-600">{{ $kpiMetrics['today']['interactions'] }}</p>
-                    <p class="text-xs text-slate-600">Interactions</p>
+            </div>
+        </div>
+
+        <!-- Pipeline Metrics -->
+        <div class="clean-card p-6">
+            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
+                <span>Pipeline Metrics</span>
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-indigo-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Prospects</p>
+                            <p class="text-xl font-black text-slate-800">{{ $pipelineMetrics['total_prospects'] ?? 0 }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-green-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Conversion Rate</p>
+                            <p class="text-xl font-black text-slate-800">{{ $pipelineMetrics['conversion_rate'] ?? 0 }}%</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">{{ $pipelineMetrics['converted_prospects'] ?? 0 }} converted</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-purple-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">CS Revenue</p>
+                            <p class="text-xl font-black text-slate-800">₦{{ number_format($pipelineMetrics['revenue_from_cs_bookings'] ?? 0, 2) }}</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">{{ $pipelineMetrics['cs_bookings_count'] ?? 0 }} bookings</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-teal-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Avg Response Time</p>
+                            <p class="text-xl font-black text-slate-800">{{ $pipelineMetrics['avg_response_time'] ?? 0 }}m</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Ticket resolution</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -536,10 +600,10 @@ function dashboardApp() {
                 e.preventDefault();
                 window.location.href = '{{ route("customer-care.tickets.create") }}';
             }
-            // Ctrl+I - New Interaction
-            else if (e.ctrlKey && e.key === 'i') {
+            // Ctrl+P - New Prospect
+            else if (e.ctrlKey && e.key === 'p') {
                 e.preventDefault();
-                window.location.href = '{{ route("customer-care.interactions.create") }}';
+                window.location.href = '{{ route("customer-care.prospects.create") }}';
             }
             // Ctrl+C - Consultations
             else if (e.ctrlKey && e.key === 'c') {
@@ -901,6 +965,111 @@ function dashboardApp() {
         }
     }
 }
+
+// Quick Add Prospect Modal Functions
+function openQuickAddModal() {
+    document.getElementById('quickAddModal').classList.remove('hidden');
+}
+
+function closeQuickAddModal() {
+    document.getElementById('quickAddModal').classList.add('hidden');
+    const form = document.getElementById('quickAddForm');
+    if (form) {
+        form.reset();
+    }
+}
+
+// Close modal on outside click
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('quickAddModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeQuickAddModal();
+            }
+        });
+    }
+});
 </script>
+
+<!-- Quick Add Prospect Modal -->
+<div id="quickAddModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Quick Add Prospect</h3>
+                <button onclick="closeQuickAddModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-3 mb-4 rounded">
+                <p class="text-xs text-amber-800 font-semibold">No account will be created. This is a silent lead capture.</p>
+            </div>
+
+            <form method="POST" action="{{ route('customer-care.prospects.store') }}" id="quickAddForm">
+                @csrf
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">First Name *</label>
+                            <input type="text" name="first_name" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Last Name *</label>
+                            <input type="text" name="last_name" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Mobile Number *</label>
+                        <input type="tel" name="mobile_number" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Email (Optional)</label>
+                        <input type="email" name="email"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Location</label>
+                        <input type="text" name="location"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Source</label>
+                        <select name="source" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Select source</option>
+                            <option value="call">Call</option>
+                            <option value="booth">Booth</option>
+                            <option value="referral">Referral</option>
+                            <option value="website">Website</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Notes</label>
+                        <textarea name="notes" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeQuickAddModal()" 
+                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
+                        Save Prospect (No Account Created)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endpush
 

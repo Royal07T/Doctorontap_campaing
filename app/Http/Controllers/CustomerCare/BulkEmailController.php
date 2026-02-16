@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\CustomerCare;
 
 use App\Http\Controllers\Controller;
-use App\Models\EmailTemplate;
+use App\Models\CommunicationTemplate;
 use App\Models\EmailCampaign;
 use App\Models\Patient;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class BulkEmailController extends Controller
      */
     public function index()
     {
-        $templates = EmailTemplate::active()->orderBy('name')->get();
+        $templates = CommunicationTemplate::active()->byChannel('email')->orderBy('name')->get();
         
         // Get recent campaigns by this customer care
         $campaigns = EmailCampaign::with('template')
@@ -54,7 +54,7 @@ class BulkEmailController extends Controller
      */
     public function create()
     {
-        $templates = EmailTemplate::active()->orderBy('name')->get();
+        $templates = CommunicationTemplate::active()->byChannel('email')->orderBy('name')->get();
         
         return view('customer-care.bulk-email.create', compact('templates'));
     }
@@ -65,19 +65,21 @@ class BulkEmailController extends Controller
     public function preview(Request $request)
     {
         $request->validate([
-            'template_id' => 'required|exists:email_templates,id',
+            'template_id' => 'required|exists:communication_templates,id',
             'variables' => 'nullable|array',
         ]);
 
-        $template = EmailTemplate::findOrFail($request->template_id);
+        $template = CommunicationTemplate::where('id', $request->template_id)
+            ->where('channel', 'email')
+            ->firstOrFail();
         $rendered = $template->render($request->variables ?? []);
 
         return response()->json([
             'success' => true,
-            'subject' => $rendered['subject'],
-            'content' => $rendered['content'],
-            'plain_text' => $rendered['plain_text'],
-            'variables' => $template->variables,
+            'subject' => $rendered['subject'] ?? '',
+            'content' => $rendered['content'] ?? '',
+            'plain_text' => $rendered['plain_text'] ?? '',
+            'variables' => $template->variables ?? [],
         ]);
     }
 
@@ -124,7 +126,7 @@ class BulkEmailController extends Controller
     {
         $request->validate([
             'campaign_name' => 'required|string|max:255',
-            'template_id' => 'nullable|exists:email_templates,id',
+            'template_id' => 'nullable|exists:communication_templates,id',
             'subject' => 'required|string|max:255',
             'content_hidden' => 'required|string',
             'plain_text_content' => 'nullable|string',
@@ -170,8 +172,8 @@ class BulkEmailController extends Controller
 
             // Increment template usage if template was used
             if ($request->template_id) {
-                $template = EmailTemplate::find($request->template_id);
-                $template?->incrementUsage();
+                $template = CommunicationTemplate::find($request->template_id);
+                // Note: CommunicationTemplate doesn't have usage_count, but we keep this for future compatibility
             }
 
             DB::commit();

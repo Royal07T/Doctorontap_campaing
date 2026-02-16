@@ -149,4 +149,12 @@ class AdminUser extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ActivityLog::class, 'user_id')
                     ->where('user_type', 'admin');
     }
+
+    /**
+     * Get communication templates created by this admin
+     */
+    public function communicationTemplates()
+    {
+        return $this->hasMany(CommunicationTemplate::class, 'created_by');
+    }
 }

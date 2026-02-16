@@ -21,6 +21,17 @@
     </div>
     @endif
 
+    <!-- Quick Actions -->
+    <div class="mb-6 flex items-center justify-end">
+        <button onclick="openQuickAddModal()" 
+                class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            + Quick Add Prospect
+        </button>
+    </div>
+
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">
         <div class="clean-card p-6 border-l-4 border-l-purple-600 hover:shadow-lg transition-all duration-300 group cursor-pointer">
@@ -99,9 +110,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                     </div>
-                    <span class="text-xs font-bold text-slate-400">Interactions</span>
+                    <span class="text-xs font-bold text-slate-400">Prospects</span>
                 </div>
-                <p class="text-2xl font-black text-slate-800">{{ $customerCareStats['active_interactions'] ?? 0 }}</p>
+                <p class="text-2xl font-black text-slate-800">{{ \App\Models\Prospect::where('status', 'New')->count() }}</p>
                 <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Currently Active</p>
             </div>
 
@@ -155,6 +166,73 @@
                 </div>
                 <p class="text-2xl font-black text-slate-800">{{ $customerCareStats['avg_response_time'] ?? 0 }}m</p>
                 <p class="text-[10px] font-bold text-teal-500 uppercase tracking-widest mt-1">Average S.L.A</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Pipeline Metrics Section -->
+    @if(isset($pipelineMetrics))
+    <div class="mb-10 animate-slide-up" style="animation-delay: 0.15s;">
+        <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.3em] mb-6 flex items-center">
+            <span class="w-8 h-px bg-purple-200 mr-4"></span>
+            Pipeline Metrics
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Total Prospects -->
+            <div class="clean-card p-5 border-t-4 border-t-indigo-500 hover:shadow-md transition-shadow duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400">Prospects</span>
+                </div>
+                <p class="text-2xl font-black text-slate-800">{{ $pipelineMetrics['total_prospects'] ?? 0 }}</p>
+                <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Total Leads</p>
+            </div>
+
+            <!-- Conversion Rate -->
+            <div class="clean-card p-5 border-t-4 border-t-green-500 hover:shadow-md transition-shadow duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-green-50 rounded-xl text-green-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400">Conversion</span>
+                </div>
+                <p class="text-2xl font-black text-slate-800">{{ $pipelineMetrics['conversion_rate'] ?? 0 }}%</p>
+                <p class="text-[10px] font-bold text-green-500 uppercase tracking-widest mt-1">{{ $pipelineMetrics['converted_prospects'] ?? 0 }} Converted</p>
+            </div>
+
+            <!-- Revenue from CS Bookings -->
+            <div class="clean-card p-5 border-t-4 border-t-purple-500 hover:shadow-md transition-shadow duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-purple-50 rounded-xl text-purple-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400">CS Revenue</span>
+                </div>
+                <p class="text-2xl font-black text-slate-800">₦{{ number_format($pipelineMetrics['revenue_from_cs_bookings'] ?? 0, 2) }}</p>
+                <p class="text-[10px] font-bold text-purple-500 uppercase tracking-widest mt-1">{{ $pipelineMetrics['cs_bookings_count'] ?? 0 }} Bookings</p>
+            </div>
+
+            <!-- Average Response Time -->
+            <div class="clean-card p-5 border-t-4 border-t-teal-500 hover:shadow-md transition-shadow duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-teal-50 rounded-xl text-teal-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400">Response</span>
+                </div>
+                <p class="text-2xl font-black text-slate-800">{{ $pipelineMetrics['avg_response_time'] ?? 0 }}m</p>
+                <p class="text-[10px] font-bold text-teal-500 uppercase tracking-widest mt-1">Avg Response</p>
             </div>
         </div>
     </div>
@@ -229,14 +307,25 @@
                             </div>
 
                             <div id="textMessageInterface">
-                                <textarea id="messageContent" 
-                                          rows="5" 
-                                          class="w-full bg-white border border-slate-200 rounded-[2rem] p-6 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none resize-none mb-4"
-                                          placeholder="Enter dispatch details..."></textarea>
+                                <div class="mb-4">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-2">Select Template *</label>
+                                    <select id="templateSelect" 
+                                            onchange="loadTemplatePreview()"
+                                            class="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm focus:ring-4 focus:ring-purple-50 transition-all outline-none">
+                                        <option value="">Choose a template...</option>
+                                    </select>
+                                    <p class="mt-2 text-xs text-gray-500">Only pre-approved templates can be used. Free text messaging is not allowed.</p>
+                                </div>
+
+                                <div id="templatePreview" class="hidden mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                                    <p class="text-xs font-semibold text-gray-700 mb-2">Template Preview:</p>
+                                    <div id="previewContent" class="text-sm text-gray-900 whitespace-pre-wrap"></div>
+                                </div>
                                 
-                                <button onclick="sendMessage()" class="w-full purple-gradient text-white py-5 rounded-[2rem] font-black text-sm shadow-xl shadow-purple-600/10 hover:translate-y-[-2px] active:translate-y-[0] transition-all flex items-center justify-center space-x-3">
+                                <button onclick="sendMessage()" id="sendButton" disabled
+                                        class="w-full bg-gray-400 text-white py-5 rounded-[2rem] font-black text-sm shadow-xl cursor-not-allowed flex items-center justify-center space-x-3">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" stroke-width="2"/></svg>
-                                    <span>Initiate Dispatch</span>
+                                    <span>Send Message</span>
                                 </button>
                             </div>
 
@@ -353,9 +442,106 @@
             </div>
         </div>
     </div>
+
+    <!-- Quick Add Prospect Modal -->
+    <div id="quickAddModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Quick Add Prospect</h3>
+                    <button onclick="closeQuickAddModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 mb-4 rounded">
+                    <p class="text-xs text-amber-800 font-semibold">No account will be created. This is a silent lead capture.</p>
+                </div>
+
+                <form method="POST" action="{{ route('customer-care.prospects.store') }}" id="quickAddForm">
+                    @csrf
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">First Name *</label>
+                                <input type="text" name="first_name" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Last Name *</label>
+                                <input type="text" name="last_name" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Mobile Number *</label>
+                            <input type="tel" name="mobile_number" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Email (Optional)</label>
+                            <input type="email" name="email"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Location</label>
+                            <input type="text" name="location"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Source</label>
+                            <select name="source" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Select source</option>
+                                <option value="call">Call</option>
+                                <option value="booth">Booth</option>
+                                <option value="referral">Referral</option>
+                                <option value="website">Website</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Notes</label>
+                            <textarea name="notes" rows="2"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex items-center justify-end gap-3">
+                        <button type="button" onclick="closeQuickAddModal()" 
+                                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
+                            Save Prospect (No Account Created)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
+<script>
+    function openQuickAddModal() {
+        document.getElementById('quickAddModal').classList.remove('hidden');
+    }
+
+    function closeQuickAddModal() {
+        document.getElementById('quickAddModal').classList.add('hidden');
+        document.getElementById('quickAddForm').reset();
+    }
+
+    // Close modal on outside click
+    document.getElementById('quickAddModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeQuickAddModal();
+        }
+    });
+</script>
     <script>
         let selectedPatient = null;
         let currentMessageType = 'sms';
@@ -457,37 +643,116 @@
             } else {
                 document.getElementById('textMessageInterface').classList.remove('hidden');
                 document.getElementById('callInterface').classList.add('hidden');
+                // Load templates for SMS/WhatsApp/Email
+                loadTemplates(type);
             }
         }
 
-        // Send message
+        // Load templates for channel
+        function loadTemplates(channel) {
+            const templateSelect = document.getElementById('templateSelect');
+            templateSelect.innerHTML = '<option value="">Loading templates...</option>';
+            
+            fetch(`{{ route('customer-care.communications.templates') }}?channel=${channel}`, {
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.templates.length > 0) {
+                    templateSelect.innerHTML = '<option value="">Choose a template...</option>';
+                    data.templates.forEach(template => {
+                        const option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        option.setAttribute('data-body', template.body);
+                        option.setAttribute('data-subject', template.subject || '');
+                        templateSelect.appendChild(option);
+                    });
+                } else {
+                    templateSelect.innerHTML = '<option value="">No templates available</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading templates:', error);
+                templateSelect.innerHTML = '<option value="">Error loading templates</option>';
+            });
+        }
+
+        // Load template preview
+        function loadTemplatePreview() {
+            const templateSelect = document.getElementById('templateSelect');
+            const selectedOption = templateSelect.options[templateSelect.selectedIndex];
+            const previewDiv = document.getElementById('templatePreview');
+            const previewContent = document.getElementById('previewContent');
+            const sendButton = document.getElementById('sendButton');
+            
+            if (selectedOption.value) {
+                let body = selectedOption.getAttribute('data-body') || '';
+                // Replace variables with sample data
+                body = body.replace(/\{\{first_name\}\}/g, selectedPatient?.first_name || 'John');
+                body = body.replace(/\{\{last_name\}\}/g, selectedPatient?.last_name || 'Doe');
+                body = body.replace(/\{\{name\}\}/g, selectedPatient?.name || 'John Doe');
+                body = body.replace(/\{\{email\}\}/g, selectedPatient?.email || 'email@example.com');
+                body = body.replace(/\{\{phone\}\}/g, selectedPatient?.phone || '1234567890');
+                
+                previewContent.textContent = body;
+                previewDiv.classList.remove('hidden');
+                sendButton.disabled = false;
+                sendButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                sendButton.classList.add('purple-gradient', 'hover:translate-y-[-2px]', 'active:translate-y-[0]');
+            } else {
+                previewDiv.classList.add('hidden');
+                sendButton.disabled = true;
+                sendButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                sendButton.classList.remove('purple-gradient', 'hover:translate-y-[-2px]', 'active:translate-y-[0]');
+            }
+        }
+
+        // Send message (template-based only)
         function sendMessage() {
-            const content = document.getElementById('messageContent').value;
-            if (!content || !selectedPatient) return;
+            const templateSelect = document.getElementById('templateSelect');
+            const templateId = templateSelect.value;
+            
+            if (!templateId || !selectedPatient) {
+                alert('Please select a template');
+                return;
+            }
 
-            const route = currentMessageType === 'sms' 
-                ? '{{ route("customer-care.communications.send-sms") }}' 
-                : '{{ route("customer-care.communications.send-whatsapp") }}';
+            const channel = currentMessageType === 'sms' ? 'sms' : 
+                          currentMessageType === 'whatsapp' ? 'whatsapp' : 'email';
 
-            fetch(route, {
+            fetch('{{ route("customer-care.communications.send") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({
-                    patient_id: selectedPatient.id,
-                    message: content
+                    user_id: selectedPatient.id,
+                    user_type: 'patient',
+                    channel: channel,
+                    template_id: templateId
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Dispatch successful!');
-                    document.getElementById('messageContent').value = '';
+                    alert('Message sent successfully!');
+                    templateSelect.value = '';
+                    document.getElementById('templatePreview').classList.add('hidden');
+                    document.getElementById('sendButton').disabled = true;
+                    document.getElementById('sendButton').classList.add('bg-gray-400', 'cursor-not-allowed');
+                    document.getElementById('sendButton').classList.remove('purple-gradient');
                 } else {
-                    alert('Dispatch failed: ' + data.message);
+                    alert('Failed to send message: ' + (data.message || 'Unknown error'));
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to send message. Please try again.');
             });
         }
 

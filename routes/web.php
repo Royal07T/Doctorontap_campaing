@@ -414,6 +414,10 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     });
     
     // Email Templates Management (Admin)
+    // Communication Templates (for Customer Care)
+    Route::resource('communication-templates', \App\Http\Controllers\Admin\CommunicationTemplateController::class);
+    Route::post('/communication-templates/{communicationTemplate}/toggle-status', [\App\Http\Controllers\Admin\CommunicationTemplateController::class, 'toggleStatus'])->name('communication-templates.toggle-status');
+    
     Route::prefix('email-templates')->name('email-templates.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'index'])->name('index');
         Route::get('/create', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'create'])->name('create');
@@ -612,10 +616,16 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [CustomerCareDashboardController::class, 'showConsultation'])->name('consultations.show');
     
-    // Customer Interactions
-    Route::resource('interactions', \App\Http\Controllers\CustomerCare\InteractionsController::class);
-    Route::post('/interactions/{interaction}/end', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'end'])->name('interactions.end');
-    Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
+    // Customer Interactions (kept for legacy data, but removed from UI)
+    // Route::resource('interactions', \App\Http\Controllers\CustomerCare\InteractionsController::class);
+    // Route::post('/interactions/{interaction}/end', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'end'])->name('interactions.end');
+    // Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
+    
+    // Prospects Management
+    Route::resource('prospects', \App\Http\Controllers\CustomerCare\ProspectsController::class);
+    Route::post('/prospects/{prospect}/mark-contacted', [\App\Http\Controllers\CustomerCare\ProspectsController::class, 'markContacted'])->name('prospects.mark-contacted');
+    Route::get('/prospects/{prospect}/convert', [\App\Http\Controllers\CustomerCare\ProspectsController::class, 'convertToPatient'])->name('prospects.convert');
+    Route::post('/prospects/{prospect}/process-conversion', [\App\Http\Controllers\CustomerCare\ProspectsController::class, 'processConversion'])->name('prospects.process-conversion');
     
     // Support Tickets
     Route::resource('tickets', \App\Http\Controllers\CustomerCare\TicketsController::class);
@@ -641,12 +651,21 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     Route::get('/patients/search', [CustomerCareController::class, 'searchPatients'])->name('patients.search');
     Route::get('/patients/{id}/details', [CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
     
-    // Communications
+    // Communications (Template-based only)
+    Route::get('/communications/templates', [\App\Http\Controllers\CustomerCare\CommunicationController::class, 'getTemplates'])->name('communications.templates');
     Route::post('/communications/send', [\App\Http\Controllers\CustomerCare\CommunicationController::class, 'send'])->name('communications.send');
     Route::post('/communications/send-sms', [CustomerCareController::class, 'sendSms'])->name('communications.send-sms');
     Route::post('/communications/send-whatsapp', [CustomerCareController::class, 'sendWhatsApp'])->name('communications.send-whatsapp');
     Route::post('/communications/initiate-call', [CustomerCareController::class, 'initiateCall'])->name('communications.initiate-call');
     Route::get('/communications/history/{patientId}', [CustomerCareController::class, 'getCommunicationHistory'])->name('communications.history');
+    
+    // Settings
+    Route::get('/settings', [\App\Http\Controllers\CustomerCare\SettingsController::class, 'index'])->name('settings');
+    
+    // Booking on Behalf
+    Route::get('/booking/create', [\App\Http\Controllers\CustomerCare\BookingController::class, 'create'])->name('booking.create');
+    Route::post('/booking/store', [\App\Http\Controllers\CustomerCare\BookingController::class, 'store'])->name('booking.store');
+    Route::get('/booking/doctors/{doctor}/availability', [\App\Http\Controllers\CustomerCare\BookingController::class, 'getDoctorAvailability'])->name('booking.doctor-availability');
     
     // Bulk SMS / SMS Marketing (Customer Care)
     Route::prefix('bulk-sms')->name('bulk-sms.')->group(function () {
@@ -974,6 +993,10 @@ Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 's
     Route::post('/impersonate/{type}/{id}/start', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'start'])->name('impersonate.start');
     Route::post('/impersonate/stop', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
     Route::get('/impersonate/status', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'status'])->name('impersonate.status');
+    
+    // Communication Templates
+    Route::resource('communication-templates', \App\Http\Controllers\SuperAdmin\CommunicationTemplateController::class);
+    Route::post('/communication-templates/{communicationTemplate}/toggle-status', [\App\Http\Controllers\SuperAdmin\CommunicationTemplateController::class, 'toggleStatus'])->name('communication-templates.toggle-status');
 });
 
 
