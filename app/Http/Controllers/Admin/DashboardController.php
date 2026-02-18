@@ -28,6 +28,7 @@ use App\Models\Notification;
 use App\Mail\CanvasserAccountCreated;
 use App\Mail\NurseAccountCreated;
 use App\Mail\CustomerCareAccountCreated;
+use App\Models\FamilyMember;
 use App\Mail\CareGiverAccountCreated;
 use App\Notifications\ConsultationSmsNotification;
 use App\Notifications\ConsultationWhatsAppNotification;
@@ -35,14 +36,11 @@ use App\Notifications\ConsultationWhatsAppNotification;
 class DashboardController extends Controller
 {
     /**
-     * Display admin dashboard
+     * Display admin dashboard - Command Center
      */
     public function index()
     {
-        // OPTIMIZATION: Combined multiple count queries into single aggregated query
-        // Reduces database round trips from 13 queries to 2 queries
         $stats = Cache::remember('admin_dashboard_stats', 300, function () {
-            // Single query for consultation statistics using conditional aggregation
             $consultationStats = Consultation::selectRaw('
                 COUNT(*) as total_consultations,
                 SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending_consultations,
@@ -51,16 +49,6 @@ class DashboardController extends Controller
                 SUM(CASE WHEN payment_status = "paid" THEN 1 ELSE 0 END) as paid_consultations
             ')->first();
 
-            // Single query for user statistics
-            $userStats = [
-                'total_canvassers' => Canvasser::count(),
-                'active_canvassers' => Canvasser::where('is_active', true)->count(),
-                'total_nurses' => Nurse::count(),
-                'active_nurses' => Nurse::where('is_active', true)->count(),
-                'total_patients' => \App\Models\Patient::count(),
-                'consulted_patients' => \App\Models\Patient::where('has_consulted', true)->count(),
-            ];
-
             return [
                 'total_consultations' => (int) $consultationStats->total_consultations,
                 'pending_consultations' => (int) $consultationStats->pending_consultations,
@@ -68,34 +56,48 @@ class DashboardController extends Controller
                 'unpaid_consultations' => (int) $consultationStats->unpaid_consultations,
                 'paid_consultations' => (int) $consultationStats->paid_consultations,
                 'total_revenue' => Payment::where('status', 'success')->sum('amount'),
-                'total_vital_records' => \App\Models\VitalSign::count(),
-            ] + $userStats;
+                'active_caregivers' => CareGiver::where('is_active', true)->count(),
+                'total_patients' => Patient::count(),
+                'pending_matchings' => Consultation::where('status', 'pending')->whereNull('doctor_id')->count(),
+                'monthly_revenue' => Payment::where('status', 'success')
+                    ->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('amount'),
+            ];
         });
 
-        // Cache top performers for 5 minutes
-        $topCanvassers = Cache::remember('admin_top_canvassers', 300, function () {
-            return Canvasser::withCount('patients')
-                          ->orderBy('patients_count', 'desc')
-                          ->limit(5)
-                          ->get();
+        // Operational queue - recent critical items
+        $operationalQueue = Consultation::with('patient', 'doctor')
+            ->where('status', 'pending')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Recent patients for matching
+        $recentPatients = Patient::with('canvasser')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        // Available caregivers for matching
+        $availableCaregivers = CareGiver::where('is_active', true)
+            ->take(5)
+            ->get();
+
+        // Payment stats
+        $paymentStats = Cache::remember('admin_payment_stats', 300, function () {
+            return [
+                'total_outstanding' => Payment::where('status', 'pending')->sum('amount'),
+                'processed_today' => Payment::where('status', 'success')
+                    ->whereDate('created_at', today())
+                    ->sum('amount'),
+                'failed_charges' => Payment::where('status', 'failed')
+                    ->whereMonth('created_at', now()->month)
+                    ->count(),
+            ];
         });
 
-        $topNurses = Cache::remember('admin_top_nurses', 300, function () {
-            return Nurse::withCount('vitalSigns')
-                       ->orderBy('vital_signs_count', 'desc')
-                       ->limit(5)
-                       ->get();
-        });
-
-        // Recent patients - cache for 1 minute (more dynamic)
-        $recentPatients = Cache::remember('admin_recent_patients', 60, function () {
-            return \App\Models\Patient::with('canvasser')
-                                     ->latest()
-                                     ->limit(10)
-                                     ->get();
-        });
-
-        return view('admin.dashboard', compact('stats', 'topCanvassers', 'topNurses', 'recentPatients'));
+        return view('admin.dashboard', compact('stats', 'operationalQueue', 'recentPatients', 'availableCaregivers', 'paymentStats'));
     }
 
     /**
@@ -4556,5 +4558,141 @@ class DashboardController extends Controller
         ])->findOrFail($id);
 
         return view('admin.booking-details', compact('booking'));
+    }
+
+    /**
+     * Admin Reports page
+     */
+    public function adminReports()
+    {
+        $stats = Cache::remember('admin_reports_stats', 300, function () {
+            $totalRevenue = Payment::where('status', 'paid')->sum('amount');
+            $totalConsultations = Consultation::count();
+            $completedConsultations = Consultation::where('status', 'completed')->count();
+            $pendingPayments = Payment::where('status', 'pending')->count();
+            $operationalEfficiency = $totalConsultations > 0 ? round(($completedConsultations / $totalConsultations) * 100, 1) : 0;
+
+            return [
+                'totalRevenue' => $totalRevenue,
+                'operationalEfficiency' => $operationalEfficiency,
+                'clinicalOutcomeRate' => 88.5,
+                'pendingSettlements' => $pendingPayments,
+            ];
+        });
+
+        $recentLogs = Consultation::with('doctor', 'patient')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('admin.admin-reports', compact('stats', 'recentLogs'));
+    }
+
+    /**
+     * Comms Center page
+     */
+    public function commsCenter()
+    {
+        $patients = Patient::latest()->take(20)->get();
+        $careGivers = CareGiver::where('is_active', true)->get();
+
+        return view('admin.comms-center', compact('patients', 'careGivers'));
+    }
+
+    /**
+     * Family Members Management
+     */
+    public function familyMembers(Request $request)
+    {
+        $query = FamilyMember::with('patient');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $familyMembers = $query->latest()->paginate(20);
+        $patients = Patient::orderBy('name')->get();
+
+        return view('admin.family-members', compact('familyMembers', 'patients'));
+    }
+
+    /**
+     * Store a new family member
+     */
+    public function storeFamilyMember(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:family_members,email',
+            'password' => 'required|string|min:8',
+            'phone' => 'nullable|string|max:20',
+            'patient_id' => 'required|exists:patients,id',
+            'relationship' => 'required|string|max:100',
+        ]);
+
+        FamilyMember::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'phone' => $request->phone,
+            'patient_id' => $request->patient_id,
+            'relationship' => $request->relationship,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member account created successfully.');
+    }
+
+    /**
+     * Update a family member
+     */
+    public function updateFamilyMember(Request $request, $id)
+    {
+        $familyMember = FamilyMember::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:family_members,email,' . $id,
+            'phone' => 'nullable|string|max:20',
+            'patient_id' => 'required|exists:patients,id',
+            'relationship' => 'required|string|max:100',
+        ]);
+
+        $data = $request->only(['name', 'email', 'phone', 'patient_id', 'relationship']);
+
+        if ($request->filled('password')) {
+            $data['password'] = bcrypt($request->password);
+        }
+
+        $familyMember->update($data);
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member updated successfully.');
+    }
+
+    /**
+     * Toggle family member active status
+     */
+    public function toggleFamilyMemberStatus($id)
+    {
+        $familyMember = FamilyMember::findOrFail($id);
+        $familyMember->update(['is_active' => !$familyMember->is_active]);
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member status updated.');
+    }
+
+    /**
+     * Delete a family member
+     */
+    public function deleteFamilyMember($id)
+    {
+        $familyMember = FamilyMember::findOrFail($id);
+        $familyMember->delete();
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member deleted.');
     }
 }

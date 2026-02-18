@@ -377,6 +377,19 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
     Route::post('/doctor-payments/{id}/complete', [DashboardController::class, 'completeDoctorPayment'])->name('doctor-payments.complete');
     Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
+
+    // Admin Reports
+    Route::get('/admin-reports', [DashboardController::class, 'adminReports'])->name('admin-reports');
+
+    // Comms Center
+    Route::get('/comms-center', [DashboardController::class, 'commsCenter'])->name('comms-center');
+
+    // Family Members Management
+    Route::get('/family-members', [DashboardController::class, 'familyMembers'])->name('family-members');
+    Route::post('/family-members', [DashboardController::class, 'storeFamilyMember'])->name('family-members.store');
+    Route::put('/family-members/{id}', [DashboardController::class, 'updateFamilyMember'])->name('family-members.update');
+    Route::post('/family-members/{id}/toggle-status', [DashboardController::class, 'toggleFamilyMemberStatus'])->name('family-members.toggle-status');
+    Route::delete('/family-members/{id}', [DashboardController::class, 'deleteFamilyMember'])->name('family-members.delete');
 });
 
 // ==================== CANVASSER ROUTES ====================
@@ -525,6 +538,13 @@ Route::prefix('family')->name('family.')->group(function () {
 Route::prefix('family')->name('family.')->middleware('auth:family')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\Family\AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [\App\Http\Controllers\Family\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/alerts', [\App\Http\Controllers\Family\DashboardController::class, 'alerts'])->name('alerts');
+    Route::get('/documents', [\App\Http\Controllers\Family\DashboardController::class, 'documents'])->name('documents');
+    Route::get('/billing', [\App\Http\Controllers\Family\DashboardController::class, 'billing'])->name('billing');
+    Route::get('/history', [\App\Http\Controllers\Family\DashboardController::class, 'history'])->name('history');
+    Route::get('/settings', [\App\Http\Controllers\Family\DashboardController::class, 'settings'])->name('settings');
+    Route::put('/settings/profile', [\App\Http\Controllers\Family\DashboardController::class, 'updateProfile'])->name('settings.profile');
+    Route::put('/settings/password', [\App\Http\Controllers\Family\DashboardController::class, 'updatePassword'])->name('settings.password');
     Route::get('/reports', [\App\Http\Controllers\Family\DashboardController::class, 'reports'])->name('reports');
     Route::get('/reports/{date}/download', [\App\Http\Controllers\Family\DashboardController::class, 'downloadReport'])->name('reports.download');
 });

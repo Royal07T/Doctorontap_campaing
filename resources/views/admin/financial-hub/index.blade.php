@@ -10,12 +10,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>.purple-gradient { background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%); }</style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-50 min-h-screen" x-data="{ sidebarOpen: false }">
 <div class="flex h-screen overflow-hidden">
     @include('admin.shared.sidebar', ['active' => 'financial-hub'])
     <div class="flex-1 flex flex-col overflow-hidden">
         @include('admin.shared.header', ['title' => 'Financial Hub'])
-        <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
 
         {{-- Sub-navigation --}}
         <div class="flex items-center space-x-2 mb-6">

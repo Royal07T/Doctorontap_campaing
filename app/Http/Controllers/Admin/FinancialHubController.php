@@ -43,8 +43,8 @@ class FinancialHubController extends Controller
             ->toArray();
 
         // ── Doctor payouts summary ──
-        $totalPayouts      = DoctorPayment::where('status', 'paid')->sum('amount');
-        $pendingPayouts    = DoctorPayment::where('status', 'pending')->sum('amount');
+        $totalPayouts      = DoctorPayment::where('status', 'completed')->sum('doctor_amount');
+        $pendingPayouts    = DoctorPayment::where('status', 'pending')->sum('doctor_amount');
 
         // ── Recent transactions ──
         $recentPayments = Payment::orderByDesc('created_at')->limit(15)->get();

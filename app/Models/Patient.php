@@ -450,6 +450,14 @@ class Patient extends Authenticatable
     }
 
     /**
+     * Get all family members linked to this patient
+     */
+    public function familyMembers(): HasMany
+    {
+        return $this->hasMany(FamilyMember::class);
+    }
+
+    /**
      * Get all caregivers assigned to this patient
      */
     public function assignedCaregivers(): BelongsToMany
