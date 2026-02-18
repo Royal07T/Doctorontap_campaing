@@ -152,6 +152,112 @@ class DashboardController extends Controller
         return view('admin.consultations', compact('consultations', 'nurses', 'doctors', 'canvassers'));
     }
 
+    /**
+     * Export consultations as a CSV report
+     */
+    public function exportCsv(Request $request)
+    {
+        $query = Consultation::with(['doctor', 'canvasser', 'payment']);
+
+        // Apply same filters as consultations()
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+        if ($request->has('payment_status') && $request->payment_status != '') {
+            $query->where('payment_status', $request->payment_status);
+        }
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+        if ($request->filled('canvasser_id')) {
+            $query->where('canvasser_id', $request->canvasser_id);
+        }
+        if ($request->filled('nurse_id')) {
+            $query->where('nurse_id', $request->nurse_id);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('reference', 'like', "%{$search}%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+            });
+        }
+
+        $consultations = $query->latest()->get();
+
+        $filename = 'consultations-report-' . now()->format('Y-m-d-His') . '.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0',
+        ];
+
+        $callback = function () use ($consultations) {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel opens it correctly
+            fputs($handle, "\xEF\xBB\xBF");
+
+            // Header row
+            fputcsv($handle, [
+                'Reference',
+                'Patient Name',
+                'Email',
+                'Mobile',
+                'Age',
+                'Gender',
+                'Patient Complaint',
+                'Date Submitted',
+                'Consultation Status',
+                'Payment Status',
+                'Payment Date',
+                'Assigned Doctor',
+                'Canvasser',
+            ]);
+
+            foreach ($consultations as $c) {
+                $paymentDate = '';
+                if ($c->payment_status === 'paid' && $c->payment) {
+                    $paymentDate = $c->payment->created_at?->format('Y-m-d H:i') ?? '';
+                } elseif ($c->payment_status === 'paid' && $c->payment_completed_at) {
+                    $paymentDate = \Carbon\Carbon::parse($c->payment_completed_at)->format('Y-m-d H:i');
+                }
+
+                fputcsv($handle, [
+                    $c->reference,
+                    $c->full_name,
+                    $c->getEmailFromUser(),
+                    $c->mobile,
+                    $c->age,
+                    ucfirst($c->gender ?? ''),
+                    $c->problem,
+                    $c->created_at?->format('Y-m-d H:i'),
+                    ucfirst($c->status),
+                    ucfirst($c->payment_status),
+                    $paymentDate,
+                    $c->doctor ? $c->doctor->full_name : '',
+                    $c->canvasser ? $c->canvasser->name : '',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
         /**
      * Display all patient records from the unified patients table
      */

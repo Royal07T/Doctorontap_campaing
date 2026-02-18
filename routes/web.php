@@ -188,6 +188,7 @@ Route::domain('admin.doctorontap.com.ng')->group(function () {
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
+        Route::get('/consultations/export-csv', [DashboardController::class, 'exportCsv'])->name('consultations.export-csv');
         Route::get('/consultations-livewire', function() {
             return view('admin.consultations-livewire');
         })->name('consultations.livewire');
@@ -339,6 +340,7 @@ if (!app()->environment('production')) {
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
+        Route::get('/consultations/export-csv', [DashboardController::class, 'exportCsv'])->name('consultations.export-csv');
         Route::get('/consultations-livewire', function() {
             return view('admin.consultations-livewire');
         })->name('consultations.livewire');
