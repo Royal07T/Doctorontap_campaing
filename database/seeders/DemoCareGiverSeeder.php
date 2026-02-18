@@ -15,8 +15,9 @@ class DemoCareGiverSeeder extends Seeder
     {
         $primaryEmail = 'rollingstonny15@gmail.com';
         $primaryPassword = 'password';
+        $primaryPin = '123456';  // Default PIN for development
 
-        CareGiver::updateOrCreate(
+        $primaryCaregiver = CareGiver::updateOrCreate(
             ['email' => $primaryEmail],
             [
                 'name' => 'Rolling Stonny',
@@ -32,11 +33,14 @@ class DemoCareGiverSeeder extends Seeder
             ]
         );
 
+        // Set PIN for primary caregiver
+        $primaryCaregiver->setPin($primaryPin);
+
         // Create 10 extra caregiver accounts
         for ($i = 1; $i <= 10; $i++) {
             $email = "caregiver{$i}@demo.com";
 
-            CareGiver::updateOrCreate(
+            $caregiver = CareGiver::updateOrCreate(
                 ['email' => $email],
                 [
                     'name' => "Demo Caregiver {$i}",
@@ -51,14 +55,19 @@ class DemoCareGiverSeeder extends Seeder
                     'date_of_birth' => '1995-01-01',
                 ]
             );
+
+            // Set default PIN for demo accounts
+            $caregiver->setPin('123456');
         }
 
         $this->command->info('✅ Demo caregiver accounts created/updated successfully!');
         $this->command->info('');
         $this->command->info("📧 Primary Email: {$primaryEmail}");
         $this->command->info("🔑 Primary Password: {$primaryPassword}");
+        $this->command->info("🔐 Primary PIN: {$primaryPin}");
         $this->command->info('');
-        $this->command->info('🔑 Extra demo caregivers: caregiver1@demo.com ... caregiver10@demo.com (password: password)');
+        $this->command->info('🔑 Extra demo caregivers: caregiver1@demo.com ... caregiver10@demo.com');
+        $this->command->info('   Password: password | PIN: 123456');
         $this->command->info('🔗 Login at: /care-giver/login');
     }
 }

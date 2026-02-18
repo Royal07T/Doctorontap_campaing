@@ -27,6 +27,7 @@ class VitalSign extends Model
         'email_sent',
         'email_sent_at',
         'is_walk_in',
+        'flag_status',
     ];
 
     protected $casts = [
@@ -38,6 +39,7 @@ class VitalSign extends Model
         'email_sent' => 'boolean',
         'email_sent_at' => 'datetime',
         'is_walk_in' => 'boolean',
+        'flag_status' => 'string', // normal|warning|critical
     ];
 
     /**
@@ -73,7 +75,7 @@ class VitalSign extends Model
             $heightInMeters = $this->height / 100;
             return round($this->weight / ($heightInMeters * $heightInMeters), 2);
         }
-        
+
         return null;
     }
 

@@ -53,6 +53,14 @@ class CaregiverPatientAssignment extends Model
     }
 
     /**
+     * Get the care plan associated with this assignment
+     */
+    public function carePlan(): BelongsTo
+    {
+        return $this->belongsTo(CarePlan::class);
+    }
+
+    /**
      * Check if assignment is active
      */
     public function isActive(): bool

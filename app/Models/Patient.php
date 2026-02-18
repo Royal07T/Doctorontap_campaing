@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -107,12 +108,12 @@ class Patient extends Authenticatable
     public function getBmiAttribute()
     {
         $latestVitals = $this->latestVitalSigns;
-        
+
         if ($latestVitals && $latestVitals->height && $latestVitals->weight) {
             $heightInMeters = $latestVitals->height / 100;
             return round($latestVitals->weight / ($heightInMeters * $heightInMeters), 2);
         }
-        
+
         return null;
     }
 
@@ -239,7 +240,7 @@ class Patient extends Authenticatable
         if ($this->user_id && $this->relationLoaded('user') && $this->user) {
             return $this->user->email;
         }
-        
+
         // Fallback to direct email field for backward compatibility
         return $this->attributes['email'] ?? null;
     }
@@ -268,7 +269,7 @@ class Patient extends Authenticatable
         } else {
             // Fallback to old token-based system
             $token = $this->generateEmailVerificationToken();
-            
+
             \Illuminate\Support\Facades\Mail::send('emails.patient-verification', [
                 'patient' => $this,
                 'verificationUrl' => route('patient.verify', ['token' => $token, 'email' => $this->email]),
@@ -415,6 +416,40 @@ class Patient extends Authenticatable
     }
 
     /**
+     * Get care plans for this patient
+     */
+    public function carePlans(): HasMany
+    {
+        return $this->hasMany(CarePlan::class);
+    }
+
+    /**
+     * Get the active care plan for this patient
+     */
+    public function activeCarePlan()
+    {
+        return $this->hasOne(CarePlan::class)
+            ->where('status', 'active')
+            ->latestOfMany();
+    }
+
+    /**
+     * Get observations for this patient
+     */
+    public function observations(): HasMany
+    {
+        return $this->hasMany(Observation::class);
+    }
+
+    /**
+     * Get medication logs for this patient
+     */
+    public function medicationLogs(): HasMany
+    {
+        return $this->hasMany(MedicationLog::class);
+    }
+
+    /**
      * Get all caregivers assigned to this patient
      */
     public function assignedCaregivers(): BelongsToMany
@@ -439,11 +474,11 @@ class Patient extends Authenticatable
     public function hasCaregiver(int $caregiverId, string $role = null): bool
     {
         $query = $this->assignedCaregivers()->where('care_givers.id', $caregiverId);
-        
+
         if ($role) {
             $query->wherePivot('role', $role);
         }
-        
+
         return $query->exists();
     }
 

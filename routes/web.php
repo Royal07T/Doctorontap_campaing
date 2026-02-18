@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\MedicalDocumentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VonageWebhookController;
+use App\Http\Controllers\CareGiver\ShiftController;
 use Illuminate\Support\Facades\File;
 
 // Vonage Webhooks (must be public, no CSRF protection)
@@ -105,7 +106,7 @@ Route::get('/consultations/{id}/treatment-plan-attachments/{file}/download', [Me
 Route::get('/test-notification/{consultation_id}', function($consultationId) {
     $consultation = \App\Models\Consultation::findOrFail($consultationId);
     $doctor = \App\Models\Doctor::findOrFail($consultation->doctor_id);
-    
+
     \Illuminate\Support\Facades\Mail::to(config('mail.admin_email'))
         ->send(new \App\Mail\ConsultationStatusChange(
             $consultation,
@@ -113,7 +114,7 @@ Route::get('/test-notification/{consultation_id}', function($consultationId) {
             'pending',
             'completed'
         ));
-    
+
     return response()->json(['message' => 'Test notification sent successfully!']);
 })->name('test.notification');
 
@@ -122,17 +123,17 @@ Route::prefix('payment')->group(function () {
     Route::post('/initialize', [PaymentController::class, 'initialize'])->name('payment.initialize');
     Route::get('/callback', [PaymentController::class, 'callback'])->name('payment.callback');
     Route::get('/verify', [PaymentController::class, 'verify'])->name('payment.verify');
-    
+
     // Webhook endpoint with signature verification middleware
     Route::post('/webhook', [PaymentController::class, 'webhook'])
         ->middleware('verify.korapay.webhook')
         ->name('payment.webhook');
-    
+
     // Payout webhook endpoint for doctor payments
     Route::post('/payout-webhook', [PaymentController::class, 'payoutWebhook'])
         ->middleware('verify.korapay.webhook')
         ->name('payment.payout-webhook');
-    
+
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
@@ -165,7 +166,7 @@ Route::group(['prefix' => 'caregiver'], function () {
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
-    
+
     // Password Reset Routes
     Route::get('/forgot-password', [AdminForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AdminForgotPasswordController::class, 'sendResetLink'])->name('password.email');
@@ -181,17 +182,17 @@ Route::get('/admin/email/verify/{id}/{hash}', [AdminVerificationController::clas
 // Protected Admin Routes (Authentication required)
 Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.management'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    
+
     // Admin Email Verification Routes
     Route::get('/email/verify', [AdminVerificationController::class, 'notice'])->name('verification.notice');
     Route::post('/email/verification-notification', [AdminVerificationController::class, 'resend'])->name('verification.resend');
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/consultations', [DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations-livewire', function() {
@@ -210,7 +211,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/consultations/{id}/forward-documents', [DashboardController::class, 'forwardDocumentsToDoctor'])->name('consultation.forward-documents');
     Route::post('/consultations/bulk-action', [DashboardController::class, 'bulkAction'])->name('consultations.bulk-action');
     Route::delete('/consultations/{id}', [DashboardController::class, 'deleteConsultation'])->name('consultations.delete');
-    
+
     // Multi-Patient Bookings - Booking details and fee adjustment routes (accessed from consultation details)
     Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
     Route::post('/bookings/{id}/apply-pricing-rules', [\App\Http\Controllers\BookingController::class, 'applyPricingRules'])->name('bookings.apply-pricing-rules');
@@ -225,7 +226,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
     Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
     Route::post('/doctors/send-campaign-notification', [DashboardController::class, 'sendCampaignNotification'])->name('doctors.send-campaign');
-    
+
     // Doctor Registrations Approval
     Route::get('/doctor-registrations', [DashboardController::class, 'doctorRegistrations'])->name('doctor-registrations');
     Route::get('/doctor-registrations/{id}/view', [DashboardController::class, 'viewDoctorRegistration'])->name('doctor-registrations.view');
@@ -247,53 +248,53 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');
     Route::post('/canvassers', [DashboardController::class, 'storeCanvasser'])->name('canvassers.store');
     Route::post('/settings/test-security-alert', [DashboardController::class, 'testSecurityAlert'])->name('settings.test-security-alert');
-    
+
     // Admin Users Management
     Route::get('/admin-users', [DashboardController::class, 'adminUsers'])->name('admin-users');
     Route::post('/admin-users', [DashboardController::class, 'storeAdminUser'])->name('admin-users.store');
     Route::put('/admin-users/{id}', [DashboardController::class, 'updateAdminUser'])->name('admin-users.update');
     Route::post('/admin-users/{id}/toggle-status', [DashboardController::class, 'toggleAdminStatus'])->name('admin-users.toggle-status');
     Route::delete('/admin-users/{id}', [DashboardController::class, 'deleteAdminUser'])->name('admin-users.delete');
-    
+
     // Canvassers Management
     Route::get('/canvassers', [DashboardController::class, 'canvassers'])->name('canvassers');
     Route::post('/canvassers', [DashboardController::class, 'storeCanvasser'])->name('canvassers.store');
     Route::put('/canvassers/{id}', [DashboardController::class, 'updateCanvasser'])->name('canvassers.update');
     Route::post('/canvassers/{id}/toggle-status', [DashboardController::class, 'toggleCanvasserStatus'])->name('canvassers.toggle-status');
     Route::delete('/canvassers/{id}', [DashboardController::class, 'deleteCanvasser'])->name('canvassers.delete');
-    
+
     // Nurses Management
     Route::get('/nurses', [DashboardController::class, 'nurses'])->name('nurses');
     Route::post('/nurses', [DashboardController::class, 'storeNurse'])->name('nurses.store');
     Route::put('/nurses/{id}', [DashboardController::class, 'updateNurse'])->name('nurses.update');
     Route::post('/nurses/{id}/toggle-status', [DashboardController::class, 'toggleNurseStatus'])->name('nurses.toggle-status');
     Route::delete('/nurses/{id}', [DashboardController::class, 'deleteNurse'])->name('nurses.delete');
-    
+
     // Customer Care Management
     Route::get('/customer-cares', [DashboardController::class, 'customerCares'])->name('customer-cares');
     Route::post('/customer-cares', [DashboardController::class, 'storeCustomerCare'])->name('customer-cares.store');
     Route::put('/customer-cares/{id}', [DashboardController::class, 'updateCustomerCare'])->name('customer-cares.update');
     Route::post('/customer-cares/{id}/toggle-status', [DashboardController::class, 'toggleCustomerCareStatus'])->name('customer-cares.toggle-status');
     Route::delete('/customer-cares/{id}', [DashboardController::class, 'deleteCustomerCare'])->name('customer-cares.delete');
-    
+
     // Care Giver Management
     Route::get('/care-givers', [DashboardController::class, 'careGivers'])->name('care-givers');
     Route::post('/care-givers', [DashboardController::class, 'storeCareGiver'])->name('care-givers.store');
     Route::put('/care-givers/{id}', [DashboardController::class, 'updateCareGiver'])->name('care-givers.update');
     Route::post('/care-givers/{id}/toggle-status', [DashboardController::class, 'toggleCareGiverStatus'])->name('care-givers.toggle-status');
     Route::delete('/care-givers/{id}', [DashboardController::class, 'deleteCareGiver'])->name('care-givers.delete');
-    
+
     // Reviews Management
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews');
     Route::post('/reviews/{id}/toggle-published', [AdminReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
     Route::post('/reviews/{id}/verify', [AdminReviewController::class, 'verify'])->name('reviews.verify');
     Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
-    
+
     // Canvasser Management
     Route::get('/canvasser-patients', [DashboardController::class, 'canvasserPatients'])->name('canvasser-patients');
     Route::get('/canvasser-performance', [DashboardController::class, 'canvasserPerformance'])->name('canvasser-performance');
     Route::get('/patient-verification', [DashboardController::class, 'patientVerification'])->name('patient-verification');
-    
+
     // Security Monitoring
     Route::get('/security', [\App\Http\Controllers\Admin\SecurityController::class, 'index'])->name('security');
     Route::get('/security/events', [\App\Http\Controllers\Admin\SecurityController::class, 'eventsByType'])->name('security.events');
@@ -301,7 +302,27 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/security/block-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'blockIp'])->name('security.block-ip');
     Route::get('/security/blocked-ips', [\App\Http\Controllers\Admin\SecurityController::class, 'blockedIps'])->name('security.blocked-ips');
     Route::post('/security/unblock-ip', [\App\Http\Controllers\Admin\SecurityController::class, 'unblockIp'])->name('security.unblock-ip');
-    
+
+    // Lead Management
+    Route::prefix('leads')->name('leads.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\LeadController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Admin\LeadController::class, 'store'])->name('store');
+        Route::get('/{lead}', [\App\Http\Controllers\Admin\LeadController::class, 'show'])->name('show');
+        Route::put('/{lead}', [\App\Http\Controllers\Admin\LeadController::class, 'update'])->name('update');
+        Route::post('/{lead}/convert', [\App\Http\Controllers\Admin\LeadController::class, 'convert'])->name('convert');
+        Route::post('/{lead}/mark-lost', [\App\Http\Controllers\Admin\LeadController::class, 'markLost'])->name('mark-lost');
+        Route::post('/{lead}/follow-up', [\App\Http\Controllers\Admin\LeadController::class, 'followUp'])->name('follow-up');
+        Route::delete('/{lead}', [\App\Http\Controllers\Admin\LeadController::class, 'destroy'])->name('destroy');
+    });
+
+    // Financial Hub
+    Route::prefix('financial-hub')->name('financial-hub.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\FinancialHubController::class, 'index'])->name('index');
+        Route::get('/invoices', [\App\Http\Controllers\Admin\FinancialHubController::class, 'invoices'])->name('invoices');
+        Route::get('/payments', [\App\Http\Controllers\Admin\FinancialHubController::class, 'payments'])->name('payments');
+        Route::get('/payouts', [\App\Http\Controllers\Admin\FinancialHubController::class, 'payouts'])->name('payouts');
+    });
+
     // Customer Care Oversight
     Route::prefix('customer-care-oversight')->name('customer-care-oversight.')->group(function () {
         Route::get('/interactions', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'interactions'])->name('interactions');
@@ -311,7 +332,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
         Route::get('/escalations', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'escalations'])->name('escalations');
         Route::get('/escalations/{escalation}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'showEscalation'])->name('escalations.show');
     });
-    
+
     // SMS Templates Management (Admin)
     Route::prefix('sms-templates')->name('sms-templates.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'index'])->name('index');
@@ -329,7 +350,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
         Route::get('/agents/{agent}', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'agentDetails'])->name('agents.show');
         Route::get('/frequent-issues', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'frequentIssues'])->name('frequent-issues');
     });
-    
+
     // Email Templates Management (Admin)
     Route::prefix('email-templates')->name('email-templates.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'index'])->name('index');
@@ -343,7 +364,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
         Route::post('/{emailTemplate}/duplicate', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'duplicate'])->name('duplicate');
         Route::post('/{emailTemplate}/preview', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'preview'])->name('preview');
     });
-    
+
     // Doctor Payment Management
     Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
     Route::post('/doctors/{id}/reset-penalty', [DashboardController::class, 'resetDoctorPenalty'])->name('doctors.reset-penalty');
@@ -364,7 +385,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
 Route::prefix('canvasser')->name('canvasser.')->group(function () {
     Route::get('/login', [CanvasserAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [CanvasserAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
-    
+
     // Password Reset Routes
     Route::get('/forgot-password', [CanvasserForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [CanvasserForgotPasswordController::class, 'sendResetLink'])->name('password.email');
@@ -384,19 +405,19 @@ Route::get('/canvasser/email/verify/{id}/{hash}', [CanvasserVerificationControll
 // Protected Canvasser Routes (Authentication required)
 Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'canvasser.verified'])->group(function () {
     Route::post('/logout', [CanvasserAuthController::class, 'logout'])->name('logout');
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
     Route::get('/dashboard', [CanvasserDashboardController::class, 'index'])->name('dashboard');
-    
+
     // Patient Management
     Route::get('/patients', [CanvasserDashboardController::class, 'patients'])->name('patients');
     Route::post('/patients', [CanvasserDashboardController::class, 'storePatient'])->name('patients.store');
-    
+
     // Consultation Management
     Route::get('/patients/{id}/consultation', [CanvasserDashboardController::class, 'createConsultation'])->name('patients.consultation.create');
     Route::post('/patients/{id}/consultation', [CanvasserDashboardController::class, 'storeConsultation'])->name('patients.consultation.store');
@@ -409,7 +430,7 @@ Route::prefix('canvasser')->name('canvasser.')->middleware(['canvasser.auth', 'c
 Route::prefix('nurse')->name('nurse.')->group(function () {
     Route::get('/login', [NurseAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [NurseAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
-    
+
     // Password Reset Routes
     Route::get('/forgot-password', [NurseForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [NurseForgotPasswordController::class, 'sendResetLink'])->name('password.email');
@@ -429,15 +450,15 @@ Route::get('/nurse/email/verify/{id}/{hash}', [NurseVerificationController::clas
 // Protected Nurse Routes (Authentication required)
 Route::prefix('nurse')->name('nurse.')->middleware(['nurse.auth', 'nurse.verified'])->group(function () {
     Route::post('/logout', [NurseAuthController::class, 'logout'])->name('logout');
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
     Route::get('/dashboard', [NurseDashboardController::class, 'index'])->name('dashboard');
-    
+
     // Patient Management & Vital Signs
     Route::get('/patients', [NurseDashboardController::class, 'searchPatients'])->name('patients');
     Route::get('/patients/{id}', [NurseDashboardController::class, 'viewPatient'])->name('patients.view');
@@ -470,12 +491,42 @@ Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver']
 
 // Protected Care Giver Routes (Authentication + PIN verification required)
 Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver', 'care_giver.pin', 'session.management'])->group(function () {
+    Route::post('/shift/quick-vitals', [ShiftController::class, 'storeQuickVitals'])->name('shift.quick-vitals');
+    Route::post('/shift/daily-log', [ShiftController::class, 'storeDailyHealthLog'])->name('shift.daily-log');
+
     Route::post('/logout', [\App\Http\Controllers\CareGiver\AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [\App\Http\Controllers\CareGiver\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Patient routes
     Route::get('/patients', [\App\Http\Controllers\CareGiver\PatientController::class, 'index'])->name('patients.index');
     Route::get('/patients/{patient}', [\App\Http\Controllers\CareGiver\PatientController::class, 'show'])->name('patients.show');
+
+    // Communication Center
+    Route::get('/communication', function () {
+        return view('care-giver.communication.index');
+    })->name('communication.index');
+
+    // Profile & Settings
+    Route::get('/profile', [\App\Http\Controllers\CareGiver\ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile', [\App\Http\Controllers\CareGiver\ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/profile/password', [\App\Http\Controllers\CareGiver\ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::put('/profile/pin', [\App\Http\Controllers\CareGiver\ProfileController::class, 'updatePin'])->name('profile.pin.update');
+});
+
+// ==================== FAMILY PORTAL ROUTES ====================
+
+// Family Login (no authentication required)
+Route::prefix('family')->name('family.')->group(function () {
+    Route::get('/login', [\App\Http\Controllers\Family\AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [\App\Http\Controllers\Family\AuthController::class, 'login'])->name('login.post');
+});
+
+// Family Protected Routes (authentication required)
+Route::prefix('family')->name('family.')->middleware('auth:family')->group(function () {
+    Route::post('/logout', [\App\Http\Controllers\Family\AuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [\App\Http\Controllers\Family\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/reports', [\App\Http\Controllers\Family\DashboardController::class, 'reports'])->name('reports');
+    Route::get('/reports/{date}/download', [\App\Http\Controllers\Family\DashboardController::class, 'downloadReport'])->name('reports.download');
 });
 
 // ==================== CUSTOMER CARE ROUTES ====================
@@ -484,7 +535,7 @@ Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver',
 Route::prefix('customer-care')->name('customer-care.')->group(function () {
     Route::get('/login', [CustomerCareAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [CustomerCareAuthController::class, 'login'])->middleware('login.rate.limit')->name('login.post');
-    
+
     // Password Reset Routes
     Route::get('/forgot-password', [CustomerCareForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [CustomerCareForgotPasswordController::class, 'sendResetLink'])->name('password.email');
@@ -504,58 +555,58 @@ Route::get('/customer-care/email/verify/{id}/{hash}', [CustomerCareVerificationC
 // Protected Customer Care Routes (Authentication required)
 Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_care.auth', 'customer_care.verified'])->group(function () {
     Route::post('/logout', [CustomerCareAuthController::class, 'logout'])->name('logout');
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
     Route::get('/dashboard', [CustomerCareDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard-enhanced', [CustomerCareDashboardController::class, 'index'])->name('dashboard.enhanced');
     Route::get('/dashboard/realtime-activity', [CustomerCareDashboardController::class, 'getRealtimeActivity'])->name('dashboard.realtime-activity');
     Route::get('/dashboard/realtime-stats', [CustomerCareDashboardController::class, 'getRealtimeStats'])->name('dashboard.realtime-stats');
-    
+
     // Consultation Management
     Route::get('/consultations', [CustomerCareDashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [CustomerCareDashboardController::class, 'showConsultation'])->name('consultations.show');
-    
+
     // Customer Interactions
     Route::resource('interactions', \App\Http\Controllers\CustomerCare\InteractionsController::class);
     Route::post('/interactions/{interaction}/end', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'end'])->name('interactions.end');
     Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
-    
+
     // Support Tickets
     Route::resource('tickets', \App\Http\Controllers\CustomerCare\TicketsController::class);
     Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'updateStatus'])->name('tickets.update-status');
     Route::post('/tickets/{ticket}/assign-to-me', [\App\Http\Controllers\CustomerCare\TicketsController::class, 'assignToMe'])->name('tickets.assign-to-me');
-    
+
     // Escalations
     Route::resource('escalations', \App\Http\Controllers\CustomerCare\EscalationsController::class)->only(['index', 'show']);
     Route::get('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromTicket'])->name('escalations.create-from-ticket');
     Route::post('/tickets/{ticket}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateTicket'])->name('escalations.escalate-ticket');
     Route::get('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'createFromInteraction'])->name('escalations.create-from-interaction');
     Route::post('/interactions/{interaction}/escalate', [\App\Http\Controllers\CustomerCare\EscalationsController::class, 'escalateInteraction'])->name('escalations.escalate-interaction');
-    
+
     // Customer Profiles
     Route::get('/customers', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'search'])->name('customers.index');
     Route::get('/customers/{patient}', [\App\Http\Controllers\CustomerCare\CustomerProfileController::class, 'show'])->name('customers.show');
-    
+
     // Doctor Directory
     Route::get('/doctors', [\App\Http\Controllers\CustomerCare\DoctorProfileController::class, 'index'])->name('doctors.index');
     Route::get('/doctors/{doctor}', [\App\Http\Controllers\CustomerCare\DoctorProfileController::class, 'show'])->name('doctors.show');
-    
+
     // Patient Search (for dashboard)
     Route::get('/patients/search', [CustomerCareController::class, 'searchPatients'])->name('patients.search');
     Route::get('/patients/{id}/details', [CustomerCareController::class, 'getPatientDetails'])->name('patients.details');
-    
+
     // Communications
     Route::post('/communications/send', [\App\Http\Controllers\CustomerCare\CommunicationController::class, 'send'])->name('communications.send');
     Route::post('/communications/send-sms', [CustomerCareController::class, 'sendSms'])->name('communications.send-sms');
     Route::post('/communications/send-whatsapp', [CustomerCareController::class, 'sendWhatsApp'])->name('communications.send-whatsapp');
     Route::post('/communications/initiate-call', [CustomerCareController::class, 'initiateCall'])->name('communications.initiate-call');
     Route::get('/communications/history/{patientId}', [CustomerCareController::class, 'getCommunicationHistory'])->name('communications.history');
-    
+
     // Bulk SMS / SMS Marketing (Customer Care)
     Route::prefix('bulk-sms')->name('bulk-sms.')->group(function () {
         Route::get('/', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'index'])->name('index');
@@ -567,7 +618,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
         Route::get('/history', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'history'])->name('history');
         Route::get('/{campaign}/export', [\App\Http\Controllers\CustomerCare\BulkSmsController::class, 'export'])->name('export');
     });
-    
+
     // Bulk Email / Email Marketing (Customer Care)
     Route::prefix('bulk-email')->name('bulk-email.')->group(function () {
         Route::get('/', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'index'])->name('index');
@@ -579,7 +630,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
         Route::get('/history', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'history'])->name('history');
         Route::get('/{campaign}/export', [\App\Http\Controllers\CustomerCare\BulkEmailController::class, 'export'])->name('export');
     });
-    
+
     // WhatsApp Test/Sandbox
     Route::get('/whatsapp-test', [CustomerCareController::class, 'whatsappTest'])->name('whatsapp-test');
 });
@@ -594,7 +645,7 @@ Route::prefix('doctor')->name('doctor.')->group(function () {
     Route::post('/register', [DoctorRegistrationController::class, 'register'])->name('register.post');
     Route::get('/registration-success', [DoctorRegistrationController::class, 'success'])->name('registration.success');
     Route::get('/states/{stateId}/cities', [DoctorRegistrationController::class, 'getCitiesByState'])->name('doctor.cities-by-state');
-    
+
     // Password Reset Routes
     Route::get('/forgot-password', [DoctorForgotPasswordController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [DoctorForgotPasswordController::class, 'sendResetLink'])->name('password.email');
@@ -614,15 +665,15 @@ Route::get('/doctor/email/verify/{id}/{hash}', [DoctorVerificationController::cl
 // Protected Doctor Routes (Authentication required)
 Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.verified'])->group(function () {
     Route::post('/logout', [DoctorAuthController::class, 'logout'])->name('logout');
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
-    
+
     // Consultations
     Route::get('/consultations', [DoctorDashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [DoctorDashboardController::class, 'viewConsultation'])->name('consultations.view');
@@ -633,15 +684,15 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::delete('/consultations/{id}/treatment-plan-attachments/{file}', [DoctorDashboardController::class, 'deleteTreatmentPlanAttachment'])->name('consultations.treatment-plan-attachment.delete');
     Route::get('/consultations/{id}/patient-history', [DoctorDashboardController::class, 'getPatientHistory'])->name('consultations.patient-history');
     Route::post('/consultations/{id}/refer', [DoctorDashboardController::class, 'referPatient'])->name('consultations.refer');
-    
+
     // Multi-Patient Bookings
     Route::get('/bookings', [\App\Http\Controllers\BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/{id}', [\App\Http\Controllers\BookingController::class, 'show'])->name('bookings.show');
     Route::post('/bookings/{id}/adjust-fee', [\App\Http\Controllers\BookingController::class, 'adjustFee'])->name('bookings.adjust-fee');
-    
+
     // Reviews
     Route::post('/reviews', [ReviewController::class, 'storeDoctorReview'])->name('reviews.store');
-    
+
     // Bank Account Management
     Route::get('/bank-accounts', [DoctorDashboardController::class, 'bankAccounts'])->name('bank-accounts');
     Route::get('/banks', [DoctorDashboardController::class, 'getBanks'])->name('banks.list');
@@ -650,21 +701,21 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::put('/bank-accounts/{id}', [DoctorDashboardController::class, 'updateBankAccount'])->name('bank-accounts.update');
     Route::post('/bank-accounts/{id}/set-default', [DoctorDashboardController::class, 'setDefaultBankAccount'])->name('bank-accounts.set-default');
     Route::delete('/bank-accounts/{id}', [DoctorDashboardController::class, 'deleteBankAccount'])->name('bank-accounts.delete');
-    
+
     // Payment History
     Route::get('/payment-history', [DoctorDashboardController::class, 'paymentHistory'])->name('payment-history');
-    
+
     // Profile
     Route::get('/profile', [DoctorDashboardController::class, 'profile'])->name('profile');
     Route::post('/profile', [DoctorDashboardController::class, 'updateProfile'])->name('profile.update');
-    
+
     // Availability
     Route::get('/availability', [DoctorDashboardController::class, 'availability'])->name('availability');
     Route::post('/availability', [DoctorDashboardController::class, 'updateAvailability'])->name('availability.update');
-    
+
     // Support Tickets
     Route::resource('support-tickets', \App\Http\Controllers\Doctor\SupportTicketController::class)->only(['index', 'create', 'store', 'show']);
-    
+
     // Consultation Sessions (In-App Consultations)
     // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
@@ -688,12 +739,12 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
             Route::post('/recording/start', [\App\Http\Controllers\VideoRoomController::class, 'startArchive'])->middleware('throttle:6,1')->name('recording.start');
             Route::post('/recording/stop', [\App\Http\Controllers\VideoRoomController::class, 'stopArchive'])->middleware('throttle:6,1')->name('recording.stop');
         });
-        
+
         // Chat Messages
         Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
         Route::post('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'store'])->name('chat.messages.store');
     });
-    
+
     // Doctor's Forum Routes
     Route::prefix('forum')->name('forum.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Doctor\ForumController::class, 'index'])->name('index');
@@ -750,29 +801,29 @@ Route::prefix('patient')->name('patient.')->group(function () {
 // Protected Patient Routes (Authentication required)
 Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient.verified'])->group(function () {
     Route::post('/logout', [PatientAuthController::class, 'logout'])->name('logout');
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Patient\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export-history', [\App\Http\Controllers\Patient\DashboardController::class, 'exportHistory'])->name('dashboard.export-history');
-    
+
     // Consultations
     Route::get('/consultations', [\App\Http\Controllers\Patient\DashboardController::class, 'consultations'])->name('consultations');
     Route::get('/consultations/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'viewConsultation'])->name('consultation.view');
     Route::get('/consultations/{id}/attachments/{file}', [\App\Http\Controllers\MedicalDocumentController::class, 'downloadTreatmentPlanAttachment'])->name('consultation.attachment');
-    
+
     // Medical Records
     Route::get('/medical-records', [\App\Http\Controllers\Patient\DashboardController::class, 'medicalRecords'])->name('medical-records');
-    
+
     // Profile
     Route::get('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'updateProfile'])->name('profile.update');
-    
+
     // Consultation Sessions (In-App Consultations)
     // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {
@@ -796,53 +847,53 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
             Route::post('/recording/start', [\App\Http\Controllers\VideoRoomController::class, 'startArchive'])->middleware('throttle:6,1')->name('recording.start');
             Route::post('/recording/stop', [\App\Http\Controllers\VideoRoomController::class, 'stopArchive'])->middleware('throttle:6,1')->name('recording.stop');
         });
-        
+
         // Chat Messages
         Route::get('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'index'])->name('chat.messages');
         Route::post('/chat/messages', [\App\Http\Controllers\ConsultationChatMessageController::class, 'store'])->name('chat.messages.store');
     });
-    
+
     // Dependents
     Route::get('/dependents', [\App\Http\Controllers\Patient\DashboardController::class, 'dependents'])->name('dependents');
-    
+
     // Payments
     Route::get('/payments', [\App\Http\Controllers\Patient\DashboardController::class, 'payments'])->name('payments');
     Route::post('/consultations/{id}/pay', [\App\Http\Controllers\Patient\DashboardController::class, 'initiatePayment'])->name('consultation.pay');
     Route::get('/consultations/{id}/receipt', [\App\Http\Controllers\Patient\DashboardController::class, 'viewReceipt'])->name('consultation.receipt');
-    
+
     // Support Tickets
     Route::resource('support-tickets', \App\Http\Controllers\Patient\SupportTicketController::class)->only(['index', 'create', 'store', 'show']);
-    
+
     // Doctors
     Route::get('/doctors', [\App\Http\Controllers\Patient\DashboardController::class, 'doctors'])->name('doctors');
-    
+
     // Doctors by Specialization
     Route::get('/doctors/specialization/{specialization}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySpecialization'])->name('doctors-by-specialization');
-    
+
     // Doctors by Symptom
     Route::get('/doctors/symptom/{symptom}', [\App\Http\Controllers\Patient\DashboardController::class, 'doctorsBySymptom'])->name('doctors-by-symptom');
-    
+
     // Menstrual Cycle Tracking (for female patients)
     Route::get('/cycle-tracker', [\App\Http\Controllers\Patient\DashboardController::class, 'cycleTracker'])->name('cycle-tracker');
     Route::post('/menstrual-daily-log', [\App\Http\Controllers\Patient\DashboardController::class, 'storeDailyLog'])->name('menstrual-daily-log.store');
     Route::post('/cycle-tracker/reset', [\App\Http\Controllers\Patient\DashboardController::class, 'resetCycleTracker'])->name('cycle-tracker.reset');
-    
+
     Route::get('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'showMenstrualCycle'])->name('menstrual-cycle.show');
     Route::post('/menstrual-cycle', [\App\Http\Controllers\Patient\DashboardController::class, 'storeMenstrualCycle'])->name('menstrual-cycle.store');
     Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
     Route::delete('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteMenstrualCycle'])->name('menstrual-cycle.delete');
-    
+
     // Doctor Booking
     Route::get('/doctors/{id}/availability', [\App\Http\Controllers\Patient\DashboardController::class, 'getDoctorAvailability'])->name('doctors.availability');
     Route::post('/doctors/check-slot', [\App\Http\Controllers\Patient\DashboardController::class, 'checkTimeSlotAvailability'])->name('doctors.check-slot');
     Route::post('/doctors/book', [\App\Http\Controllers\Patient\DashboardController::class, 'createScheduledConsultation'])->name('doctors.book');
-    
+
     // Caregiver Discovery
     Route::get('/caregivers', [\App\Http\Controllers\Patient\DashboardController::class, 'caregivers'])->name('caregivers');
-    
+
     // Search
     Route::get('/search', [\App\Http\Controllers\Patient\DashboardController::class, 'search'])->name('search');
-    
+
     // Sexual Health & Performance Tracking (for male patients)
     Route::post('/sexual-health', [\App\Http\Controllers\Patient\DashboardController::class, 'storeSexualHealthRecord'])->name('sexual-health.store');
     Route::put('/sexual-health/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateSexualHealthRecord'])->name('sexual-health.update');
@@ -853,25 +904,25 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
 Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:admin', 'super_admin', 'rate.limit'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // User Management
     Route::get('/users', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'index'])->name('users.index');
     Route::put('/users/{type}/{id}', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'updateUser'])->name('users.update');
     Route::put('/users/{type}/{id}/email', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'updateEmail'])->name('users.update-email');
     Route::post('/users/{type}/{id}/toggle-status', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'toggleStatus'])->name('users.toggle-status');
     Route::post('/users/{type}/{id}/reset-password', [\App\Http\Controllers\SuperAdmin\UserManagementController::class, 'resetPassword'])->name('users.reset-password');
-    
+
     // Activity Logs
     Route::get('/activity-logs', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::get('/activity-logs/{id}', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'show'])->name('activity-logs.show');
     Route::get('/activity-logs/export/csv', [\App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'export'])->name('activity-logs.export');
-    
+
     // Services Monitoring
     Route::get('/services', [\App\Http\Controllers\SuperAdmin\ServicesController::class, 'index'])->name('services.index');
-    
+
     // System Health
     Route::get('/system-health', [\App\Http\Controllers\SuperAdmin\SystemHealthController::class, 'index'])->name('system-health.index');
-    
+
     // Impersonation
     Route::post('/impersonate/{type}/{id}/start', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'start'])->name('impersonate.start');
     Route::post('/impersonate/stop', [\App\Http\Controllers\SuperAdmin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
