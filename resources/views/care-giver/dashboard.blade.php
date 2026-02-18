@@ -61,9 +61,14 @@
                 {{-- Patient Info Card --}}
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="p-5">
-                        <div class="flex flex-col sm:flex-row gap-4">
+                        <div class="relative">
+                            {{-- Mini map — top-right corner --}}
+                            <div class="absolute top-0 right-0 w-36 h-24 rounded-lg bg-gray-200 overflow-hidden">
+                                <img src="https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/-89.6501,39.7817,13,0/320x200?access_token=pk.placeholder" alt="Map" class="w-full h-full object-cover" onerror="this.style.display='none';this.parentNode.innerHTML='<div class=\'flex items-center justify-center h-full text-gray-400 text-xs\'>Map preview</div>';">
+                            </div>
+
                             {{-- Patient details --}}
-                            <div class="flex-1 min-w-0">
+                            <div class="pr-40">
                                 <div class="flex flex-wrap items-center gap-2 mb-2">
                                     <span class="inline-flex items-center rounded-md bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">ACTIVE CASE</span>
                                     <span class="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{{ strtoupper($activeShift['plan']) }}</span>
@@ -73,20 +78,17 @@
                                     <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                     {{ $activeShift['location'] }}
                                 </p>
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                                        View Map
-                                    </button>
-                                    <a href="{{ route('care_giver.communication.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                        Contact Family
-                                    </a>
-                                </div>
                             </div>
-                            {{-- Mini map placeholder --}}
-                            <div class="w-full sm:w-40 h-28 sm:h-auto rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
-                                <img src="https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/-89.6501,39.7817,13,0/320x200?access_token=pk.placeholder" alt="Map" class="w-full h-full object-cover" onerror="this.style.display='none';this.parentNode.innerHTML='<div class=\'flex items-center justify-center h-full text-gray-400 text-xs\'>Map preview</div>';">
+
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                                    View Map
+                                </button>
+                                <a href="{{ route('care_giver.communication.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    Contact Family
+                                </a>
                             </div>
                         </div>
                     </div>
