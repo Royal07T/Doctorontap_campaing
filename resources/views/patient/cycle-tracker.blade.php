@@ -142,18 +142,82 @@
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="px-8 py-5 border-b border-gray-100">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-lg font-semibold text-gray-900">Select Date</h2>
-                            <button @click="goToToday" class="text-xs font-semibold text-purple-600 hover:text-purple-700">Today</button>
+                            <div class="flex items-center gap-3">
+                                <button @click="previousMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </button>
+                                <h2 class="text-lg font-semibold text-gray-900" x-text="currentMonthName + ' ' + currentYear"></h2>
+                                <button @click="nextMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button @click="goToToday" class="text-xs font-semibold text-purple-600 hover:text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-colors">Today</button>
                         </div>
                     </div>
 
                     <div class="p-6">
-                        <label class="block text-xs font-semibold text-gray-700 mb-2">Date</label>
-                        <input type="date"
-                               :value="getSelectedDateForInput()"
-                               @change="setSelectedDateFromInput($event.target.value)"
-                               class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
-                        <p class="mt-2 text-xs text-gray-500">Use the date picker to select a day to view or log your cycle metrics.</p>
+                        <!-- Calendar Grid -->
+                        <div class="mb-4">
+                            <!-- Day Headers -->
+                            <div class="grid grid-cols-7 gap-1 mb-2" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));">
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">S</div>
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">M</div>
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">T</div>
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">W</div>
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">T</div>
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">F</div>
+                                <div class="text-center text-xs font-bold text-gray-500 py-2">S</div>
+                            </div>
+                            
+                            <!-- Calendar Days -->
+                            <div class="grid grid-cols-7 gap-1" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));">
+                                <template x-for="(day, index) in calendarDays" :key="index">
+                                    <button type="button"
+                                            @click="selectDate(day)"
+                                            :class="[
+                                                !day.isCurrentMonth ? 'text-gray-300' : '',
+                                                isSelected(day) ? 'bg-purple-600 text-white font-bold ring-2 ring-purple-300' : 
+                                                isToday(day) ? 'bg-purple-50 text-purple-700 font-semibold border-2 border-purple-300' :
+                                                isPeriodDay(day) ? 'bg-pink-100 text-pink-700 hover:bg-pink-200' :
+                                                isFertileDay(day) ? 'bg-green-50 text-green-700 hover:bg-green-100' :
+                                                'text-gray-700 hover:bg-gray-50',
+                                                'aspect-square rounded-lg transition-all text-sm flex items-center justify-center relative'
+                                            ]"
+                                            x-text="day.day">
+                                        <template x-if="isPeriodDay(day)">
+                                            <span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-pink-500 rounded-full"></span>
+                                        </template>
+                                        <template x-if="isFertileDay(day)">
+                                            <span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-green-500 rounded-full"></span>
+                                        </template>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100 text-xs">
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-pink-100 border border-pink-300 rounded"></div>
+                                <span class="text-gray-600">Period</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-green-50 border border-green-300 rounded"></div>
+                                <span class="text-gray-600">Fertile Window</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-purple-50 border-2 border-purple-300 rounded"></div>
+                                <span class="text-gray-600">Today</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-purple-600 rounded"></div>
+                                <span class="text-gray-600">Selected</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -344,7 +408,7 @@
         </div>
 
         <!-- Track Symptoms Section -->
-        <div class="mt-4 lg:mt-6 bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
+        <div class="mt-2 lg:mt-3 bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
             <h3 class="text-xl font-black text-gray-900 mb-6">Track Symptoms</h3>
             <div class="flex flex-wrap gap-4">
                 <template x-for="symptom in symptoms">
@@ -453,23 +517,29 @@ function cycleTracker() {
 
         updateCalendar() {
             const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-            const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Adjust for Monday start
+            const startDay = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
             
             const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
             const prevMonthDays = new Date(this.currentYear, this.currentMonth, 0).getDate();
 
             const days = [];
 
-            // Previous month days
-            for (let i = startDay - 1; i >= 0; i--) {
+            // Previous month days (fill in days before the first day of the month)
+            // startDay: 0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
+            // We need to fill in 'startDay' number of days from previous month
+            // If startDay = 0 (Sunday), no previous days needed
+            // If startDay = 1 (Monday), we need 1 previous day (Sunday = last day of prev month)
+            // If startDay = 2 (Tuesday), we need 2 previous days (Sunday, Monday)
+            for (let i = startDay; i > 0; i--) {
+                const prevDay = prevMonthDays - i + 1;
                 days.push({
-                    day: prevMonthDays - i,
+                    day: prevDay,
                     month: this.currentMonth === 0 ? 11 : this.currentMonth - 1,
                     year: this.currentMonth === 0 ? this.currentYear - 1 : this.currentYear,
                     isCurrentMonth: false,
                     date: new Date(this.currentMonth === 0 ? this.currentYear - 1 : this.currentYear, 
                                    this.currentMonth === 0 ? 11 : this.currentMonth - 1, 
-                                   prevMonthDays - i)
+                                   prevDay)
                 });
             }
 
@@ -608,8 +678,38 @@ function cycleTracker() {
         },
 
         isFertileDay(dateObj) {
-            // Implement fertile window logic (typically days 10-17 of cycle)
-            return false; // Placeholder
+            // Calculate fertile window based on cycle data
+            // Fertile window: 5 days before ovulation to 1 day after (typically days 9-15 of a 28-day cycle)
+            if (this.cycles.length === 0) return false;
+            
+            const date = new Date(dateObj.year, dateObj.month, dateObj.day);
+            const d = date.toISOString().split('T')[0];
+            
+            // Check each cycle to see if this date falls in the fertile window
+            for (let cycle of this.cycles) {
+                if (!cycle.start_date) continue;
+                
+                const cycleStart = new Date(cycle.start_date);
+                const cycleLength = cycle.cycle_length || 28; // Default to 28 days
+                const ovulationDay = Math.floor(cycleLength / 2); // Typically day 14 of 28-day cycle
+                
+                // Fertile window: 5 days before ovulation to 1 day after
+                const fertileStart = new Date(cycleStart);
+                fertileStart.setDate(fertileStart.getDate() + ovulationDay - 5);
+                
+                const fertileEnd = new Date(cycleStart);
+                fertileEnd.setDate(fertileEnd.getDate() + ovulationDay + 1);
+                
+                const fertileStartStr = fertileStart.toISOString().split('T')[0];
+                const fertileEndStr = fertileEnd.toISOString().split('T')[0];
+                
+                // Check if date is in fertile window and not during period
+                if (d >= fertileStartStr && d <= fertileEndStr && !this.isPeriodDay(dateObj)) {
+                    return true;
+                }
+            }
+            
+            return false;
         },
 
         formatDayOfWeek() {
