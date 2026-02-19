@@ -101,6 +101,231 @@
         </div>
     </div>
 
+    <!-- Specializations Carousel -->
+    @if(!empty($specializationCarousel) && count($specializationCarousel) > 0)
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Consult by Specialization</h3>
+            <a href="{{ route('patient.doctors') }}" class="text-sm font-medium text-purple-600 hover:text-purple-700">View All</a>
+        </div>
+        <div class="relative overflow-hidden">
+            <style>
+                @keyframes slideSpecialization {
+                    0% {
+                        transform: translateX(0);
+                    }
+                    100% {
+                        transform: translateX(-50%);
+                    }
+                }
+                .specialization-carousel {
+                    display: flex;
+                    gap: 0.75rem;
+                    animation: slideSpecialization 35s linear infinite;
+                    width: fit-content;
+                }
+                .specialization-carousel:hover {
+                    animation-play-state: paused;
+                }
+                .specialization-carousel-wrapper {
+                    overflow: hidden;
+                    position: relative;
+                }
+                .specialization-carousel-wrapper::before,
+                .specialization-carousel-wrapper::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    width: 100px;
+                    height: 100%;
+                    z-index: 10;
+                    pointer-events: none;
+                }
+                .specialization-carousel-wrapper::before {
+                    left: 0;
+                    background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0));
+                }
+                .specialization-carousel-wrapper::after {
+                    right: 0;
+                    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
+                }
+            </style>
+            <div class="specialization-carousel-wrapper">
+                <div class="specialization-carousel">
+                    <!-- First set of specializations -->
+                    @foreach($specializationCarousel as $spec)
+                    <a href="{{ route('patient.doctors-by-specialization', urlencode($spec['specialization'])) }}" class="flex-shrink-0 inline-flex flex-col items-center gap-2 px-5 py-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer min-w-[120px]">
+                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                            @if($spec['icon'] === 'stethoscope')
+                            <!-- General Practice - Stethoscope -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8h8M8 8a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z" />
+                                <circle cx="8" cy="8" r="2.5" stroke-width="1.5"/>
+                                <circle cx="16" cy="8" r="2.5" stroke-width="1.5"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'heart')
+                            <!-- Cardiology - Heart -->
+                            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'baby')
+                            <!-- Pediatrics - Baby -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            @elseif($spec['icon'] === 'skin')
+                            <!-- Dermatology - Skin/Circle -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                                <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.2"/>
+                                <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
+                                <circle cx="15" cy="9" r="1.5" fill="currentColor"/>
+                                <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
+                                <circle cx="15" cy="15" r="1.5" fill="currentColor"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'brain')
+                            <!-- Neurology - Brain -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            @elseif($spec['icon'] === 'pregnancy')
+                            <!-- OB/GYN - Female with Pregnancy -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="8" r="3" stroke-width="2"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v8M8 19h8" />
+                                <circle cx="12" cy="14" r="4" fill="currentColor" opacity="0.3"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'bone')
+                            <!-- Orthopedics - Bone -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <ellipse cx="6" cy="12" rx="2.5" ry="3" fill="currentColor"/>
+                                <ellipse cx="18" cy="12" rx="2.5" ry="3" fill="currentColor"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 12h7M9 10l-1.5 4M15 10l1.5 4" />
+                            </svg>
+                            @elseif($spec['icon'] === 'eye')
+                            <!-- Ophthalmology - Eye -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            @elseif($spec['icon'] === 'ear-nose-throat')
+                            <!-- ENT - Ear -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12c0 2.5-2 4.5-4.5 4.5S0 14.5 0 12s2-4.5 4.5-4.5S9 9.5 9 12zm6 0c0 2.5 2 4.5 4.5 4.5S24 14.5 24 12s-2-4.5-4.5-4.5S15 9.5 15 12z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8M8 12h8" />
+                            </svg>
+                            @elseif($spec['icon'] === 'stomach')
+                            <!-- Gastroenterology - Stomach/Intestine -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4c-3 0-6 2-6 6v4c0 4 3 6 6 6s6-2 6-6v-4c0-4-3-6-6-6z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
+                            </svg>
+                            @elseif($spec['icon'] === 'kidney')
+                            <!-- Urology - Kidney -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8c0 2-1 4-2 4s-2-2-2-4 1-4 2-4 2 2 2 4zm12 0c0 2 1 4 2 4s2-2 2-4-1-4-2-4-2 2-2 4z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
+                            </svg>
+                            @else
+                            <!-- Default Medical Icon -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            @endif
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-center whitespace-nowrap">{{ $spec['name'] }}</span>
+                    </a>
+                    @endforeach
+                    <!-- Duplicate set for seamless loop -->
+                    @foreach($specializationCarousel as $spec)
+                    <a href="{{ route('patient.doctors-by-specialization', urlencode($spec['specialization'])) }}" class="flex-shrink-0 inline-flex flex-col items-center gap-2 px-5 py-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer min-w-[120px]">
+                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                            @if($spec['icon'] === 'stethoscope')
+                            <!-- General Practice - Stethoscope -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8h8M8 8a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z" />
+                                <circle cx="8" cy="8" r="2.5" stroke-width="1.5"/>
+                                <circle cx="16" cy="8" r="2.5" stroke-width="1.5"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'heart')
+                            <!-- Cardiology - Heart -->
+                            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'baby')
+                            <!-- Pediatrics - Baby -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            @elseif($spec['icon'] === 'skin')
+                            <!-- Dermatology - Skin/Circle -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                                <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.2"/>
+                                <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
+                                <circle cx="15" cy="9" r="1.5" fill="currentColor"/>
+                                <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
+                                <circle cx="15" cy="15" r="1.5" fill="currentColor"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'brain')
+                            <!-- Neurology - Brain -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            @elseif($spec['icon'] === 'pregnancy')
+                            <!-- OB/GYN - Female with Pregnancy -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="8" r="3" stroke-width="2"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v8M8 19h8" />
+                                <circle cx="12" cy="14" r="4" fill="currentColor" opacity="0.3"/>
+                            </svg>
+                            @elseif($spec['icon'] === 'bone')
+                            <!-- Orthopedics - Bone -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <ellipse cx="6" cy="12" rx="2.5" ry="3" fill="currentColor"/>
+                                <ellipse cx="18" cy="12" rx="2.5" ry="3" fill="currentColor"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 12h7M9 10l-1.5 4M15 10l1.5 4" />
+                            </svg>
+                            @elseif($spec['icon'] === 'eye')
+                            <!-- Ophthalmology - Eye -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            @elseif($spec['icon'] === 'ear-nose-throat')
+                            <!-- ENT - Ear -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12c0 2.5-2 4.5-4.5 4.5S0 14.5 0 12s2-4.5 4.5-4.5S9 9.5 9 12zm6 0c0 2.5 2 4.5 4.5 4.5S24 14.5 24 12s-2-4.5-4.5-4.5S15 9.5 15 12z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8M8 12h8" />
+                            </svg>
+                            @elseif($spec['icon'] === 'stomach')
+                            <!-- Gastroenterology - Stomach/Intestine -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4c-3 0-6 2-6 6v4c0 4 3 6 6 6s6-2 6-6v-4c0-4-3-6-6-6z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
+                            </svg>
+                            @elseif($spec['icon'] === 'kidney')
+                            <!-- Urology - Kidney -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8c0 2-1 4-2 4s-2-2-2-4 1-4 2-4 2 2 2 4zm12 0c0 2 1 4 2 4s2-2 2-4-1-4-2-4-2 2-2 4z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
+                            </svg>
+                            @else
+                            <!-- Default Medical Icon -->
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            @endif
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-center whitespace-nowrap">{{ $spec['name'] }}</span>
+                    </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Health Snapshot and Medical Coordination Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Health Snapshot (Left - 2 columns) -->

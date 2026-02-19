@@ -293,7 +293,23 @@ class DashboardController extends Controller
             ['symptom' => 'Menstrual Pain', 'symptom_slug' => 'period-doubts-or-pregnancy'],
         ];
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts', 'dailyHealthTip', 'symptomDoctors'));
+        // Create specialization list for carousel with icons
+        $specializationCarousel = [
+            ['name' => 'General Practice', 'specialization' => 'General Practice (Family Medicine)', 'icon' => 'stethoscope'],
+            ['name' => 'Cardiology', 'specialization' => 'Cardiologist', 'icon' => 'heart'],
+            ['name' => 'Pediatrics', 'specialization' => 'Pediatrics', 'icon' => 'baby'],
+            ['name' => 'Dermatology', 'specialization' => 'Dermatologist', 'icon' => 'skin'],
+            ['name' => 'Neurology', 'specialization' => 'Neurologist', 'icon' => 'brain'],
+            ['name' => 'OB/GYN', 'specialization' => 'Obstetrics & Gynecology (OB/GYN)', 'icon' => 'pregnancy'],
+            ['name' => 'Orthopedics', 'specialization' => 'Orthopedic Specialist', 'icon' => 'bone'],
+            ['name' => 'Ophthalmology', 'specialization' => 'Ophthalmologist', 'icon' => 'eye'],
+            ['name' => 'ENT', 'specialization' => 'ENT Specialist (Otolaryngologist)', 'icon' => 'ear-nose-throat'],
+            ['name' => 'Psychiatry', 'specialization' => 'Psychiatrist', 'icon' => 'brain'],
+            ['name' => 'Gastroenterology', 'specialization' => 'Gastroenterologist', 'icon' => 'stomach'],
+            ['name' => 'Urology', 'specialization' => 'Urologist', 'icon' => 'kidney'],
+        ];
+
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts', 'dailyHealthTip', 'symptomDoctors', 'specializationCarousel'));
     }
 
     /**
