@@ -300,7 +300,7 @@
                                 <input type="text"
                                        id="company_name"
                                        name="company_name"
-                                       value="{{ Setting::get('company_name') }}"
+                                       value="{{ \App\Models\Setting::get('company_name') }}"
                                        required
                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition @error('company_name') border-red-500 @enderror">
                                 <p class="mt-1.5 text-xs text-gray-600">
@@ -319,7 +319,7 @@
                                 <input type="email"
                                        id="company_email"
                                        name="company_email"
-                                       value="{{ Setting::get('company_email') }}"
+                                       value="{{ \App\Models\Setting::get('company_email') }}"
                                        required
                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition @error('company_email') border-red-500 @enderror">
                                 <p class="mt-1.5 text-xs text-gray-600">
@@ -338,7 +338,7 @@
                                 <input type="tel"
                                        id="company_phone"
                                        name="company_phone"
-                                       value="{{ Setting::get('company_phone') }}"
+                                       value="{{ \App\Models\Setting::get('company_phone') }}"
                                        required
                                        placeholder="+234800000000"
                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition @error('company_phone') border-red-500 @enderror">
@@ -358,7 +358,7 @@
                                 <textarea id="company_address"
                                           name="company_address"
                                           rows="2"
-                                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition @error('company_address') border-red-500 @enderror">{{ Setting::get('company_address') }}</textarea>
+                                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition @error('company_address') border-red-500 @enderror">{{ \App\Models\Setting::get('company_address') }}</textarea>
                                 <p class="mt-1.5 text-xs text-gray-600">
                                     Physical address for official correspondence.
                                 </p>
@@ -375,7 +375,7 @@
                                 <input type="url"
                                        id="company_website"
                                        name="company_website"
-                                       value="{{ Setting::get('company_website') }}"
+                                       value="{{ \App\Models\Setting::get('company_website') }}"
                                        placeholder="https://doctorontap.com"
                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition @error('company_website') border-red-500 @enderror">
                                 <p class="mt-1.5 text-xs text-gray-600">

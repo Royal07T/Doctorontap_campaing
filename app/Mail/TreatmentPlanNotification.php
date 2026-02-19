@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Consultation;
 use App\Models\NotificationLog;
+use App\Services\EmailTemplateService;
 use App\Services\NotificationTrackingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,6 +30,8 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
      * @var NotificationLog
      */
     protected $notificationLog;
+    public $templateContent;
+    public $templateSubject;
 
     /**
      * Create a new message instance.
@@ -47,6 +50,39 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
             'Your Treatment Plan is Ready - ' . $this->consultation->reference,
             $this->consultation->first_name . ' ' . $this->consultation->last_name
         );
+        
+        // Prepare template data with comprehensive recipient information
+        $templateData = [
+            // Recipient Information
+            'first_name' => $this->consultation->first_name ?? '',
+            'last_name' => $this->consultation->last_name ?? '',
+            'full_name' => ($this->consultation->first_name ?? '') . ' ' . ($this->consultation->last_name ?? ''),
+            'email' => $this->consultation->email ?? '',
+            'phone' => $this->consultation->mobile ?? '',
+            'mobile' => $this->consultation->mobile ?? '',
+            'age' => isset($this->consultation->age) ? (string)$this->consultation->age : '',
+            'gender' => $this->consultation->gender ?? '',
+            
+            // Consultation Information
+            'reference' => $this->consultation->reference ?? '',
+            'treatment_plan_link' => route('consultation.show', $this->consultation->id),
+            
+            // Doctor Information
+            'doctor_name' => $this->consultation->doctor->name ?? '',
+            'doctor_specialization' => $this->consultation->doctor->specialization ?? '',
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('TreatmentPlanNotification', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $this->templateSubject = 'Your Treatment Plan is Ready - ' . $this->consultation->reference;
+        }
     }
     
 
@@ -56,7 +92,7 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Treatment Plan is Ready - ' . $this->consultation->reference,
+            subject: $this->templateSubject,
         );
     }
 
@@ -65,6 +101,13 @@ class TreatmentPlanNotification extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.treatment-plan-notification',
         );

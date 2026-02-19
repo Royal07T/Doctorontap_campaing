@@ -77,13 +77,17 @@ class CommunicationController extends Controller
         }
 
         try {
-            // Replace template variables
+            // Prepare comprehensive recipient information
             $messageData = [
-                'first_name' => $user->first_name ?? $user->name ?? 'Valued Customer',
-                'last_name' => $user->last_name ?? '',
+                'first_name' => $user->first_name ?? (explode(' ', $user->name ?? 'Valued Customer')[0] ?? 'Valued'),
+                'last_name' => $user->last_name ?? (count(explode(' ', $user->name ?? '')) > 1 ? explode(' ', $user->name)[1] : ''),
+                'full_name' => $user->name ?? ($user->first_name ?? '') . ' ' . ($user->last_name ?? ''),
                 'name' => $user->name ?? ($user->first_name ?? 'Customer'),
                 'email' => $user->email ?? '',
-                'phone' => $user->phone ?? '',
+                'phone' => $user->phone ?? $user->mobile ?? '',
+                'mobile' => $user->phone ?? $user->mobile ?? '',
+                'age' => isset($user->age) ? (string)$user->age : '',
+                'gender' => $user->gender ?? '',
             ];
 
             $message = $template->replaceVariables($messageData);
@@ -110,7 +114,7 @@ class CommunicationController extends Controller
             $result = ['success' => false, 'message' => 'Invalid channel'];
 
             if ($request->channel === 'email') {
-                Mail::to($user->email)->send(new CustomCommunication($message, $subject ?? 'Message from DoctorOnTap'));
+                Mail::to($user->email)->send(new CustomCommunication($message, $subject ?? 'Message from DoctorOnTap', $messageData));
                 $result = ['success' => true, 'message' => 'Email sent successfully'];
             } elseif ($request->channel === 'sms') {
                 if ($this->vonageService) {

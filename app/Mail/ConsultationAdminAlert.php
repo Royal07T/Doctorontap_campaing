@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -15,6 +16,8 @@ class ConsultationAdminAlert extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public $data;
+    public $templateContent;
+    public $templateSubject;
 
     /**
      * Create a new message instance.
@@ -22,6 +25,45 @@ class ConsultationAdminAlert extends Mailable implements ShouldQueue
     public function __construct($data)
     {
         $this->data = $data;
+        
+        // Prepare template data with comprehensive recipient information
+        $templateData = [
+            // Consultation Information
+            'reference' => $data['consultation_reference'] ?? $data['reference'] ?? '',
+            'consultation_type' => $data['consultation_type'] ?? 'Consultation',
+            'scheduled_date' => $data['scheduled_date'] ?? '',
+            'scheduled_time' => $data['scheduled_time'] ?? '',
+            'scheduled_datetime' => $data['scheduled_at'] ?? '',
+            
+            // Patient Information
+            'patient_name' => ($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''),
+            'first_name' => $data['first_name'] ?? '',
+            'last_name' => $data['last_name'] ?? '',
+            'full_name' => ($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''),
+            'email' => $data['email'] ?? '',
+            'phone' => $data['mobile'] ?? $data['phone'] ?? '',
+            'mobile' => $data['mobile'] ?? $data['phone'] ?? '',
+            'age' => isset($data['age']) ? (string)$data['age'] : '',
+            'gender' => $data['gender'] ?? '',
+            'problem' => $data['problem'] ?? '',
+            'severity' => $data['severity'] ?? '',
+            
+            // Doctor Information
+            'doctor_name' => $data['doctor_name'] ?? '',
+            'doctor_specialization' => $data['doctor_specialization'] ?? '',
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('ConsultationAdminAlert', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $this->templateSubject = 'New Consultation Request - DoctorOnTap';
+        }
     }
 
     /**
@@ -30,7 +72,7 @@ class ConsultationAdminAlert extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Consultation Request - DoctorOnTap',
+            subject: $this->templateSubject,
             replyTo: config('mail.admin_email'),
             from: config('mail.from.address'),
             tags: ['consultation', 'admin-alert'],
@@ -45,6 +87,13 @@ class ConsultationAdminAlert extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.consultation-admin-alert',
         );

@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Consultation;
 use App\Models\NotificationLog;
+use App\Services\EmailTemplateService;
 use App\Services\NotificationTrackingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,6 +25,8 @@ class ReviewRequest extends Mailable implements ShouldQueue
      * @var NotificationLog
      */
     protected $notificationLog;
+    public $templateContent;
+    public $templateSubject;
 
     /**
      * Create a new message instance.
@@ -42,6 +45,39 @@ class ReviewRequest extends Mailable implements ShouldQueue
             'How was your consultation with Dr. ' . $this->consultation->doctor->name . '?',
             $this->consultation->first_name . ' ' . $this->consultation->last_name
         );
+        
+        // Prepare template data with comprehensive recipient information
+        $templateData = [
+            // Recipient Information
+            'first_name' => $this->consultation->first_name ?? '',
+            'last_name' => $this->consultation->last_name ?? '',
+            'full_name' => ($this->consultation->first_name ?? '') . ' ' . ($this->consultation->last_name ?? ''),
+            'email' => $this->consultation->email ?? '',
+            'phone' => $this->consultation->mobile ?? '',
+            'mobile' => $this->consultation->mobile ?? '',
+            'age' => isset($this->consultation->age) ? (string)$this->consultation->age : '',
+            'gender' => $this->consultation->gender ?? '',
+            
+            // Consultation Information
+            'reference' => $this->consultation->reference ?? '',
+            'review_link' => route('consultation.review', $this->consultation->id),
+            
+            // Doctor Information
+            'doctor_name' => $this->consultation->doctor->name ?? '',
+            'doctor_specialization' => $this->consultation->doctor->specialization ?? '',
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('ReviewRequest', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $this->templateSubject = 'How was your consultation with Dr. ' . $this->consultation->doctor->name . '?';
+        }
     }
 
     /**
@@ -50,7 +86,7 @@ class ReviewRequest extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'How was your consultation with Dr. ' . $this->consultation->doctor->name . '?',
+            subject: $this->templateSubject,
         );
     }
 
@@ -59,6 +95,13 @@ class ReviewRequest extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.review-request',
         );

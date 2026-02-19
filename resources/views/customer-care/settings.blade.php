@@ -45,8 +45,113 @@
 
     <!-- Preferences Section -->
     <div id="preferences" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">Preferences</h2>
-        <p class="text-sm text-gray-600">Preference settings coming soon</p>
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Dashboard Preferences</h2>
+        <p class="text-sm text-gray-600 mb-6">Customize your dashboard experience to match your workflow</p>
+        
+        @php
+            $preferences = $user->getDashboardPreferences();
+        @endphp
+        
+        <form method="POST" action="{{ route('customer-care.settings.preferences') }}" class="space-y-6">
+            @csrf
+            
+            <!-- Auto-Refresh Interval -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Auto-Refresh Interval</label>
+                <p class="text-xs text-gray-600 mb-3">How often the dashboard should automatically refresh (in seconds)</p>
+                <div class="flex items-center gap-4">
+                    <input type="number" name="auto_refresh_interval" 
+                           value="{{ $preferences['auto_refresh_interval'] ?? 30 }}" 
+                           min="10" max="300" step="10"
+                           class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <span class="text-sm text-gray-600">seconds (10-300)</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Set to 0 to disable auto-refresh</p>
+            </div>
+            
+            <!-- Items Per Page -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Items Per Page</label>
+                <p class="text-xs text-gray-600 mb-3">Number of items to display per page in lists</p>
+                <select name="items_per_page" 
+                        class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="5" {{ ($preferences['items_per_page'] ?? 10) == 5 ? 'selected' : '' }}>5</option>
+                    <option value="10" {{ ($preferences['items_per_page'] ?? 10) == 10 ? 'selected' : '' }}>10</option>
+                    <option value="15" {{ ($preferences['items_per_page'] ?? 10) == 15 ? 'selected' : '' }}>15</option>
+                    <option value="20" {{ ($preferences['items_per_page'] ?? 10) == 20 ? 'selected' : '' }}>20</option>
+                    <option value="25" {{ ($preferences['items_per_page'] ?? 10) == 25 ? 'selected' : '' }}>25</option>
+                    <option value="50" {{ ($preferences['items_per_page'] ?? 10) == 50 ? 'selected' : '' }}>50</option>
+                </select>
+            </div>
+            
+            <!-- Dashboard Sections Visibility -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-3">Dashboard Sections</label>
+                <p class="text-xs text-gray-600 mb-4">Show or hide specific sections on your dashboard</p>
+                <div class="space-y-3">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_statistics" value="1" 
+                               {{ ($preferences['show_statistics'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Statistics Cards</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_queue_management" value="1" 
+                               {{ ($preferences['show_queue_management'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Queue Management</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_team_status" value="1" 
+                               {{ ($preferences['show_team_status'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Team Status</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_performance_metrics" value="1" 
+                               {{ ($preferences['show_performance_metrics'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Performance Metrics</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_activity_feed" value="1" 
+                               {{ ($preferences['show_activity_feed'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Activity Feed</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_priority_queue" value="1" 
+                               {{ ($preferences['show_priority_queue'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Priority Queue</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="show_pipeline_metrics" value="1" 
+                               {{ ($preferences['show_pipeline_metrics'] ?? true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-sm text-gray-700">Pipeline Metrics</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Default View -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Default Dashboard View</label>
+                <p class="text-xs text-gray-600 mb-3">Choose your preferred dashboard layout</p>
+                <select name="default_view" 
+                        class="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="enhanced" {{ ($preferences['default_view'] ?? 'enhanced') == 'enhanced' ? 'selected' : '' }}>Enhanced (Full Features)</option>
+                    <option value="standard" {{ ($preferences['default_view'] ?? 'enhanced') == 'standard' ? 'selected' : '' }}>Standard (Simplified)</option>
+                </select>
+            </div>
+            
+            <div class="flex items-center justify-end pt-4 border-t border-gray-200">
+                <button type="submit" 
+                        class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md">
+                    Save Preferences
+                </button>
+            </div>
+        </form>
     </div>
 
     <!-- Security Section -->

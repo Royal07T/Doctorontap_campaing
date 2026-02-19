@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Consultation;
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -18,12 +19,51 @@ class DocumentsForwardedToDoctor extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
+    public $templateContent;
+    public $templateSubject;
+
     /**
      * Create a new message instance.
      */
     public function __construct(public Consultation $consultation)
     {
-        //
+        // Count documents
+        $documentCount = $this->consultation->medical_documents ? count($this->consultation->medical_documents) : 0;
+        
+        // Prepare template data with comprehensive recipient information
+        $templateData = [
+            // Doctor Information
+            'doctor_name' => $this->consultation->doctor->name ?? '',
+            'doctor_specialization' => $this->consultation->doctor->specialization ?? '',
+            
+            // Consultation Information
+            'reference' => $this->consultation->reference ?? '',
+            'document_count' => (string)$documentCount,
+            'view_link' => route('doctor.consultations.show', $this->consultation->id),
+            
+            // Patient Information
+            'patient_name' => ($this->consultation->first_name ?? '') . ' ' . ($this->consultation->last_name ?? ''),
+            'first_name' => $this->consultation->first_name ?? '',
+            'last_name' => $this->consultation->last_name ?? '',
+            'full_name' => ($this->consultation->first_name ?? '') . ' ' . ($this->consultation->last_name ?? ''),
+            'email' => $this->consultation->email ?? '',
+            'phone' => $this->consultation->mobile ?? '',
+            'mobile' => $this->consultation->mobile ?? '',
+            'age' => isset($this->consultation->age) ? (string)$this->consultation->age : '',
+            'gender' => $this->consultation->gender ?? '',
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('DocumentsForwardedToDoctor', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $this->templateSubject = 'Patient Medical Documents - ' . $this->consultation->full_name . ' (Ref: ' . $this->consultation->reference . ')';
+        }
     }
 
     /**
@@ -32,7 +72,7 @@ class DocumentsForwardedToDoctor extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Patient Medical Documents - ' . $this->consultation->full_name . ' (Ref: ' . $this->consultation->reference . ')',
+            subject: $this->templateSubject,
         );
     }
 
@@ -41,6 +81,13 @@ class DocumentsForwardedToDoctor extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.documents-forwarded-to-doctor',
         );

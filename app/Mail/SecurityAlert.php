@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -17,6 +18,8 @@ class SecurityAlert extends Mailable implements ShouldQueue
     public $eventType;
     public $data;
     public $severity;
+    public $templateContent;
+    public $templateSubject;
 
     /**
      * Create a new message instance.
@@ -26,6 +29,36 @@ class SecurityAlert extends Mailable implements ShouldQueue
         $this->eventType = $eventType;
         $this->data = $data;
         $this->severity = $severity;
+        
+        // Prepare template data
+        $templateData = [
+            'event_type' => ucwords(str_replace('_', ' ', $eventType)),
+            'severity' => ucfirst($severity),
+            'timestamp' => now()->format('Y-m-d H:i:s'),
+            'details' => json_encode($data, JSON_PRETTY_PRINT),
+            'ip_address' => $data['ip_address'] ?? request()->ip(),
+            'user_agent' => $data['user_agent'] ?? request()->userAgent(),
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('SecurityAlert', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $severityLabels = [
+                'critical' => '🚨 CRITICAL',
+                'high' => '⚠️ HIGH',
+                'medium' => '⚡ MEDIUM',
+                'low' => 'ℹ️ LOW',
+            ];
+            $severityLabel = $severityLabels[$severity] ?? strtoupper($severity);
+            $eventTypeLabel = ucwords(str_replace('_', ' ', $eventType));
+            $this->templateSubject = "{$severityLabel} Security Alert: {$eventTypeLabel} - DoctorOnTap";
+        }
     }
 
     /**
@@ -33,18 +66,8 @@ class SecurityAlert extends Mailable implements ShouldQueue
      */
     public function envelope(): Envelope
     {
-        $severityLabels = [
-            'critical' => '🚨 CRITICAL',
-            'high' => '⚠️ HIGH',
-            'medium' => '⚡ MEDIUM',
-            'low' => 'ℹ️ LOW',
-        ];
-
-        $severityLabel = $severityLabels[$this->severity] ?? strtoupper($this->severity);
-        $eventTypeLabel = ucwords(str_replace('_', ' ', $this->eventType));
-
         return new Envelope(
-            subject: "{$severityLabel} Security Alert: {$eventTypeLabel} - DoctorOnTap",
+            subject: $this->templateSubject,
             tags: ['security', 'alert', $this->severity],
             metadata: [
                 'event_type' => $this->eventType,
@@ -58,6 +81,13 @@ class SecurityAlert extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.security-alert',
         );

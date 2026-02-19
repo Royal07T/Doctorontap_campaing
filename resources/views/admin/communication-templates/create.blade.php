@@ -7,16 +7,38 @@
     <title>Create Template - Admin</title>
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Summernote CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
     <style>
         .purple-gradient {
             background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
         }
+        .variable-btn {
+            transition: all 0.2s;
+        }
+        .variable-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .note-editor {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, channel: 'sms', body: '', detectedVars: [] }" 
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, channel: 'sms', body: '', detectedVars: [], showVariables: false }" 
       x-init="$watch('body', value => {
           const matches = value.match(/\{\{(\w+)\}\}/g) || [];
           detectedVars = matches.map(m => m.replace(/\{\{|\}\}/g, ''));
+      });
+      $watch('channel', value => {
+          if (value === 'email') {
+              setTimeout(() => {
+                  if ($('#summernote').length && typeof $('#summernote').summernote === 'function') {
+                      $('#summernote').summernote('code', body || '<p>Hello @{{first_name}},</p><p>Your message here...</p>');
+                  }
+              }, 100);
+          }
       })">
     <div class="flex h-screen overflow-hidden">
         @include('admin.shared.sidebar', ['active' => 'communication-templates'])
@@ -88,21 +110,111 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Message Body *</label>
-                                    <textarea name="body" x-model="body" rows="8" required
-                                              placeholder="Enter template message. Use {{variable_name}} for dynamic variables..."
-                                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"></textarea>
-                                    <p class="mt-2 text-xs text-gray-500">
-                                        Available variables: <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{name}}</code>, <code>{{email}}</code>, <code>{{phone}}</code>
-                                    </p>
-                                    <div x-show="detectedVars.length > 0" class="mt-2">
-                                        <p class="text-xs font-semibold text-gray-700 mb-1">Detected Variables:</p>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label class="block text-sm font-semibold text-gray-700">Message Body *</label>
+                                        <button type="button" @click="showVariables = !showVariables" 
+                                                class="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-semibold">
+                                            <span x-show="!showVariables">📋 Show Variables</span>
+                                            <span x-show="showVariables">✕ Hide Variables</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Variable Insertion Panel -->
+                                    <div x-show="showVariables" class="mb-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                        <p class="text-xs font-semibold text-gray-700 mb-2">Click to insert variables:</p>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            <button type="button" @click="insertVariable('@{{first_name}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{first_name}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{last_name}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{last_name}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{full_name}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{full_name}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{email}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{email}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{phone}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{phone}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{phone_formatted}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{phone_formatted}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{age}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{age}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{gender}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{gender}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{reference}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{reference}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{doctor_name}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{doctor_name}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{scheduled_date}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{scheduled_date}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{scheduled_time}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{scheduled_time}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{company_name}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{company_name}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{company_phone}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{company_phone}}
+                                            </button>
+                                            <button type="button" @click="insertVariable('@{{current_date}}')" 
+                                                    class="variable-btn px-3 py-2 text-xs bg-white border border-gray-300 rounded hover:bg-purple-50 hover:border-purple-300 text-gray-700 font-medium">
+                                                @{{current_date}}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Email: WYSIWYG Editor -->
+                                    <div x-show="channel === 'email'">
+                                        <textarea id="summernote" name="body" x-model="body" required></textarea>
+                                        <input type="hidden" id="body_hidden" name="body" />
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            💡 Use the visual editor above to format your email. Variables like @{{first_name}} will be automatically replaced.
+                                        </p>
+                                    </div>
+                                    
+                                    <!-- SMS/WhatsApp: Simple Textarea -->
+                                    <div x-show="channel !== 'email'">
+                                        <textarea name="body" x-model="body" rows="6" required
+                                                  placeholder="Enter your message. Click variables above to insert them..."
+                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"></textarea>
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            💡 Keep SMS messages under 160 characters. WhatsApp messages can be longer.
+                                        </p>
+                                    </div>
+                                    
+                                    <!-- Detected Variables Display -->
+                                    <div x-show="detectedVars.length > 0" class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <p class="text-xs font-semibold text-purple-700 mb-2">✓ Detected Variables in your template:</p>
                                         <div class="flex flex-wrap gap-2">
                                             <template x-for="var in detectedVars" :key="var">
-                                                <span class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded" x-text="var"></span>
+                                                <span class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded font-mono" x-text="'{{' + var + '}}'"></span>
                                             </template>
                                         </div>
                                     </div>
+                                    
                                     @error('body')
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                     @enderror
@@ -133,6 +245,126 @@
             </main>
         </div>
     </div>
+    
+    <!-- Summernote JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+    
+    <script>
+        // Initialize Summernote for email channel
+        document.addEventListener('DOMContentLoaded', function() {
+            const channelSelect = document.querySelector('[name="channel"]');
+            let summernoteInitialized = false;
+            
+            function initSummernote() {
+                if (document.querySelector('[name="channel"]').value === 'email' && !summernoteInitialized) {
+                    $('#summernote').summernote({
+                        height: 400,
+                        toolbar: [
+                            ['style', ['style']],
+                            ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+                            ['fontname', ['fontname']],
+                            ['fontsize', ['fontsize']],
+                            ['color', ['color']],
+                            ['para', ['ul', 'ol', 'paragraph']],
+                            ['table', ['table']],
+                            ['insert', ['link', 'picture']],
+                            ['view', ['fullscreen', 'codeview', 'help']]
+                        ],
+                        placeholder: 'Start creating your email template here...',
+                        tabsize: 2,
+                        callbacks: {
+                            onChange: function(contents) {
+                                // Update hidden input
+                                if (document.getElementById('body_hidden')) {
+                                    document.getElementById('body_hidden').value = contents;
+                                }
+                            },
+                            onInit: function() {
+                                // Set default content if empty
+                                if (!$('#summernote').summernote('code')) {
+                                    $('#summernote').summernote('code', '<p>Hello @{{first_name}},</p><p><br></p><p>Your message here...</p>');
+                                }
+                            }
+                        }
+                    });
+                    summernoteInitialized = true;
+                }
+            }
+            
+            // Initialize on page load if email is selected
+            if (channelSelect.value === 'email') {
+                setTimeout(initSummernote, 100);
+            }
+            
+            // Watch for channel changes
+            channelSelect.addEventListener('change', function() {
+                if (this.value === 'email' && !summernoteInitialized) {
+                    setTimeout(initSummernote, 100);
+                } else if (this.value !== 'email' && summernoteInitialized) {
+                    // Destroy summernote if switching away from email
+                    $('#summernote').summernote('destroy');
+                    summernoteInitialized = false;
+                }
+            });
+        });
+        
+        // Variable insertion function
+        function insertVariable(variable) {
+            const channel = document.querySelector('[name="channel"]').value;
+            
+            if (channel === 'email') {
+                // Insert into Summernote
+                if ($('#summernote').length && typeof $('#summernote').summernote === 'function') {
+                    $('#summernote').summernote('insertText', variable);
+                }
+            } else {
+                // Insert into textarea
+                const textarea = document.querySelector('[name="body"]');
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const before = text.substring(0, start);
+                const after = text.substring(end, text.length);
+                
+                textarea.value = before + variable + after;
+                textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+                textarea.focus();
+                
+                // Trigger Alpine.js update
+                textarea.dispatchEvent(new Event('input'));
+            }
+        }
+        
+        // Make insertVariable available globally
+        window.insertVariable = insertVariable;
+        
+        // Update form submission to get content from Summernote
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    const channel = document.querySelector('[name="channel"]').value;
+                    if (channel === 'email') {
+                        // Get content from Summernote
+                        const content = $('#summernote').summernote('code');
+                        // Update the body input
+                        const bodyInput = form.querySelector('[name="body"]');
+                        if (bodyInput && bodyInput.id !== 'summernote') {
+                            bodyInput.value = content;
+                        } else {
+                            // Create hidden input if needed
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'body';
+                            hiddenInput.value = content;
+                            form.appendChild(hiddenInput);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 

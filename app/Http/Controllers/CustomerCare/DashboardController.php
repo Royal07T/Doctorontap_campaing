@@ -25,6 +25,10 @@ class DashboardController extends Controller
     {
         $customerCare = Auth::guard('customer_care')->user();
         
+        // Get dashboard preferences
+        $preferences = $customerCare->getDashboardPreferences();
+        $itemsPerPage = $preferences['items_per_page'] ?? 10;
+        
         // Get statistics with trends
         $stats = $this->getStatisticsWithTrends($customerCare->id);
 
@@ -39,10 +43,10 @@ class DashboardController extends Controller
             'escalated_cases' => $escalationService->getEscalatedCasesCount($customerCare->id),
         ];
 
-        // Get recent consultations - Show all consultations (customer care can manage all)
+        // Get recent consultations - Use preferences for limit
         $recentConsultations = Consultation::with(['doctor', 'patient'])
                                           ->latest()
-                                          ->limit(10)
+                                          ->limit($itemsPerPage)
                                           ->get();
 
         // Get recent tickets
@@ -84,7 +88,8 @@ class DashboardController extends Controller
             'performanceMetrics',
             'activityFeed',
             'priorityQueue',
-            'pipelineMetrics'
+            'pipelineMetrics',
+            'preferences'
         ));
     }
     

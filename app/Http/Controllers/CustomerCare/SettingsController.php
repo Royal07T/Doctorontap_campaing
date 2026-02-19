@@ -50,4 +50,40 @@ class SettingsController extends Controller
 
         return back()->with('success', 'Password updated successfully.');
     }
+
+    /**
+     * Update dashboard preferences
+     */
+    public function updatePreferences(Request $request)
+    {
+        $validated = $request->validate([
+            'auto_refresh_interval' => 'nullable|integer|min:10|max:300',
+            'items_per_page' => 'nullable|integer|min:5|max:50',
+            'show_statistics' => 'nullable|boolean',
+            'show_queue_management' => 'nullable|boolean',
+            'show_team_status' => 'nullable|boolean',
+            'show_performance_metrics' => 'nullable|boolean',
+            'show_activity_feed' => 'nullable|boolean',
+            'show_priority_queue' => 'nullable|boolean',
+            'show_pipeline_metrics' => 'nullable|boolean',
+            'default_view' => 'nullable|in:enhanced,standard',
+        ]);
+
+        $user = Auth::guard('customer_care')->user();
+        
+        // Remove null values to keep existing preferences
+        $preferences = array_filter($validated, function($value) {
+            return $value !== null;
+        });
+
+        $user->updateDashboardPreferences($preferences);
+
+        Log::info('Customer Care dashboard preferences updated', [
+            'agent_id' => $user->id,
+            'agent_email' => $user->email,
+            'preferences' => $preferences,
+        ]);
+
+        return back()->with('success', 'Dashboard preferences updated successfully.');
+    }
 }

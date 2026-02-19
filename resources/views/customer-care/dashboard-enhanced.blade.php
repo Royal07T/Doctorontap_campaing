@@ -127,7 +127,7 @@
     </div>
 
     <!-- Priority Queue - What Needs Attention Now -->
-    @if($priorityQueue['urgent_consultations']->count() > 0 || $priorityQueue['unpaid_consultations']->count() > 0 || $priorityQueue['active_tickets']->count() > 0)
+    @if(($preferences['show_priority_queue'] ?? true) && ($priorityQueue['urgent_consultations']->count() > 0 || $priorityQueue['unpaid_consultations']->count() > 0 || $priorityQueue['active_tickets']->count() > 0))
     <div class="clean-card p-6 mb-8 border-l-4 border-l-rose-500 animate-slide-up">
         <div class="flex items-center justify-between mb-6">
             <div>
@@ -190,6 +190,7 @@
     @endif
 
     <!-- Main Stats Cards with Trending (Clickable) -->
+    @if($preferences['show_statistics'] ?? true)
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         @foreach([
             ['title' => 'Total Consultations', 'value' => $stats['total_consultations'], 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'purple', 'trend' => $stats['total_trend'] ?? '0%', 'link' => route('customer-care.consultations')],
@@ -216,8 +217,10 @@
         </a>
         @endforeach
     </div>
+    @endif
 
     <!-- Performance Metrics Dashboard -->
+    @if($preferences['show_performance_metrics'] ?? true)
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Performance Score -->
         <div class="clean-card p-6">
@@ -270,6 +273,7 @@
         </div>
 
         <!-- Pipeline Metrics -->
+        @if($preferences['show_pipeline_metrics'] ?? true)
         <div class="clean-card p-6">
             <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
                 <span>Pipeline Metrics</span>
@@ -338,6 +342,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- SLA Compliance -->
         <div class="clean-card p-6">
@@ -361,10 +366,13 @@
             <p class="text-center text-xs text-slate-500">Target: >95% compliance</p>
         </div>
     </div>
+    @endif
 
     <!-- Smart Queue Management & Team Status -->
+    @if(($preferences['show_queue_management'] ?? true) || ($preferences['show_team_status'] ?? true))
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Smart Queue -->
+        @if($preferences['show_queue_management'] ?? true)
         <div class="lg:col-span-2 clean-card p-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-slate-800">Smart Queue Management</h3>
@@ -410,8 +418,10 @@
             </div>
             @endif
         </div>
+        @endif
 
         <!-- Team Status Widget -->
+        @if($preferences['show_team_status'] ?? true)
         <div class="clean-card p-6">
             <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
                 <span>Team Status</span>
@@ -436,7 +446,9 @@
                 @endforeach
             </div>
         </div>
+        @endif
     </div>
+    @endif
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -458,6 +470,7 @@
     </div>
 
     <!-- Real-time Activity Feed & Recent Items -->
+    @if($preferences['show_activity_feed'] ?? true)
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Activity Feed -->
         <div class="lg:col-span-2 clean-card p-6">
@@ -508,6 +521,7 @@
             </div>
         </div>
     </div>
+    @endif
 
 </div>
 @endsection
@@ -933,11 +947,14 @@ function dashboardApp() {
         },
         
         startRealTimeUpdates() {
-            // Fetch updates every 30 seconds
-            setInterval(() => {
-                this.fetchRealtimeActivity();
-                this.fetchRealtimeStats();
-            }, 30000);
+            // Fetch updates based on user preferences (default: 30 seconds)
+            const refreshInterval = {{ ($preferences['auto_refresh_interval'] ?? 30) * 1000 }};
+            if (refreshInterval > 0) {
+                setInterval(() => {
+                    this.fetchRealtimeActivity();
+                    this.fetchRealtimeStats();
+                }, refreshInterval);
+            }
         },
         
         async fetchRealtimeActivity() {

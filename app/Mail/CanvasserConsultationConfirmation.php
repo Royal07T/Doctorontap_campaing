@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -16,6 +17,8 @@ class CanvasserConsultationConfirmation extends Mailable implements ShouldQueue
 
     public $data;
     public $canvasser;
+    public $templateContent;
+    public $templateSubject;
 
     /**
      * Create a new message instance.
@@ -24,6 +27,42 @@ class CanvasserConsultationConfirmation extends Mailable implements ShouldQueue
     {
         $this->data = $data;
         $this->canvasser = $canvasser;
+        
+        // Prepare template data with comprehensive recipient information
+        $templateData = [
+            // Canvasser Information
+            'canvasser_name' => $canvasser->name ?? '',
+            'canvasser_email' => $canvasser->email ?? '',
+            
+            // Consultation Information
+            'reference' => $data['consultation_reference'] ?? $data['reference'] ?? '',
+            'consultation_type' => $data['consultation_type'] ?? 'Consultation',
+            'scheduled_date' => $data['scheduled_date'] ?? '',
+            'scheduled_datetime' => $data['scheduled_at'] ?? '',
+            
+            // Patient Information
+            'patient_name' => ($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''),
+            'first_name' => $data['first_name'] ?? '',
+            'last_name' => $data['last_name'] ?? '',
+            'full_name' => ($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''),
+            'email' => $data['email'] ?? '',
+            'phone' => $data['mobile'] ?? $data['phone'] ?? '',
+            'mobile' => $data['mobile'] ?? $data['phone'] ?? '',
+            'age' => isset($data['age']) ? (string)$data['age'] : '',
+            'gender' => $data['gender'] ?? '',
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('CanvasserConsultationConfirmation', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $this->templateSubject = 'Consultation Booked for You - DoctorOnTap';
+        }
     }
 
     /**
@@ -32,7 +71,7 @@ class CanvasserConsultationConfirmation extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Consultation Booked for You - DoctorOnTap',
+            subject: $this->templateSubject,
         );
     }
 
@@ -41,6 +80,13 @@ class CanvasserConsultationConfirmation extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.canvasser-consultation-confirmation',
         );

@@ -24,6 +24,7 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
         'is_active',
         'created_by',
         'last_login_at',
+        'dashboard_preferences',
     ];
 
     protected $hidden = [
@@ -37,6 +38,7 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
+        'dashboard_preferences' => 'array',
     ];
 
     /**
@@ -143,5 +145,38 @@ class CustomerCare extends Authenticatable implements MustVerifyEmail
     public function updateLastActivity()
     {
         $this->update(['last_activity_at' => now()]);
+    }
+
+    /**
+     * Get dashboard preferences with defaults
+     */
+    public function getDashboardPreferences()
+    {
+        $defaults = [
+            'auto_refresh_interval' => 30, // seconds
+            'items_per_page' => 10,
+            'show_statistics' => true,
+            'show_queue_management' => true,
+            'show_team_status' => true,
+            'show_performance_metrics' => true,
+            'show_activity_feed' => true,
+            'show_priority_queue' => true,
+            'show_pipeline_metrics' => true,
+            'default_view' => 'enhanced', // enhanced or standard
+        ];
+
+        $preferences = $this->dashboard_preferences ?? [];
+        return array_merge($defaults, $preferences);
+    }
+
+    /**
+     * Update dashboard preferences
+     */
+    public function updateDashboardPreferences(array $preferences)
+    {
+        $current = $this->dashboard_preferences ?? [];
+        $merged = array_merge($current, $preferences);
+        $this->update(['dashboard_preferences' => $merged]);
+        return $this;
     }
 }

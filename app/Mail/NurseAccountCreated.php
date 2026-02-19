@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Nurse;
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -20,6 +21,8 @@ class NurseAccountCreated extends Mailable implements ShouldQueue
     public $nurse;
     public $password;
     public $adminName;
+    public $templateContent;
+    public $templateSubject;
 
     /**
      * Create a new message instance.
@@ -29,6 +32,27 @@ class NurseAccountCreated extends Mailable implements ShouldQueue
         $this->nurse = $nurse;
         $this->password = $password;
         $this->adminName = $adminName;
+        
+        // Prepare template data
+        $templateData = [
+            'name' => $nurse->name ?? '',
+            'email' => $nurse->email ?? '',
+            'password' => $password,
+            'admin_name' => $adminName,
+            'login_link' => route('nurse.login'),
+        ];
+
+        // Try to get template from CommunicationTemplate system
+        $rendered = EmailTemplateService::render('NurseAccountCreated', $templateData);
+        
+        if ($rendered) {
+            $this->templateContent = $rendered['content'];
+            $this->templateSubject = $rendered['subject'];
+        } else {
+            // Fallback to default view if template not found
+            $this->templateContent = null;
+            $this->templateSubject = 'Your Nurse Account Has Been Created - DoctorOnTap';
+        }
     }
 
     /**
@@ -37,7 +61,7 @@ class NurseAccountCreated extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Nurse Account Has Been Created - DoctorOnTap',
+            subject: $this->templateSubject,
         );
     }
 
@@ -46,6 +70,13 @@ class NurseAccountCreated extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        // If template content is available, use it; otherwise fallback to view
+        if ($this->templateContent) {
+            return new Content(
+                htmlString: $this->templateContent,
+            );
+        }
+
         return new Content(
             view: 'emails.nurse-account-created',
         );

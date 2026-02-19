@@ -399,37 +399,9 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
         Route::get('/frequent-issues', [\App\Http\Controllers\Admin\CustomerCareOversightController::class, 'frequentIssues'])->name('frequent-issues');
     });
     
-    // SMS Templates Management (Admin)
-    Route::prefix('sms-templates')->name('sms-templates.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'store'])->name('store');
-        Route::get('/{smsTemplate}', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'show'])->name('show');
-        Route::get('/{smsTemplate}/edit', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'edit'])->name('edit');
-        Route::put('/{smsTemplate}', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'update'])->name('update');
-        Route::delete('/{smsTemplate}', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'destroy'])->name('destroy');
-        Route::post('/{smsTemplate}/toggle-status', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'toggleStatus'])->name('toggle-status');
-        Route::post('/{smsTemplate}/duplicate', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'duplicate'])->name('duplicate');
-        Route::post('/{smsTemplate}/preview', [\App\Http\Controllers\Admin\SmsTemplateController::class, 'preview'])->name('preview');
-    });
-    
-    // Email Templates Management (Admin)
-    // Communication Templates (for Customer Care)
+    // Communication Templates (Unified template system for SMS, Email, WhatsApp)
     Route::resource('communication-templates', \App\Http\Controllers\Admin\CommunicationTemplateController::class);
     Route::post('/communication-templates/{communicationTemplate}/toggle-status', [\App\Http\Controllers\Admin\CommunicationTemplateController::class, 'toggleStatus'])->name('communication-templates.toggle-status');
-    
-    Route::prefix('email-templates')->name('email-templates.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'store'])->name('store');
-        Route::get('/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'show'])->name('show');
-        Route::get('/{emailTemplate}/edit', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'edit'])->name('edit');
-        Route::put('/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'update'])->name('update');
-        Route::delete('/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'destroy'])->name('destroy');
-        Route::post('/{emailTemplate}/toggle-status', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'toggleStatus'])->name('toggle-status');
-        Route::post('/{emailTemplate}/duplicate', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'duplicate'])->name('duplicate');
-        Route::post('/{emailTemplate}/preview', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'preview'])->name('preview');
-    });
     
     // Doctor Payment Management
     Route::get('/doctors/{id}/profile', [DashboardController::class, 'viewDoctorProfile'])->name('doctors.profile');
@@ -662,6 +634,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     // Settings
     Route::get('/settings', [\App\Http\Controllers\CustomerCare\SettingsController::class, 'index'])->name('settings');
     Route::post('/settings/change-password', [\App\Http\Controllers\CustomerCare\SettingsController::class, 'changePassword'])->name('settings.change-password');
+    Route::post('/settings/preferences', [\App\Http\Controllers\CustomerCare\SettingsController::class, 'updatePreferences'])->name('settings.preferences');
     
     // Booking on Behalf
     Route::get('/booking/create', [\App\Http\Controllers\CustomerCare\BookingController::class, 'create'])->name('booking.create');
