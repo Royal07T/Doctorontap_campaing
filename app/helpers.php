@@ -237,3 +237,73 @@ if (!function_exists('format_whatsapp_phone')) {
         return $cleaned;
     }
 }
+
+if (!function_exists('medical_icon')) {
+    /**
+     * Get a medical icon SVG by category and key.
+     * 
+     * @param string $category The icon category ('specializations' or 'symptoms')
+     * @param string $key The icon key/name (e.g., 'stethoscope', 'heart', 'cough')
+     * @param array $attributes Optional attributes to add to the SVG (e.g., ['class' => 'w-6 h-6', 'fill' => 'currentColor'])
+     * @return string The SVG content as a string
+     */
+    function medical_icon(string $category, string $key, array $attributes = []): string
+    {
+        // Sanitize inputs to prevent directory traversal
+        $category = preg_replace('/[^a-z0-9_-]/', '', strtolower($category));
+        $key = preg_replace('/[^a-z0-9_-]/', '', strtolower($key));
+        
+        // Only allow specific categories
+        if (!in_array($category, ['specializations', 'symptoms'])) {
+            return '';
+        }
+        
+        $iconPath = resource_path("icons/{$category}/{$key}.svg");
+        
+        // Check if file exists
+        if (!file_exists($iconPath)) {
+            return '';
+        }
+        
+        // Read SVG content
+        $svgContent = file_get_contents($iconPath);
+        
+        // If attributes are provided, inject them into the SVG
+        if (!empty($attributes)) {
+            // Extract the opening <svg> tag
+            $svgTagPattern = '/<svg\s+([^>]*)>/';
+            
+            if (preg_match($svgTagPattern, $svgContent, $matches)) {
+                $existingAttributes = $matches[1];
+                
+                // Parse existing attributes
+                $attrArray = [];
+                // Match attributes with or without quotes (including hyphenated attributes like stroke-width)
+                preg_match_all('/([\w-]+)(?:=["\']([^"\']*)["\'])?/', $existingAttributes, $attrMatches, PREG_SET_ORDER);
+                foreach ($attrMatches as $match) {
+                    $name = $match[1];
+                    $value = isset($match[2]) && $match[2] !== '' ? $match[2] : '';
+                    $attrArray[$name] = $value;
+                }
+                
+                // Merge with new attributes (new attributes override existing ones)
+                $attrArray = array_merge($attrArray, $attributes);
+                
+                // Build new attributes string
+                $newAttributes = '';
+                foreach ($attrArray as $name => $value) {
+                    if ($value !== '') {
+                        $newAttributes .= sprintf(' %s="%s"', $name, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'));
+                    } else {
+                        $newAttributes .= sprintf(' %s', $name);
+                    }
+                }
+                
+                // Replace the SVG tag
+                $svgContent = preg_replace($svgTagPattern, "<svg{$newAttributes}>", $svgContent);
+            }
+        }
+        
+        return $svgContent;
+    }
+}

@@ -1318,11 +1318,17 @@ class DashboardController extends Controller
         $cycle->cycle_length = $cycle->calculateCycleLength();
         $cycle->save();
         
-        return response()->json([
-            'success' => true,
-            'message' => 'Menstrual cycle recorded successfully.',
-            'cycle' => $cycle->load('patient'),
-        ]);
+        // If it's an AJAX request, return JSON
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Menstrual cycle recorded successfully.',
+                'cycle' => $cycle->load('patient'),
+            ]);
+        }
+        
+        // Otherwise, redirect back with success message
+        return redirect()->route('patient.dashboard')->with('success', 'Menstrual cycle recorded successfully. All cycle information has been updated.');
     }
 
     /**
@@ -2133,15 +2139,27 @@ class DashboardController extends Controller
         // Calculate predictions (same as in index method)
         $nextPeriodPrediction = null;
         $averageCycleLength = 28; // Default
+        $averagePeriodLength = 5; // Default
         
         if ($cycles->count() >= 2) {
             $cycleLengths = [];
+            $periodLengths = [];
+            
             for ($i = 0; $i < $cycles->count() - 1; $i++) {
                 $current = $cycles[$i];
                 $previous = $cycles[$i + 1];
                 $cycleLengths[] = \Carbon\Carbon::parse($previous->start_date)->diffInDays(\Carbon\Carbon::parse($current->start_date));
+                
+                // Calculate period length
+                if ($current->period_length) {
+                    $periodLengths[] = $current->period_length;
+                } elseif ($current->start_date && $current->end_date) {
+                    $periodLengths[] = \Carbon\Carbon::parse($current->start_date)->diffInDays(\Carbon\Carbon::parse($current->end_date)) + 1;
+                }
             }
+            
             $averageCycleLength = !empty($cycleLengths) ? round(array_sum($cycleLengths) / count($cycleLengths)) : 28;
+            $averagePeriodLength = !empty($periodLengths) ? round(array_sum($periodLengths) / count($periodLengths)) : 5;
         }
 
         if ($cycles->count() > 0) {
@@ -2149,7 +2167,7 @@ class DashboardController extends Controller
             $nextPeriodPrediction = \Carbon\Carbon::parse($latestCycle->start_date)->addDays($averageCycleLength);
         }
 
-        return view('patient.cycle-tracker', compact('cycles', 'dailyLogs', 'currentCycle', 'nextPeriodPrediction', 'averageCycleLength'));
+        return view('patient.cycle-tracker', compact('cycles', 'dailyLogs', 'currentCycle', 'nextPeriodPrediction', 'averageCycleLength', 'averagePeriodLength'));
     }
 
     /**

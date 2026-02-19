@@ -5,6 +5,39 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto space-y-6 pb-8">
+    <!-- Success/Error Messages -->
+    @if(session('success'))
+    <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span>{{ session('success') }}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-green-600 hover:text-green-800">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <span>{{ session('error') }}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </div>
+    @endif
+
     <!-- Welcome Section -->
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <div>
@@ -156,82 +189,7 @@
                     @foreach($specializationCarousel as $spec)
                     <a href="{{ route('patient.doctors-by-specialization', urlencode($spec['specialization'])) }}" class="flex-shrink-0 inline-flex flex-col items-center gap-2 px-5 py-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer min-w-[120px]">
                         <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                            @if($spec['icon'] === 'stethoscope')
-                            <!-- General Practice - Stethoscope -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8h8M8 8a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z" />
-                                <circle cx="8" cy="8" r="2.5" stroke-width="1.5"/>
-                                <circle cx="16" cy="8" r="2.5" stroke-width="1.5"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'heart')
-                            <!-- Cardiology - Heart -->
-                            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'baby')
-                            <!-- Pediatrics - Baby -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            @elseif($spec['icon'] === 'skin')
-                            <!-- Dermatology - Skin/Circle -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10" stroke-width="2"/>
-                                <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.2"/>
-                                <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
-                                <circle cx="15" cy="9" r="1.5" fill="currentColor"/>
-                                <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
-                                <circle cx="15" cy="15" r="1.5" fill="currentColor"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'brain')
-                            <!-- Neurology - Brain -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            @elseif($spec['icon'] === 'pregnancy')
-                            <!-- OB/GYN - Female with Pregnancy -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="8" r="3" stroke-width="2"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v8M8 19h8" />
-                                <circle cx="12" cy="14" r="4" fill="currentColor" opacity="0.3"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'bone')
-                            <!-- Orthopedics - Bone -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <ellipse cx="6" cy="12" rx="2.5" ry="3" fill="currentColor"/>
-                                <ellipse cx="18" cy="12" rx="2.5" ry="3" fill="currentColor"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 12h7M9 10l-1.5 4M15 10l1.5 4" />
-                            </svg>
-                            @elseif($spec['icon'] === 'eye')
-                            <!-- Ophthalmology - Eye -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            @elseif($spec['icon'] === 'ear-nose-throat')
-                            <!-- ENT - Ear -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12c0 2.5-2 4.5-4.5 4.5S0 14.5 0 12s2-4.5 4.5-4.5S9 9.5 9 12zm6 0c0 2.5 2 4.5 4.5 4.5S24 14.5 24 12s-2-4.5-4.5-4.5S15 9.5 15 12z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8M8 12h8" />
-                            </svg>
-                            @elseif($spec['icon'] === 'stomach')
-                            <!-- Gastroenterology - Stomach/Intestine -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4c-3 0-6 2-6 6v4c0 4 3 6 6 6s6-2 6-6v-4c0-4-3-6-6-6z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
-                            </svg>
-                            @elseif($spec['icon'] === 'kidney')
-                            <!-- Urology - Kidney -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8c0 2-1 4-2 4s-2-2-2-4 1-4 2-4 2 2 2 4zm12 0c0 2 1 4 2 4s2-2 2-4-1-4-2-4-2 2-2 4z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
-                            </svg>
-                            @else
-                            <!-- Default Medical Icon -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            @endif
+                            {!! medical_icon('specializations', $spec['icon'], ['class' => 'w-6 h-6 text-purple-600']) !!}
                         </div>
                         <span class="text-xs font-semibold text-gray-900 text-center whitespace-nowrap">{{ $spec['name'] }}</span>
                     </a>
@@ -240,82 +198,7 @@
                     @foreach($specializationCarousel as $spec)
                     <a href="{{ route('patient.doctors-by-specialization', urlencode($spec['specialization'])) }}" class="flex-shrink-0 inline-flex flex-col items-center gap-2 px-5 py-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer min-w-[120px]">
                         <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                            @if($spec['icon'] === 'stethoscope')
-                            <!-- General Practice - Stethoscope -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8h8M8 8a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z" />
-                                <circle cx="8" cy="8" r="2.5" stroke-width="1.5"/>
-                                <circle cx="16" cy="8" r="2.5" stroke-width="1.5"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'heart')
-                            <!-- Cardiology - Heart -->
-                            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'baby')
-                            <!-- Pediatrics - Baby -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            @elseif($spec['icon'] === 'skin')
-                            <!-- Dermatology - Skin/Circle -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10" stroke-width="2"/>
-                                <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.2"/>
-                                <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
-                                <circle cx="15" cy="9" r="1.5" fill="currentColor"/>
-                                <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
-                                <circle cx="15" cy="15" r="1.5" fill="currentColor"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'brain')
-                            <!-- Neurology - Brain -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            @elseif($spec['icon'] === 'pregnancy')
-                            <!-- OB/GYN - Female with Pregnancy -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="8" r="3" stroke-width="2"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v8M8 19h8" />
-                                <circle cx="12" cy="14" r="4" fill="currentColor" opacity="0.3"/>
-                            </svg>
-                            @elseif($spec['icon'] === 'bone')
-                            <!-- Orthopedics - Bone -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <ellipse cx="6" cy="12" rx="2.5" ry="3" fill="currentColor"/>
-                                <ellipse cx="18" cy="12" rx="2.5" ry="3" fill="currentColor"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 12h7M9 10l-1.5 4M15 10l1.5 4" />
-                            </svg>
-                            @elseif($spec['icon'] === 'eye')
-                            <!-- Ophthalmology - Eye -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            @elseif($spec['icon'] === 'ear-nose-throat')
-                            <!-- ENT - Ear -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12c0 2.5-2 4.5-4.5 4.5S0 14.5 0 12s2-4.5 4.5-4.5S9 9.5 9 12zm6 0c0 2.5 2 4.5 4.5 4.5S24 14.5 24 12s-2-4.5-4.5-4.5S15 9.5 15 12z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8M8 12h8" />
-                            </svg>
-                            @elseif($spec['icon'] === 'stomach')
-                            <!-- Gastroenterology - Stomach/Intestine -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4c-3 0-6 2-6 6v4c0 4 3 6 6 6s6-2 6-6v-4c0-4-3-6-6-6z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
-                            </svg>
-                            @elseif($spec['icon'] === 'kidney')
-                            <!-- Urology - Kidney -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8c0 2-1 4-2 4s-2-2-2-4 1-4 2-4 2 2 2 4zm12 0c0 2 1 4 2 4s2-2 2-4-1-4-2-4-2 2-2 4z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h8" />
-                            </svg>
-                            @else
-                            <!-- Default Medical Icon -->
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            @endif
+                            {!! medical_icon('specializations', $spec['icon'], ['class' => 'w-6 h-6 text-purple-600']) !!}
                         </div>
                         <span class="text-xs font-semibold text-gray-900 text-center whitespace-nowrap">{{ $spec['name'] }}</span>
                     </a>
@@ -476,9 +359,7 @@
                     @foreach($symptomDoctors as $symptomGroup)
                     <a href="{{ route('patient.doctors-by-symptom', $symptomGroup['symptom_slug']) }}" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer">
                         <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
+                            {!! medical_icon('symptoms', $symptomGroup['symptom_slug'], ['class' => 'w-4 h-4 text-purple-600']) !!}
                         </div>
                         <span class="text-sm font-semibold text-gray-900 whitespace-nowrap">{{ $symptomGroup['symptom'] }}</span>
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,9 +371,7 @@
                     @foreach($symptomDoctors as $symptomGroup)
                     <a href="{{ route('patient.doctors-by-symptom', $symptomGroup['symptom_slug']) }}" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer">
                         <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
+                            {!! medical_icon('symptoms', $symptomGroup['symptom_slug'], ['class' => 'w-4 h-4 text-purple-600']) !!}
                         </div>
                         <span class="text-sm font-semibold text-gray-900 whitespace-nowrap">{{ $symptomGroup['symptom'] }}</span>
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -24,6 +24,117 @@
             </div>
         </div>
 
+        <!-- Set New Menstruation Date & Cycle Parameters -->
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Set New Menstruation Date</h2>
+                    <p class="text-sm text-gray-500 mt-1">Create a new cycle entry and update all predictions</p>
+                </div>
+            </div>
+            <form id="newMenstruationForm" action="{{ route('patient.menstrual-cycle.store') }}" method="POST" class="space-y-4">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Menstruation Start Date -->
+                    <div>
+                        <label for="start_date" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Menstruation Start Date <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" 
+                               name="start_date" 
+                               id="start_date" 
+                               value="{{ old('start_date', now()->format('Y-m-d')) }}"
+                               max="{{ now()->format('Y-m-d') }}"
+                               class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all"
+                               required>
+                        <p class="text-xs text-gray-500 mt-1">The first day of your period</p>
+                    </div>
+
+                    <!-- Period Duration -->
+                    <div>
+                        <label for="period_length" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Period Duration (Days)
+                        </label>
+                        <input type="number" 
+                               name="period_length" 
+                               id="period_length" 
+                               value="{{ old('period_length', $averagePeriodLength ?? 5) }}"
+                               min="1" 
+                               max="10"
+                               class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all"
+                               placeholder="5">
+                        <p class="text-xs text-gray-500 mt-1">How many days your period typically lasts</p>
+                    </div>
+                </div>
+
+                <!-- Flow Intensity -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="flow_intensity" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Flow Intensity
+                        </label>
+                        <select name="flow_intensity" 
+                                id="flow_intensity"
+                                class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all">
+                            <option value="">Select flow intensity</option>
+                            <option value="light" {{ old('flow_intensity') === 'light' ? 'selected' : '' }}>Light</option>
+                            <option value="moderate" {{ old('flow_intensity') === 'moderate' ? 'selected' : '' }}>Moderate</option>
+                            <option value="heavy" {{ old('flow_intensity') === 'heavy' ? 'selected' : '' }}>Heavy</option>
+                        </select>
+                    </div>
+
+                    <!-- End Date (Optional) -->
+                    <div>
+                        <label for="end_date" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Period End Date (Optional)
+                        </label>
+                        <input type="date" 
+                               name="end_date" 
+                               id="end_date" 
+                               value="{{ old('end_date') }}"
+                               max="{{ now()->format('Y-m-d') }}"
+                               class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all">
+                        <p class="text-xs text-gray-500 mt-1">Leave empty if period is still ongoing</p>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Notes (Optional)
+                    </label>
+                    <textarea name="notes" 
+                              id="notes" 
+                              rows="2"
+                              maxlength="500"
+                              class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all"
+                              placeholder="Any additional notes about this cycle...">{{ old('notes') }}</textarea>
+                    <p class="text-xs text-gray-500 mt-1">Maximum 500 characters</p>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" 
+                            onclick="document.getElementById('newMenstruationForm').reset()"
+                            class="px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                        Clear
+                    </button>
+                    <button type="submit" 
+                            id="submitMenstruationBtn"
+                            class="px-6 py-3 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <span id="submitText">Set Menstruation Date</span>
+                        <span id="submitLoading" class="hidden">
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Saving...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Calendar Column -->
             <div class="lg:col-span-2 space-y-6">
@@ -233,7 +344,7 @@
         </div>
 
         <!-- Track Symptoms Section -->
-        <div class="mt-8 bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
+        <div class="mt-4 lg:mt-6 bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
             <h3 class="text-xl font-black text-gray-900 mb-6">Track Symptoms</h3>
             <div class="flex flex-wrap gap-4">
                 <template x-for="symptom in symptoms">
@@ -721,6 +832,79 @@ function cycleTracker() {
     border: none;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('newMenstruationForm');
+    const submitBtn = document.getElementById('submitMenstruationBtn');
+    const submitText = document.getElementById('submitText');
+    const submitLoading = document.getElementById('submitLoading');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate end_date is after start_date if both are provided
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (endDate && endDate < startDate) {
+                alert('End date must be after or equal to start date');
+                return;
+            }
+            
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitText.classList.add('hidden');
+            submitLoading.classList.remove('hidden');
+            
+            // Get form data
+            const formData = new FormData(form);
+            
+            // Submit via fetch
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const successMsg = document.createElement('div');
+                    successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2';
+                    successMsg.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>${data.message || 'Menstrual cycle recorded successfully!'}</span>
+                    `;
+                    document.body.appendChild(successMsg);
+                    
+                    // Reload page after 1.5 seconds to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || 'Failed to record menstrual cycle');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitText.classList.remove('hidden');
+                submitLoading.classList.add('hidden');
+            });
+        });
+    }
+});
+</script>
 @endpush
 
 @endsection
