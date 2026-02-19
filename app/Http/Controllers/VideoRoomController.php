@@ -28,6 +28,22 @@ class VideoRoomController extends Controller
 
         Gate::forUser($actor)->authorize('create', [VideoRoom::class, $consultation]);
 
+        // PAYMENT CHECK: Verify payment before allowing room creation
+        if ($consultation->requiresPaymentBeforeStart()) {
+            \Log::warning('Video room creation blocked: payment required', [
+                'consultation_id' => $consultation->id,
+                'consultation_reference' => $consultation->reference,
+                'payment_status' => $consultation->payment_status,
+                'actor_type' => get_class($actor),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment is required before this consultation can proceed. Please complete payment first.',
+                'payment_required' => true,
+            ], 400);
+        }
+
         $room = DB::transaction(function () use ($consultation, $actor) {
             $existing = VideoRoom::where('active_consultation_id', $consultation->id)
                 ->whereIn('status', ['pending', 'active'])
@@ -97,6 +113,24 @@ class VideoRoomController extends Controller
         $actor = $this->actor();
         if (!$actor) {
             return response()->json(['success' => false, 'message' => 'Authentication required'], 401);
+        }
+
+        // PAYMENT CHECK: Verify payment before allowing room join (for patients only)
+        // Doctors can join to inform patient about payment requirement
+        if ($actor instanceof \App\Models\Patient && $consultation->requiresPaymentBeforeStart()) {
+            \Log::warning('Video room join blocked: payment required', [
+                'consultation_id' => $consultation->id,
+                'consultation_reference' => $consultation->reference,
+                'payment_status' => $consultation->payment_status,
+                'patient_id' => $actor->id,
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment is required before this consultation can proceed. Please complete payment first.',
+                'payment_required' => true,
+                'payment_url' => route('payment.request', ['reference' => $consultation->reference]),
+            ], 400);
         }
 
         $room = VideoRoom::where('active_consultation_id', $consultation->id)

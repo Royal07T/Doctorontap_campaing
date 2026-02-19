@@ -16,7 +16,22 @@ class SettingsController extends Controller
     public function index()
     {
         $user = auth()->guard('customer_care')->user();
-        return view('customer-care.settings', compact('user'));
+        
+        // Get account statistics
+        $stats = [
+            'consultations_handled' => $user->consultations()->count(),
+            'tickets_assigned' => $user->supportTickets()->count(),
+            'tickets_resolved' => $user->supportTickets()->where('status', 'resolved')->count(),
+            'tickets_open' => $user->supportTickets()->whereIn('status', ['pending', 'in_progress'])->count(),
+            'prospects_created' => $user->prospects()->count(),
+            'prospects_converted' => $user->prospects()->where('status', 'Converted')->count(),
+            'escalations_created' => $user->escalations()->count(),
+            'member_since' => $user->created_at,
+            'last_login' => $user->last_login_at,
+            'is_active' => $user->is_active,
+        ];
+        
+        return view('customer-care.settings', compact('user', 'stats'));
     }
 
     /**

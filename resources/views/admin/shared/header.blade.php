@@ -1,6 +1,6 @@
 <!-- Top Header -->
-<header class="purple-gradient shadow-lg z-10">
-    <div class="flex items-center justify-between px-6 py-6">
+<header class="purple-gradient shadow-lg border-b border-purple-700 z-10">
+    <div class="flex items-center justify-between px-6 py-4">
         <div class="flex items-center space-x-4">
             <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

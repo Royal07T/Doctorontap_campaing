@@ -864,6 +864,10 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::get('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [\App\Http\Controllers\Patient\DashboardController::class, 'updateProfile'])->name('profile.update');
     
+    // Settings
+    Route::get('/settings', [\App\Http\Controllers\Patient\DashboardController::class, 'settings'])->name('settings');
+    Route::post('/settings/change-password', [\App\Http\Controllers\Patient\DashboardController::class, 'changePassword'])->name('settings.change-password');
+    
     // Consultation Sessions (In-App Consultations)
     // SECURITY: Token endpoint uses POST to prevent token exposure in logs/browser history
     Route::prefix('consultations/{consultation}')->name('consultations.')->group(function () {

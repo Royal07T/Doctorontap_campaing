@@ -7,7 +7,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-2xl mx-auto">
+<div class="max-w-7xl mx-auto space-y-6">
     <div class="mb-6">
         <a href="{{ route('customer-care.prospects.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 mb-4">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

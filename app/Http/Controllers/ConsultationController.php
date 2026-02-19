@@ -57,9 +57,50 @@ class ConsultationController extends Controller
             // Create consultation using service
             $result = $this->consultationService->createConsultation($validated, $uploadedDocuments);
 
+            // Check if payment is required before consultation can proceed
+            $consultation = $result['consultation'];
+            if ($consultation->requiresPayment() && !$consultation->isPaid()) {
+                // Initialize payment and return payment URL
+                $paymentController = app(\App\Http\Controllers\PaymentController::class);
+                $paymentRequest = new \Illuminate\Http\Request([
+                    'amount' => $consultation->doctor ? $consultation->doctor->effective_consultation_fee : 0,
+                    'customer_email' => $validated['email'],
+                    'customer_name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                    'customer_phone' => $validated['mobile'],
+                    'doctor_id' => $consultation->doctor_id,
+                    'metadata' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $result['reference'],
+                    ],
+                ]);
+
+                $paymentResponse = $paymentController->initialize($paymentRequest);
+                $paymentData = json_decode($paymentResponse->getContent(), true);
+
+                if ($paymentData['success'] && isset($paymentData['checkout_url'])) {
+                    // Link payment to consultation
+                    $payment = \App\Models\Payment::where('reference', $paymentData['reference'])->first();
+                    if ($payment) {
+                        $consultation->update([
+                            'payment_id' => $payment->id,
+                            'payment_status' => 'pending',
+                        ]);
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'requires_payment' => true,
+                        'message' => 'Please complete payment to confirm your consultation booking.',
+                        'consultation_reference' => $result['reference'],
+                        'payment_url' => $paymentData['checkout_url'],
+                        'redirect_to_payment' => true,
+                    ]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Thank you! Your consultation has been booked successfully. We will contact you shortly via WhatsApp to schedule your consultation. Remember: You only pay AFTER your consultation is complete.',
+                'message' => 'Thank you! Your consultation has been booked successfully. We will contact you shortly via WhatsApp to schedule your consultation.',
                 'consultation_reference' => $result['reference'],
             ]);
 

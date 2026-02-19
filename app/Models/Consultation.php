@@ -373,6 +373,32 @@ class Consultation extends Model
     }
 
     /**
+     * Check if consultation can proceed (payment must be made first)
+     * 
+     * @return bool
+     */
+    public function canProceed(): bool
+    {
+        // If consultation doesn't require payment, it can proceed
+        if (!$this->requiresPayment()) {
+            return true;
+        }
+
+        // If payment is required, it must be paid before consultation can proceed
+        return $this->isPaid();
+    }
+
+    /**
+     * Check if consultation requires payment before it can start
+     * 
+     * @return bool
+     */
+    public function requiresPaymentBeforeStart(): bool
+    {
+        return $this->requiresPayment() && !$this->isPaid();
+    }
+
+    /**
      * Unlock treatment plan (called after successful payment)
      */
     public function unlockTreatmentPlan(): void

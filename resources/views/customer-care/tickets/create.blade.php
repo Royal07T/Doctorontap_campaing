@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         <div class="clean-card p-10 animate-slide-up">
             <form method="POST" action="{{ route('customer-care.tickets.store') }}">
                 @csrf

@@ -237,6 +237,23 @@ class DashboardController extends Controller
             
             $newStatus = $validated['status'];
             
+            // PAYMENT CHECK: Before allowing consultation to start (status change to in_progress/scheduled), verify payment
+            if (in_array($newStatus, ['scheduled', 'in_progress']) && $consultation->requiresPaymentBeforeStart()) {
+                \Log::warning('Consultation status update blocked: payment required', [
+                    'consultation_id' => $consultation->id,
+                    'consultation_reference' => $consultation->reference,
+                    'attempted_status' => $newStatus,
+                    'payment_status' => $consultation->payment_status,
+                    'doctor_id' => $doctor->id,
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment is required before this consultation can proceed. Please wait for the patient to complete payment.',
+                    'payment_required' => true,
+                ], 400);
+            }
+            
             // IMPORTANT: Only update status and notes - consultation_mode is set by patient and cannot be changed
             $consultation->update([
                 'status' => $newStatus,

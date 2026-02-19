@@ -33,6 +33,18 @@ class ConsultationSessionController extends Controller
             abort(404);
         }
 
+        // PAYMENT CHECK: Verify payment before allowing access to waiting room (for patients only)
+        if (auth()->guard('patient')->check()) {
+            $patient = auth()->guard('patient')->user();
+            if ($consultation->patient_id === $patient->id || $consultation->email === $patient->email) {
+                if ($consultation->requiresPaymentBeforeStart()) {
+                    return redirect()
+                        ->route('payment.request', ['reference' => $consultation->reference])
+                        ->with('error', 'Payment is required before this consultation can proceed.');
+                }
+            }
+        }
+
         if (auth()->guard('doctor')->check()) {
             if ($consultation->doctor_id !== auth()->guard('doctor')->id()) {
                 abort(403);
@@ -91,6 +103,20 @@ class ConsultationSessionController extends Controller
                 'success' => false,
                 'message' => 'This consultation does not support in-app sessions'
             ], 400);
+        }
+
+        // PAYMENT CHECK: Verify payment before allowing token generation (for patients only)
+        if (auth()->guard('patient')->check()) {
+            $patient = auth()->guard('patient')->user();
+            if (($consultation->patient_id === $patient->id || $consultation->email === $patient->email) 
+                && $consultation->requiresPaymentBeforeStart()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment is required before this consultation can proceed. Please complete payment first.',
+                    'payment_required' => true,
+                    'payment_url' => route('payment.request', ['reference' => $consultation->reference]),
+                ], 400);
+            }
         }
 
         // Determine user type and ID

@@ -14,6 +14,7 @@ use App\Models\SexualHealthRecord;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -277,7 +278,22 @@ class DashboardController extends Controller
         // Daily Health Tip (can be made dynamic later)
         $dailyHealthTip = "Stress management positively impacts sexual wellness. Try spending 10 minutes today on focused breathing exercises.";
 
-        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts', 'dailyHealthTip'));
+        // Create symptom list for carousel (using slugs that match doctorsBySymptom method)
+        $symptomDoctors = [
+            ['symptom' => 'Cough', 'symptom_slug' => 'cough'],
+            ['symptom' => 'Fever', 'symptom_slug' => 'fever'],
+            ['symptom' => 'Headache', 'symptom_slug' => 'headache'],
+            ['symptom' => 'Stomach Pain', 'symptom_slug' => 'stomach-pain'],
+            ['symptom' => 'Back Pain', 'symptom_slug' => 'back-pain'],
+            ['symptom' => 'Waist Pain', 'symptom_slug' => 'back-pain'], // Maps to back-pain specialists
+            ['symptom' => 'Chest Pain', 'symptom_slug' => 'chest-pain'],
+            ['symptom' => 'Joint Pain', 'symptom_slug' => 'joint-pain'],
+            ['symptom' => 'Eye Problems', 'symptom_slug' => 'eye-problems'],
+            ['symptom' => 'Ear Pain', 'symptom_slug' => 'ear-pain'],
+            ['symptom' => 'Menstrual Pain', 'symptom_slug' => 'period-doubts-or-pregnancy'],
+        ];
+
+        return view('patient.dashboard', compact('patient', 'stats', 'recentConsultations', 'dependents', 'upcomingConsultations', 'specializations', 'symptoms', 'menstrualCycles', 'currentCycle', 'nextPeriodPrediction', 'nextOvulationPrediction', 'fertileWindowStart', 'fertileWindowEnd', 'averageCycleLength', 'averagePeriodLength', 'sexualHealthRecords', 'latestSexualHealthRecord', 'stiTestDue', 'nextStiTestDate', 'daysUntilStiTest', 'latestSpouseNumber', 'latestVitals', 'quickContacts', 'dailyHealthTip', 'symptomDoctors'));
     }
 
     /**
@@ -788,6 +804,40 @@ class DashboardController extends Controller
         $patient = Auth::guard('patient')->user();
         
         return view('patient.profile', compact('patient'));
+    }
+
+    /**
+     * Display settings page
+     */
+    public function settings()
+    {
+        $patient = Auth::guard('patient')->user();
+        return view('patient.settings', compact('patient'));
+    }
+
+    /**
+     * Change password
+     */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $patient = Auth::guard('patient')->user();
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $patient->password)) {
+            return back()->withErrors(['current_password' => 'The current password is incorrect.']);
+        }
+
+        // Update password
+        $patient->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Password updated successfully.');
     }
 
     /**
@@ -1772,6 +1822,40 @@ class DashboardController extends Controller
             }
             
             DB::commit();
+            
+            // PAYMENT CHECK: If payment is required, redirect to payment page
+            if ($consultation->requiresPayment() && !$consultation->isPaid()) {
+                // Initialize payment
+                $paymentController = app(\App\Http\Controllers\PaymentController::class);
+                $paymentRequest = new \Illuminate\Http\Request([
+                    'amount' => $doctor->effective_consultation_fee ?? 0,
+                    'customer_email' => $patient->email,
+                    'customer_name' => $patient->name,
+                    'customer_phone' => $patient->phone,
+                    'doctor_id' => $doctor->id,
+                    'metadata' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $consultation->reference,
+                    ],
+                ]);
+
+                $paymentResponse = $paymentController->initialize($paymentRequest);
+                $paymentData = json_decode($paymentResponse->getContent(), true);
+
+                if ($paymentData['success'] && isset($paymentData['checkout_url'])) {
+                    // Link payment to consultation
+                    $payment = \App\Models\Payment::where('reference', $paymentData['reference'])->first();
+                    if ($payment) {
+                        $consultation->update([
+                            'payment_id' => $payment->id,
+                            'payment_status' => 'pending',
+                        ]);
+                    }
+
+                    return redirect($paymentData['checkout_url'])
+                        ->with('info', 'Please complete payment to confirm your consultation booking.');
+                }
+            }
             
             // Create notifications for both patient and doctor
             try {

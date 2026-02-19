@@ -1,9 +1,9 @@
 <!-- Sidebar -->
-<aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col sidebar-scrollable"
+<aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col"
        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-       style="scrollbar-width: thin; scrollbar-color: #a78bfa #f3f4f6;">
+       style="height: 100vh; max-height: 100vh; display: flex; flex-direction: column;">
     <!-- Sidebar Header -->
-    <div class="purple-gradient p-5 flex items-center justify-between flex-shrink-0">
+    <div class="purple-gradient p-5 flex items-center justify-between flex-shrink-0" style="flex-shrink: 0;">
         <div class="flex items-center space-x-3">
             <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap Logo" class="h-8 w-auto">
         </div>
@@ -15,20 +15,27 @@
     </div>
 
     <!-- User Info -->
-    <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
+    <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100 flex-shrink-0" style="flex-shrink: 0;">
         <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                {{ substr(Auth::guard('admin')->user()->name, 0, 1) }}
-            </div>
+            @php
+                $admin = Auth::guard('admin')->user();
+            @endphp
+            @if(isset($admin->photo_url) && $admin->photo_url)
+                <img src="{{ $admin->photo_url }}" alt="{{ $admin->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+            @else
+                <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-md">
+                    {{ substr($admin->name, 0, 1) }}
+                </div>
+            @endif
             <div class="flex-1">
-                <p class="font-semibold text-gray-800 text-sm">{{ Auth::guard('admin')->user()->name }}</p>
+                <p class="font-semibold text-gray-800 text-sm">{{ $admin->name }}</p>
                 <p class="text-xs text-gray-500">Administrator</p>
             </div>
         </div>
     </div>
 
-    <!-- Navigation - Scrollable -->
-    <nav class="p-4 space-y-2 flex-1 overflow-y-auto">
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2 sidebar-nav" style="min-height: 0; flex: 1 1 auto; -webkit-overflow-scrolling: touch;">
         <a href="{{ route('admin.dashboard') }}" 
            class="flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all @if($active === 'dashboard') text-white purple-gradient @else text-gray-700 hover:bg-purple-50 hover:text-purple-600 @endif">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,7 +209,10 @@
             </svg>
             <span>View Website</span>
         </a>
-
+    </nav>
+    
+    <!-- Fixed Bottom Section (Logout) -->
+    <div class="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
         <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
             <button type="submit" class="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all">
@@ -212,7 +222,7 @@
                 <span>Logout</span>
             </button>
         </form>
-    </nav>
+    </div>
 </aside>
 
 <!-- Overlay for mobile sidebar -->
@@ -229,22 +239,22 @@
 
 <style>
 /* Custom scrollbar styling for sidebar navigation */
-.sidebar-scrollable nav::-webkit-scrollbar {
+.sidebar-nav {
+    scrollbar-width: thin;
+    scrollbar-color: #9333EA #f3f4f6;
+}
+.sidebar-nav::-webkit-scrollbar {
     width: 6px;
 }
-
-.sidebar-scrollable nav::-webkit-scrollbar-track {
+.sidebar-nav::-webkit-scrollbar-track {
     background: #f3f4f6;
-    border-radius: 10px;
 }
-
-.sidebar-scrollable nav::-webkit-scrollbar-thumb {
-    background: #a78bfa;
-    border-radius: 10px;
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: #9333EA;
+    border-radius: 3px;
 }
-
-.sidebar-scrollable nav::-webkit-scrollbar-thumb:hover {
-    background: #8b5cf6;
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background-color: #7E22CE;
 }
 </style>
 

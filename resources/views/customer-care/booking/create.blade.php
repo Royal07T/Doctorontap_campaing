@@ -7,7 +7,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6">
     <div>
         <h1 class="text-2xl font-bold text-gray-900">Book Service Request</h1>
         <p class="text-sm text-gray-600 mt-1">Book a consultation on behalf of patient</p>

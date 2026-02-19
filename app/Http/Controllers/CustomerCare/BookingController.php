@@ -200,6 +200,42 @@ class BookingController extends Controller
 
             DB::commit();
 
+            // PAYMENT CHECK: If payment is required, initialize payment and redirect
+            if ($consultation->requiresPayment() && !$consultation->isPaid()) {
+                // Initialize payment
+                $paymentController = app(\App\Http\Controllers\PaymentController::class);
+                $paymentRequest = new \Illuminate\Http\Request([
+                    'amount' => $doctor->effective_consultation_fee ?? 0,
+                    'customer_email' => $consultation->email,
+                    'customer_name' => $consultation->first_name . ' ' . $consultation->last_name,
+                    'customer_phone' => $consultation->mobile,
+                    'doctor_id' => $doctor->id,
+                    'metadata' => [
+                        'consultation_id' => $consultation->id,
+                        'consultation_reference' => $reference,
+                    ],
+                ]);
+
+                $paymentResponse = $paymentController->initialize($paymentRequest);
+                $paymentData = json_decode($paymentResponse->getContent(), true);
+
+                if ($paymentData['success'] && isset($paymentData['checkout_url'])) {
+                    // Link payment to consultation
+                    $payment = \App\Models\Payment::where('reference', $paymentData['reference'])->first();
+                    if ($payment) {
+                        $consultation->update([
+                            'payment_id' => $payment->id,
+                            'payment_status' => 'pending',
+                        ]);
+                    }
+
+                    return redirect()
+                        ->route('customer-care.consultations.show', $consultation)
+                        ->with('info', 'Consultation booked successfully. Payment link: ' . $paymentData['checkout_url'])
+                        ->with('payment_url', $paymentData['checkout_url']);
+                }
+            }
+
             return redirect()
                 ->route('customer-care.consultations.show', $consultation)
                 ->with('success', 'Consultation booked successfully. Reference: ' . $reference);

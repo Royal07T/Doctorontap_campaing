@@ -2,6 +2,7 @@
 
 @section('title', 'Patient Dashboard')
 
+
 @section('content')
 <div class="max-w-7xl mx-auto space-y-6 pb-8">
     <!-- Welcome Section -->
@@ -80,19 +81,19 @@
             </a>
         </div>
 
-        <!-- Medical Coordination (Blue) -->
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200 shadow-sm">
+        <!-- Daily Health Tip (Purple) -->
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200 shadow-sm">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-blue-200 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                <div class="w-12 h-12 bg-purple-200 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                     </svg>
                 </div>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">Medical Coordination</h3>
-            <p class="text-sm text-gray-700 mb-4 font-medium">Let us manage your appointments and pharmacy needs.</p>
-            <a href="{{ route('patient.consultations') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #2563eb !important; color: #ffffff !important;">
-                Manage Services
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Daily Health Tip</h3>
+            <p class="text-sm text-gray-700 mb-4 font-medium">{{ \Illuminate\Support\Str::limit($dailyHealthTip, 80) }}</p>
+            <a href="#" class="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #9333ea !important; color: #ffffff !important;">
+                Read More
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
@@ -100,7 +101,7 @@
         </div>
     </div>
 
-    <!-- Health Snapshot and Daily Tip Row -->
+    <!-- Health Snapshot and Medical Coordination Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Health Snapshot (Left - 2 columns) -->
         <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
@@ -153,20 +154,132 @@
             </div>
         </div>
 
-        <!-- Daily Health Tip (Right - 1 column) -->
-        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 bg-purple-200 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                    </svg>
+        <!-- Medical Coordination and Second Opinion (Right - 1 column, split into 2) -->
+        <div class="space-y-4">
+            <!-- Medical Coordination Card -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-5 border border-blue-200 shadow-sm">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-10 h-10 bg-blue-200 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </div>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900">Daily Health Tip</h3>
+                <h3 class="text-base font-bold text-gray-900 mb-2">Medical Coordination</h3>
+                <p class="text-xs text-gray-700 mb-3 font-medium">Manage appointments and pharmacy needs.</p>
+                <a href="{{ route('patient.consultations') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #2563eb !important; color: #ffffff !important;">
+                    Manage Services
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
             </div>
-            <p class="text-sm text-gray-600 leading-relaxed mb-4">{{ $dailyHealthTip }}</p>
-            <a href="#" class="text-sm font-medium text-purple-600 hover:text-purple-700 underline hover:no-underline">Read Full Article</a>
+
+            <!-- Second Opinion Card -->
+            <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-5 border border-indigo-200 shadow-sm">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-10 h-10 bg-indigo-200 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-base font-bold text-gray-900 mb-2">Second Opinion</h3>
+                <p class="text-xs text-gray-700 mb-3 font-medium">Get expert medical review of your diagnosis.</p>
+                <a href="{{ route('patient.doctors') }}?service=second_opinion" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-xl" style="background-color: #4f46e5 !important; color: #ffffff !important;">
+                    Get Opinion
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+            </div>
         </div>
     </div>
+
+    <!-- Symptoms Carousel -->
+    @if(!empty($symptomDoctors) && count($symptomDoctors) > 0)
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Consult by Symptoms</h3>
+            <a href="{{ route('patient.doctors') }}" class="text-sm font-medium text-purple-600 hover:text-purple-700">View All</a>
+        </div>
+        <div class="relative overflow-hidden">
+            <style>
+                @keyframes slide {
+                    0% {
+                        transform: translateX(0);
+                    }
+                    100% {
+                        transform: translateX(-50%);
+                    }
+                }
+                .symptom-carousel {
+                    display: flex;
+                    gap: 0.75rem;
+                    animation: slide 30s linear infinite;
+                    width: fit-content;
+                }
+                .symptom-carousel:hover {
+                    animation-play-state: paused;
+                }
+                .symptom-carousel-wrapper {
+                    overflow: hidden;
+                    position: relative;
+                }
+                .symptom-carousel-wrapper::before,
+                .symptom-carousel-wrapper::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    width: 100px;
+                    height: 100%;
+                    z-index: 10;
+                    pointer-events: none;
+                }
+                .symptom-carousel-wrapper::before {
+                    left: 0;
+                    background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0));
+                }
+                .symptom-carousel-wrapper::after {
+                    right: 0;
+                    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
+                }
+            </style>
+            <div class="symptom-carousel-wrapper">
+                <div class="symptom-carousel">
+                    <!-- First set of symptoms -->
+                    @foreach($symptomDoctors as $symptomGroup)
+                    <a href="{{ route('patient.doctors-by-symptom', $symptomGroup['symptom_slug']) }}" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </div>
+                        <span class="text-sm font-semibold text-gray-900 whitespace-nowrap">{{ $symptomGroup['symptom'] }}</span>
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                    @endforeach
+                    <!-- Duplicate set for seamless loop -->
+                    @foreach($symptomDoctors as $symptomGroup)
+                    <a href="{{ route('patient.doctors-by-symptom', $symptomGroup['symptom_slug']) }}" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </div>
+                        <span class="text-sm font-semibold text-gray-900 whitespace-nowrap">{{ $symptomGroup['symptom'] }}</span>
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Appointments, Contacts, and Emergency Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

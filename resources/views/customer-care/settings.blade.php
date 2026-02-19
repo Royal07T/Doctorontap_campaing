@@ -7,7 +7,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6">
     <div>
         <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
         <p class="text-sm text-gray-600 mt-1">Manage your account preferences and security</p>
@@ -24,21 +24,97 @@
     </div>
     @endif
 
+    @if($errors->any())
+    <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-red-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-semibold text-red-900">Please fix the following errors:</p>
+                <ul class="mt-1 text-sm text-red-700 list-disc list-inside">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Profile Section -->
     <div id="profile" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">Profile</h2>
-        <div class="space-y-4">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Profile Information</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Name</label>
-                <p class="text-gray-900">{{ $user->name }}</p>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
+                <p class="text-gray-900 text-base">{{ $user->name }}</p>
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                <p class="text-gray-900">{{ $user->email }}</p>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
+                <p class="text-gray-900 text-base">{{ $user->email }}</p>
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
-                <p class="text-gray-900">{{ $user->phone ?? '—' }}</p>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
+                <p class="text-gray-900 text-base">{{ $user->phone ?? '—' }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Account Status</label>
+                <div class="flex items-center gap-2">
+                    @if($stats['is_active'])
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Active
+                        </span>
+                    @else
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                            Inactive
+                        </span>
+                    @endif
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Member Since</label>
+                <p class="text-gray-900 text-base">{{ $stats['member_since'] ? $stats['member_since']->format('F d, Y') : '—' }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Last Login</label>
+                <p class="text-gray-900 text-base">{{ $stats['last_login'] ? $stats['last_login']->format('F d, Y g:i A') : 'Never' }}</p>
+            </div>
+        </div>
+
+        <!-- Account Statistics -->
+        <div class="pt-6 border-t border-gray-200">
+            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Account Statistics
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
+                    <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">Consultations</p>
+                    <p class="text-2xl font-bold text-indigo-900">{{ number_format($stats['consultations_handled']) }}</p>
+                    <p class="text-xs text-indigo-600 mt-1">Handled</p>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Support Tickets</p>
+                    <p class="text-2xl font-bold text-blue-900">{{ number_format($stats['tickets_assigned']) }}</p>
+                    <p class="text-xs text-blue-600 mt-1">{{ $stats['tickets_resolved'] }} resolved</p>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                    <p class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">Prospects</p>
+                    <p class="text-2xl font-bold text-purple-900">{{ number_format($stats['prospects_created']) }}</p>
+                    <p class="text-xs text-purple-600 mt-1">{{ $stats['prospects_converted'] }} converted</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4 border border-orange-100">
+                    <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Escalations</p>
+                    <p class="text-2xl font-bold text-orange-900">{{ number_format($stats['escalations_created']) }}</p>
+                    <p class="text-xs text-orange-600 mt-1">Created</p>
+                </div>
             </div>
         </div>
     </div>
