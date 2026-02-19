@@ -933,9 +933,10 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::delete('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteMenstrualCycle'])->name('menstrual-cycle.delete');
     
     // Doctor Booking
+    Route::get('/doctors/{id}/book', [\App\Http\Controllers\Patient\DashboardController::class, 'showBookingPage'])->name('doctors.book');
     Route::get('/doctors/{id}/availability', [\App\Http\Controllers\Patient\DashboardController::class, 'getDoctorAvailability'])->name('doctors.availability');
     Route::post('/doctors/check-slot', [\App\Http\Controllers\Patient\DashboardController::class, 'checkTimeSlotAvailability'])->name('doctors.check-slot');
-    Route::post('/doctors/book', [\App\Http\Controllers\Patient\DashboardController::class, 'createScheduledConsultation'])->name('doctors.book');
+    Route::post('/doctors/book', [\App\Http\Controllers\Patient\DashboardController::class, 'createScheduledConsultation'])->name('doctors.book.store');
     
     // Caregiver Discovery
     Route::get('/caregivers', [\App\Http\Controllers\Patient\DashboardController::class, 'caregivers'])->name('caregivers');

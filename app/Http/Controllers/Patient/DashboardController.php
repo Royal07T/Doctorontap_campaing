@@ -1521,6 +1521,19 @@ class DashboardController extends Controller
     }
 
     /**
+     * Show booking page for a doctor
+     */
+    public function showBookingPage($doctorId)
+    {
+        $doctor = Doctor::where('id', $doctorId)
+            ->where('is_approved', true)
+            ->where('is_available', true)
+            ->firstOrFail();
+
+        return view('patient.doctors.book', compact('doctor'));
+    }
+
+    /**
      * Get doctor availability for booking
      */
     public function getDoctorAvailability($doctorId)
@@ -1663,26 +1676,92 @@ class DashboardController extends Controller
     {
         $patient = Auth::guard('patient')->user();
 
-        $validated = $request->validate([
-            'doctor_id' => 'required|exists:doctors,id',
-            'scheduled_at' => 'required|date|after:now',
-            'consult_mode' => 'required|in:voice,video,chat',
-            'problem' => 'required|string|min:10|max:1000',
-            'severity' => 'required|in:mild,moderate,severe',
-            'emergency_symptoms' => 'nullable|array',
-            'emergency_symptoms.*' => 'nullable|string',
-            'medical_documents' => 'nullable|array',
-            'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+        // Log booking attempt
+        Log::info('Patient booking attempt started', [
+            'event_type' => 'booking_attempt_started',
+            'patient_id' => $patient->id,
+            'patient_email' => $patient->email,
+            'request_data' => [
+                'doctor_id' => $request->doctor_id,
+                'scheduled_date' => $request->scheduled_date,
+                'scheduled_time' => $request->scheduled_time,
+                'consult_mode' => $request->consult_mode,
+                'severity' => $request->severity,
+            ],
+            'timestamp' => now()->toIso8601String()
         ]);
+
+        // Handle both form submission and JSON requests
+        try {
+            $validated = $request->validate([
+                'doctor_id' => 'required|exists:doctors,id',
+                'scheduled_at' => 'nullable|date|after:now',
+                'scheduled_date' => 'nullable|date|after_or_equal:today',
+                'scheduled_time' => 'nullable|string',
+                'consult_mode' => 'required|in:voice,video,chat',
+                'problem' => 'required|string|min:10|max:1000',
+                'severity' => 'required|in:mild,moderate,severe',
+                'emergency_symptoms' => 'nullable|array',
+                'emergency_symptoms.*' => 'nullable|string',
+                'medical_documents' => 'nullable|array',
+                'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Log validation errors
+            Log::warning('Booking validation failed', [
+                'event_type' => 'booking_validation_failed',
+                'patient_id' => $patient->id,
+                'patient_email' => $patient->email,
+                'validation_errors' => $e->errors(),
+                'request_data' => [
+                    'doctor_id' => $request->doctor_id,
+                    'scheduled_date' => $request->scheduled_date,
+                    'scheduled_time' => $request->scheduled_time,
+                    'consult_mode' => $request->consult_mode,
+                    'severity' => $request->severity,
+                ],
+                'timestamp' => now()->toIso8601String()
+            ]);
+            
+            // Return JSON for AJAX requests, HTML for regular form submissions
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e; // Re-throw for regular form submissions
+        }
+
+        // Combine date and time if provided separately
+        if ($request->has('scheduled_date') && $request->has('scheduled_time')) {
+            $validated['scheduled_at'] = $request->scheduled_date . ' ' . $request->scheduled_time;
+        }
+        
+        if (!isset($validated['scheduled_at'])) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Scheduled date and time are required'
+                ], 422);
+            }
+            return back()->withErrors(['scheduled_at' => 'Scheduled date and time are required'])->withInput();
+        }
 
         $doctor = Doctor::findOrFail($validated['doctor_id']);
 
         // Verify doctor is available
         if (!$doctor->is_available || !$doctor->is_approved) {
-            return response()->json([
+            $errorResponse = [
                 'success' => false,
                 'message' => 'Doctor is not available for booking'
-            ], 400);
+            ];
+            
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json($errorResponse, 400);
+            }
+            return back()->withErrors(['doctor' => 'Doctor is not available for booking'])->withInput();
         }
 
         // Check time slot availability
@@ -1692,10 +1771,15 @@ class DashboardController extends Controller
         $daySchedule = $schedule[$dayOfWeek] ?? null;
 
         if (!$daySchedule || !($daySchedule['enabled'] ?? false)) {
-            return response()->json([
+            $errorResponse = [
                 'success' => false,
                 'message' => 'Doctor is not available on this day'
-            ], 400);
+            ];
+            
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json($errorResponse, 400);
+            }
+            return back()->withErrors(['scheduled_at' => 'Doctor is not available on this day'])->withInput();
         }
         
         // Validate time is within doctor's availability window (handles 24-hour schedules)
@@ -1718,10 +1802,15 @@ class DashboardController extends Controller
         }
         
         if (!$isWithinAvailability) {
-            return response()->json([
+            $errorResponse = [
                 'success' => false,
                 'message' => 'Time slot is outside doctor\'s availability hours'
-            ], 400);
+            ];
+            
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json($errorResponse, 400);
+            }
+            return back()->withErrors(['scheduled_at' => 'Time slot is outside doctor\'s availability hours'])->withInput();
         }
 
         // CONCURRENCY PROTECTION: Use database-level locking to prevent time conflicts
@@ -1844,6 +1933,29 @@ class DashboardController extends Controller
             }
             
             DB::commit();
+            
+            // Log successful booking creation
+            Log::info('Patient booking created successfully', [
+                'event_type' => 'booking_created_success',
+                'consultation_id' => $consultation->id,
+                'consultation_reference' => $consultation->reference,
+                'patient_id' => $patient->id,
+                'patient_name' => $patient->name,
+                'patient_email' => $patient->email,
+                'doctor_id' => $doctor->id,
+                'doctor_name' => $doctor->name,
+                'doctor_specialization' => $doctor->specialization,
+                'scheduled_at' => $scheduledAt->toIso8601String(),
+                'scheduled_at_formatted' => $scheduledAt->format('M d, Y h:i A'),
+                'consultation_mode' => $consultationMode,
+                'severity' => $validated['severity'],
+                'problem_length' => strlen($validated['problem']),
+                'has_medical_documents' => !empty($uploadedDocuments),
+                'documents_count' => count($uploadedDocuments),
+                'payment_status' => $consultation->payment_status,
+                'requires_payment' => $consultation->requiresPayment(),
+                'timestamp' => now()->toIso8601String()
+            ]);
             
             // PAYMENT CHECK: If payment is required, redirect to payment page
             if ($consultation->requiresPayment() && !$consultation->isPaid()) {
@@ -2042,47 +2154,77 @@ class DashboardController extends Controller
                 // Don't fail booking if email fails
             }
 
-            Log::info('Scheduled consultation created successfully', [
-                'event_type' => 'consultation_scheduled',
+            // Final booking completion log (after all notifications sent)
+            Log::info('Booking process completed successfully', [
+                'event_type' => 'booking_completed',
                 'consultation_id' => $consultation->id,
                 'consultation_reference' => $consultation->reference,
-                'doctor_id' => $doctor->id,
                 'patient_id' => $patient->id,
+                'patient_name' => $patient->name,
+                'doctor_id' => $doctor->id,
+                'doctor_name' => $doctor->name,
                 'scheduled_at' => $scheduledAt->toIso8601String(),
                 'consultation_mode' => $consultationMode,
+                'payment_required' => $consultation->requiresPayment(),
+                'payment_status' => $consultation->payment_status,
                 'timestamp' => now()->toIso8601String()
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Appointment booked successfully! Reference: ' . $consultation->reference,
-                'consultation' => [
-                    'id' => $consultation->id,
-                    'reference' => $consultation->reference,
-                    'scheduled_at' => $consultation->scheduled_at->format('Y-m-d H:i:s'),
-                    'consultation_mode' => $consultationMode,
-                ]
-            ]);
+            // Handle both JSON and regular form submissions
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Appointment booked successfully! Reference: ' . $consultation->reference,
+                    'consultation' => [
+                        'id' => $consultation->id,
+                        'reference' => $consultation->reference,
+                        'scheduled_at' => $consultation->scheduled_at->format('Y-m-d H:i:s'),
+                        'consultation_mode' => $consultationMode,
+                    ]
+                ]);
+            }
+            
+            // Regular form submission - redirect
+            return redirect()
+                ->route('patient.consultations')
+                ->with('success', 'Appointment booked successfully! Reference: ' . $consultation->reference);
             
         } catch (\Exception $e) {
             DB::rollBack();
             
             Log::error('Failed to create scheduled consultation', [
                 'event_type' => 'consultation_booking_failed',
-                'doctor_id' => $doctor->id ?? null,
                 'patient_id' => $patient->id ?? null,
+                'patient_email' => $patient->email ?? null,
+                'doctor_id' => $doctor->id ?? null,
+                'doctor_name' => $doctor->name ?? null,
                 'scheduled_at' => $scheduledAt->toIso8601String() ?? null,
+                'request_data' => [
+                    'doctor_id' => $request->doctor_id,
+                    'scheduled_date' => $request->scheduled_date,
+                    'scheduled_time' => $request->scheduled_time,
+                    'consult_mode' => $request->consult_mode,
+                    'severity' => $request->severity,
+                ],
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
                 'timestamp' => now()->toIso8601String()
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to book appointment. Please try again or contact support.',
-                'error' => 'booking_failed'
-            ], 500);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to book appointment. Please try again or contact support.',
+                    'error' => 'booking_failed'
+                ], 500);
+            }
+            
+            return back()
+                ->withErrors(['error' => 'Failed to book appointment. Please try again or contact support.'])
+                ->withInput();
         }
     }
 

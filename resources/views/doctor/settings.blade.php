@@ -261,19 +261,32 @@
         <!-- Deactivation Modal -->
         <div x-show="showDeactivationModal" 
              x-cloak
-             @click.away="showDeactivationModal = false"
              class="fixed inset-0 z-50 overflow-y-auto"
+             @keydown.escape.window="showDeactivationModal = false"
              style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Background overlay -->
-                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" 
-                     @click="showDeactivationModal = false"></div>
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+                     @click="showDeactivationModal = false"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"></div>
 
                 <!-- Modal panel -->
-                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     @click.stop>
                     <form method="POST" action="{{ route('doctor.settings.deactivate-account') }}" @submit.prevent="if(confirmDeactivation && deactivationReason.length >= 10) { $el.submit(); } else { alert('Please provide a reason (minimum 10 characters) and confirm deactivation.'); }">
                         @csrf
-                        <div class="bg-white px-6 pt-6 pb-4">
+                        <div class="px-6 pt-6 pb-4">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-bold text-gray-900">Deactivate Account</h3>
                                 <button type="button" @click="showDeactivationModal = false" class="text-gray-400 hover:text-gray-500">
