@@ -118,7 +118,65 @@ class DashboardController extends Controller
                                                  ->limit(2)
                                                  ->get();
 
-        return view('doctor.dashboard', compact('stats', 'priorityConsultations', 'recentForumPosts'));
+        // Prepare consultation trends data for line chart (last 30 days)
+        $consultationTrends = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $count = Consultation::where('doctor_id', $doctor->id)
+                                ->whereDate('created_at', $date->format('Y-m-d'))
+                                ->count();
+            $consultationTrends[] = [
+                'date' => $date->format('M d'),
+                'count' => $count
+            ];
+        }
+
+        // Prepare revenue growth data for bar chart (last 6 months)
+        $revenueGrowth = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthStart = now()->subMonths($i)->startOfMonth();
+            $monthEnd = now()->subMonths($i)->endOfMonth();
+            $monthEarnings = Consultation::where('doctor_id', $doctor->id)
+                                        ->where('payment_status', 'paid')
+                                        ->whereBetween('created_at', [$monthStart, $monthEnd])
+                                        ->get()
+                                        ->sum(function($consultation) use ($doctor, $doctorPercentage) {
+                                            $consultationFee = $doctor->effective_consultation_fee ?? 0;
+                                            return ($consultationFee * $doctorPercentage) / 100;
+                                        });
+            $revenueGrowth[] = [
+                'month' => $monthStart->format('M Y'),
+                'revenue' => $monthEarnings
+            ];
+        }
+
+        // Get next consultation for countdown
+        $nextConsultation = Consultation::where('doctor_id', $doctor->id)
+                                      ->whereIn('status', ['pending', 'scheduled'])
+                                      ->where(function($query) {
+                                          $query->whereNull('scheduled_at')
+                                                ->orWhere('scheduled_at', '>=', now());
+                                      })
+                                      ->orderByRaw("CASE WHEN status = 'pending' THEN 1 ELSE 2 END")
+                                      ->orderBy('scheduled_at', 'asc')
+                                      ->orderBy('created_at', 'asc')
+                                      ->with('patient')
+                                      ->first();
+
+        // Get patient queue count (pending consultations)
+        $patientQueueCount = Consultation::where('doctor_id', $doctor->id)
+                                        ->where('status', 'pending')
+                                        ->count();
+
+        return view('doctor.dashboard', compact(
+            'stats', 
+            'priorityConsultations', 
+            'recentForumPosts',
+            'consultationTrends',
+            'revenueGrowth',
+            'nextConsultation',
+            'patientQueueCount'
+        ));
     }
 
     /**
@@ -346,24 +404,31 @@ class DashboardController extends Controller
                 ]);
             }
             
-            // Get available doctors for referral (excluding current doctor)
-            $availableDoctors = \App\Models\Doctor::where('id', '!=', $doctor->id)
+            // Get available specializations for referral (excluding current doctor's specialization)
+            $availableSpecializations = \App\Models\Doctor::where('id', '!=', $doctor->id)
                 ->where('is_available', true)
                 ->where('is_approved', true)
-                ->orderBy('specialization')
-                ->orderBy('name')
-                ->get(['id', 'name', 'first_name', 'last_name', 'specialization', 'email'])
-                ->map(function($doctor) {
-                    return [
-                        'id' => $doctor->id,
-                        'name' => $doctor->name ?: trim(($doctor->first_name ?? '') . ' ' . ($doctor->last_name ?? '')),
-                        'first_name' => $doctor->first_name,
-                        'last_name' => $doctor->last_name,
-                        'specialization' => $doctor->specialization ?? 'General Practice',
-                        'email' => $doctor->email,
-                    ];
-                })
-                ->values();
+                ->whereNotNull('specialization')
+                ->distinct()
+                ->pluck('specialization')
+                ->filter()
+                ->sort()
+                ->values()
+                ->toArray();
+            
+            // If no specializations found, get from Specialty model
+            if (empty($availableSpecializations)) {
+                $availableSpecializations = \App\Models\Specialty::active()
+                    ->orderBy('name')
+                    ->pluck('name')
+                    ->toArray();
+            }
+            
+            // Format as associative array for frontend
+            $specializations = [];
+            foreach ($availableSpecializations as $spec) {
+                $specializations[$spec] = [];
+            }
             
             // Load patient medical information if consultation is not completed and patient is authenticated
             $patientMedicalInfo = null;
@@ -372,7 +437,7 @@ class DashboardController extends Controller
             }
             
             // Return view for regular HTTP requests
-            return view('doctor.consultation-details', compact('consultation', 'availableDoctors', 'patientMedicalInfo'));
+            return view('doctor.consultation-details', compact('consultation', 'specializations', 'patientMedicalInfo'));
             
         } catch (\Exception $e) {
             // For AJAX requests, return JSON error
@@ -1507,8 +1572,8 @@ class DashboardController extends Controller
         }
 
         // Normal flow for doctors who are not auto-unavailable
-        // Handle is_available checkbox
-        $isAvailable = $request->has('is_available') ? true : false;
+        // Handle is_available checkbox or JSON request
+        $isAvailable = $request->has('is_available') || $request->input('is_available') == '1' || $request->input('is_available') === true || $request->input('is_available') === 1;
 
         // Process availability schedule
         $schedule = [];
@@ -1555,6 +1620,15 @@ class DashboardController extends Controller
             'availability_schedule' => $schedule,
         ]);
 
+        // If it's an AJAX request, return JSON
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Availability updated successfully',
+                'is_available' => $isAvailable
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Availability settings updated successfully!');
     }
 
@@ -1571,32 +1645,41 @@ class DashboardController extends Controller
                                    ->firstOrFail();
 
         $validated = $request->validate([
-            'referred_to_doctor_id' => 'required|exists:doctors,id',
+            'specialization' => 'required|string|max:255',
             'reason' => 'required|string|min:10|max:1000',
             'notes' => 'nullable|string|max:2000',
         ]);
-
-        // Check if trying to refer to self
-        if ($validated['referred_to_doctor_id'] == $doctor->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You cannot refer a patient to yourself.'
-            ], 400);
-        }
 
         // Check if already referred
         if ($consultation->hasReferral()) {
             return response()->json([
                 'success' => false,
-                'message' => 'This consultation has already been referred to another doctor.'
+                'message' => 'This consultation has already been referred to another specialization.'
             ], 400);
         }
 
         try {
             \DB::beginTransaction();
 
-            // Get referred to doctor
-            $referredToDoctor = \App\Models\Doctor::findOrFail($validated['referred_to_doctor_id']);
+            // Find an available doctor in the selected specialization
+            // Priority: available, approved, not the referring doctor, with least pending consultations
+            $referredToDoctor = \App\Models\Doctor::where('specialization', $validated['specialization'])
+                ->where('id', '!=', $doctor->id)
+                ->where('is_available', true)
+                ->where('is_approved', true)
+                ->withCount(['consultations' => function($query) {
+                    $query->whereIn('status', ['pending', 'scheduled']);
+                }])
+                ->orderBy('consultations_count', 'asc')
+                ->orderBy('name', 'asc')
+                ->first();
+
+            if (!$referredToDoctor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No available doctors found in the selected specialization. Please try another specialization.'
+                ], 400);
+            }
 
             // Generate reference for new consultation
             $newReference = 'CONS-' . strtoupper(\Illuminate\Support\Str::random(8));
@@ -1638,7 +1721,7 @@ class DashboardController extends Controller
                 'referring_doctor_id' => $doctor->id,
                 'referred_to_doctor_id' => $referredToDoctor->id,
                 'reason' => $validated['reason'],
-                'notes' => $validated['notes'],
+                'notes' => ($validated['notes'] ?? '') . ' [Referred to specialization: ' . $validated['specialization'] . ']',
                 'new_consultation_id' => $newConsultation->id,
                 'status' => 'pending',
             ]);
@@ -1658,7 +1741,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Patient has been successfully referred to Dr. ' . $referredToDoctor->name . '. A new consultation has been created.',
+                'message' => 'Patient has been successfully referred to ' . $validated['specialization'] . '. A new consultation has been created and assigned to Dr. ' . $referredToDoctor->name . '.',
                 'referral' => $referral,
                 'new_consultation' => $newConsultation,
             ]);

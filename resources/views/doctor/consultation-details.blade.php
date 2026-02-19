@@ -41,28 +41,15 @@ consultationPage()
                 isSubmittingReview: false,
                 // Referral modal variables
                 showReferModal: false,
-                referredToDoctorId: '',
+                selectedSpecialization: '',
                 referralReason: '',
                 referralNotes: '',
                 isReferring: false,
-                availableDoctors: @json($availableDoctors ?? []),
+                specializations: @json($specializations ?? []),
                 // Auto-save status
                 autoSaveStatus: 'saved',
                 lastSaved: null,
                 autoSaveInterval: null,
-                
-                // Group doctors by specialization
-                get groupedDoctors() {
-                    const grouped = {};
-                    this.availableDoctors.forEach(doctor => {
-                        const spec = doctor.specialization || 'General Practice';
-                        if (!grouped[spec]) {
-                            grouped[spec] = [];
-                        }
-                        grouped[spec].push(doctor);
-                    });
-                    return grouped;
-                },
                 
                 showMessage(type, title, text) {
                     this.messageType = type;
@@ -190,20 +177,15 @@ consultationPage()
                 },
                 
                 async submitReferral() {
-                    if (!this.referredToDoctorId || this.referralReason.length < 10) {
-                        this.showMessage('error', 'Validation Error', 'Please select a doctor and provide a reason (minimum 10 characters).');
+                    if (!this.selectedSpecialization || this.referralReason.length < 10) {
+                        this.showMessage('error', 'Validation Error', 'Please select a specialization and provide a reason (minimum 10 characters).');
                         return;
                     }
-                    
-                    // Get selected doctor details for confirmation
-                    const selectedDoctor = this.availableDoctors.find(d => d.id == this.referredToDoctorId);
-                    const doctorName = selectedDoctor ? (selectedDoctor.name || (selectedDoctor.first_name + ' ' + selectedDoctor.last_name)) : 'Selected Doctor';
-                    const doctorSpecialization = selectedDoctor?.specialization || '';
                     
                     // Show confirmation
                     this.showConfirm(
                         'Confirm Referral',
-                        `Are you sure you want to refer this patient to Dr. ${doctorName}${doctorSpecialization ? ' (' + doctorSpecialization + ')' : ''}? This action will create a new consultation and notify both the patient and the referred doctor.`,
+                        `Are you sure you want to refer this patient to ${this.selectedSpecialization}? The system will assign an available doctor in this specialization and create a new consultation.`,
                         () => {
                             this.doSubmitReferral();
                         }
@@ -221,7 +203,7 @@ consultationPage()
                                 'Accept': 'application/json'
                             },
                             body: JSON.stringify({
-                                referred_to_doctor_id: this.referredToDoctorId,
+                                specialization: this.selectedSpecialization,
                                 reason: this.referralReason,
                                 notes: this.referralNotes
                             })
@@ -233,7 +215,7 @@ consultationPage()
                             this.showMessage('success', 'Referral Successful', data.message || 'Patient has been successfully referred. Notifications have been sent to the patient and the referred doctor.');
                             this.showReferModal = false;
                             // Reset form
-                            this.referredToDoctorId = '';
+                            this.selectedSpecialization = '';
                             this.referralReason = '';
                             this.referralNotes = '';
                             setTimeout(() => window.location.reload(), 2000);
@@ -1108,26 +1090,20 @@ consultationPage()
 
                 <!-- Form -->
                 <form @submit.prevent="submitReferral()" class="px-6 pb-6">
-                    <!-- Select Doctor -->
+                    <!-- Select Specialization -->
                     <div class="mb-6">
-                        <label for="referredToDoctorId" class="block text-sm font-semibold text-gray-900 mb-2">
-                            Select Doctor to Refer To <span class="text-red-500">*</span>
+                        <label for="selectedSpecialization" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Select Specialization <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
                             <select 
-                                x-model="referredToDoctorId"
-                                id="referredToDoctorId"
+                                x-model="selectedSpecialization"
+                                id="selectedSpecialization"
                                 required
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 text-sm appearance-none bg-white">
-                                <option value="">-- Select a doctor --</option>
-                                <template x-for="(doctors, specialization) in groupedDoctors" :key="specialization">
-                                    <optgroup :label="specialization || 'General Practice'">
-                                        <template x-for="doctor in doctors" :key="doctor.id">
-                                            <option :value="doctor.id" 
-                                                    x-text="doctor.name + (doctor.specialization ? ' (' + doctor.specialization + ')' : '')">
-                                            </option>
-                                        </template>
-                                    </optgroup>
+                                <option value="">-- Select a specialization --</option>
+                                <template x-for="(doctors, specialization) in specializations" :key="specialization">
+                                    <option :value="specialization" x-text="specialization || 'General Practice'"></option>
                                 </template>
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
@@ -1136,26 +1112,7 @@ consultationPage()
                                 </svg>
                             </div>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Only available and approved doctors are shown</p>
-                        
-                        <!-- Selected Doctor Info -->
-                        <div x-show="referredToDoctorId" 
-                             x-cloak
-                             class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                            <template x-for="doctor in availableDoctors" :key="doctor.id">
-                                <div x-show="doctor.id == referredToDoctorId" class="text-sm">
-                                    <p class="font-semibold text-gray-900" x-text="doctor.name"></p>
-                                    <p class="text-gray-600 mt-1" x-show="doctor.specialization">
-                                        <span class="font-medium">Specialization:</span> 
-                                        <span x-text="doctor.specialization"></span>
-                                    </p>
-                                    <p class="text-gray-600" x-show="doctor.email">
-                                        <span class="font-medium">Email:</span> 
-                                        <span x-text="doctor.email"></span>
-                                    </p>
-                                </div>
-                            </template>
-                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Choose the medical specialization to refer to. The system will automatically assign an available doctor.</p>
                     </div>
 
                     <!-- Reason -->
@@ -1194,7 +1151,7 @@ consultationPage()
                     <!-- Info Box -->
                     <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
                         <p class="text-sm text-blue-800">
-                            <strong>Note:</strong> A new consultation will be created for the referred doctor with all patient information and medical history. The patient and the receiving doctor will be notified.
+                            <strong>Note:</strong> A new consultation will be created and automatically assigned to an available doctor in the selected specialization. The system will choose the doctor with the least pending consultations. The patient and the assigned doctor will be notified.
                         </p>
                     </div>
 
@@ -1202,7 +1159,7 @@ consultationPage()
                     <div class="flex gap-3">
                         <button 
                             type="submit"
-                            :disabled="isReferring || !referredToDoctorId || referralReason.length < 10"
+                            :disabled="isReferring || !selectedSpecialization || referralReason.length < 10"
                             class="flex-1 purple-gradient text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                             <span x-show="!isReferring">Submit Referral</span>
                             <span x-show="isReferring">Submitting...</span>

@@ -746,6 +746,11 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     Route::get('/profile', [DoctorDashboardController::class, 'profile'])->name('profile');
     Route::post('/profile', [DoctorDashboardController::class, 'updateProfile'])->name('profile.update');
     
+    // Settings
+    Route::get('/settings', [\App\Http\Controllers\Doctor\SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/change-password', [\App\Http\Controllers\Doctor\SettingsController::class, 'changePassword'])->name('settings.change-password');
+    Route::post('/settings/deactivate-account', [\App\Http\Controllers\Doctor\SettingsController::class, 'deactivateAccount'])->name('settings.deactivate-account');
+    
     // Availability
     Route::get('/availability', [DoctorDashboardController::class, 'availability'])->name('availability');
     Route::post('/availability', [DoctorDashboardController::class, 'updateAvailability'])->name('availability.update');
