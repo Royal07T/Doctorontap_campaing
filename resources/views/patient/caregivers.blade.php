@@ -493,7 +493,7 @@ document.addEventListener('alpine:init', () => {
             formData.append('severity', this.severity);
             
             try {
-                const response = await fetch('{{ route("patient.doctors.book") }}', { 
+                const response = await fetch('{{ route("patient.doctors.book.store") }}', { 
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

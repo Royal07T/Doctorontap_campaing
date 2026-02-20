@@ -642,49 +642,12 @@ class DashboardController extends Controller
     {
         $patient = Auth::guard('patient')->user();
         
-        $query = $patient->consultations()->with(['doctor', 'payment', 'reviews']);
-
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-            
-            // For completed status, also filter out any that might have future scheduled_at dates
-            // (edge case: consultation marked completed but scheduled_at is in future)
-            if ($request->status === 'completed') {
-                $query->where(function($q) {
-                    $q->whereNull('scheduled_at')
-                      ->orWhere('scheduled_at', '<=', now());
-                });
-            }
-        } else {
-            // Default "Upcoming" tab: Show consultations that are scheduled in the future
-            // Include: scheduled consultations with future dates, pending consultations
-            $query->where(function($q) {
-                $q->where(function($subQ) {
-                    // Scheduled consultations with future dates
-                    $subQ->where('status', 'scheduled')
-                         ->whereNotNull('scheduled_at')
-                         ->where('scheduled_at', '>', now());
-                })->orWhere(function($subQ) {
-                    // Pending consultations (not yet scheduled or scheduled in future)
-                    $subQ->where('status', 'pending')
-                         ->where(function($pendingQ) {
-                             $pendingQ->whereNull('scheduled_at')
-                                      ->orWhere('scheduled_at', '>', now());
-                         });
-                });
-            });
-        }
-
-        // Filter by payment status
-        if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
-        }
+        $baseQuery = $patient->consultations()->with(['doctor', 'payment', 'reviews']);
 
         // Search by reference or doctor name
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $baseQuery->where(function($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
                   ->orWhereHas('doctor', function($dq) use ($search) {
                       $dq->where('name', 'like', "%{$search}%")
@@ -694,24 +657,51 @@ class DashboardController extends Controller
             });
         }
 
-        // Sort based on status filter
-        if ($request->filled('status')) {
-            if ($request->status === 'completed') {
-                // Past sessions: Order by scheduled_at DESC (most recent first), fallback to created_at
-                $query->orderByRaw('COALESCE(scheduled_at, created_at) DESC');
-            } elseif ($request->status === 'cancelled') {
-                // Cancelled: Order by created_at DESC
-                $query->latest('created_at');
-            } else {
-                // Other statuses: Order by created_at DESC
-                $query->latest('created_at');
-            }
-        } else {
-            // Upcoming: Order by scheduled_at ASC (earliest first), fallback to created_at
-            $query->orderByRaw('COALESCE(scheduled_at, created_at) ASC');
-        }
+        // Filter by payment status (applies to all sections)
+        $paymentStatusFilter = $request->filled('payment_status') ? $request->payment_status : null;
 
-        $consultations = $query->paginate(15);
+        // MISSED CONSULTATIONS: Scheduled/pending consultations where scheduled_at is in the past 
+        // and status is not 'completed' or 'cancelled' (these are appointments that were missed)
+        $missedQuery = clone $baseQuery;
+        $missedQuery->whereNotNull('scheduled_at')
+                    ->where('scheduled_at', '<', now())
+                    ->whereIn('status', ['scheduled', 'pending']);
+        if ($paymentStatusFilter) {
+            $missedQuery->where('payment_status', $paymentStatusFilter);
+        }
+        $missedConsultations = $missedQuery->orderByRaw('COALESCE(scheduled_at, created_at) ASC')->get();
+
+        // PAST CONSULTATIONS: Completed consultations (regardless of scheduled_at date)
+        $pastQuery = clone $baseQuery;
+        $pastQuery->where('status', 'completed');
+        if ($paymentStatusFilter) {
+            $pastQuery->where('payment_status', $paymentStatusFilter);
+        }
+        $pastConsultations = $pastQuery->orderByRaw('COALESCE(scheduled_at, created_at) DESC')->get();
+
+        // UPCOMING CONSULTATIONS: Scheduled/pending consultations with scheduled_at in the future
+        $upcomingQuery = clone $baseQuery;
+        $upcomingQuery->where(function($q) {
+            $q->where(function($subQ) {
+                // Scheduled consultations with future dates
+                $subQ->where('status', 'scheduled')
+                     ->whereNotNull('scheduled_at')
+                     ->where('scheduled_at', '>', now());
+            })->orWhere(function($subQ) {
+                // Pending consultations scheduled in future
+                $subQ->where('status', 'pending')
+                     ->whereNotNull('scheduled_at')
+                     ->where('scheduled_at', '>', now());
+            })->orWhere(function($subQ) {
+                // Pending consultations without scheduled_at (to be scheduled)
+                $subQ->where('status', 'pending')
+                     ->whereNull('scheduled_at');
+            });
+        });
+        if ($paymentStatusFilter) {
+            $upcomingQuery->where('payment_status', $paymentStatusFilter);
+        }
+        $upcomingConsultations = $upcomingQuery->orderByRaw('COALESCE(scheduled_at, created_at) ASC')->get();
 
         // Statistics
         $stats = [
@@ -743,13 +733,21 @@ class DashboardController extends Controller
             ->where('status', 'scheduled')
             ->where(function($q) {
                 $q->where('scheduled_at', '>', now())
-                  ->orWhereNull('scheduled_at'); // Include pending scheduling if needed, but primarily future scheduled
+                  ->orWhereNull('scheduled_at');
             })
-            ->whereNotNull('scheduled_at') // Strict check for next appointment time
+            ->whereNotNull('scheduled_at')
             ->orderBy('scheduled_at', 'asc')
             ->first();
 
-        return view('patient.consultations', compact('consultations', 'stats', 'favoriteDoctorsCount', 'nextAppointment', 'patient'));
+        return view('patient.consultations', compact(
+            'missedConsultations', 
+            'pastConsultations', 
+            'upcomingConsultations', 
+            'stats', 
+            'favoriteDoctorsCount', 
+            'nextAppointment', 
+            'patient'
+        ));
     }
 
     /**

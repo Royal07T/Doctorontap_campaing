@@ -13,6 +13,67 @@
         <p class="text-sm text-gray-600 mt-1">Book a consultation on behalf of patient</p>
     </div>
 
+    <!-- Success Message -->
+    @if(session('success'))
+    <div class="p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg shadow-sm">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-emerald-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-semibold text-emerald-900">{{ session('success') }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Error Message -->
+    @if(session('error'))
+    <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-semibold text-red-900">{{ session('error') }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Validation Errors -->
+    @if($errors->any())
+    <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+            </svg>
+            <div class="flex-1">
+                <p class="text-sm font-semibold text-red-900 mb-2">Please fix the following errors:</p>
+                <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Info Message -->
+    @if(session('info'))
+    <div class="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg shadow-sm">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-semibold text-blue-900">{{ session('info') }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @if($prospect && $prospect->status !== 'Converted')
     <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
         <div class="flex items-start gap-3">
@@ -82,9 +143,9 @@
             </div>
             @endif
 
-            <!-- Service Type -->
+            <!-- Consultation Mode -->
             <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-3">Service Type *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-3">Consultation Mode *</label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
                            :class="serviceType === 'video' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'">
@@ -103,11 +164,11 @@
                         </div>
                     </label>
                     <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                           :class="serviceType === 'home_visit' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'">
-                        <input type="radio" name="service_type" value="home_visit" x-model="serviceType" required class="mr-3">
+                           :class="serviceType === 'chat' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'">
+                        <input type="radio" name="service_type" value="chat" x-model="serviceType" required class="mr-3">
                         <div>
-                            <p class="font-semibold text-gray-900">Home Visit</p>
-                            <p class="text-xs text-gray-600">Doctor visits patient</p>
+                            <p class="font-semibold text-gray-900">Chat Consultation</p>
+                            <p class="text-xs text-gray-600">Text-based chat with doctor</p>
                         </div>
                     </label>
                 </div>
@@ -184,18 +245,54 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Age</label>
-                    <input type="number" name="age" min="1" max="150"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    @if($patient && $patient->age)
+                        <input type="number" name="age" min="1" max="150" 
+                               value="{{ $patient->age }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                               readonly>
+                        <p class="mt-1 text-xs text-gray-500">Auto-filled from patient profile</p>
+                    @else
+                        <input type="number" name="age" min="1" max="150" 
+                               value="{{ old('age') }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    @endif
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
-                    <select name="gender"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">Select gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                    </select>
+                    @if($patient && $patient->gender)
+                        @php
+                            // Normalize gender to match validation rules (Male, Female, Other)
+                            $normalizedGender = ucfirst(strtolower(trim($patient->gender)));
+                            if (!in_array($normalizedGender, ['Male', 'Female', 'Other'])) {
+                                // Handle common variations
+                                if (in_array(strtolower($normalizedGender), ['m', 'male'])) {
+                                    $normalizedGender = 'Male';
+                                } elseif (in_array(strtolower($normalizedGender), ['f', 'female'])) {
+                                    $normalizedGender = 'Female';
+                                } else {
+                                    $normalizedGender = 'Other';
+                                }
+                            }
+                        @endphp
+                        <select name="gender"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                                disabled>
+                            <option value="{{ $normalizedGender }}" selected>{{ $normalizedGender }}</option>
+                        </select>
+                        <input type="hidden" name="gender" value="{{ $normalizedGender }}">
+                        <p class="mt-1 text-xs text-gray-500">Auto-filled from patient profile</p>
+                    @else
+                        <select name="gender"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Select gender</option>
+                            <option value="Male" {{ old('gender') === 'Male' ? 'selected' : '' }}>Male</option>
+                            <option value="Female" {{ old('gender') === 'Female' ? 'selected' : '' }}>Female</option>
+                            <option value="Other" {{ old('gender') === 'Other' ? 'selected' : '' }}>Other</option>
+                        </select>
+                    @endif
+                    @error('gender')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -324,7 +421,9 @@ function bookingForm() {
 
         getScheduledAt() {
             if (this.selectedDate && this.selectedTime) {
-                this.scheduledAt = `${this.selectedDate} ${this.selectedTime}:00`;
+                // Ensure time is in HH:mm format (time slots are already in HH:mm format)
+                const timeStr = this.selectedTime.length === 5 ? this.selectedTime : (this.selectedTime + ':00');
+                this.scheduledAt = `${this.selectedDate} ${timeStr}`;
             } else {
                 this.scheduledAt = '';
             }

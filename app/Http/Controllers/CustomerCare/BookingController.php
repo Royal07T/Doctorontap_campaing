@@ -76,22 +76,58 @@ class BookingController extends Controller
             abort(403, 'Unauthorized. You must be logged in as Customer Care to book consultations.');
         }
         
-        $validated = $request->validate([
-            'patient_id' => 'nullable|exists:patients,id',
-            'prospect_id' => 'nullable|exists:prospects,id',
-            'service_type' => 'required|in:video,audio,home_visit',
-            'doctor_id' => 'required|exists:doctors,id',
-            'scheduled_at' => 'required|date|after:now',
-            'problem' => 'required|string|min:10|max:1000',
-            'severity' => 'required|in:low,moderate,high,urgent',
-            'age' => 'nullable|integer|min:1|max:150',
-            'gender' => 'nullable|in:Male,Female,Other',
-        ]);
+        try {
+            // Handle both scheduled_at (from hidden field) and scheduled_date + scheduled_time (from form)
+            $scheduledAt = null;
+            if ($request->filled('scheduled_at')) {
+                $scheduledAt = $request->scheduled_at;
+            } elseif ($request->filled('scheduled_date') && $request->filled('scheduled_time')) {
+                $scheduledAt = $request->scheduled_date . ' ' . $request->scheduled_time . ':00';
+            }
+            
+            // Merge scheduled_at into request for validation
+            $request->merge(['scheduled_at' => $scheduledAt]);
+            
+            // Normalize gender value if provided
+            if ($request->filled('gender')) {
+                $gender = ucfirst(strtolower(trim($request->gender)));
+                if (!in_array($gender, ['Male', 'Female', 'Other'])) {
+                    // Handle common variations
+                    if (in_array(strtolower($gender), ['m', 'male'])) {
+                        $gender = 'Male';
+                    } elseif (in_array(strtolower($gender), ['f', 'female'])) {
+                        $gender = 'Female';
+                    } else {
+                        $gender = 'Other';
+                    }
+                }
+                $request->merge(['gender' => $gender]);
+            }
+            
+            $validated = $request->validate([
+                'patient_id' => 'nullable|exists:patients,id',
+                'prospect_id' => 'nullable|exists:prospects,id',
+                'service_type' => 'required|in:video,audio,chat',
+                'doctor_id' => 'required|exists:doctors,id',
+                'scheduled_at' => 'required|date|after:now',
+                'problem' => 'required|string|min:10|max:1000',
+                'severity' => 'required|in:low,moderate,high,urgent',
+                'age' => 'nullable|integer|min:1|max:150',
+                'gender' => 'nullable|in:Male,Female,Other',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('error', 'Please fix the validation errors and try again.');
+        }
 
         DB::beginTransaction();
         try {
-            // Determine patient
+            // Determine patient and prospect
             $patient = null;
+            $prospect = null;
             if ($validated['patient_id']) {
                 $patient = Patient::findOrFail($validated['patient_id']);
             } elseif ($validated['prospect_id']) {
@@ -156,9 +192,9 @@ class BookingController extends Controller
             $consultationModeMap = [
                 'video' => 'video',
                 'audio' => 'voice',
-                'home_visit' => 'whatsapp', // Home visits use WhatsApp for coordination
+                'chat' => 'chat',
             ];
-            $consultationMode = $consultationModeMap[$validated['service_type']] ?? 'whatsapp';
+            $consultationMode = $consultationModeMap[$validated['service_type']] ?? 'chat';
 
             // Create consultation
             $reference = 'CONSULT-' . time() . '-' . Str::random(6);
@@ -229,29 +265,46 @@ class BookingController extends Controller
                         ]);
                     }
 
-                    return redirect()
-                        ->route('customer-care.consultations.show', $consultation)
-                        ->with('info', 'Consultation booked successfully. Payment link: ' . $paymentData['checkout_url'])
+                    // Redirect back to create page with success message
+                    $redirectUrl = route('customer-care.booking.create');
+                    if ($validated['patient_id']) {
+                        $redirectUrl .= '?patient_id=' . $validated['patient_id'];
+                    } elseif ($validated['prospect_id']) {
+                        $redirectUrl .= '?prospect_id=' . $validated['prospect_id'];
+                    }
+
+                    return redirect($redirectUrl)
+                        ->with('success', 'Consultation booked successfully! Reference: ' . $reference . '. Payment link: ' . $paymentData['checkout_url'])
                         ->with('payment_url', $paymentData['checkout_url']);
                 }
             }
 
-            return redirect()
-                ->route('customer-care.consultations.show', $consultation)
-                ->with('success', 'Consultation booked successfully. Reference: ' . $reference);
+            // Redirect back to create page with success message
+            $redirectUrl = route('customer-care.booking.create');
+            if ($validated['patient_id']) {
+                $redirectUrl .= '?patient_id=' . $validated['patient_id'];
+            } elseif ($validated['prospect_id']) {
+                $redirectUrl .= '?prospect_id=' . $validated['prospect_id'];
+            }
+
+            return redirect($redirectUrl)
+                ->with('success', 'Consultation booked successfully! Reference: ' . $reference);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to book consultation by customer service', [
                 'error' => $e->getMessage(),
+                'error_trace' => $e->getTraceAsString(),
                 'agent_id' => $agent->id,
-                'request_data' => $validated,
+                'request_data' => $request->all(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Failed to book consultation. Please try again.');
+                ->with('error', 'Failed to book consultation: ' . $e->getMessage() . '. Please check the logs for details.');
         }
     }
 
