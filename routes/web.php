@@ -225,6 +225,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'session.manag
     Route::post('/doctors', [DashboardController::class, 'storeDoctor'])->name('doctors.store');
     Route::put('/doctors/{id}', [DashboardController::class, 'updateDoctor'])->name('doctors.update');
     Route::delete('/doctors/{id}', [DashboardController::class, 'deleteDoctor'])->name('doctors.delete');
+    Route::post('/doctors/{id}/set-password', [DashboardController::class, 'setDoctorPassword'])->name('doctors.set-password');
     Route::post('/doctors/send-campaign-notification', [DashboardController::class, 'sendCampaignNotification'])->name('doctors.send-campaign');
 
     // Doctor Registrations Approval
@@ -514,10 +515,19 @@ Route::prefix('care-giver')->name('care_giver.')->middleware(['auth:care_giver',
     Route::get('/patients', [\App\Http\Controllers\CareGiver\PatientController::class, 'index'])->name('patients.index');
     Route::get('/patients/{patient}', [\App\Http\Controllers\CareGiver\PatientController::class, 'show'])->name('patients.show');
 
+    // Daily Health Log
+    Route::get('/daily-log', [\App\Http\Controllers\CareGiver\DailyLogController::class, 'index'])->name('daily-log.index');
+
     // Communication Center
     Route::get('/communication', function () {
         return view('care-giver.communication.index');
     })->name('communication.index');
+
+    // Schedules
+    Route::get('/schedules', [\App\Http\Controllers\CareGiver\DashboardController::class, 'schedules'])->name('schedules.index');
+
+    // Reports
+    Route::get('/reports', [\App\Http\Controllers\CareGiver\DashboardController::class, 'reports'])->name('reports.index');
 
     // Profile & Settings
     Route::get('/profile', [\App\Http\Controllers\CareGiver\ProfileController::class, 'index'])->name('profile.index');

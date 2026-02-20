@@ -4,7 +4,7 @@
 @section('page-title', 'Profile & Settings')
 
 @section('content')
-<div x-data="{ activeTab: 'profile' }" class="space-y-6">
+<div x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'profile' }" class="space-y-6">
     {{-- Tab Navigation --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="flex border-b border-gray-200">

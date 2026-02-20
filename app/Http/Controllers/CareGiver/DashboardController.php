@@ -105,5 +105,27 @@ class DashboardController extends Controller
             'handoverLastSaved',
         ));
     }
+
+    /**
+     * Display the Schedules page.
+     */
+    public function schedules()
+    {
+        $careGiver = Auth::guard('care_giver')->user();
+        $assignedPatients = $careGiver->assignedPatients()->get();
+
+        return view('care-giver.schedules.index', compact('careGiver', 'assignedPatients'));
+    }
+
+    /**
+     * Display the Reports page.
+     */
+    public function reports()
+    {
+        $careGiver = Auth::guard('care_giver')->user();
+        $assignedPatients = $careGiver->assignedPatients()->get();
+
+        return view('care-giver.reports.index', compact('careGiver', 'assignedPatients'));
+    }
 }
 

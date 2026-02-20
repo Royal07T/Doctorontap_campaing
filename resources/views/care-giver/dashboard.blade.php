@@ -1,6 +1,7 @@
 @extends('layouts.caregiver')
 
 @section('title', 'Daily Dashboard')
+@section('page-title', 'Daily Dashboard')
 
 @section('content')
     <div class="space-y-6" x-data="{

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
 use App\Mail\TreatmentPlanNotification;
@@ -1842,6 +1843,33 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete doctor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Set password for a doctor
+     */
+    public function setDoctorPassword(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try {
+            $doctor = Doctor::findOrFail($id);
+            $doctor->update([
+                'password' => Hash::make($request->password),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Password set successfully for {$doctor->name}.",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to set password: ' . $e->getMessage(),
             ], 500);
         }
     }
