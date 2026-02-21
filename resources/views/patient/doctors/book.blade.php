@@ -22,8 +22,59 @@
     </div>
 
     <!-- Doctor Info Card -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div class="flex items-start gap-4">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6" x-data="{ showDetails: false }">
+        <!-- Mobile Collapsible Header -->
+        <div class="md:hidden">
+            <button type="button" @click="showDetails = !showDetails" class="w-full flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gray-50 p-1 border border-gray-100 flex-shrink-0">
+                        @if($doctor->photo_url)
+                            <img src="{{ $doctor->photo_url }}" alt="{{ $doctor->name }}" class="w-full h-full object-cover rounded-lg">
+                        @else
+                            <div class="w-full h-full bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 font-bold text-xl">
+                                {{ substr($doctor->name, 0, 1) }}
+                            </div>
+                        @endif
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-base font-bold text-gray-900">{{ $doctor->name }}</h3>
+                        <p class="text-sm text-purple-600 font-semibold">{{ $doctor->specialization ?? 'General Practitioner' }}</p>
+                    </div>
+                </div>
+                <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{ 'rotate-180': showDetails }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div x-show="showDetails" x-collapse class="mt-4 space-y-3 pt-4 border-t border-gray-200">
+                @if($doctor->location)
+                <div class="flex items-center text-sm text-gray-600">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {{ $doctor->location }}
+                </div>
+                @endif
+                @php
+                    if ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
+                        $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0);
+                    } elseif ($doctor->consultation_fee) {
+                        $feeDisplay = '₦' . number_format($doctor->consultation_fee, 0);
+                    } else {
+                        $feeDisplay = 'Contact for pricing';
+                    }
+                @endphp
+                <div class="flex items-center text-sm font-semibold text-purple-600">
+                    <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ $feeDisplay }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Desktop Layout -->
+        <div class="hidden md:flex items-start gap-4">
             <div class="w-20 h-20 rounded-2xl bg-gray-50 p-1 border border-gray-100 flex-shrink-0">
                 @if($doctor->photo_url)
                     <img src="{{ $doctor->photo_url }}" alt="{{ $doctor->name }}" class="w-full h-full object-cover rounded-lg">
@@ -47,8 +98,6 @@
                     </div>
                     @endif
                     @php
-                        // Always use doctor-set prices
-                        // For fee ranges, show only the minimum fee
                         if ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
                             $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0);
                         } elseif ($doctor->consultation_fee) {
@@ -100,7 +149,20 @@
                 <!-- Time Slots -->
                 <div class="mt-6" x-show="selectedDate && availableSlots.length > 0">
                     <label class="block text-sm font-semibold text-gray-700 mb-3">Available Slots</label>
-                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                    
+                    <!-- Mobile Dropdown -->
+                    <select x-model="selectedTime" 
+                            name="scheduled_time"
+                            required
+                            class="w-full md:hidden px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white">
+                        <option value="">Select a time slot</option>
+                        <template x-for="slot in availableSlots" :key="slot.value">
+                            <option :value="slot.value" :disabled="slot.booked" x-text="slot.booked ? slot.label + ' (Booked)' : slot.label"></option>
+                        </template>
+                    </select>
+                    
+                    <!-- Desktop Grid -->
+                    <div class="hidden md:grid grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                         <template x-for="slot in availableSlots" :key="slot.value">
                             <button type="button"
                                     @click="selectedTime = slot.value"
@@ -115,7 +177,6 @@
                             </button>
                         </template>
                     </div>
-                    <input type="hidden" name="scheduled_time" x-model="selectedTime" required>
                 </div>
                 <p x-show="selectedDate && availableSlots.length === 0" class="text-sm text-gray-500 mt-2 italic">No slots available for this date.</p>
                 @error('scheduled_at')
@@ -147,7 +208,46 @@
                     <!-- Symptoms Checkboxes -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-3">Symptoms (Select all that apply)</label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
+                        
+                        <!-- Mobile Dropdown -->
+                        <select multiple 
+                                name="symptoms[]"
+                                class="w-full md:hidden px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white min-h-[200px]">
+                            <optgroup label="Critical">
+                                <option value="chest_pain">Chest pain or pressure</option>
+                                <option value="breathing">Severe difficulty breathing</option>
+                                <option value="consciousness">Loss of consciousness / fainting</option>
+                                <option value="bleeding">Uncontrolled heavy bleeding</option>
+                                <option value="seizure">Seizure now or ongoing</option>
+                                <option value="pregnancy_bleeding">Heavy vaginal bleeding in pregnancy</option>
+                            </optgroup>
+                            <optgroup label="Respiratory">
+                                <option value="cough">Persistent cough</option>
+                                <option value="shortness_breath">Shortness of breath</option>
+                                <option value="wheezing">Wheezing</option>
+                            </optgroup>
+                            <optgroup label="Neurological">
+                                <option value="weakness">Sudden weakness, numbness</option>
+                                <option value="speech">Slurred speech</option>
+                                <option value="headache">Severe headache</option>
+                                <option value="dizziness">Dizziness or vertigo</option>
+                            </optgroup>
+                            <optgroup label="Pain">
+                                <option value="abdominal">Severe abdominal pain</option>
+                                <option value="back_pain">Severe back pain</option>
+                                <option value="joint_pain">Joint pain</option>
+                            </optgroup>
+                            <optgroup label="General">
+                                <option value="fever">Very high fever</option>
+                                <option value="fatigue">Extreme fatigue</option>
+                                <option value="nausea">Nausea or vomiting</option>
+                                <option value="dehydration">Signs of dehydration</option>
+                            </optgroup>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1 md:hidden">Hold Ctrl (or Cmd on Mac) to select multiple symptoms</p>
+                        
+                        <!-- Desktop Grid -->
+                        <div class="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
                             <!-- Critical Symptoms -->
                             <div class="space-y-2">
                                 <p class="text-xs font-bold text-red-700 uppercase mb-2">Critical</p>
@@ -286,7 +386,19 @@
                     <!-- Severity -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-3">Severity <span class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-3 gap-4">
+                        
+                        <!-- Mobile Dropdown -->
+                        <select x-model="severity" 
+                                name="severity"
+                                required
+                                class="w-full md:hidden px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                        
+                        <!-- Desktop Buttons -->
+                        <div class="hidden md:grid grid-cols-3 gap-4">
                             <button type="button" @click="severity = 'mild'" 
                                     :class="severity === 'mild' ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'"
                                     class="py-3 border rounded-lg text-sm font-semibold transition-all">
@@ -303,7 +415,6 @@
                                 Severe
                             </button>
                         </div>
-                        <input type="hidden" name="severity" x-model="severity" required>
                         @error('severity')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -311,7 +422,19 @@
                     
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-3">Consultation Mode <span class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-3 gap-4">
+                        
+                        <!-- Mobile Dropdown -->
+                        <select x-model="consultMode" 
+                                name="consult_mode"
+                                required
+                                class="w-full md:hidden px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white">
+                            <option value="video">Video</option>
+                            <option value="voice">Voice</option>
+                            <option value="chat">Chat</option>
+                        </select>
+                        
+                        <!-- Desktop Buttons -->
+                        <div class="hidden md:grid grid-cols-3 gap-4">
                             <button type="button" @click="consultMode = 'video'" 
                                     :class="consultMode === 'video' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'"
                                     class="flex flex-col items-center justify-center py-4 border rounded-lg transition-all">
@@ -331,7 +454,6 @@
                                 <span class="text-sm font-semibold">Chat</span>
                             </button>
                         </div>
-                        <input type="hidden" name="consult_mode" x-model="consultMode" required>
                         @error('consult_mode')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
