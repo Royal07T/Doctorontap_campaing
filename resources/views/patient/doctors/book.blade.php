@@ -271,10 +271,11 @@
                                     </label>
                                     <p class="pl-1">or drag and drop</p>
                                 </div>
-                                <p class="text-xs text-gray-500">PDF, JPG, PNG, DOC, DOCX up to 10MB each</p>
+                                <p class="text-xs text-gray-500">PDF, JPG, PNG, DOC, DOCX up to 2MB each (max 6MB total)</p>
                             </div>
                         </div>
                         <div id="file-list" class="mt-2 space-y-2"></div>
+                        <div id="file-error" class="mt-2 text-sm text-red-600 hidden"></div>
                         @error('lab_results')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -557,17 +558,55 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
-// File upload preview
+// File upload preview and validation
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('lab_results');
     const fileList = document.getElementById('file-list');
+    const fileError = document.getElementById('file-error');
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB per file (matches PHP upload_max_filesize)
+    const MAX_TOTAL_SIZE = 6 * 1024 * 1024; // 6MB total (safe limit below PHP post_max_size of 8MB)
     
-    if (fileInput && fileList) {
+    if (fileInput && fileList && fileError) {
         fileInput.addEventListener('change', function(e) {
             fileList.innerHTML = '';
-            const files = Array.from(e.target.files);
+            fileError.classList.add('hidden');
+            fileError.textContent = '';
             
+            const files = Array.from(e.target.files);
+            let totalSize = 0;
+            const validFiles = [];
+            const errors = [];
+            
+            // Validate each file
             files.forEach((file, index) => {
+                const fileSize = file.size;
+                
+                // Check individual file size
+                if (fileSize > MAX_FILE_SIZE) {
+                    errors.push(`${file.name} is too large (${(fileSize / 1024 / 1024).toFixed(2)} MB). Maximum size is 2MB per file.`);
+                    return;
+                }
+                
+                // Only add to total if file is valid
+                totalSize += fileSize;
+                validFiles.push(file);
+            });
+            
+            // Check total size (only for valid files)
+            if (validFiles.length > 0 && totalSize > MAX_TOTAL_SIZE) {
+                errors.push(`Total file size (${(totalSize / 1024 / 1024).toFixed(2)} MB) exceeds the maximum limit of 6MB. Please reduce the number or size of files.`);
+            }
+            
+            // Show errors if any
+            if (errors.length > 0) {
+                fileError.innerHTML = errors.map(err => `<p>${err}</p>`).join('');
+                fileError.classList.remove('hidden');
+                fileInput.value = ''; // Clear the input
+                return;
+            }
+            
+            // Display valid files
+            validFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200';
                 fileItem.innerHTML = `
@@ -578,11 +617,56 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="text-sm text-gray-700">${file.name}</span>
                         <span class="text-xs text-gray-500">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
+                    <button type="button" class="text-red-500 hover:text-red-700" onclick="removeFile(${index})">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 `;
                 fileList.appendChild(fileItem);
             });
         });
+        
+        // Drag and drop support
+        const dropZone = fileInput.closest('.border-dashed');
+        if (dropZone) {
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('border-purple-400', 'bg-purple-50');
+            });
+            
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-purple-400', 'bg-purple-50');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-purple-400', 'bg-purple-50');
+                
+                const files = Array.from(e.dataTransfer.files);
+                const dataTransfer = new DataTransfer();
+                files.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
     }
+    
+    // Function to remove a file
+    window.removeFile = function(index) {
+        const fileInput = document.getElementById('lab_results');
+        const fileList = document.getElementById('file-list');
+        const dt = new DataTransfer();
+        const files = Array.from(fileInput.files);
+        
+        files.splice(index, 1);
+        files.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        
+        // Re-trigger change event to update display
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    };
 });
 </script>
 @endsection
