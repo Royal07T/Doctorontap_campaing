@@ -384,20 +384,20 @@
                     </div>
                     
                     <div class="space-y-4">
-                        <!-- Second Opinion Capability -->
+                        <!-- Consultant Status (Read-only) -->
                         <div class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <input type="hidden" name="can_provide_second_opinion" value="0">
                             <input type="checkbox" 
-                                   id="can_provide_second_opinion" 
-                                   name="can_provide_second_opinion" 
+                                   id="is_consultant" 
+                                   name="is_consultant" 
                                    value="1"
-                                   {{ old('can_provide_second_opinion', $doctor->can_provide_second_opinion ?? true) ? 'checked' : '' }}
-                                   class="mt-1 rounded text-blue-600 focus:ring-blue-500">
+                                   {{ old('is_consultant', $doctor->is_consultant ?? false) ? 'checked' : '' }}
+                                   disabled
+                                   class="mt-1 rounded text-blue-600 focus:ring-blue-500 opacity-60">
                             <div class="flex-1">
-                                <label for="can_provide_second_opinion" class="block text-sm font-bold text-gray-900 cursor-pointer">
-                                    Provide Second Opinion Services
+                                <label for="is_consultant" class="block text-sm font-bold text-gray-900">
+                                    Consultant Status
                                 </label>
-                                <p class="text-xs text-gray-600 mt-1">Enable this to allow patients to request second opinions from you. You'll review existing medical results, diagnoses, or treatment plans.</p>
+                                <p class="text-xs text-gray-600 mt-1">Your consultant status is set during registration and cannot be changed. Only consultants can provide second opinion services.</p>
                             </div>
                         </div>
                         

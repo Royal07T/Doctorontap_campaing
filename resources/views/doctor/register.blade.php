@@ -473,6 +473,32 @@
                             </p>
                         </div>
 
+                        <!-- Consultant Checkbox -->
+                        <div class="md:col-span-2">
+                            <div class="flex items-start p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                                <input type="checkbox"
+                                       id="is_consultant"
+                                       name="is_consultant"
+                                       value="1"
+                                       {{ old('is_consultant') ? 'checked' : '' }}
+                                       class="mt-1 mr-3 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer">
+                                <label for="is_consultant" class="flex-1 text-sm font-semibold text-gray-700 cursor-pointer">
+                                    I am a consultant in this specialization <span class="text-red-500">*</span>
+                                    <p class="mt-1 text-xs font-normal text-gray-600">
+                                        Only consultants can provide second opinion services. Please check this box if you are a consultant in your selected specialization.
+                                    </p>
+                                </label>
+                            </div>
+                            @error('is_consultant')
+                                <p class="mt-2 text-xs text-red-500 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {{ $message }}
+                                </p>
+                            @enderror
+                        </div>
+
                         <!-- Years of Experience -->
                         <div>
                             <label for="experience" class="block text-sm font-semibold text-gray-700 mb-2">

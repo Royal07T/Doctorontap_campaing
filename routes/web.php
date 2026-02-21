@@ -934,8 +934,11 @@ Route::prefix('patient')->name('patient.')->middleware(['patient.auth', 'patient
     Route::put('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'updateMenstrualCycle'])->name('menstrual-cycle.update');
     Route::delete('/menstrual-cycle/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'deleteMenstrualCycle'])->name('menstrual-cycle.delete');
     
-    // Doctor Booking
+    // Doctor Booking (must come before /doctors/{id} to avoid route conflicts)
     Route::get('/doctors/{id}/book', [\App\Http\Controllers\Patient\DashboardController::class, 'showBookingPage'])->name('doctors.book');
+    
+    // Doctor Details (must come after specific routes like /book)
+    Route::get('/doctors/{id}', [\App\Http\Controllers\Patient\DashboardController::class, 'showDoctor'])->name('doctors.show');
     Route::get('/doctors/{id}/availability', [\App\Http\Controllers\Patient\DashboardController::class, 'getDoctorAvailability'])->name('doctors.availability');
     Route::post('/doctors/check-slot', [\App\Http\Controllers\Patient\DashboardController::class, 'checkTimeSlotAvailability'])->name('doctors.check-slot');
     Route::post('/doctors/book', [\App\Http\Controllers\Patient\DashboardController::class, 'createScheduledConsultation'])->name('doctors.book.store');

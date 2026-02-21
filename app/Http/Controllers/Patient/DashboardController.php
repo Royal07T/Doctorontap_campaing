@@ -1521,6 +1521,30 @@ class DashboardController extends Controller
     /**
      * Show booking page for a doctor
      */
+    /**
+     * Display doctor details page
+     */
+    public function showDoctor($doctorId)
+    {
+        $doctor = Doctor::where('id', $doctorId)
+            ->where('is_approved', true)
+            ->where('is_available', true)
+            ->withCount(['consultations as consultations_count'])
+            ->withCount(['reviews as published_reviews_count' => function($q) {
+                $q->where('is_published', true);
+            }])
+            ->firstOrFail();
+
+        // Get average rating
+        $avgRating = $doctor->average_rating ?? 0;
+        $reviewsCount = $doctor->published_reviews_count ?? 0;
+
+        return view('patient.doctors.show', compact('doctor', 'avgRating', 'reviewsCount'));
+    }
+
+    /**
+     * Display booking page for a specific doctor
+     */
     public function showBookingPage($doctorId)
     {
         $doctor = Doctor::where('id', $doctorId)

@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('publish_id')->nullable()->index();
             $table->string('user_id')->nullable()->index();
             $table->json('raw_data')->nullable();
-            $table->timestamp('created_at')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
             

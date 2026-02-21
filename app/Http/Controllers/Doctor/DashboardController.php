@@ -1406,8 +1406,16 @@ class DashboardController extends Controller
         ]);
         
         // Convert checkbox values to boolean
-        $validated['can_provide_second_opinion'] = $request->has('can_provide_second_opinion');
+        // Note: is_consultant is read-only (set during registration), but we sync can_provide_second_opinion with it
         $validated['is_international'] = $request->has('is_international');
+        
+        // Sync can_provide_second_opinion with is_consultant
+        // Only consultants can provide second opinion
+        if (isset($doctor->is_consultant)) {
+            $validated['can_provide_second_opinion'] = $doctor->is_consultant;
+        } else {
+            $validated['can_provide_second_opinion'] = $request->has('can_provide_second_opinion');
+        }
 
         // Auto-generate full name
         $validated['name'] = $validated['first_name'] . ' ' . $validated['last_name'];

@@ -25,6 +25,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'password',
         'user_id',
         'specialization',
+        'is_consultant',
         'consultation_fee',
         'min_consultation_fee',
         'max_consultation_fee',
@@ -91,6 +92,7 @@ class Doctor extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'availability_schedule' => 'array',
         // Second Opinion Capabilities
+        'is_consultant' => 'boolean',
         'can_provide_second_opinion' => 'boolean',
         'is_international' => 'boolean',
     ];

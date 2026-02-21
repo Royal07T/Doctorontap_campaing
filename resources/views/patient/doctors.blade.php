@@ -147,7 +147,7 @@
                          
                          <!-- Badges -->
                          <div class="flex flex-wrap gap-1.5 mb-3">
-                            @if($doctor->can_provide_second_opinion ?? true)
+                            @if($doctor->is_consultant ?? false)
                                 <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded-full">
                                     <svg class="w-2.5 h-2.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -168,7 +168,15 @@
                     </div>
                     
                     <!-- Card Footer -->
-                    <div class="p-4 bg-gray-50 border-t border-gray-100 group-hover:bg-purple-50 transition-colors">
+                    <div class="p-4 bg-gray-50 border-t border-gray-100 group-hover:bg-purple-50 transition-colors space-y-2">
+                        <a href="{{ route('patient.doctors.show', $doctor->id) }}" 
+                           class="w-full py-2.5 bg-white border-2 border-purple-600 text-purple-600 font-bold text-sm rounded-xl hover:bg-purple-50 hover:border-purple-700 transition-all shadow-sm hover:shadow-md text-center block flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Details
+                        </a>
                         <a href="{{ route('patient.doctors.book', $doctor->id) }}" 
                            class="w-full py-2.5 bg-purple-600 border border-purple-600 text-white font-bold text-sm rounded-xl hover:bg-purple-700 hover:border-purple-700 transition-all shadow-md hover:shadow-lg text-center block">
                             Book Appointment
