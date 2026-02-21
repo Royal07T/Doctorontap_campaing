@@ -86,12 +86,28 @@
                             $avgRating = $doctor->average_rating ?? 0;
                             $reviewsCount = $doctor->published_reviews_count ?? 0;
                         @endphp
-                         <div class="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
-                            <svg class="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            <span class="text-xs font-bold text-gray-700">{{ number_format($avgRating, 1) }}</span>
-                            <span class="text-[10px] text-gray-400">({{ $reviewsCount }})</span>
+                         <div class="flex flex-col items-end gap-1">
+                            <div class="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
+                                <svg class="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                <span class="text-xs font-bold text-gray-700">{{ number_format($avgRating, 1) }}</span>
+                                <span class="text-[10px] text-gray-400">({{ $reviewsCount }})</span>
+                            </div>
+                            @php
+                                // Get consultation fee - always use doctor-set prices
+                                // For fee ranges, show only the minimum fee
+                                if ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
+                                    $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0);
+                                } elseif ($doctor->consultation_fee) {
+                                    $feeDisplay = '₦' . number_format($doctor->consultation_fee, 0);
+                                } else {
+                                    $feeDisplay = 'Contact for pricing';
+                                }
+                            @endphp
+                            <div class="text-sm font-bold text-purple-600">
+                                {{ $feeDisplay }}
+                            </div>
                         </div>
                     </div>
                     
@@ -127,23 +143,6 @@
                                 {{ $doctor->languages }}
                             </div>
                             @endif
-                            @php
-                                // Get consultation fee - always use doctor-set prices
-                                // For fee ranges, show only the minimum fee
-                                if ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
-                                    $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0);
-                                } elseif ($doctor->consultation_fee) {
-                                    $feeDisplay = '₦' . number_format($doctor->consultation_fee, 0);
-                                } else {
-                                    $feeDisplay = 'Contact for pricing';
-                                }
-                            @endphp
-                            <div class="flex items-center text-xs font-semibold text-purple-600">
-                                <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {{ $feeDisplay }}
-                            </div>
                          </div>
                          
                          <!-- Badges -->
