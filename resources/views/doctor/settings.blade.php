@@ -150,6 +150,110 @@
         </div>
     </div>
 
+    <!-- Pricing Section -->
+    <div id="pricing" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Consultation Fee</h2>
+        <p class="text-sm text-gray-600 mb-4">Set your consultation fee. This will be displayed to patients when they view your profile.</p>
+        
+        <form method="POST" action="{{ route('doctor.settings.update-pricing') }}" class="space-y-6">
+            @csrf
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Single Fee Option -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Consultation Fee (₦) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-sm text-gray-500">₦</span>
+                        <input type="number"
+                               name="consultation_fee"
+                               value="{{ old('consultation_fee', $doctor->consultation_fee) }}"
+                               required
+                               min="0"
+                               step="0.01"
+                               placeholder="5000"
+                               class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition @error('consultation_fee') border-red-500 @enderror">
+                    </div>
+                    <p class="mt-1.5 text-xs text-gray-600">
+                        Set a fixed consultation fee for all consultations.
+                    </p>
+                    @error('consultation_fee')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Fee Range Option (Optional) -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Or Set Fee Range (Optional)
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Minimum (₦)</label>
+                            <div class="relative">
+                                <span class="absolute left-2 top-2 text-xs text-gray-500">₦</span>
+                                <input type="number"
+                                       name="min_consultation_fee"
+                                       value="{{ old('min_consultation_fee', $doctor->min_consultation_fee) }}"
+                                       min="0"
+                                       step="0.01"
+                                       placeholder="4000"
+                                       class="w-full pl-7 pr-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm @error('min_consultation_fee') border-red-500 @enderror">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Maximum (₦)</label>
+                            <div class="relative">
+                                <span class="absolute left-2 top-2 text-xs text-gray-500">₦</span>
+                                <input type="number"
+                                       name="max_consultation_fee"
+                                       value="{{ old('max_consultation_fee', $doctor->max_consultation_fee) }}"
+                                       min="0"
+                                       step="0.01"
+                                       placeholder="6000"
+                                       class="w-full pl-7 pr-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm @error('max_consultation_fee') border-red-500 @enderror">
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-1.5 text-xs text-gray-600">
+                        Set a price range if your fee varies. If set, this will override the single fee above.
+                    </p>
+                    @error('min_consultation_fee')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    @error('max_consultation_fee')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Current Fee Display -->
+            <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <p class="text-xs font-semibold text-indigo-900 uppercase tracking-wide mb-2">Current Fee Display</p>
+                <p class="text-lg font-bold text-indigo-700">
+                    @php
+                        if ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
+                            $currentFee = '₦' . number_format($doctor->min_consultation_fee, 0) . ' - ₦' . number_format($doctor->max_consultation_fee, 0);
+                        } elseif ($doctor->consultation_fee) {
+                            $currentFee = '₦' . number_format($doctor->consultation_fee, 0);
+                        } else {
+                            $currentFee = 'Not set';
+                        }
+                    @endphp
+                    {{ $currentFee }}
+                </p>
+                <p class="text-xs text-indigo-600 mt-1">This is how your fee will appear to patients</p>
+            </div>
+
+            <div class="flex items-center justify-end pt-4 border-t border-gray-200">
+                <button type="submit" 
+                        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md">
+                    Update Consultation Fee
+                </button>
+            </div>
+        </form>
+    </div>
+
     <!-- Security Section -->
     <div id="security" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-lg font-bold text-gray-900 mb-6">Security</h2>

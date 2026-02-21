@@ -750,6 +750,7 @@ Route::prefix('doctor')->name('doctor.')->middleware(['doctor.auth', 'doctor.ver
     // Settings
     Route::get('/settings', [\App\Http\Controllers\Doctor\SettingsController::class, 'index'])->name('settings');
     Route::post('/settings/change-password', [\App\Http\Controllers\Doctor\SettingsController::class, 'changePassword'])->name('settings.change-password');
+    Route::post('/settings/update-pricing', [\App\Http\Controllers\Doctor\SettingsController::class, 'updatePricing'])->name('settings.update-pricing');
     Route::post('/settings/deactivate-account', [\App\Http\Controllers\Doctor\SettingsController::class, 'deactivateAccount'])->name('settings.deactivate-account');
     
     // Availability

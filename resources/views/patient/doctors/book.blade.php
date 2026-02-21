@@ -47,11 +47,10 @@
                     </div>
                     @endif
                     @php
-                        if ($doctor->use_default_fee) {
-                            $defaultFee = \App\Models\Setting::get('default_consultation_fee', 5000);
-                            $feeDisplay = '₦' . number_format($defaultFee, 0);
-                        } elseif ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
-                            $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0) . ' - ₦' . number_format($doctor->max_consultation_fee, 0);
+                        // Always use doctor-set prices
+                        // For fee ranges, show only the minimum fee
+                        if ($doctor->min_consultation_fee && $doctor->max_consultation_fee) {
+                            $feeDisplay = '₦' . number_format($doctor->min_consultation_fee, 0);
                         } elseif ($doctor->consultation_fee) {
                             $feeDisplay = '₦' . number_format($doctor->consultation_fee, 0);
                         } else {

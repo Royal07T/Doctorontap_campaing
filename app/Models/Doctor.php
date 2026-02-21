@@ -232,13 +232,16 @@ class Doctor extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the effective consultation fee
+     * Always returns doctor-set price (no default fee fallback)
      */
     public function getEffectiveConsultationFeeAttribute()
     {
-        if ($this->use_default_fee) {
-            return Setting::get('default_consultation_fee', 5000);
+        // If doctor has set a fee range, return the minimum
+        if ($this->min_consultation_fee && $this->max_consultation_fee) {
+            return $this->min_consultation_fee;
         }
-        return $this->consultation_fee;
+        // Otherwise return the single consultation fee
+        return $this->consultation_fee ?? 0;
     }
 
     /**
