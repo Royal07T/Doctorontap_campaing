@@ -77,16 +77,35 @@ class CustomerCareController extends Controller
               ->orWhere('phone', 'LIKE', "%{$query}%");
         })
         ->limit(20)
-        ->get(['id', 'name', 'phone', 'email', 'date_of_birth']);
+        ->get(['id', 'name', 'phone', 'email', 'date_of_birth', 'age', 'gender']);
 
         // Mask sensitive information for customer care display
         $maskedPatients = $patients->map(function($patient) {
+            // Normalize gender
+            $gender = $patient->gender;
+            if ($gender) {
+                $normalizedGender = ucfirst(strtolower(trim($gender)));
+                if (!in_array($normalizedGender, ['Male', 'Female', 'Other'])) {
+                    if (in_array(strtolower($normalizedGender), ['m', 'male'])) {
+                        $normalizedGender = 'Male';
+                    } elseif (in_array(strtolower($normalizedGender), ['f', 'female'])) {
+                        $normalizedGender = 'Female';
+                    } else {
+                        $normalizedGender = 'Other';
+                    }
+                }
+            } else {
+                $normalizedGender = 'Other';
+            }
+            
             return [
                 'id' => $patient->id,
                 'name' => $patient->name,
                 'phone' => \App\Helpers\PrivacyHelper::maskPhone($patient->phone),
                 'email' => \App\Helpers\PrivacyHelper::maskEmail($patient->email),
                 'date_of_birth' => $patient->date_of_birth,
+                'age' => $patient->age,
+                'gender' => $normalizedGender,
                 // Keep real values for backend use (not exposed to frontend)
                 '_real_phone' => $patient->phone,
                 '_real_email' => $patient->email,

@@ -117,7 +117,7 @@ class BookingController extends Controller
                 'symptoms' => 'nullable|array',
                 'symptoms.*' => 'nullable|string',
                 'lab_results' => 'nullable|array',
-                'lab_results.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
+                'lab_results.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:2048', // 2MB per file (matches PHP upload_max_filesize)
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()
@@ -196,7 +196,20 @@ class BookingController extends Controller
             $uploadedDocuments = [];
             if ($request->hasFile('lab_results')) {
                 try {
+                    $totalSize = 0;
+                    $maxTotalSize = 6 * 1024 * 1024; // 6MB total (safe limit below PHP post_max_size of 8MB)
+                    
                     foreach ($request->file('lab_results') as $file) {
+                        $totalSize += $file->getSize();
+                        
+                        // Check total size limit
+                        if ($totalSize > $maxTotalSize) {
+                            return redirect()
+                                ->back()
+                                ->withInput()
+                                ->with('error', 'Total file size exceeds 6MB limit. Please reduce the number or size of files. Maximum 2MB per file.');
+                        }
+                        
                         $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                         // Store in private storage (storage/app/private/medical_documents)
                         $filePath = $file->storeAs('medical_documents', $fileName);
@@ -214,6 +227,15 @@ class BookingController extends Controller
                         'error' => $e->getMessage(),
                         'agent_id' => $agent->id,
                     ]);
+                    
+                    // Check if it's a size-related error
+                    if (str_contains($e->getMessage(), 'too large') || str_contains($e->getMessage(), 'POST data')) {
+                        return redirect()
+                            ->back()
+                            ->withInput()
+                            ->with('error', 'File upload failed: Files are too large. Maximum 2MB per file, 6MB total. Please compress or split your files.');
+                    }
+                    
                     // Continue without documents rather than failing completely
                 }
             }

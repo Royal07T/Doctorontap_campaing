@@ -30,12 +30,22 @@
     <!-- Error Message -->
     @if(session('error'))
     <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
-        <div class="flex items-center">
-            <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
             </svg>
-            <div>
+            <div class="flex-1">
                 <p class="text-sm font-semibold text-red-900">{{ session('error') }}</p>
+                @if(str_contains(session('error'), 'too large') || str_contains(session('error'), 'POST data') || str_contains(session('error'), 'exceeds') || str_contains(session('error'), 'File upload'))
+                <div class="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
+                    <p class="text-xs font-semibold text-red-800 mb-1">File Size Limits:</p>
+                    <ul class="text-xs text-red-700 space-y-1 list-disc list-inside">
+                        <li>Maximum 2MB per file</li>
+                        <li>Maximum 6MB total for all files</li>
+                        <li>If your files are larger, please compress them or split them into smaller files</li>
+                    </ul>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -92,56 +102,113 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <form method="POST" action="{{ route('customer-care.booking.store') }}" id="bookingForm" x-data="bookingForm()" @submit="getScheduledAt()" enctype="multipart/form-data">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6" x-data="{ 
+        ...patientSearch(),
+        ...bookingForm(),
+        init() {
+            // Initialize booking form watchers
+            this.$watch('selectedDate', () => this.getScheduledAt());
+            this.$watch('selectedTime', () => this.getScheduledAt());
+        }
+    }">
+        <form method="POST" action="{{ route('customer-care.booking.store') }}" id="bookingForm" @submit="getScheduledAt()" enctype="multipart/form-data">
             @csrf
 
-            @if($patient)
-            <input type="hidden" name="patient_id" value="{{ $patient->id }}">
-            @elseif($prospect && $prospect->status === 'Converted')
-            <input type="hidden" name="prospect_id" value="{{ $prospect->id }}">
-            @endif
-
-            @if(!$patient && !$prospect)
-            <!-- Warning: No Patient/Prospect Selected -->
-            <div class="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
-                <div class="flex items-start gap-3">
-                    <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            <!-- Patient Search Section -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Search Patient *</label>
+                <div class="relative">
+                    <input type="text" 
+                           x-model="searchQuery" 
+                           @input.debounce.300ms="searchPatients()"
+                           @focus="showResults = true"
+                           @click.away="showResults = false"
+                           placeholder="Search by name, email, or phone number..."
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           :class="selectedPatient ? 'bg-gray-50' : ''">
+                    <svg class="absolute right-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
-                    <div class="flex-1">
-                        <p class="font-semibold text-amber-900">Patient or Prospect Required</p>
-                        <p class="text-sm text-amber-800 mt-1">Please select a patient or prospect before booking a consultation. You can search for patients or view prospects from the links below.</p>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            <a href="{{ route('customer-care.customers.index') }}" class="inline-flex items-center gap-2 text-xs px-3 py-1.5 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                Search Patients
-                            </a>
-                            <a href="{{ route('customer-care.prospects.index') }}" class="inline-flex items-center gap-2 text-xs px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg font-semibold hover:bg-amber-200 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                                View Prospects
-                            </a>
+                    
+                    <!-- Search Results Dropdown -->
+                    <div x-show="showResults && searchResults.length > 0" 
+                         x-transition
+                         class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <template x-for="patient in searchResults" :key="patient.id">
+                            <button type="button"
+                                    @click="selectPatient(patient)"
+                                    class="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors">
+                                <p class="font-semibold text-gray-900" x-text="patient.name"></p>
+                                <p class="text-sm text-gray-600" x-text="patient.phone + ' • ' + patient.email"></p>
+                            </button>
+                        </template>
+                    </div>
+                    
+                    <!-- No Results Message -->
+                    <div x-show="showResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching" 
+                         class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                        No patients found. Try a different search term.
+                    </div>
+                    
+                    <!-- Loading Indicator -->
+                    <div x-show="isSearching" 
+                         class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                        Searching...
+                    </div>
+                </div>
+                
+                <!-- Selected Patient Info -->
+                <div x-show="selectedPatient" 
+                     x-transition
+                     class="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-1">Booking For</h3>
+                            <p class="text-lg font-bold text-gray-900" x-text="selectedPatient.name"></p>
+                            <p class="text-sm text-gray-600" x-text="selectedPatient.phone + ' • ' + selectedPatient.email"></p>
+                        </div>
+                        <button type="button" 
+                                @click="clearSelection()"
+                                class="text-gray-500 hover:text-gray-700 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Hidden inputs for patient/prospect -->
+                @if($patient)
+                <input type="hidden" name="patient_id" :value="selectedPatient ? selectedPatient.id : {{ $patient->id }}">
+                @elseif($prospect && $prospect->status === 'Converted')
+                <input type="hidden" name="prospect_id" value="{{ $prospect->id }}">
+                @else
+                <input type="hidden" name="patient_id" :value="selectedPatient ? selectedPatient.id : ''">
+                @endif
+                
+                <!-- Legacy Support: If patient/prospect passed via URL -->
+                @if($patient)
+                <div class="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200" x-show="!selectedPatient">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-1">Booking For</h3>
+                            <p class="text-lg font-bold text-gray-900">{{ $patient->first_name }} {{ $patient->last_name }}</p>
+                            <p class="text-sm text-gray-600">{{ \App\Helpers\PrivacyHelper::maskPhone($patient->phone) }} • {{ \App\Helpers\PrivacyHelper::maskEmail($patient->email ?? '—') }}</p>
                         </div>
                     </div>
                 </div>
-            </div>
-            @else
-            <!-- Patient/Prospect Info -->
-            <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 class="text-sm font-semibold text-gray-700 mb-2">Booking For</h3>
-                @if($patient)
-                <p class="text-lg font-bold text-gray-900">{{ $patient->first_name }} {{ $patient->last_name }}</p>
-                <p class="text-sm text-gray-600">{{ $patient->phone }} • {{ $patient->email ?? '—' }}</p>
-                @elseif($prospect)
-                <p class="text-lg font-bold text-gray-900">{{ $prospect->full_name }}</p>
-                <p class="text-sm text-gray-600">{{ $prospect->mobile_number }} • {{ $prospect->email ?? '—' }}</p>
+                @elseif($prospect && $prospect->status === 'Converted')
+                <div class="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200" x-show="!selectedPatient">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-1">Booking For</h3>
+                            <p class="text-lg font-bold text-gray-900">{{ $prospect->full_name }}</p>
+                            <p class="text-sm text-gray-600">{{ \App\Helpers\PrivacyHelper::maskPhone($prospect->mobile_number) }} • {{ \App\Helpers\PrivacyHelper::maskEmail($prospect->email ?? '—') }}</p>
+                        </div>
+                    </div>
+                </div>
                 @endif
             </div>
-            @endif
 
             <!-- Consultation Mode -->
             <div class="mb-6">
@@ -354,10 +421,11 @@
                             </label>
                             <p class="pl-1">or drag and drop</p>
                         </div>
-                        <p class="text-xs text-gray-500">PDF, JPG, PNG, DOC, DOCX up to 10MB each</p>
+                        <p class="text-xs text-gray-500">PDF, JPG, PNG, DOC, DOCX up to 2MB each (max 6MB total)</p>
                     </div>
                 </div>
                 <div id="file-list" class="mt-2 space-y-2"></div>
+                <div id="file-error" class="mt-2 text-sm text-red-600 hidden"></div>
                 @error('lab_results')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
@@ -383,43 +451,28 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Age</label>
-                    @if($patient && $patient->age)
-                        <input type="number" name="age" min="1" max="150" 
-                               value="{{ $patient->age }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                               readonly>
-                        <p class="mt-1 text-xs text-gray-500">Auto-filled from patient profile</p>
-                    @else
-                        <input type="number" name="age" min="1" max="150" 
-                               value="{{ old('age') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    @endif
+                    <input type="number" 
+                           name="age" 
+                           min="1" 
+                           max="150" 
+                           :value="getAgeValue()"
+                           :readonly="selectedPatient || hasLegacyPatient"
+                           :class="(selectedPatient || hasLegacyPatient) ? 'bg-gray-50' : ''"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <p x-show="selectedPatient || hasLegacyPatient" class="mt-1 text-xs text-gray-500">Auto-filled from patient profile</p>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
-                    @if($patient && $patient->gender)
-                        @php
-                            // Normalize gender to match validation rules (Male, Female, Other)
-                            $normalizedGender = ucfirst(strtolower(trim($patient->gender)));
-                            if (!in_array($normalizedGender, ['Male', 'Female', 'Other'])) {
-                                // Handle common variations
-                                if (in_array(strtolower($normalizedGender), ['m', 'male'])) {
-                                    $normalizedGender = 'Male';
-                                } elseif (in_array(strtolower($normalizedGender), ['f', 'female'])) {
-                                    $normalizedGender = 'Female';
-                                } else {
-                                    $normalizedGender = 'Other';
-                                }
-                            }
-                        @endphp
+                    <div x-show="selectedPatient || hasLegacyPatient">
                         <select name="gender"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                                 disabled>
-                            <option value="{{ $normalizedGender }}" selected>{{ $normalizedGender }}</option>
+                            <option :value="getGenderValue()" selected x-text="getGenderValue()"></option>
                         </select>
-                        <input type="hidden" name="gender" value="{{ $normalizedGender }}">
+                        <input type="hidden" name="gender" :value="getGenderValue()">
                         <p class="mt-1 text-xs text-gray-500">Auto-filled from patient profile</p>
-                    @else
+                    </div>
+                    <div x-show="!selectedPatient && !hasLegacyPatient">
                         <select name="gender"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">Select gender</option>
@@ -427,7 +480,7 @@
                             <option value="Female" {{ old('gender') === 'Female' ? 'selected' : '' }}>Female</option>
                             <option value="Other" {{ old('gender') === 'Other' ? 'selected' : '' }}>Other</option>
                         </select>
-                    @endif
+                    </div>
                     @error('gender')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -440,8 +493,9 @@
                     Cancel
                 </a>
                 <button type="submit" 
-                        class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md {{ (!$patient && !$prospect) ? 'opacity-50 cursor-not-allowed' : '' }}"
-                        {{ (!$patient && !$prospect) ? 'disabled' : '' }}>
+                        class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md"
+                        :disabled="!hasPatient()"
+                        :class="!hasPatient() ? 'opacity-50 cursor-not-allowed' : ''">
                     Book Consultation
                 </button>
             </div>
@@ -451,6 +505,96 @@
 
 @push('scripts')
 <script>
+function patientSearch() {
+    return {
+        searchQuery: '',
+        searchResults: [],
+        selectedPatient: null,
+        showResults: false,
+        isSearching: false,
+        hasLegacyPatient: {{ $patient ? 'true' : 'false' }},
+        hasLegacyProspect: {{ ($prospect && $prospect->status === 'Converted') ? 'true' : 'false' }},
+        
+        async searchPatients() {
+            if (this.searchQuery.length < 2) {
+                this.searchResults = [];
+                this.showResults = false;
+                return;
+            }
+            
+            this.isSearching = true;
+            this.showResults = true;
+            
+            try {
+                const response = await fetch(`{{ route('customer-care.patients.search') }}?q=${encodeURIComponent(this.searchQuery)}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                
+                const data = await response.json();
+                this.searchResults = data.patients || [];
+            } catch (error) {
+                console.error('Error searching patients:', error);
+                this.searchResults = [];
+            } finally {
+                this.isSearching = false;
+            }
+        },
+        
+        selectPatient(patient) {
+            this.selectedPatient = patient;
+            this.searchQuery = patient.name;
+            this.showResults = false;
+            this.searchResults = [];
+        },
+        
+        clearSelection() {
+            this.selectedPatient = null;
+            this.searchQuery = '';
+            this.showResults = false;
+            this.searchResults = [];
+        },
+        
+        hasPatient() {
+            return this.selectedPatient || this.hasLegacyPatient || this.hasLegacyProspect;
+        },
+        
+        getAgeValue() {
+            if (this.selectedPatient && this.selectedPatient.age) {
+                return this.selectedPatient.age;
+            }
+            @if($patient && $patient->age)
+                return {{ $patient->age }};
+            @endif
+            return '{{ old('age') }}';
+        },
+        
+        getGenderValue() {
+            if (this.selectedPatient && this.selectedPatient.gender) {
+                return this.selectedPatient.gender;
+            }
+            @if($patient && $patient->gender)
+                @php
+                    $normalizedGender = ucfirst(strtolower(trim($patient->gender)));
+                    if (!in_array($normalizedGender, ['Male', 'Female', 'Other'])) {
+                        if (in_array(strtolower($normalizedGender), ['m', 'male'])) {
+                            $normalizedGender = 'Male';
+                        } elseif (in_array(strtolower($normalizedGender), ['f', 'female'])) {
+                            $normalizedGender = 'Female';
+                        } else {
+                            $normalizedGender = 'Other';
+                        }
+                    }
+                @endphp
+                return '{{ $normalizedGender }}';
+            @endif
+            return 'Other';
+        }
+    }
+}
+
 function bookingForm() {
     return {
         serviceType: '',
@@ -462,12 +606,6 @@ function bookingForm() {
         dateError: '',
         minDate: new Date().toISOString().split('T')[0],
         scheduledAt: '',
-
-        init() {
-            // Watch for changes to update scheduledAt
-            this.$watch('selectedDate', () => this.getScheduledAt());
-            this.$watch('selectedTime', () => this.getScheduledAt());
-        },
 
         loadAvailability() {
             if (!this.doctorId) return;
@@ -569,17 +707,55 @@ function bookingForm() {
     }
 }
 
-// File upload preview
+// File upload preview and validation
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('lab_results');
     const fileList = document.getElementById('file-list');
+    const fileError = document.getElementById('file-error');
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB per file (matches PHP upload_max_filesize)
+    const MAX_TOTAL_SIZE = 6 * 1024 * 1024; // 6MB total (safe limit below PHP post_max_size of 8MB)
     
-    if (fileInput && fileList) {
+    if (fileInput && fileList && fileError) {
         fileInput.addEventListener('change', function(e) {
             fileList.innerHTML = '';
-            const files = Array.from(e.target.files);
+            fileError.classList.add('hidden');
+            fileError.textContent = '';
             
+            const files = Array.from(e.target.files);
+            let totalSize = 0;
+            const validFiles = [];
+            const errors = [];
+            
+            // Validate each file
             files.forEach((file, index) => {
+                const fileSize = file.size;
+                
+                // Check individual file size
+                if (fileSize > MAX_FILE_SIZE) {
+                    errors.push(`${file.name} is too large (${(fileSize / 1024 / 1024).toFixed(2)} MB). Maximum size is 2MB per file.`);
+                    return;
+                }
+                
+                // Only add to total if file is valid
+                totalSize += fileSize;
+                validFiles.push(file);
+            });
+            
+            // Check total size (only for valid files)
+            if (validFiles.length > 0 && totalSize > MAX_TOTAL_SIZE) {
+                errors.push(`Total file size (${(totalSize / 1024 / 1024).toFixed(2)} MB) exceeds the maximum limit of 6MB. Please reduce the number or size of files.`);
+            }
+            
+            // Show errors if any
+            if (errors.length > 0) {
+                fileError.innerHTML = errors.map(err => `<p>${err}</p>`).join('');
+                fileError.classList.remove('hidden');
+                fileInput.value = ''; // Clear the input
+                return;
+            }
+            
+            // Display valid files
+            validFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200';
                 fileItem.innerHTML = `
@@ -590,11 +766,56 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="text-sm text-gray-700">${file.name}</span>
                         <span class="text-xs text-gray-500">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
+                    <button type="button" class="text-red-500 hover:text-red-700" onclick="removeFile(${index})">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 `;
                 fileList.appendChild(fileItem);
             });
         });
+        
+        // Drag and drop support
+        const dropZone = fileInput.closest('.border-dashed');
+        if (dropZone) {
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('border-indigo-400', 'bg-indigo-50');
+            });
+            
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+                
+                const files = Array.from(e.dataTransfer.files);
+                const dataTransfer = new DataTransfer();
+                files.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
     }
+    
+    // Function to remove a file
+    window.removeFile = function(index) {
+        const fileInput = document.getElementById('lab_results');
+        const fileList = document.getElementById('file-list');
+        const dt = new DataTransfer();
+        const files = Array.from(fileInput.files);
+        
+        files.splice(index, 1);
+        files.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        
+        // Re-trigger change event to update display
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    };
 });
 </script>
 @endpush
