@@ -5,6 +5,8 @@ namespace App\Http\Controllers\CustomerCare;
 use App\Http\Controllers\Controller;
 use App\Models\Prospect;
 use App\Models\Patient;
+use App\Models\Location;
+use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +47,21 @@ class ProspectsController extends Controller
      */
     public function create()
     {
-        return view('customer-care.prospects.create');
+        $states = State::orderBy('name')->get();
+        
+        return view('customer-care.prospects.create', compact('states'));
+    }
+
+    /**
+     * Get cities by state (AJAX)
+     */
+    public function getCitiesByState($stateId)
+    {
+        $cities = Location::where('state_id', $stateId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        
+        return response()->json($cities);
     }
 
     /**
@@ -59,6 +75,7 @@ class ProspectsController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'mobile_number' => 'required|string|max:20',
+            'gender' => 'nullable|in:Male,Female,Other',
             'location' => 'nullable|string|max:500',
             'source' => 'nullable|in:call,booth,referral,website,other',
             'notes' => 'nullable|string|max:2000',
@@ -72,6 +89,7 @@ class ProspectsController extends Controller
             'last_name' => $validated['last_name'],
             'email' => $validated['email'] ?? null,
             'mobile_number' => $validated['mobile_number'],
+            'gender' => $validated['gender'] ?? null,
             'location' => $validated['location'] ?? null,
             'source' => $validated['source'] ?? null,
             'notes' => $validated['notes'] ?? null,
@@ -108,7 +126,21 @@ class ProspectsController extends Controller
      */
     public function edit(Prospect $prospect)
     {
-        return view('customer-care.prospects.edit', compact('prospect'));
+        $states = State::orderBy('name')->get();
+        
+        // Try to determine state from location if it exists
+        $selectedState = null;
+        $selectedCity = null;
+        if ($prospect->location) {
+            // Try to find location in database
+            $location = Location::where('name', $prospect->location)->first();
+            if ($location) {
+                $selectedState = $location->state_id;
+                $selectedCity = $location->name;
+            }
+        }
+        
+        return view('customer-care.prospects.edit', compact('prospect', 'states', 'selectedState', 'selectedCity'));
     }
 
     /**
@@ -121,6 +153,7 @@ class ProspectsController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'mobile_number' => 'required|string|max:20',
+            'gender' => 'nullable|in:Male,Female,Other',
             'location' => 'nullable|string|max:500',
             'source' => 'nullable|in:call,booth,referral,website,other',
             'notes' => 'nullable|string|max:2000',
@@ -237,6 +270,7 @@ class ProspectsController extends Controller
                 'last_name' => $prospect->last_name,
                 'phone' => $prospect->mobile_number,
                 'email' => $prospect->email,
+                'gender' => $prospect->gender,
                 'location' => $prospect->location,
             ]);
 

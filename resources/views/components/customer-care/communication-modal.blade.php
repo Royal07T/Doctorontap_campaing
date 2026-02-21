@@ -148,11 +148,53 @@
                 const formData = new FormData($event.target);
                 const data = Object.fromEntries(formData.entries());
                 
+                // Handle call separately
+                if (data.channel === 'call') {
+                    $el.querySelector('button[type=submit]').disabled = true;
+                    $el.querySelector('button[type=submit]').innerText = 'INITIATING CALL...';
+                    
+                    fetch('{{ route('customer-care.communications.initiate-call') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            @if($userType === 'doctor')
+                            doctor_id: {{ $userId }},
+                            @else
+                            patient_id: {{ $userId }},
+                            @endif
+                            user_id: {{ $userId }},
+                            user_type: '{{ $userType }}',
+                            call_type: 'voice'
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if(res.success) {
+                            showCommModal = false;
+                            showNotification('success', 'Call Initiated!', 'Voice call is being connected!');
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showNotification('error', 'Call Failed', res.message || 'Unable to initiate call');
+                            $el.querySelector('button[type=submit]').disabled = false;
+                            $el.querySelector('button[type=submit]').innerText = 'INITIATE CALL';
+                        }
+                    })
+                    .catch(err => {
+                        showNotification('error', 'Critical Error', 'Failed to initiate call. Please try again.');
+                        $el.querySelector('button[type=submit]').disabled = false;
+                        $el.querySelector('button[type=submit]').innerText = 'INITIATE CALL';
+                    });
+                    return;
+                }
+                
                 $el.querySelector('button[type=submit]').disabled = true;
                 $el.querySelector('button[type=submit]').innerText = 'TRANSMITTING...';
 
                 // Ensure template_id is included
-                const formData = {
+                const formDataObj = {
                         template_id: data.template_id,
                         channel: data.channel,
                         user_id: {{ $userId }},
@@ -165,7 +207,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formDataObj)
                 })
                 .then(res => res.json())
                 .then(res => {
@@ -189,7 +231,7 @@
                 <div class="space-y-4">
                     <label class="block">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Communication Channel</span>
-                        <div class="grid grid-cols-3 gap-3">
+                        <div class="grid grid-cols-4 gap-3">
                             <label class="relative flex flex-col items-center p-4 border rounded-2xl cursor-pointer transition-all"
                                    :class="selectedChannel === 'sms' ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-100 bg-slate-50'">
                                 <input type="radio" name="channel" value="sms" x-model="selectedChannel" class="absolute opacity-0" required>
@@ -205,6 +247,11 @@
                                 <input type="radio" name="channel" value="email" x-model="selectedChannel" class="absolute opacity-0">
                                 <span class="text-[10px] font-black uppercase tracking-tighter" :class="selectedChannel === 'email' ? 'text-emerald-700' : 'text-slate-500'">Email</span>
                             </label>
+                            <label class="relative flex flex-col items-center p-4 border rounded-2xl cursor-pointer transition-all"
+                                   :class="selectedChannel === 'call' ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-100 bg-slate-50'">
+                                <input type="radio" name="channel" value="call" x-model="selectedChannel" class="absolute opacity-0">
+                                <span class="text-[10px] font-black uppercase tracking-tighter" :class="selectedChannel === 'call' ? 'text-emerald-700' : 'text-slate-500'">Call</span>
+                            </label>
                         </div>
                     </label>
 
@@ -215,9 +262,16 @@
                         </label>
                     </div>
 
-                    <label class="block">
+                    <div x-show="selectedChannel === 'call'" x-transition class="space-y-4">
+                        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                            <p class="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-2">Voice Call</p>
+                            <p class="text-xs text-emerald-700">A voice call will be initiated to {{ $userName }} using Vonage Voice API. The call will connect automatically.</p>
+                        </div>
+                    </div>
+
+                    <label class="block" x-show="selectedChannel !== 'call'">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Select Template *</span>
-                        <select name="template_id" x-model="selectedTemplateId" @change="selectTemplate()" @click="loadTemplates(selectedChannel)" required
+                        <select name="template_id" x-model="selectedTemplateId" @change="selectTemplate()" @click="loadTemplates(selectedChannel)" :required="selectedChannel !== 'call'"
                                 class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-emerald-50 transition-all outline-none">
                             <option value="">Choose a template...</option>
                             <template x-for="template in templates" :key="template.id">
@@ -227,7 +281,7 @@
                         <p class="mt-2 text-[9px] text-slate-500">Only pre-approved templates can be used. Free text messaging is not allowed.</p>
                     </label>
 
-                    <div x-show="selectedTemplate" x-transition class="space-y-4">
+                    <div x-show="selectedTemplate && selectedChannel !== 'call'" x-transition class="space-y-4">
                         <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Template Preview</p>
                             <div class="text-sm text-gray-900 whitespace-pre-wrap" x-text="selectedTemplate?.body || ''"></div>
@@ -236,7 +290,7 @@
                 </div>
 
                 <button type="submit" class="w-full py-5 bg-slate-800 text-white rounded-2xl text-[12px] font-bold uppercase tracking-normal hover:bg-slate-900 transition-all shadow-xl shadow-slate-200">
-                    <span style="color: white !important;">Send Message</span>
+                    <span style="color: white !important;" x-text="selectedChannel === 'call' ? 'INITIATE CALL' : 'SEND MESSAGE'"></span>
                 </button>
             </form>
         </div>

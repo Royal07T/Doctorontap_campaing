@@ -145,6 +145,144 @@
                         @enderror
                     </div>
 
+                    <!-- Symptoms Checkboxes -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">Symptoms (Select all that apply)</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
+                            <!-- Critical Symptoms -->
+                            <div class="space-y-2">
+                                <p class="text-xs font-bold text-red-700 uppercase mb-2">Critical</p>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="chest_pain" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Chest pain or pressure</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="breathing" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Severe difficulty breathing</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="consciousness" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Loss of consciousness / fainting</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="bleeding" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Uncontrolled heavy bleeding</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="seizure" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Seizure now or ongoing</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="pregnancy_bleeding" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Heavy vaginal bleeding in pregnancy</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Respiratory Symptoms -->
+                            <div class="space-y-2">
+                                <p class="text-xs font-bold text-blue-700 uppercase mb-2">Respiratory</p>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="cough" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Persistent cough</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="shortness_breath" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Shortness of breath</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="wheezing" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Wheezing</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Neurological Symptoms -->
+                            <div class="space-y-2">
+                                <p class="text-xs font-bold text-purple-700 uppercase mb-2">Neurological</p>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="weakness" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Sudden weakness, numbness</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="speech" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Slurred speech</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="headache" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Severe headache</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="dizziness" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Dizziness or vertigo</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Pain Symptoms -->
+                            <div class="space-y-2">
+                                <p class="text-xs font-bold text-orange-700 uppercase mb-2">Pain</p>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="abdominal" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Severe abdominal pain</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="back_pain" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Severe back pain</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="joint_pain" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Joint pain</span>
+                                </label>
+                            </div>
+                            
+                            <!-- General Symptoms -->
+                            <div class="space-y-2">
+                                <p class="text-xs font-bold text-gray-700 uppercase mb-2">General</p>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="fever" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Very high fever</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="fatigue" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Extreme fatigue</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="nausea" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Nausea or vomiting</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                                    <input type="checkbox" name="symptoms[]" value="dehydration" class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-sm text-gray-700">Signs of dehydration</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lab Results / Blood Work File Upload -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Lab Results / Blood Work (Optional)</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-purple-400 transition-colors">
+                            <div class="space-y-1 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="lab_results" class="relative cursor-pointer bg-white rounded-md font-medium text-purple-600 hover:text-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500">
+                                        <span>Upload files</span>
+                                        <input id="lab_results" name="lab_results[]" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" class="sr-only">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PDF, JPG, PNG, DOC, DOCX up to 10MB each</p>
+                            </div>
+                        </div>
+                        <div id="file-list" class="mt-2 space-y-2"></div>
+                        @error('lab_results')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        @error('lab_results.*')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Severity -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-3">Severity <span class="text-red-500">*</span></label>
@@ -346,6 +484,20 @@ document.addEventListener('alpine:init', () => {
             formData.append('severity', this.severity);
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
             
+            // Add symptoms checkboxes
+            const symptomsCheckboxes = document.querySelectorAll('input[name="symptoms[]"]:checked');
+            symptomsCheckboxes.forEach((checkbox) => {
+                formData.append('symptoms[]', checkbox.value);
+            });
+            
+            // Add lab results files
+            const labResultsInput = document.getElementById('lab_results');
+            if (labResultsInput && labResultsInput.files) {
+                for (let i = 0; i < labResultsInput.files.length; i++) {
+                    formData.append('lab_results[]', labResultsInput.files[i]);
+                }
+            }
+            
             try {
                 const response = await fetch('{{ route("patient.doctors.book.store") }}', { 
                     method: 'POST',
@@ -403,6 +555,34 @@ document.addEventListener('alpine:init', () => {
             }
         }
     }));
+});
+
+// File upload preview
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('lab_results');
+    const fileList = document.getElementById('file-list');
+    
+    if (fileInput && fileList) {
+        fileInput.addEventListener('change', function(e) {
+            fileList.innerHTML = '';
+            const files = Array.from(e.target.files);
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200';
+                fileItem.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">${file.name}</span>
+                        <span class="text-xs text-gray-500">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    </div>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        });
+    }
 });
 </script>
 @endsection

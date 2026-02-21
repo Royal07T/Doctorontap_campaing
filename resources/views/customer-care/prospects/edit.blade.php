@@ -61,9 +61,38 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                    <input type="text" name="location" value="{{ old('location', $prospect->location) }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
+                    <select name="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Select gender</option>
+                        <option value="Male" {{ old('gender', $prospect->gender) === 'Male' ? 'selected' : '' }}>Male</option>
+                        <option value="Female" {{ old('gender', $prospect->gender) === 'Female' ? 'selected' : '' }}>Female</option>
+                        <option value="Other" {{ old('gender', $prospect->gender) === 'Other' ? 'selected' : '' }}>Other</option>
+                    </select>
+                    @error('gender')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">State</label>
+                    <select id="state" name="state" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Select state</option>
+                        @foreach($states as $state)
+                            <option value="{{ $state->id }}" {{ old('state', $selectedState) == $state->id ? 'selected' : '' }}>
+                                {{ $state->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('state')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">City</label>
+                    <select id="location" name="location" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 {{ !$selectedState ? 'bg-gray-50' : '' }}" {{ !$selectedState ? 'disabled' : '' }}>
+                        <option value="">{{ $selectedState ? 'Select city' : 'Select state first' }}</option>
+                    </select>
                     @error('location')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -120,5 +149,58 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stateSelect = document.getElementById('state');
+    const locationSelect = document.getElementById('location');
+    const oldState = @json(old('state', $selectedState));
+    const oldLocation = @json(old('location', $selectedCity));
+    
+    if (stateSelect && locationSelect) {
+        stateSelect.addEventListener('change', function() {
+            const stateId = this.value;
+            locationSelect.innerHTML = '<option value="">Loading cities...</option>';
+            locationSelect.disabled = true;
+            locationSelect.classList.add('bg-gray-50');
+            
+            if (stateId) {
+                fetch(`{{ route('customer-care.prospects.cities-by-state', ['stateId' => ':stateId']) }}`.replace(':stateId', stateId))
+                    .then(response => response.json())
+                    .then(cities => {
+                        locationSelect.innerHTML = '<option value="">Select city</option>';
+                        cities.forEach(city => {
+                            const option = document.createElement('option');
+                            option.value = city.name;
+                            option.textContent = city.name;
+                            if (oldLocation === city.name) {
+                                option.selected = true;
+                            }
+                            locationSelect.appendChild(option);
+                        });
+                        locationSelect.disabled = false;
+                        locationSelect.classList.remove('bg-gray-50');
+                    })
+                    .catch(error => {
+                        console.error('Error loading cities:', error);
+                        locationSelect.innerHTML = '<option value="">Error loading cities</option>';
+                    });
+            } else {
+                locationSelect.innerHTML = '<option value="">Select state first</option>';
+                locationSelect.disabled = true;
+                locationSelect.classList.add('bg-gray-50');
+            }
+        });
+        
+        // If state is already selected, load cities
+        if (oldState) {
+            stateSelect.value = oldState;
+            stateSelect.dispatchEvent(new Event('change'));
+        }
+    }
+});
+</script>
+@endpush
 @endsection
 

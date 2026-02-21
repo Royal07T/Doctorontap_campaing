@@ -1699,10 +1699,14 @@ class DashboardController extends Controller
                 'consult_mode' => 'required|in:voice,video,chat',
                 'problem' => 'required|string|min:10|max:1000',
                 'severity' => 'required|in:mild,moderate,severe',
+                'symptoms' => 'nullable|array',
+                'symptoms.*' => 'nullable|string',
                 'emergency_symptoms' => 'nullable|array',
                 'emergency_symptoms.*' => 'nullable|string',
                 'medical_documents' => 'nullable|array',
-                'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+                'medical_documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
+                'lab_results' => 'nullable|array',
+                'lab_results.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Log validation errors
@@ -1847,10 +1851,20 @@ class DashboardController extends Controller
             }
 
             // Handle medical document uploads - HIPAA: Store in private storage
+            // Accept both 'medical_documents' and 'lab_results' field names
             $uploadedDocuments = [];
+            $filesToProcess = [];
+            
             if ($request->hasFile('medical_documents')) {
+                $filesToProcess = array_merge($filesToProcess, $request->file('medical_documents'));
+            }
+            if ($request->hasFile('lab_results')) {
+                $filesToProcess = array_merge($filesToProcess, $request->file('lab_results'));
+            }
+            
+            if (!empty($filesToProcess)) {
                 try {
-                    foreach ($request->file('medical_documents') as $file) {
+                    foreach ($filesToProcess as $file) {
                         $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                         // Store in private storage (storage/app/private/medical_documents)
                         $filePath = $file->storeAs('medical_documents', $fileName);
@@ -1875,6 +1889,14 @@ class DashboardController extends Controller
                 }
             }
 
+            // Process symptoms - accept both 'symptoms' and 'emergency_symptoms' field names
+            $symptoms = [];
+            if ($request->has('symptoms') && is_array($request->symptoms)) {
+                $symptoms = array_filter($request->symptoms); // Remove empty values
+            } elseif ($request->has('emergency_symptoms') && is_array($request->emergency_symptoms)) {
+                $symptoms = array_filter($request->emergency_symptoms); // Remove empty values
+            }
+
             // Map consult_mode to consultation_mode enum
             $consultMode = $validated['consult_mode'];
             $consultationMode = in_array($consultMode, ['voice', 'video', 'chat']) ? $consultMode : 'whatsapp';
@@ -1893,7 +1915,7 @@ class DashboardController extends Controller
                 'problem' => $validated['problem'],
                 'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
                 'severity' => $validated['severity'],
-                'emergency_symptoms' => $validated['emergency_symptoms'] ?? null,
+                'emergency_symptoms' => !empty($symptoms) ? $symptoms : null,
                 'consult_mode' => $consultMode, // Legacy field
                 'consultation_mode' => $consultationMode, // New enum field
                 'status' => 'scheduled',

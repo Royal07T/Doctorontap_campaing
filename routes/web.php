@@ -594,6 +594,7 @@ Route::prefix('customer-care')->name('customer-care.')->middleware(['customer_ca
     // Route::post('/interactions/{interaction}/notes', [\App\Http\Controllers\CustomerCare\InteractionsController::class, 'addNote'])->name('interactions.add-note');
     
     // Prospects Management
+    Route::get('/prospects/states/{stateId}/cities', [\App\Http\Controllers\CustomerCare\ProspectsController::class, 'getCitiesByState'])->name('prospects.cities-by-state');
     Route::resource('prospects', \App\Http\Controllers\CustomerCare\ProspectsController::class);
     Route::post('/prospects/{prospect}/mark-contacted', [\App\Http\Controllers\CustomerCare\ProspectsController::class, 'markContacted'])->name('prospects.mark-contacted');
     Route::get('/prospects/{prospect}/convert', [\App\Http\Controllers\CustomerCare\ProspectsController::class, 'convertToPatient'])->name('prospects.convert');

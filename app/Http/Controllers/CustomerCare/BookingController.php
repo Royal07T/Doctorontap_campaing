@@ -114,6 +114,10 @@ class BookingController extends Controller
                 'severity' => 'required|in:low,moderate,high,urgent',
                 'age' => 'nullable|integer|min:1|max:150',
                 'gender' => 'nullable|in:Male,Female,Other',
+                'symptoms' => 'nullable|array',
+                'symptoms.*' => 'nullable|string',
+                'lab_results' => 'nullable|array',
+                'lab_results.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()
@@ -188,6 +192,36 @@ class BookingController extends Controller
                     ->with('error', 'This time slot is already booked. Please choose another time.');
             }
 
+            // Handle lab results file uploads
+            $uploadedDocuments = [];
+            if ($request->hasFile('lab_results')) {
+                try {
+                    foreach ($request->file('lab_results') as $file) {
+                        $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                        // Store in private storage (storage/app/private/medical_documents)
+                        $filePath = $file->storeAs('medical_documents', $fileName);
+                        
+                        $uploadedDocuments[] = [
+                            'original_name' => $file->getClientOriginalName(),
+                            'stored_name' => $fileName,
+                            'path' => $filePath,
+                            'size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to upload lab results', [
+                        'error' => $e->getMessage(),
+                        'agent_id' => $agent->id,
+                    ]);
+                    // Continue without documents rather than failing completely
+                }
+            }
+
+            // Process symptoms array
+            $symptoms = $validated['symptoms'] ?? [];
+            $symptoms = array_filter($symptoms); // Remove empty values
+
             // Map service type to consultation mode
             $consultationModeMap = [
                 'video' => 'video',
@@ -209,7 +243,9 @@ class BookingController extends Controller
                 'age' => $validated['age'] ?? $patient->age ?? 0,
                 'gender' => $validated['gender'] ?? $patient->gender ?? 'Other',
                 'problem' => $validated['problem'],
+                'medical_documents' => !empty($uploadedDocuments) ? $uploadedDocuments : null,
                 'severity' => $validated['severity'],
+                'emergency_symptoms' => !empty($symptoms) ? $symptoms : null,
                 'consult_mode' => $consultationMode, // Legacy field
                 'consultation_mode' => $consultationMode,
                 'doctor_id' => $doctor->id,

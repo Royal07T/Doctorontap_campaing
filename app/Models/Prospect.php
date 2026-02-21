@@ -15,6 +15,7 @@ class Prospect extends Model
         'last_name',
         'email',
         'mobile_number',
+        'gender',
         'location',
         'source',
         'notes',

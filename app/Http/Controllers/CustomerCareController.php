@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Patient;
 use App\Models\Consultation;
+use App\Models\State;
 use App\Services\VonageService;
 use App\Services\VonageVideoService;
 use Illuminate\Support\Facades\Log;
@@ -56,8 +57,11 @@ class CustomerCareController extends Controller
             'escalated_cases' => 0, // TODO: Implement when escalation system is ready
             'avg_response_time' => 0, // TODO: Implement when response tracking is ready
         ];
+        
+        // Get states for quick add prospect form
+        $states = State::orderBy('name')->get();
 
-        return view('customer-care.dashboard', compact('recentPatients', 'recentConsultations', 'stats', 'customerCareStats'));
+        return view('customer-care.dashboard', compact('recentPatients', 'recentConsultations', 'stats', 'customerCareStats', 'states'));
     }
 
     /**
@@ -277,21 +281,60 @@ class CustomerCareController extends Controller
     public function initiateCall(Request $request)
     {
         $request->validate([
-            'patient_id' => 'required|exists:patients,id',
+            'patient_id' => 'nullable|exists:patients,id',
+            'doctor_id' => 'nullable|exists:doctors,id',
+            'user_id' => 'nullable|integer',
+            'user_type' => 'nullable|in:patient,doctor',
             'call_type' => 'required|in:voice,video'
         ]);
 
         try {
-            $patient = Patient::findOrFail($request->patient_id);
+            $user = null;
+            $userId = null;
+            $phone = null;
+            
+            // Determine user type and get phone number
+            if ($request->filled('doctor_id') || ($request->filled('user_type') && $request->user_type === 'doctor')) {
+                $doctorId = $request->doctor_id ?? $request->user_id;
+                $doctor = \App\Models\Doctor::findOrFail($doctorId);
+                $user = $doctor;
+                $userId = $doctor->id;
+                $phone = $doctor->phone;
+            } elseif ($request->filled('patient_id') || ($request->filled('user_type') && $request->user_type === 'patient')) {
+                $patientId = $request->patient_id ?? $request->user_id;
+                $patient = Patient::findOrFail($patientId);
+                $user = $patient;
+                $userId = $patient->id;
+                $phone = $patient->phone;
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Either patient_id or doctor_id must be provided'
+                ], 422);
+            }
+            
+            if (empty($phone)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User does not have a phone number'
+                ], 422);
+            }
             
             // Log the communication
-            $communicationId = $this->logCommunication([
-                'patient_id' => $patient->id,
+            $communicationData = [
                 'type' => $request->call_type,
                 'direction' => 'outbound',
                 'content' => 'Call initiated',
                 'status' => 'initiated'
-            ]);
+            ];
+            
+            if ($request->filled('doctor_id') || ($request->filled('user_type') && $request->user_type === 'doctor')) {
+                $communicationData['doctor_id'] = $userId;
+            } else {
+                $communicationData['patient_id'] = $userId;
+            }
+            
+            $communicationId = $this->logCommunication($communicationData);
 
             if ($request->call_type === 'video') {
                 // Create video session
@@ -338,7 +381,7 @@ class CustomerCareController extends Controller
             } else {
                 // Initiate voice call using Vonage Voice API
                 if ($this->vonageService) {
-                    $callResult = $this->vonageService->initiateCall($patient->phone, [
+                    $callResult = $this->vonageService->initiateCall($phone, [
                         'answer_url' => route('vonage.webhook.voice.answer'),
                         'machine_detection' => 'continue'
                     ]);
@@ -374,6 +417,8 @@ class CustomerCareController extends Controller
         } catch (\Exception $e) {
             Log::error('Call initiation failed', [
                 'patient_id' => $request->patient_id,
+                'doctor_id' => $request->doctor_id,
+                'user_type' => $request->user_type,
                 'call_type' => $request->call_type,
                 'error' => $e->getMessage()
             ]);
@@ -463,8 +508,7 @@ class CustomerCareController extends Controller
      */
     private function logCommunication($data)
     {
-        return DB::table('patient_communications')->insertGetId([
-            'patient_id' => $data['patient_id'],
+        $insertData = [
             'type' => $data['type'],
             'direction' => $data['direction'],
             'content' => $data['content'],
@@ -473,7 +517,17 @@ class CustomerCareController extends Controller
             'created_by' => auth()->id(),
             'created_at' => now(),
             'updated_at' => now()
-        ]);
+        ];
+        
+        // Add patient_id or doctor_id based on what's provided
+        if (isset($data['patient_id'])) {
+            $insertData['patient_id'] = $data['patient_id'];
+        }
+        if (isset($data['doctor_id'])) {
+            $insertData['doctor_id'] = $data['doctor_id'];
+        }
+        
+        return DB::table('patient_communications')->insertGetId($insertData);
     }
 
     /**

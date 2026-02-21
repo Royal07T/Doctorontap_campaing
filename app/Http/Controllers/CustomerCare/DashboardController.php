@@ -10,6 +10,7 @@ use App\Models\CustomerCare;
 use App\Models\SupportTicket;
 use App\Models\Review;
 use App\Models\Prospect;
+use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -76,6 +77,9 @@ class DashboardController extends Controller
         
         // Get pipeline metrics
         $pipelineMetrics = $this->getPipelineMetrics($customerCare->id);
+        
+        // Get states for quick add prospect form
+        $states = State::orderBy('name')->get();
 
         return view('customer-care.dashboard-enhanced', compact(
             'stats',
@@ -89,7 +93,8 @@ class DashboardController extends Controller
             'activityFeed',
             'priorityQueue',
             'pipelineMetrics',
-            'preferences'
+            'preferences',
+            'states'
         ));
     }
     

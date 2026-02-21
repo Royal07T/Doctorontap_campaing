@@ -493,9 +493,28 @@
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Location</label>
-                            <input type="text" name="location"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Gender</label>
+                            <select name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">State</label>
+                            <select id="quickAddState" name="state" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Select state</option>
+                                @foreach($states as $state)
+                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">City</label>
+                            <select id="quickAddLocation" name="location" disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50">
+                                <option value="">Select state first</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Source</label>
@@ -539,13 +558,62 @@
 
     function closeQuickAddModal() {
         document.getElementById('quickAddModal').classList.add('hidden');
-        document.getElementById('quickAddForm').reset();
+        const form = document.getElementById('quickAddForm');
+        if (form) {
+            form.reset();
+            // Reset city dropdown
+            const locationSelect = document.getElementById('quickAddLocation');
+            if (locationSelect) {
+                locationSelect.innerHTML = '<option value="">Select state first</option>';
+                locationSelect.disabled = true;
+                locationSelect.classList.add('bg-gray-50');
+            }
+        }
     }
 
     // Close modal on outside click
     document.getElementById('quickAddModal')?.addEventListener('click', function(e) {
         if (e.target === this) {
             closeQuickAddModal();
+        }
+    });
+    
+    // State/City dropdown functionality for quick add prospect
+    document.addEventListener('DOMContentLoaded', function() {
+        const stateSelect = document.getElementById('quickAddState');
+        const locationSelect = document.getElementById('quickAddLocation');
+        
+        if (stateSelect && locationSelect) {
+            stateSelect.addEventListener('change', function() {
+                const stateId = this.value;
+                locationSelect.innerHTML = '<option value="">Loading cities...</option>';
+                locationSelect.disabled = true;
+                locationSelect.classList.add('bg-gray-50');
+                
+                if (stateId) {
+                    fetch(`{{ route('customer-care.prospects.cities-by-state', ['stateId' => ':stateId']) }}`.replace(':stateId', stateId))
+                        .then(response => response.json())
+                        .then(cities => {
+                            locationSelect.innerHTML = '<option value="">Select city</option>';
+                            cities.forEach(city => {
+                                const option = document.createElement('option');
+                                option.value = city.name;
+                                option.textContent = city.name;
+                                locationSelect.appendChild(option);
+                            });
+                            locationSelect.disabled = false;
+                            locationSelect.classList.remove('bg-gray-50');
+                        })
+                        .catch(error => {
+                            console.error('Error loading cities:', error);
+                            locationSelect.innerHTML = '<option value="">Error loading cities</option>';
+                        });
+                } else {
+                    locationSelect.innerHTML = '<option value="">Select state first</option>';
+                    locationSelect.disabled = true;
+                    locationSelect.classList.add('bg-gray-50');
+                }
+            });
         }
     });
 </script>
