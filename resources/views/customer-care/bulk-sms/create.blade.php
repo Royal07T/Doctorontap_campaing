@@ -46,14 +46,14 @@
                     value="{{ old('campaign_name') }}">
             </div>
 
-            <!-- Template Selection -->
+            <!-- Template Selection (required – no free-text entry) -->
             <div class="mb-6">
                 <label class="block text-sm font-bold text-slate-700 mb-2">
-                    Select Template
+                    Select Template <span class="text-red-500">*</span>
                 </label>
-                <select name="template_id" x-model="selectedTemplateId" @change="loadTemplate()" 
+                <select name="template_id" x-model="selectedTemplateId" @change="loadTemplate()" required
                     class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-400 transition-all">
-                    <option value="">-- Select a template (optional) --</option>
+                    <option value="">-- Select a template --</option>
                     @foreach($templates as $template)
                         <option value="{{ $template->id }}" 
                             data-content="{{ addslashes($template->body) }}"
@@ -62,7 +62,7 @@
                         </option>
                     @endforeach
                 </select>
-                <p class="mt-2 text-xs text-slate-500">Select a pre-approved template or write custom message below</p>
+                <p class="mt-2 text-xs text-slate-500">Only pre-approved SMS templates may be used. Free-text entry is not allowed.</p>
             </div>
 
             <!-- Variables (shown when template is selected) -->
@@ -83,17 +83,8 @@
                 </div>
             </div>
 
-            <!-- Message Content -->
-            <div class="mb-6">
-                <label class="block text-sm font-bold text-slate-700 mb-2">
-                    Message Content <span class="text-red-500">*</span>
-                </label>
-                <textarea name="message" rows="6" required
-                    x-model="message"
-                    @input="updatePreview(); updateCharCount()"
-                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-400 transition-all font-mono text-sm"
-                    placeholder="Type your message here...">{{ old('message') }}</textarea>
-                
+            <!-- Message Preview (read-only; content comes from template) -->
+            <div x-show="selectedTemplateId && message.length > 0" class="mb-6">
                 <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Characters</p>
@@ -123,7 +114,7 @@
                     <div class="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
                         <p class="text-sm font-bold text-slate-800 leading-relaxed whitespace-pre-wrap" x-text="preview || message"></p>
                     </div>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 text-center">Preview (with variables filled)</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 text-center">Preview (from template; variables filled)</p>
                 </div>
             </div>
 
@@ -212,8 +203,8 @@
                     Cancel
                 </a>
                 <button type="submit" 
-                    :disabled="recipients.length === 0"
-                    :class="recipients.length === 0 ? 'opacity-50 cursor-not-allowed' : ''"
+                    :disabled="recipients.length === 0 || !selectedTemplateId || message.length === 0"
+                    :class="(recipients.length === 0 || !selectedTemplateId || message.length === 0) ? 'opacity-50 cursor-not-allowed' : ''"
                     class="px-8 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-bold shadow-lg">
                     Send to <span x-text="recipients.length"></span> Recipients
                 </button>

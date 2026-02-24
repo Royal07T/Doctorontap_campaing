@@ -130,42 +130,49 @@ class BulkSmsController extends Controller
     }
 
     /**
-     * Send bulk SMS
+     * Send bulk SMS. Message content is taken only from the selected template (no free-text input).
      */
     public function send(Request $request)
     {
         $request->validate([
             'campaign_name' => 'required|string|max:255',
-            'template_id' => 'nullable|exists:communication_templates,id',
-            'message' => 'required|string|max:1000',
+            'template_id' => 'required|exists:communication_templates,id',
             'recipients' => 'required|array|min:1',
             'recipients.*' => 'required|string', // Phone numbers
             'variables' => 'nullable|array',
         ]);
+
+        $template = CommunicationTemplate::where('id', $request->template_id)
+            ->where('channel', 'sms')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Build message from template only (staff cannot submit free text)
+        $message = $template->render($request->variables ?? []);
+
+        if (strlen($message) > 1000) {
+            return back()
+                ->withInput()
+                ->withErrors(['template_id' => 'Rendered template exceeds 1000 characters. Please use a shorter template or fewer variables.']);
+        }
 
         DB::beginTransaction();
         try {
             // Create campaign record
             $campaign = SmsCampaign::create([
                 'campaign_name' => $request->campaign_name,
-                'template_id' => $request->template_id,
+                'template_id' => $template->id,
                 'sent_by' => Auth::guard('customer_care')->id(),
-                'message_content' => $request->message,
+                'message_content' => $message,
                 'recipient_phones' => $request->recipients,
                 'total_recipients' => count($request->recipients),
                 'status' => 'processing',
             ]);
 
-            // Increment template usage if template was used
-            if ($request->template_id) {
-                $template = CommunicationTemplate::find($request->template_id);
-                // Note: CommunicationTemplate doesn't have usage_count, but we keep this for future compatibility
-            }
-
             DB::commit();
 
             // Send SMS in background (or immediately for small batches)
-            $this->processCampaign($campaign, $request->message, $request->recipients);
+            $this->processCampaign($campaign, $message, $request->recipients);
 
             return redirect()
                 ->route('customer-care.bulk-sms.show', $campaign)

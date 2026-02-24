@@ -40,7 +40,8 @@ class CareGiverAuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|min:2|max:255',
+            'last_name' => 'required|string|min:2|max:255',
             'email' => 'required|string|email|max:255|unique:care_givers',
             'phone' => 'required|string|max:20',
             'date_of_birth' => 'required|date',
@@ -79,9 +80,9 @@ class CareGiverAuthController extends Controller
             return back()->withErrors(['city_id' => 'Please select a valid city for the selected state.'])->withInput();
         }
 
-        // Create Care Giver
+        // Create Care Giver (name stored as first_name + last_name for display)
         $caregiver = CareGiver::create([
-            'name' => $request->name,
+            'name' => trim($request->first_name . ' ' . $request->last_name),
             'email' => $request->email,
             'phone' => $request->phone,
             'date_of_birth' => $request->date_of_birth,
