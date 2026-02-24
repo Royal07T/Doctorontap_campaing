@@ -266,24 +266,30 @@
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 @if(session('success'))
-                <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded">
+                <div id="patient-flash-success" class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded flex items-center justify-between transition-opacity duration-500" role="alert">
                     <div class="flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
                         {{ session('success') }}
                     </div>
+                    <button type="button" onclick="dismissPatientFlash(this)" class="ml-2 text-emerald-600 hover:text-emerald-800 p-1 rounded" aria-label="Dismiss">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    </button>
                 </div>
                 @endif
 
                 @if(session('error'))
-                <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+                <div id="patient-flash-error" class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded flex items-center justify-between transition-opacity duration-500" role="alert">
                     <div class="flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
                         </svg>
                         {{ session('error') }}
                     </div>
+                    <button type="button" onclick="dismissPatientFlash(this)" class="ml-2 text-red-600 hover:text-red-800 p-1 rounded" aria-label="Dismiss">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    </button>
                 </div>
                 @endif
 
@@ -345,6 +351,37 @@
                 document.addEventListener('DOMContentLoaded', initPageLoader);
             } else {
                 setTimeout(initPageLoader, 100);
+            }
+        })();
+
+        // Patient flash messages: auto-dismiss after 4 seconds, optional manual dismiss
+        function dismissPatientFlash(btn) {
+            var el = btn && btn.closest ? btn.closest('[id^="patient-flash-"]') : null;
+            if (el) {
+                el.style.opacity = '0';
+                setTimeout(function() { el.remove(); }, 500);
+            }
+        }
+        (function() {
+            var delay = 4000;
+            function scheduleDismiss(id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                window.setTimeout(function() {
+                    if (el.parentNode) {
+                        el.style.opacity = '0';
+                        setTimeout(function() { el.remove(); }, 500);
+                    }
+                }, delay);
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    scheduleDismiss('patient-flash-success');
+                    scheduleDismiss('patient-flash-error');
+                });
+            } else {
+                scheduleDismiss('patient-flash-success');
+                scheduleDismiss('patient-flash-error');
             }
         })();
     </script>
