@@ -3,118 +3,379 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Doctor Registration - {{ config('app.name') }}</title>
-    
-    <!-- Favicon -->
+    <title>Doctor Registration – {{ config('app.name') }}</title>
+
     <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}">
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+
     <style>
-        * {
-            font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+        *, *::before, *::after { box-sizing: border-box; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+        /* ─── Layout ─────────────────────────────────── */
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body { display: flex; flex-direction: column; min-height: 100vh; background: #f8f7ff; }
+
+        .reg-shell {
+            display: flex;
+            flex: 1;
+            min-height: 100vh;
         }
-        .progress-step {
+
+        /* ─── Image Panel ─────────────────────────────── */
+        .reg-image-panel {
+            display: none;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            width: 42%;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        @media (min-width: 1024px) {
+            .reg-image-panel { display: flex; flex-direction: column; }
+        }
+
+        .reg-image-panel img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+        }
+
+        .reg-image-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                160deg,
+                rgba(109, 40, 217, 0.82) 0%,
+                rgba(79, 16, 171, 0.75) 40%,
+                rgba(15, 10, 40, 0.88) 100%
+            );
+        }
+
+        .reg-image-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            padding: 2.5rem 2.75rem;
+        }
+
+        .reg-trust-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 0.875rem;
+        }
+        .reg-trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 0.875rem;
+            padding: 0.75rem 1rem;
+            backdrop-filter: blur(8px);
+        }
+        .reg-trust-badge-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.625rem;
+            background: rgba(255,255,255,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .reg-trust-badge-icon svg { width: 1.125rem; height: 1.125rem; color: #fff; }
+        .reg-trust-badge-text strong { display: block; font-size: 0.8125rem; font-weight: 600; color: #fff; }
+        .reg-trust-badge-text span { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+
+        /* ─── Form Panel ──────────────────────────────── */
+        .reg-form-panel {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: #f8f7ff;
+        }
+
+        /* ─── Topbar ──────────────────────────────────── */
+        .reg-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+            padding: 0.875rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+        .reg-topbar img { height: 2rem; width: auto; }
+        .reg-topbar-link {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #64748b;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+        .reg-topbar-link:hover { color: #7c3aed; }
+        .reg-topbar-link span { font-weight: 700; color: #7c3aed; }
+
+        /* ─── Progress bar ────────────────────────────── */
+        .reg-progress-wrap {
+            padding: 0.625rem 2rem 0.875rem;
+            background: rgba(255,255,255,0.96);
+            border-bottom: 1px solid rgba(139,92,246,0.08);
+        }
+        .reg-progress-track {
+            height: 5px;
+            background: #e8e2ff;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        .reg-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #a855f7);
+            border-radius: 99px;
+            transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 0 8px rgba(124,58,237,0.45);
+        }
+        .reg-steps-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            position: relative;
+        }
+        .reg-step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            flex: 1;
+        }
+        .reg-step-circle {
+            width: 1.875rem;
+            height: 1.875rem;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #9ca3af;
             transition: all 0.3s ease;
         }
-        .progress-line {
-            transition: width 0.5s ease;
+        .reg-step-circle.done { background: #059669; border-color: #059669; color: #fff; }
+        .reg-step-circle.current { background: #7c3aed; border-color: #7c3aed; color: #fff; box-shadow: 0 0 0 4px rgba(124,58,237,0.18); }
+        .reg-step-label {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            color: #9ca3af;
+            white-space: nowrap;
+            display: none;
         }
+        @media (min-width: 480px) { .reg-step-label { display: block; } }
+        .reg-step-label.current { color: #7c3aed; font-weight: 600; }
+        .reg-step-label.done { color: #059669; }
+
+        /* ─── Form area ───────────────────────────────── */
+        .reg-form-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 1.25rem;
+        }
+        @media (min-width: 640px) { .reg-form-area { padding: 3rem 2rem; } }
+        @media (min-width: 1024px) { .reg-form-area { padding: 3rem 3.5rem; } }
+
+        .reg-form-inner { width: 100%; max-width: 560px; }
+
+        /* ─── Step sections ───────────────────────────── */
+        .registration-step { display: none; }
+        .registration-step.active {
+            display: block;
+            animation: stepIn 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes stepIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Step header ─────────────────────────────── */
+        .step-hero { margin-bottom: 2rem; }
+        .step-hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            background: linear-gradient(135deg, #f3edff, #ede9fe);
+            border: 1px solid #c4b5fd;
+            border-radius: 999px;
+            padding: 0.25rem 0.875rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6d28d9;
+            margin-bottom: 0.875rem;
+        }
+        .step-hero h2 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0f0a2e;
+            line-height: 1.22;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.5rem;
+        }
+        .step-hero p {
+            font-size: 0.9375rem;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        /* ─── Section header (inside step) ───────────── */
+        .reg-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #ede9fe;
+        }
+        .reg-section-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, #ede9fe, #f3edff);
+            border: 1px solid #c4b5fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .reg-section-icon svg { width: 1.125rem; height: 1.125rem; stroke: #7c3aed; }
+        .reg-section-title { font-size: 1.0625rem; font-weight: 700; color: #1e1340; }
+        .reg-section-subtitle { font-size: 0.8125rem; color: #7c85a2; margin-top: 0.125rem; }
+
+        /* ─── Inputs ──────────────────────────────────── */
+        .form-group { margin-bottom: 0; }
+        .form-label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.4375rem;
+            letter-spacing: 0.01em;
+        }
+        .form-label .req { color: #ef4444; margin-left: 0.1875rem; }
+        .form-control {
+            width: 100%;
+            padding: 0.6875rem 0.9375rem;
+            font-size: 0.875rem;
+            color: #111827;
+            background: #fff;
+            border: 1.5px solid #e2d9f8;
+            border-radius: 0.75rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .form-control::placeholder { color: #a8b3cf; }
+        .form-control:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 4px rgba(124,58,237,0.14);
+        }
+        .form-hint {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.375rem;
+            line-height: 1.5;
+        }
+        .form-error-msg {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            color: #ef4444;
+            margin-top: 0.4rem;
+        }
+
+        /* ─── Buttons ─────────────────────────────────── */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6875rem 1.5rem;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #fff;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(109,40,217,0.35);
+            letter-spacing: 0.01em;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(109,40,217,0.42);
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6875rem 1.25rem;
+            background: #f1edff;
+            color: #5b21b6;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border: 1.5px solid #ddd6fe;
+            border-radius: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: #ede9fe;
+            border-color: #c4b5fd;
+            transform: translateY(-1px);
+        }
+
+        .btn-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2rem;
+            gap: 0.75rem;
+        }
+        .btn-row.end { justify-content: flex-end; }
     </style>
-    
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sections = document.querySelectorAll('[data-section]');
-            const progressSteps = document.querySelectorAll('[data-progress-step]');
-            const progressBar = document.getElementById('progress-bar');
-            
-            let currentStep = 0;
-            
-            function updateProgress(step) {
-                currentStep = step;
-                
-                // Update progress bar width
-                const percentage = ((step + 1) / 4) * 100;
-                progressBar.style.width = percentage + '%';
-                
-                // Update progress text
-                const progressText = document.getElementById('progress-text');
-                if (progressText) {
-                    progressText.textContent = `Step ${step + 1} of 4`;
-                }
-                
-                // Update step indicators
-                progressSteps.forEach((stepEl, index) => {
-                    const circle = stepEl.querySelector('.step-circle');
-                    const label = stepEl.querySelector('.step-label');
-                    const line = stepEl.querySelector('.step-line');
-                    
-                    if (index < step) {
-                        // Completed
-                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-green-500 text-white font-bold shadow-lg transform scale-110';
-                        circle.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
-                        if (label) label.className = 'step-label text-xs font-semibold text-white mt-2';
-                        if (line) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-green-500';
-                    } else if (index === step) {
-                        // Current
-                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-white text-purple-600 font-bold shadow-lg ring-4 ring-white/50 transform scale-110';
-                        circle.textContent = index + 1;
-                        if (label) label.className = 'step-label text-xs font-semibold text-white mt-2';
-                        if (line && index < 3) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-white/30';
-                    } else {
-                        // Upcoming
-                        circle.className = 'step-circle w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white/70 font-bold border-2 border-white/30';
-                        circle.textContent = index + 1;
-                        if (label) label.className = 'step-label text-xs font-medium text-white/80 mt-2';
-                        if (line && index < 3) line.className = 'step-line absolute top-4 left-full w-full h-0.5 bg-white/30';
-                    }
-                });
-            }
-            
-            // Intersection Observer to track which section is in view
-            const observerOptions = {
-                root: null,
-                rootMargin: '-50% 0px -50% 0px',
-                threshold: 0
-            };
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const sectionIndex = parseInt(entry.target.dataset.section);
-                        updateProgress(sectionIndex);
-                    }
-                });
-            }, observerOptions);
-            
-            sections.forEach(section => observer.observe(section));
-            
-            // Initialize first step
-            updateProgress(0);
-            
-            // Also update on input focus
-            const allInputs = document.querySelectorAll('input, select, textarea');
-            allInputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    const section = this.closest('[data-section]');
-                    if (section) {
-                        const sectionIndex = parseInt(section.dataset.section);
-                        updateProgress(sectionIndex);
-                    }
-                });
-            });
-        });
-        
-        // Toggle password visibility
-        function togglePasswordVisibility(inputId, buttonId) {
-            const passwordInput = document.getElementById(inputId);
-            const eyeOpen = document.getElementById(buttonId + '-open');
-            const eyeClosed = document.getElementById(buttonId + '-closed');
-            
+        window.toggleDoctorPasswordVisibility = function(inputId, buttonId) {
+            var passwordInput = document.getElementById(inputId);
+            var eyeOpen = document.getElementById(buttonId + '-open');
+            var eyeClosed = document.getElementById(buttonId + '-closed');
+            if (!passwordInput || !eyeOpen || !eyeClosed) return;
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 eyeOpen.classList.add('hidden');
@@ -124,820 +385,428 @@
                 eyeOpen.classList.remove('hidden');
                 eyeClosed.classList.add('hidden');
             }
-        }
-        
-        // Load cities when state is selected
-        document.addEventListener('DOMContentLoaded', function() {
-            const stateSelect = document.getElementById('state');
-            const locationSelect = document.getElementById('location');
-            const oldState = @json(old('state'));
-            const oldLocation = @json(old('location', ''));
-            
-            if (stateSelect && locationSelect) {
-                stateSelect.addEventListener('change', function() {
-                    const stateId = this.value;
-                    locationSelect.innerHTML = '<option value="">Loading cities...</option>';
-                    locationSelect.disabled = true;
-                    
-                    if (stateId) {
-                        fetch(`/doctor/states/${stateId}/cities`)
-                            .then(response => response.json())
-                            .then(cities => {
-                                locationSelect.innerHTML = '<option value="">Select your city</option>';
-                                cities.forEach(city => {
-                                    const option = document.createElement('option');
-                                    option.value = city.name;
-                                    option.textContent = city.name;
-                                    if (oldLocation === city.name) {
-                                        option.selected = true;
-                                    }
-                                    locationSelect.appendChild(option);
-                                });
-                                locationSelect.disabled = false;
-                            })
-                            .catch(error => {
-                                console.error('Error loading cities:', error);
-                                locationSelect.innerHTML = '<option value="">Error loading cities</option>';
-                            });
-                    } else {
-                        locationSelect.innerHTML = '<option value="">Select state first</option>';
-                        locationSelect.disabled = true;
-                    }
-                });
-                
-                // If old state is set, trigger change to load cities
-                if (oldState) {
-                    stateSelect.value = oldState;
-                    stateSelect.dispatchEvent(new Event('change'));
-                }
-            }
-        });
+        };
     </script>
 </head>
-<body class="bg-gradient-to-br from-purple-50 via-white to-purple-50 min-h-screen" x-data="{ isSubmitting: false }">
-    <!-- Header -->
-    <div class="bg-purple-600 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="h-10 w-auto">
-                </div>
-                <a href="{{ route('doctor.login') }}" class="text-sm text-white hover:text-purple-100 font-medium transition-colors">
-                    Already registered? <span class="underline">Sign in</span>
-                </a>
-            </div>
-        </div>
-    </div>
+<body x-data="{ isSubmitting: false }">
 
-    <!-- Progress Bar -->
-    <div class="sticky top-0 z-50 bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 border-b border-purple-700 shadow-lg">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <!-- Progress Bar Line -->
-            <div class="relative mb-8">
-                <div class="absolute top-4 left-0 w-full h-0.5 bg-white/20"></div>
-                <div id="progress-bar" class="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-green-400 via-white to-white transition-all duration-500 ease-out shadow-lg" style="width: 25%;"></div>
-                
-                <!-- Steps -->
-                <div class="relative flex justify-between">
-                    <!-- Step 1 -->
-                    <div data-progress-step="0" class="flex flex-col items-center progress-step">
-                        <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-purple-600 text-white font-bold shadow-lg ring-4 ring-purple-200 transform scale-110">
-                            1
-                        </div>
-                        <span class="step-label text-xs font-semibold text-white mt-2 hidden sm:block">Personal Info</span>
-                    </div>
-                    
-                    <!-- Step 2 -->
-                    <div data-progress-step="1" class="flex flex-col items-center progress-step relative">
-                        <div class="step-line absolute top-4 right-full w-full h-0.5 bg-gray-300"></div>
-                        <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">
-                            2
-                        </div>
-                        <span class="step-label text-xs font-medium text-white/80 mt-2 hidden sm:block">Professional</span>
-                    </div>
-                    
-                    <!-- Step 3 -->
-                    <div data-progress-step="2" class="flex flex-col items-center progress-step relative">
-                        <div class="step-line absolute top-4 right-full w-full h-0.5 bg-gray-300"></div>
-                        <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">
-                            3
-                        </div>
-                        <span class="step-label text-xs font-medium text-white/80 mt-2 hidden sm:block">Documents</span>
-                    </div>
-                    
-                    <!-- Step 4 -->
-                    <div data-progress-step="3" class="flex flex-col items-center progress-step relative">
-                        <div class="step-line absolute top-4 right-full w-full h-0.5 bg-gray-300"></div>
-                        <div class="step-circle w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">
-                            4
-                        </div>
-                        <span class="step-label text-xs font-medium text-white/80 mt-2 hidden sm:block">Security</span>
-                    </div>
-                </div>
+<div class="reg-shell">
+
+    {{-- ═══════════════════════════════════════════════ --}}
+    {{-- IMAGE PANEL (left, sticky, full height) --}}
+    {{-- ═══════════════════════════════════════════════ --}}
+    <aside class="reg-image-panel">
+        <img src="{{ asset('img/Stethoscope wallpaper for doctors.jpeg') }}" alt="Doctor registration" loading="eager">
+        <div class="reg-image-overlay"></div>
+
+        <div class="reg-image-content">
+            {{-- Brand logo --}}
+            <div>
+                <img src="{{ asset('img/sitelogo.png') }}" alt="DoctorOnTap" style="height:2.25rem;width:auto;filter:brightness(0) invert(1);opacity:0.95;object-fit:contain;">
             </div>
-            
-            <!-- Progress Text -->
-            <div class="text-center">
-                <p class="text-sm text-white/90">
-                    <span id="progress-text" class="font-semibold text-white">Step 1 of 4</span>
-                    <span class="hidden sm:inline"> - Complete all sections to register</span>
+
+            {{-- Headline --}}
+            <div>
+                <h1 style="font-size:2rem;font-weight:800;color:#fff;line-height:1.2;letter-spacing:-0.02em;margin:0 0 0.875rem;">
+                    Join Nigeria's leading<br>
+                    <span style="color:#c4b5fd;">telehealth platform</span>
+                </h1>
+                <p style="font-size:0.9375rem;color:rgba(255,255,255,0.72);margin:0 0 2.25rem;line-height:1.65;max-width:22rem;">
+                    Connect with patients across Nigeria, manage consultations, and grow your practice — all from one place.
                 </p>
+
+                {{-- Trust badges --}}
+                <div class="reg-trust-badges">
+                    <div class="reg-trust-badge">
+                        <div class="reg-trust-badge-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        </div>
+                        <div class="reg-trust-badge-text">
+                            <strong>MDCN Verified</strong>
+                            <span>All doctors undergo KYC verification</span>
+                        </div>
+                    </div>
+                    <div class="reg-trust-badge">
+                        <div class="reg-trust-badge-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div class="reg-trust-badge-text">
+                            <strong>Fast Payments</strong>
+                            <span>Receive consultation fees directly</span>
+                        </div>
+                    </div>
+                    <div class="reg-trust-badge">
+                        <div class="reg-trust-badge-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                        <div class="reg-trust-badge-text">
+                            <strong>Quick Approval</strong>
+                            <span>Applications reviewed in 1–2 business days</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Footer --}}
+            <p style="font-size:0.75rem;color:rgba(255,255,255,0.4);">&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
+        </div>
+    </aside>
+
+    {{-- ═══════════════════════════════════════════════ --}}
+    {{-- FORM PANEL (right, scrollable) --}}
+    {{-- ═══════════════════════════════════════════════ --}}
+    <div class="reg-form-panel">
+
+        {{-- Topbar --}}
+        <header class="reg-topbar">
+            {{-- Logo: shown on mobile only (hidden on desktop where image panel shows it) --}}
+            <img src="{{ asset('img/sitelogo.png') }}" alt="DoctorOnTap" class="lg:hidden">
+            {{-- desktop: empty spacer --}}
+            <span class="hidden lg:block"></span>
+            <a href="{{ route('doctor.login') }}" class="reg-topbar-link">
+                Already registered? <span>Sign in</span>
+            </a>
+        </header>
+
+        {{-- Progress bar --}}
+        <div class="reg-progress-wrap">
+            <div class="reg-progress-track">
+                <div id="progress-bar" class="reg-progress-fill" style="width:25%;" role="progressbar" aria-valuenow="1" aria-valuemin="0" aria-valuemax="4"></div>
+            </div>
+            <div class="reg-steps-row">
+                @foreach(['Personal', 'Professional', 'Documents', 'Security'] as $i => $stepLabel)
+                    <div class="reg-step-item" data-progress-step="{{ $i }}">
+                        <div class="reg-step-circle {{ $i === 0 ? 'current' : '' }}" data-step-circle="{{ $i }}">
+                            {{ $i + 1 }}
+                        </div>
+                        <span class="reg-step-label {{ $i === 0 ? 'current' : '' }}" data-step-label="{{ $i }}">{{ $stepLabel }}</span>
+                    </div>
+                @endforeach
             </div>
         </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        <!-- Welcome Section -->
-        <div class="text-center mb-10">
-            <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-                Welcome to DoctorOnTap! 
-            </h2>
-            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-                We are super excited to have you join our network. Complete the registration form below to get started with providing excellent healthcare services.
-            </p>
-        </div>
+        {{-- Form area --}}
+        <div class="reg-form-area">
+            <div class="reg-form-inner">
 
-        <!-- Registration Form Card -->
-        <div class="bg-white rounded-2xl shadow-xl border border-purple-100 overflow-hidden">
-            <form method="POST" action="{{ route('doctor.register.post') }}" enctype="multipart/form-data" class="divide-y divide-gray-100" @submit="isSubmitting = true">
-                @csrf
+                <form method="POST" action="{{ route('doctor.register.post') }}" enctype="multipart/form-data" id="doctor-registration-form" @submit="isSubmitting = true">
+                    @csrf
 
-                @if ($errors->any())
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mx-8 mt-8 rounded-r-lg">
-                        <div class="flex items-start">
-                            <svg class="w-5 h-5 text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                            </svg>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-semibold text-red-800">Please correct the following errors:</h3>
-                                <ul class="mt-2 text-sm text-red-700 list-disc list-inside space-y-1">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
+                    <x-doctor-registration.form-errors :errors="$errors" />
+
+                    {{-- ── Step 1: Personal ── --}}
+                    <section class="registration-step active" data-step="0">
+                        <div class="step-hero">
+                            <div class="step-hero-pill">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                Step 1 of 4
+                            </div>
+                            <h2>Create your account</h2>
+                            <p>Let's start with your personal details so we can identify you.</p>
+                        </div>
+
+                        <div class="reg-section-header">
+                            <div class="reg-section-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            </div>
+                            <div>
+                                <div class="reg-section-title">Personal Information</div>
+                                <div class="reg-section-subtitle">Your basic details</div>
                             </div>
                         </div>
-                    </div>
-                @endif
 
-                <!-- Section 1: Personal Information -->
-                <div class="p-6 lg:p-8" data-section="0">
-                    <div class="flex items-center mb-6">
-                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-900">Personal Information</h3>
-                            <p class="text-sm text-gray-500">Let's start with your basic details</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- First Name -->
-                        <div>
-                            <label for="first_name" class="block text-sm font-semibold text-gray-700 mb-2">
-                                A. First Name <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text"
-                                   id="first_name"
-                                   name="first_name"
-                                   value="{{ old('first_name') }}"
-                                   required
-                                   minlength="2"
-                                   maxlength="255"
-                                   pattern="[a-zA-Z\s'\-]+"
-                                   placeholder="e.g., Glory"
-                                   title="First name should only contain letters, spaces, hyphens, or apostrophes"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('first_name') border-red-500 @enderror">
-                            @error('first_name')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Last Name -->
-                        <div>
-                            <label for="last_name" class="block text-sm font-semibold text-gray-700 mb-2">
-                                B. Last Name <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text"
-                                   id="last_name"
-                                   name="last_name"
-                                   value="{{ old('last_name') }}"
-                                   required
-                                   minlength="2"
-                                   maxlength="255"
-                                   pattern="[a-zA-Z\s'\-]+"
-                                   placeholder="e.g., Iniabasi"
-                                   title="Last name should only contain letters, spaces, hyphens, or apostrophes"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('last_name') border-red-500 @enderror">
-                            @error('last_name')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Gender -->
-                        <div>
-                            <label for="gender" class="block text-sm font-semibold text-gray-700 mb-2">
-                                C. Gender <span class="text-red-500">*</span>
-                            </label>
-                            <select id="gender"
-                                    name="gender"
-                                    required
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('gender') border-red-500 @enderror">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <x-doctor-registration.input label="A. First Name" name="first_name" id="first_name" :value="old('first_name')" required type="text" minlength="2" maxlength="255" pattern="[a-zA-Z\s'\-]+" placeholder="e.g., Glory" title="First name should only contain letters, spaces, hyphens, or apostrophes" />
+                            <x-doctor-registration.input label="B. Last Name" name="last_name" id="last_name" :value="old('last_name')" required type="text" minlength="2" maxlength="255" pattern="[a-zA-Z\s'\-]+" placeholder="e.g., Iniabasi" title="Last name should only contain letters, spaces, hyphens, or apostrophes" />
+                            <x-doctor-registration.select label="C. Gender" name="gender" id="gender" required>
                                 <option value="">Select Gender</option>
                                 <option value="male" {{ old('gender') == 'male' ? 'selected' : '' }}>Male</option>
                                 <option value="female" {{ old('gender') == 'female' ? 'selected' : '' }}>Female</option>
-                            </select>
-                            @error('gender')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                            </x-doctor-registration.select>
+                            <x-doctor-registration.input label="D. Phone Number" name="phone" id="phone" :value="old('phone')" required type="tel" minlength="10" maxlength="20" pattern="[0-9+\s\-\(\)]+" placeholder="e.g., 09067726381" title="Please enter a valid phone number (at least 10 digits)" />
+                            <x-doctor-registration.input label="E. Email Address" name="email" id="email" :value="old('email')" required type="email" maxlength="255" placeholder="e.g., gloryiniabasi2000@gmail.com" title="Please enter a valid email address" class="sm:col-span-2" />
+                        </div>
+                        <div class="btn-row end">
+                            <button type="button" class="registration-next btn-primary">
+                                Next
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </section>
+
+                    {{-- ── Step 2: Professional ── --}}
+                    <section class="registration-step" data-step="1">
+                        <div class="step-hero">
+                            <div class="step-hero-pill">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                Step 2 of 4
+                            </div>
+                            <h2>Professional details</h2>
+                            <p>Tell us about your medical expertise and work environment.</p>
                         </div>
 
-                        <!-- Phone Number -->
-                        <div>
-                            <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">
-                                D. Phone Number <span class="text-red-500">*</span>
-                            </label>
-                            <input type="tel"
-                                   id="phone"
-                                   name="phone"
-                                   value="{{ old('phone') }}"
-                                   required
-                                   minlength="10"
-                                   maxlength="20"
-                                   pattern="[0-9+\s\-\(\)]+"
-                                   placeholder="e.g., 09067726381"
-                                   title="Please enter a valid phone number (at least 10 digits)"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('phone') border-red-500 @enderror">
-                            @error('phone')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                        <div class="reg-section-header">
+                            <div class="reg-section-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div>
+                                <div class="reg-section-title">Professional Details</div>
+                                <div class="reg-section-subtitle">Your medical expertise</div>
+                            </div>
                         </div>
 
-                        <!-- Email -->
-                        <div class="md:col-span-2">
-                            <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-                                E. Email Address <span class="text-red-500">*</span>
-                            </label>
-                            <input type="email"
-                                   id="email"
-                                   name="email"
-                                   value="{{ old('email') }}"
-                                   required
-                                   maxlength="255"
-                                   placeholder="e.g., gloryiniabasi2000@gmail.com"
-                                   title="Please enter a valid email address"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('email') border-red-500 @enderror">
-                            @error('email')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 2: Professional Details -->
-                <div class="p-6 lg:p-8 bg-purple-50/30" data-section="1">
-                    <div class="flex items-center mb-6">
-                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-900">Professional Details</h3>
-                            <p class="text-sm text-gray-500">Tell us about your medical expertise</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Specialization -->
-                        <div class="md:col-span-2">
-                            <label for="specialization" class="block text-sm font-semibold text-gray-700 mb-2">
-                                F. Specialty <span class="text-red-500">*</span>
-                            </label>
-                            <select id="specialization"
-                                    name="specialization"
-                                    required
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('specialization') border-red-500 @enderror">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <x-doctor-registration.select label="F. Specialty" name="specialization" id="specialization" required class="sm:col-span-2" hint="Select your area of medical expertise from the list.">
                                 <option value="">Select your medical specialty</option>
                                 @foreach($specialties as $specialty)
                                     <option value="{{ $specialty->name }}" {{ old('specialization') == $specialty->name ? 'selected' : '' }}>
                                         {{ $specialty->name }}
-                                        @if($specialty->description)
-                                            - {{ Str::limit($specialty->description, 50) }}
-                                        @endif
+                                        @if($specialty->description) — {{ Str::limit($specialty->description, 50) }} @endif
                                     </option>
                                 @endforeach
-                            </select>
-                            @error('specialization')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                            <p class="mt-1.5 text-xs text-gray-500">
-                                <svg class="w-4 h-4 inline mr-1 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Select your area of medical expertise from the list
-                            </p>
-                        </div>
-
-                        <!-- Consultant Checkbox -->
-                        <div class="md:col-span-2">
-                            <div class="flex items-start p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                                <input type="checkbox"
-                                       id="is_consultant"
-                                       name="is_consultant"
-                                       value="1"
-                                       {{ old('is_consultant') ? 'checked' : '' }}
-                                       class="mt-1 mr-3 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer">
-                                <label for="is_consultant" class="flex-1 text-sm font-semibold text-gray-700 cursor-pointer">
-                                    I am a consultant in this specialization <span class="text-red-500">*</span>
-                                    <p class="mt-1 text-xs font-normal text-gray-600">
-                                        Only consultants can provide second opinion services. Please check this box if you are a consultant in your selected specialization.
-                                    </p>
-                                </label>
-                            </div>
-                            @error('is_consultant')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Years of Experience -->
-                        <div>
-                            <label for="experience" class="block text-sm font-semibold text-gray-700 mb-2">
-                                G. Years of Experience <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text"
-                                   id="experience"
-                                   name="experience"
-                                   value="{{ old('experience') }}"
-                                   required
-                                   placeholder="e.g., 2 years"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('experience') border-red-500 @enderror">
-                            @error('experience')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Consultation Fee -->
-                        <div>
-                            <label for="consultation_fee" class="block text-sm font-semibold text-gray-700 mb-2">
-                                H. Consultation Fee (₦) <span class="text-red-500">*</span>
-                            </label>
-                            <input type="number"
-                                   id="consultation_fee"
-                                   name="consultation_fee"
-                                   value="{{ old('consultation_fee') }}"
-                                   required
-                                   step="0.01"
-                                   min="0"
-                                   placeholder="e.g., 5000"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('consultation_fee') border-red-500 @enderror">
-                            <p class="mt-1.5 text-xs text-gray-500">Your suggested fee. Admin may adjust during approval.</p>
-                            @error('consultation_fee')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Present Place of Work -->
-                        <div class="md:col-span-2">
-                            <label for="place_of_work" class="block text-sm font-semibold text-gray-700 mb-2">
-                                I. Present Place of Work <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text"
-                                   id="place_of_work"
-                                   name="place_of_work"
-                                   value="{{ old('place_of_work') }}"
-                                   required
-                                   placeholder="e.g., Capitol hill hospital, Warri, Delta state"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('place_of_work') border-red-500 @enderror">
-                            @error('place_of_work')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Role -->
-                        <div>
-                            <label for="role" class="block text-sm font-semibold text-gray-700 mb-2">
-                                J. Your Role <span class="text-red-500">*</span>
-                            </label>
-                            <select id="role"
-                                    name="role"
-                                    required
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('role') border-red-500 @enderror">
+                            </x-doctor-registration.select>
+                            <x-doctor-registration.checkbox name="is_consultant" id="is_consultant" label="I am a consultant in this specialization *" class="sm:col-span-2"
+                                :description="'Only consultants can provide second opinion services. Please check this box if you are a consultant in your selected specialization.'" />
+                            <x-doctor-registration.input label="G. Years of Experience" name="experience" id="experience" :value="old('experience')" required type="text" placeholder="e.g., 2 years" />
+                            <x-doctor-registration.input label="H. Consultation Fee (₦)" name="consultation_fee" id="consultation_fee" :value="old('consultation_fee')" required type="number" step="0.01" min="0" placeholder="e.g., 5000" hint="Your suggested fee. Admin may adjust during approval." />
+                            <x-doctor-registration.input label="I. Present Place of Work" name="place_of_work" id="place_of_work" :value="old('place_of_work')" required type="text" placeholder="e.g., Capitol hill hospital, Warri, Delta state" class="sm:col-span-2" />
+                            <x-doctor-registration.select label="J. Your Role" name="role" id="role" required>
                                 <option value="">Select Role</option>
                                 <option value="clinical" {{ old('role') == 'clinical' ? 'selected' : '' }}>Clinical</option>
                                 <option value="non-clinical" {{ old('role') == 'non-clinical' ? 'selected' : '' }}>Non-Clinical</option>
-                            </select>
-                            @error('role')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- State -->
-                        <div>
-                            <label for="state" class="block text-sm font-semibold text-gray-700 mb-2">
-                                L. State <span class="text-red-500">*</span>
-                            </label>
-                            <select id="state"
-                                    name="state"
-                                    required
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('state') border-red-500 @enderror">
+                            </x-doctor-registration.select>
+                            <x-doctor-registration.select label="L. State" name="state" id="state" required>
                                 <option value="">Select your state</option>
                                 @foreach($states as $state)
-                                    <option value="{{ $state->id }}" {{ old('state') == $state->id ? 'selected' : '' }}>
-                                        {{ $state->name }}
-                                    </option>
+                                    <option value="{{ $state->id }}" {{ old('state') == $state->id ? 'selected' : '' }}>{{ $state->name }}</option>
                                 @endforeach
-                            </select>
-                            @error('state')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- City/Location -->
-                        <div>
-                            <label for="location" class="block text-sm font-semibold text-gray-700 mb-2">
-                                City <span class="text-red-500">*</span>
-                            </label>
-                            <select id="location"
-                                    name="location"
-                                    required
-                                    disabled
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('location') border-red-500 @enderror">
+                            </x-doctor-registration.select>
+                            <x-doctor-registration.select label="City" name="location" id="location" required disabled hint="Select your city from the list.">
                                 <option value="">Select state first</option>
-                            </select>
-                            @error('location')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                            <p class="mt-1.5 text-xs text-gray-500">
-                                <svg class="w-4 h-4 inline mr-1 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                Select your city from the list
-                            </p>
-                        </div>
-
-                        <!-- MDCN License -->
-                        <div class="md:col-span-2">
-                            <label for="mdcn_license_current" class="block text-sm font-semibold text-gray-700 mb-2">
-                                M. Are you up to date with your MDCN license? <span class="text-red-500">*</span>
-                            </label>
-                            <select id="mdcn_license_current"
-                                    name="mdcn_license_current"
-                                    required
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('mdcn_license_current') border-red-500 @enderror">
+                            </x-doctor-registration.select>
+                            <x-doctor-registration.select label="M. MDCN License Status" name="mdcn_license_current" id="mdcn_license_current" required class="sm:col-span-2" hint="To practice on DoctorOnTap, your MDCN license must be up to date for KYC purposes.">
                                 <option value="">Select Status</option>
                                 <option value="yes" {{ old('mdcn_license_current') == 'yes' ? 'selected' : '' }}>✓ Yes, up to date</option>
-                                <option value="processing" {{ old('mdcn_license_current') == 'processing' ? 'selected' : '' }}>⏳ Still processing/Awaiting update</option>
+                                <option value="processing" {{ old('mdcn_license_current') == 'processing' ? 'selected' : '' }}>⏳ Still processing / Awaiting update</option>
                                 <option value="no" {{ old('mdcn_license_current') == 'no' ? 'selected' : '' }}>✗ No</option>
-                            </select>
-                            <p class="mt-1.5 text-xs text-purple-600 font-medium">⚠️ To practice on DoctorOnTap, your MDCN license must be up to date for KYC purposes.</p>
-                            @error('mdcn_license_current')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                            </x-doctor-registration.select>
+                            <x-doctor-registration.input label="N. Languages Spoken" name="languages" id="languages" :value="old('languages')" required type="text" placeholder="e.g., English" />
+                            <x-doctor-registration.textarea name="days_of_availability" id="days_of_availability" label="O. Days of Availability" required rows="3" placeholder="e.g., Two weeks of day shifts and one week of night shift, in that order."
+                                :hint="'Describe your availability schedule'" />
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="registration-prev btn-secondary">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                                Previous
+                            </button>
+                            <button type="button" class="registration-next btn-primary">
+                                Next
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </section>
+
+                    {{-- ── Step 3: Documents ── --}}
+                    <section class="registration-step" data-step="2">
+                        <div class="step-hero">
+                            <div class="step-hero-pill">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Step 3 of 4
+                            </div>
+                            <h2>Upload credentials</h2>
+                            <p>We need your official documents to verify your medical license.</p>
                         </div>
 
-                        <!-- Languages Spoken -->
-                        <div>
-                            <label for="languages" class="block text-sm font-semibold text-gray-700 mb-2">
-                                N. Languages Spoken <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text"
-                                   id="languages"
-                                   name="languages"
-                                   value="{{ old('languages') }}"
-                                   required
-                                   placeholder="e.g., English"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('languages') border-red-500 @enderror">
-                            @error('languages')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <!-- Days of Availability -->
-                        <div>
-                            <label for="days_of_availability" class="block text-sm font-semibold text-gray-700 mb-2">
-                                O. Days of Availability <span class="text-red-500">*</span>
-                            </label>
-                            <textarea id="days_of_availability"
-                                      name="days_of_availability"
-                                      required
-                                      rows="3"
-                                      placeholder="e.g., Two weeks of day shifts and one week of night shift, in that order."
-                                      class="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all resize-none @error('days_of_availability') border-red-500 @enderror">{{ old('days_of_availability') }}</textarea>
-                            <p class="mt-1.5 text-xs text-gray-500">Describe your availability schedule</p>
-                            @error('days_of_availability')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 3: Documentation -->
-                <div class="p-6 lg:p-8" data-section="2">
-                    <div class="flex items-center mb-6">
-                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-900">Documentation</h3>
-                            <p class="text-sm text-gray-500">Upload your credentials for verification</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 mb-5">
-                        <div class="flex items-start">
-                            <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
+                        <div class="reg-section-header">
+                            <div class="reg-section-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
                             <div>
-                                <h4 class="text-sm font-bold text-blue-900 mb-2">📌 Important Notes:</h4>
-                                <ul class="text-xs text-blue-800 space-y-1.5">
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span>Upload your <strong>MDCN license</strong> or any available medical credentials</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span><strong>For KYC purposes:</strong> Your MDCN license must be up to date to practice on DoctorOnTap</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span><strong>Security Notice:</strong> We do NOT accept submissions by email, WhatsApp, or social media</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span>If your license is still processing, you can upload it later after admin approval</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span><strong>Accepted formats:</strong> PDF, JPG, PNG (Max 5MB)</span>
-                                    </li>
-                                </ul>
+                                <div class="reg-section-title">Documentation</div>
+                                <div class="reg-section-subtitle">Upload your credentials for verification</div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-purple-400 transition-all">
-                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <label for="certificate" class="block text-sm font-semibold text-gray-700 mb-1">
-                            Upload MDCN License or Medical Certificate <span class="text-red-500">*</span>
-                        </label>
-                        <p class="text-xs text-gray-500 mb-3">Click to browse or drag and drop (Required)</p>
-                        <input type="file"
-                               id="certificate"
-                               name="certificate"
-                               accept=".pdf,.jpg,.jpeg,.png"
-                               required
-                               class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer">
-                        @error('certificate')
-                            <p class="mt-2 text-xs text-red-500 flex items-center justify-center">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                </svg>
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-                </div>
+                        <x-doctor-registration.document-upload name="certificate" label="Upload MDCN License or Medical Certificate" accept=".pdf,.jpg,.jpeg,.png" :required="true" />
 
-                <!-- Section 4: Account Security -->
-                <div class="p-6 lg:p-8 bg-gray-50" data-section="3">
-                    <div class="flex items-center mb-6">
-                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
+                        <div class="btn-row">
+                            <button type="button" class="registration-prev btn-secondary">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                                Previous
+                            </button>
+                            <button type="button" class="registration-next btn-primary">
+                                Next
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                            </button>
                         </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-900">Account Security</h3>
-                            <p class="text-sm text-gray-500">Create a secure password for your account</p>
-                        </div>
-                    </div>
+                    </section>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Password -->
-                        <div>
-                            <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
-                                Password <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <input type="password"
-                                       id="password"
-                                       name="password"
-                                       required
-                                       minlength="8"
-                                       placeholder="Minimum 8 characters (uppercase, lowercase, number)"
-                                       title="Password must be at least 8 characters and contain uppercase, lowercase, and number"
-                                       class="w-full px-4 py-3 pr-12 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all @error('password') border-red-500 @enderror">
-                                <button type="button"
-                                        onclick="togglePasswordVisibility('password', 'password-eye')"
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors p-1"
-                                        id="password-eye"
-                                        aria-label="Toggle password visibility">
-                                    <!-- Eye icon (show password) -->
-                                    <svg id="password-eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    <!-- Eye slash icon (hide password) -->
-                                    <svg id="password-eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                    </svg>
-                                </button>
+                    {{-- ── Step 4: Security ── --}}
+                    <section class="registration-step" data-step="3">
+                        <div class="step-hero">
+                            <div class="step-hero-pill">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                Step 4 of 4
                             </div>
-                            @error('password')
-                                <p class="mt-2 text-xs text-red-500 flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                            <h2>Secure your account</h2>
+                            <p>Create a strong password. We'll send a verification email after you submit.</p>
                         </div>
 
-                        <!-- Confirm Password -->
-                        <div>
-                            <label for="password_confirmation" class="block text-sm font-semibold text-gray-700 mb-2">
-                                Confirm Password <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <input type="password"
-                                       id="password_confirmation"
-                                       name="password_confirmation"
-                                       required
-                                       minlength="8"
-                                       placeholder="Re-enter password"
-                                       title="Please confirm your password"
-                                       class="w-full px-4 py-3 pr-12 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
-                                <button type="button"
-                                        onclick="togglePasswordVisibility('password_confirmation', 'password-confirmation-eye')"
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors p-1"
-                                        id="password-confirmation-eye"
-                                        aria-label="Toggle password visibility">
-                                    <!-- Eye icon (show password) -->
-                                    <svg id="password-confirmation-eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    <!-- Eye slash icon (hide password) -->
-                                    <svg id="password-confirmation-eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                    </svg>
-                                </button>
+                        <div class="reg-section-header">
+                            <div class="reg-section-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            </div>
+                            <div>
+                                <div class="reg-section-title">Account Security</div>
+                                <div class="reg-section-subtitle">Create a secure password</div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Submit Button -->
-                <div class="p-6 lg:p-8 bg-gray-50">
-                    <div class="text-center mb-4">
-                        <p class="text-sm font-medium text-gray-700">✨ Almost there! Review your information and submit.</p>
-                        <p class="text-xs text-gray-500 mt-1">We'll send you a verification email after registration.</p>
-                    </div>
-                    <button type="submit"
-                            :disabled="isSubmitting"
-                            class="w-full px-8 py-4 bg-purple-600 text-white font-bold text-lg rounded-xl hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span x-show="!isSubmitting">Complete Registration →</span>
-                        <span x-show="isSubmitting" class="flex items-center justify-center gap-2">
-                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Submitting...
-                        </span>
-                    </button>
-                </div>
-            </form>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <x-doctor-registration.password-with-toggle name="password" id="password" label="Password" toggleId="password-eye" />
+                            <x-doctor-registration.password-with-toggle name="password_confirmation" id="password_confirmation" label="Confirm Password" toggleId="password-confirmation-eye" />
+                        </div>
+
+                        {{-- Completion note --}}
+                        <div style="display:flex;align-items:flex-start;gap:0.625rem;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:0.875rem;padding:1rem 1.125rem;margin-top:1.5rem;">
+                            <svg width="18" height="18" fill="none" stroke="#16a34a" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:0.1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <div>
+                                <p style="font-size:0.8125rem;font-weight:600;color:#15803d;margin:0 0 0.25rem;">Almost done!</p>
+                                <p style="font-size:0.8125rem;color:#16a34a;margin:0;line-height:1.5;">Applications are reviewed within 1–2 business days. You'll receive a confirmation email once approved.</p>
+                            </div>
+                        </div>
+
+                        <div class="btn-row">
+                            <button type="button" class="registration-prev btn-secondary">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                                Previous
+                            </button>
+                            <button type="submit" :disabled="isSubmitting" class="btn-primary" style="min-width:11rem;">
+                                <span x-show="!isSubmitting" style="display:flex;align-items:center;gap:0.5rem;">
+                                    Complete Registration
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </span>
+                                <span x-show="isSubmitting" x-cloak style="display:flex;align-items:center;gap:0.5rem;">
+                                    <svg class="animate-spin" style="width:1rem;height:1rem;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Submitting…
+                                </span>
+                            </button>
+                        </div>
+                    </section>
+
+                </form>
+            </div>
         </div>
+    </div>{{-- end form panel --}}
+</div>{{-- end shell --}}
 
-        <!-- Footer Note -->
-        <div class="mt-8 text-center text-sm text-gray-600">
-            <p>Once we receive your information, we'll review and approve your account to start sending patients your way. 🩺</p>
-        </div>
-    </div>
+<x-system-preloader x-show="isSubmitting" message="Submitting your registration..." />
 
-    <!-- Footer -->
-    <div class="bg-purple-600 border-t border-purple-700 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-            <p class="text-xs text-white">
-                &copy; {{ date('Y') }} DoctorOnTap. All rights reserved. | 
-                <a href="#" class="hover:text-purple-200 transition-colors">Privacy Policy</a> | 
-                <a href="#" class="hover:text-purple-200 transition-colors">Terms of Service</a>
-            </p>
-        </div>
-    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var sections      = document.querySelectorAll('.registration-step');
+        var progressBar   = document.getElementById('progress-bar');
+        var currentStep   = 0;
+        var totalSteps    = 4;
+        var oldState      = @json(old('state'));
+        var oldLocation   = @json(old('location', ''));
+        var stateSelect   = document.getElementById('state');
+        var locationSelect = document.getElementById('location');
 
-    <!-- Preloader -->
-    <x-system-preloader x-show="isSubmitting" message="Submitting your registration..." />
+        function getCircle(i) { return document.querySelector('[data-step-circle="' + i + '"]'); }
+        function getLabel(i)  { return document.querySelector('[data-step-label="' + i + '"]'); }
 
-    <script>
-        // Handle form submission and show preloader
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form[action="{{ route('doctor.register.post') }}"]');
-            
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    // The Alpine.js @submit handler will set isSubmitting = true
-                    // But we also want to ensure it's set in case Alpine hasn't initialized
-                    if (typeof Alpine !== 'undefined' && Alpine.$data) {
-                        const bodyData = Alpine.$data(document.body);
-                        if (bodyData) {
-                            bodyData.isSubmitting = true;
-                        }
-                    }
-                });
+        function goToStep(step) {
+            currentStep = step;
+            sections.forEach(function (sec) {
+                var s = parseInt(sec.dataset.step, 10);
+                sec.classList.toggle('active', s === step);
+            });
+            updateProgress(step);
+            // Scroll form panel back to top
+            var panel = document.querySelector('.reg-form-panel');
+            if (panel) panel.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateProgress(step) {
+            var pct = ((step + 1) / totalSteps) * 100;
+            if (progressBar) {
+                progressBar.style.width = pct + '%';
+                progressBar.setAttribute('aria-valuenow', step + 1);
             }
+            for (var i = 0; i < totalSteps; i++) {
+                var circle = getCircle(i);
+                var label  = getLabel(i);
+                if (!circle) continue;
+
+                circle.classList.remove('done', 'current');
+                if (label) label.classList.remove('done', 'current');
+
+                if (i < step) {
+                    circle.classList.add('done');
+                    circle.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+                    if (label) label.classList.add('done');
+                } else if (i === step) {
+                    circle.classList.add('current');
+                    circle.textContent = i + 1;
+                    if (label) label.classList.add('current');
+                } else {
+                    circle.textContent = i + 1;
+                }
+            }
+        }
+
+        document.querySelectorAll('.registration-next').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (currentStep < totalSteps - 1) goToStep(currentStep + 1);
+            });
         });
-    </script>
+        document.querySelectorAll('.registration-prev').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (currentStep > 0) goToStep(currentStep - 1);
+            });
+        });
+
+        goToStep(0);
+
+        // State → City cascade
+        if (stateSelect && locationSelect) {
+            stateSelect.addEventListener('change', function () {
+                var stateId = this.value;
+                locationSelect.innerHTML = '<option value="">Loading cities…</option>';
+                locationSelect.disabled = true;
+                if (stateId) {
+                    fetch('/doctor/states/' + stateId + '/cities')
+                        .then(function (r) { return r.json(); })
+                        .then(function (cities) {
+                            locationSelect.innerHTML = '<option value="">Select your city</option>';
+                            cities.forEach(function (city) {
+                                var opt = document.createElement('option');
+                                opt.value = city.name;
+                                opt.textContent = city.name;
+                                if (oldLocation === city.name) opt.selected = true;
+                                locationSelect.appendChild(opt);
+                            });
+                            locationSelect.disabled = false;
+                        })
+                        .catch(function () {
+                            locationSelect.innerHTML = '<option value="">Error loading cities</option>';
+                            locationSelect.disabled = false;
+                        });
+                } else {
+                    locationSelect.innerHTML = '<option value="">Select state first</option>';
+                    locationSelect.disabled = true;
+                }
+            });
+            if (oldState) {
+                stateSelect.value = oldState;
+                stateSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    });
+</script>
 </body>
 </html>

@@ -18,7 +18,11 @@ class RegistrationController extends Controller
      */
     public function showRegistrationForm()
     {
-        $specialties = Specialty::active()->orderBy('name')->get();
+        $specialties = Specialty::active()
+            ->orderBy('name')
+            ->get()
+            ->unique('name')
+            ->values();
         $states = State::orderBy('name')->get();
         return view('doctor.register', compact('specialties', 'states'));
     }
