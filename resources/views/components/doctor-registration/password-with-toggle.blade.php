@@ -7,14 +7,14 @@
 
 @php
     $inputId = $id ?? $name;
-    $baseClass = 'w-full px-3.5 py-2.5 pr-12 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-white transition-all duration-200 ';
-    $normalClass = 'border-slate-300 focus:border-violet-500 focus:ring-violet-500/20 ';
+    $baseClass = 'w-full h-12 px-4 pr-12 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/25 focus:border-violet-500 bg-white transition-all duration-200 ';
+    $normalClass = 'border-slate-200 focus:border-violet-500 focus:ring-violet-500/25 ';
     $errorClass = '!border-red-400 focus:!border-red-500 focus:!ring-red-500/20 ';
     $inputClass = $baseClass . ($errors->has($name) ? $errorClass : $normalClass);
 @endphp
 
 <div {{ $attributes->only('class')->merge(['class' => '']) }}>
-    <label for="{{ $inputId }}" class="block text-sm font-medium text-slate-700 mb-1.5">
+    <label for="{{ $inputId }}" class="block text-sm font-semibold text-slate-700 mb-2">
         {{ $label }} <span class="text-red-500">*</span>
     </label>
     <div class="relative">

@@ -51,12 +51,10 @@
         .reg-image-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(
-                160deg,
-                rgba(109, 40, 217, 0.82) 0%,
-                rgba(79, 16, 171, 0.75) 40%,
-                rgba(15, 10, 40, 0.88) 100%
-            );
+            background:
+                radial-gradient(ellipse 80% 50% at 50% 20%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
+                radial-gradient(ellipse 100% 100% at 80% 80%, rgba(109, 40, 217, 0.25) 0%, transparent 45%),
+                linear-gradient(160deg, rgba(109, 40, 217, 0.55) 0%, rgba(79, 16, 171, 0.45) 45%, rgba(30, 20, 60, 0.7) 100%);
         }
 
         .reg-image-content {
@@ -66,7 +64,39 @@
             flex-direction: column;
             justify-content: space-between;
             height: 100%;
-            padding: 2.5rem 2.75rem;
+            padding: 3rem 2.75rem;
+        }
+
+        .reg-image-panel-logo {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .reg-image-panel-logo img {
+            height: 4.25rem;
+            width: auto;
+            object-fit: contain;
+        }
+        @media (min-width: 1024px) {
+            .reg-image-panel-logo img { height: 6rem; }
+        }
+
+        .reg-image-hero-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.875rem;
+        }
+        .reg-image-hero-title span { color: #c4b5fd; }
+        .reg-image-hero-subtitle {
+            font-size: 0.9375rem;
+            color: rgba(255,255,255,0.78);
+            margin: 0 0 2.25rem;
+            line-height: 1.65;
+            max-width: 22rem;
         }
 
         .reg-trust-badges {
@@ -78,17 +108,18 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background: rgba(255,255,255,0.10);
-            border: 1px solid rgba(255,255,255,0.18);
-            border-radius: 0.875rem;
-            padding: 0.75rem 1rem;
-            backdrop-filter: blur(8px);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 1rem;
+            padding: 0.875rem 1.125rem;
+            backdrop-filter: blur(10px);
+            transition: background 0.2s, border-color 0.2s;
         }
         .reg-trust-badge-icon {
             width: 2.25rem;
             height: 2.25rem;
             border-radius: 0.625rem;
-            background: rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.12);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -96,7 +127,7 @@
         }
         .reg-trust-badge-icon svg { width: 1.125rem; height: 1.125rem; color: #fff; }
         .reg-trust-badge-text strong { display: block; font-size: 0.8125rem; font-weight: 600; color: #fff; }
-        .reg-trust-badge-text span { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+        .reg-trust-badge-text span { font-size: 0.75rem; color: rgba(255,255,255,0.65); line-height: 1.4; }
 
         /* ─── Form Panel ──────────────────────────────── */
         .reg-form-panel {
@@ -231,20 +262,25 @@
 
         /* ─── Progress bar ────────────────────────────── */
         .reg-progress-wrap {
-            padding: 0.75rem 1.25rem 0.875rem;
-            background: #fff;
-            border-bottom: 1px solid rgba(139,92,246,0.10);
+            position: sticky;
+            top: 3.5rem;
+            z-index: 40;
+            padding: 1rem 1.25rem 1rem;
+            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 2px 12px rgba(91,33,182,0.25);
         }
-        @media (min-width: 640px) { .reg-progress-wrap { padding: 0.75rem 2rem 0.9rem; } }
+        @media (min-width: 640px) { .reg-progress-wrap { padding: 1rem 2rem 1.125rem; } }
 
-        /* Segmented coloured bar */
+        /* Segmented coloured bar (track on purple: darker) */
         .reg-progress-track {
             height: 6px;
-            background: #ede9fe;
+            background: rgba(255,255,255,0.2);
             border-radius: 99px;
             overflow: hidden;
-            margin-bottom: 0.9rem;
+            margin-bottom: 1rem;
             position: relative;
+            transition: background 0.2s ease;
         }
         .reg-progress-fill {
             height: 100%;
@@ -301,38 +337,38 @@
             width: 2rem;
             height: 2rem;
             border-radius: 50%;
-            border: 2px solid #e2d8f7;
-            background: #f5f3ff;
+            border: 2px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 0.75rem;
             font-weight: 700;
-            color: #c4b5fd;
+            color: rgba(255,255,255,0.9);
             transition: all 0.3s ease;
         }
         .reg-step-circle.done {
             background: linear-gradient(135deg, #059669, #10b981);
             border-color: #059669;
             color: #fff;
-            box-shadow: 0 2px 8px rgba(5,150,105,0.35);
+            box-shadow: 0 2px 8px rgba(5,150,105,0.4);
         }
         .reg-step-circle.current {
-            background: linear-gradient(135deg, #7c3aed, #a855f7);
-            border-color: #7c3aed;
-            color: #fff;
-            box-shadow: 0 0 0 4px rgba(124,58,237,0.18), 0 2px 8px rgba(124,58,237,0.3);
+            background: rgba(255,255,255,0.95);
+            border-color: #fff;
+            color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.4), 0 2px 8px rgba(0,0,0,0.15);
         }
         .reg-step-label {
             font-size: 0.6875rem;
             font-weight: 500;
-            color: #c4b5fd;
+            color: rgba(255,255,255,0.75);
             white-space: nowrap;
             display: none;
         }
         @media (min-width: 400px) { .reg-step-label { display: block; } }
-        .reg-step-label.current { color: #7c3aed; font-weight: 700; }
-        .reg-step-label.done { color: #059669; font-weight: 600; }
+        .reg-step-label.current { color: #fff; font-weight: 700; }
+        .reg-step-label.done { color: #86efac; font-weight: 600; }
 
         /* ─── Form area ───────────────────────────────── */
         .reg-form-area {
@@ -340,27 +376,29 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 1.5rem 1rem 2rem;
+            padding: 2rem 1rem 2.5rem;
         }
-        @media (min-width: 480px) { .reg-form-area { padding: 2rem 1.25rem; } }
-        @media (min-width: 640px) { .reg-form-area { padding: 2.5rem 2rem; } }
-        @media (min-width: 1024px) { .reg-form-area { padding: 3rem 3.5rem; } }
+        @media (min-width: 480px) { .reg-form-area { padding: 2.5rem 1.25rem 3rem; } }
+        @media (min-width: 640px) { .reg-form-area { padding: 3rem 2rem 3.5rem; } }
+        @media (min-width: 1024px) { .reg-form-area { padding: 4rem 3.5rem 4rem; } }
 
         .reg-form-inner { width: 100%; max-width: 560px; }
 
-        /* Mobile card wrapper around each step */
+        /* Card: rounded-2xl, soft shadow, subtle border */
         @media (max-width: 1023px) {
             .registration-step.active {
                 background: #fff;
-                border-radius: 1.25rem;
-                box-shadow: 0 4px 24px rgba(109,40,217,0.08), 0 1px 4px rgba(0,0,0,0.05);
-                border: 1px solid rgba(139,92,246,0.10);
+                border-radius: 1.5rem;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+                border: 1px solid rgba(226, 232, 240, 0.9);
                 overflow: hidden;
-                padding: 1.5rem 1.25rem;
+                padding: 2rem 1.5rem;
+                backdrop-filter: blur(8px);
+                transition: box-shadow 0.2s ease, border-color 0.2s ease;
             }
         }
         @media (min-width: 480px) and (max-width: 1023px) {
-            .registration-step.active { padding: 2rem 1.75rem; }
+            .registration-step.active { padding: 2.25rem 2rem; }
         }
 
         /* ─── Step sections ───────────────────────────── */
@@ -374,31 +412,35 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* ─── Step header ─────────────────────────────── */
-        .step-hero { margin-bottom: 2rem; }
+        /* ─── Step header (typography hierarchy) ───────── */
+        .step-hero { margin-bottom: 2.25rem; }
         .step-hero-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.375rem;
-            background: linear-gradient(135deg, #f3edff, #ede9fe);
-            border: 1px solid #c4b5fd;
+            background: rgba(237, 233, 254, 0.9);
+            border: 1px solid rgba(196, 181, 253, 0.6);
             border-radius: 999px;
-            padding: 0.25rem 0.875rem;
+            padding: 0.3125rem 0.875rem;
             font-size: 0.75rem;
             font-weight: 600;
             color: #6d28d9;
-            margin-bottom: 0.875rem;
+            margin-bottom: 1rem;
+            transition: background 0.2s, border-color 0.2s;
         }
         .step-hero h2 {
             font-size: 1.75rem;
-            font-weight: 800;
-            color: #0f0a2e;
-            line-height: 1.22;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.3;
             letter-spacing: -0.02em;
-            margin: 0 0 0.5rem;
+            margin: 0 0 0.375rem;
+        }
+        @media (min-width: 640px) {
+            .step-hero h2 { font-size: 2rem; }
         }
         .step-hero p {
-            font-size: 0.9375rem;
+            font-size: 0.875rem;
             color: #64748b;
             margin: 0;
             line-height: 1.6;
@@ -409,57 +451,58 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.75rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #ede9fe;
+            border-bottom: 1px solid #e2e8f0;
         }
         .reg-section-icon {
             width: 2.5rem;
             height: 2.5rem;
             border-radius: 0.75rem;
-            background: linear-gradient(135deg, #ede9fe, #f3edff);
-            border: 1px solid #c4b5fd;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
         .reg-section-icon svg { width: 1.125rem; height: 1.125rem; stroke: #7c3aed; }
-        .reg-section-title { font-size: 1.0625rem; font-weight: 700; color: #1e1340; }
-        .reg-section-subtitle { font-size: 0.8125rem; color: #7c85a2; margin-top: 0.125rem; }
+        .reg-section-title { font-size: 1rem; font-weight: 600; color: #1e293b; }
+        .reg-section-subtitle { font-size: 0.8125rem; color: #64748b; margin-top: 0.125rem; line-height: 1.4; }
 
-        /* ─── Inputs ──────────────────────────────────── */
+        /* ─── Inputs (fallback for any non-component fields) ─── */
         .form-group { margin-bottom: 0; }
         .form-label {
             display: block;
             font-size: 0.8125rem;
             font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.4375rem;
+            color: #334155;
+            margin-bottom: 0.5rem;
             letter-spacing: 0.01em;
         }
         .form-label .req { color: #ef4444; margin-left: 0.1875rem; }
         .form-control {
             width: 100%;
-            padding: 0.6875rem 0.9375rem;
+            height: 3rem;
+            padding: 0 1rem;
             font-size: 0.875rem;
-            color: #111827;
+            color: #0f172a;
             background: #fff;
-            border: 1.5px solid #e2d9f8;
+            border: 1px solid #e2e8f0;
             border-radius: 0.75rem;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
             appearance: none;
             -webkit-appearance: none;
         }
-        .form-control::placeholder { color: #a8b3cf; }
+        .form-control::placeholder { color: #94a3b8; }
         .form-control:focus {
             border-color: #7c3aed;
-            box-shadow: 0 0 0 4px rgba(124,58,237,0.14);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
         }
         .form-hint {
             font-size: 0.75rem;
-            color: #94a3b8;
+            color: #64748b;
             margin-top: 0.375rem;
             line-height: 1.5;
         }
@@ -469,30 +512,32 @@
             gap: 0.25rem;
             font-size: 0.75rem;
             color: #ef4444;
-            margin-top: 0.4rem;
+            margin-top: 0.375rem;
         }
 
         /* ─── Buttons ─────────────────────────────────── */
         .btn-primary {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            padding: 0.6875rem 1.5rem;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            padding: 0.75rem 1.5rem;
+            min-height: 3rem;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             color: #fff;
             font-size: 0.9375rem;
             font-weight: 600;
             border: none;
-            border-radius: 0.875rem;
+            border-radius: 0.75rem;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 14px rgba(109,40,217,0.35);
+            box-shadow: 0 4px 14px rgba(109, 40, 217, 0.3);
             letter-spacing: 0.01em;
         }
         .btn-primary:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(109,40,217,0.42);
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(109, 40, 217, 0.4);
+            filter: brightness(1.05);
         }
         .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -500,30 +545,53 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.6875rem 1.25rem;
-            background: #f1edff;
+            padding: 0.75rem 1.25rem;
+            min-height: 3rem;
+            background: #fff;
             color: #5b21b6;
             font-size: 0.9375rem;
             font-weight: 600;
-            border: 1.5px solid #ddd6fe;
-            border-radius: 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
         .btn-secondary:hover {
-            background: #ede9fe;
+            background: #f8fafc;
             border-color: #c4b5fd;
-            transform: translateY(-1px);
+            transform: scale(1.01);
         }
 
         .btn-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 2rem;
+            margin-top: 2.25rem;
             gap: 0.75rem;
         }
         .btn-row.end { justify-content: flex-end; }
+
+        /* ─── Secure badge under form ─────────────────── */
+        .reg-secure-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .reg-secure-badge span {
+            font-size: 0.8125rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .reg-secure-badge svg {
+            width: 1rem;
+            height: 1rem;
+            color: #94a3b8;
+            flex-shrink: 0;
+        }
     </style>
 
     <script>
@@ -556,18 +624,18 @@
         <div class="reg-image-overlay"></div>
 
         <div class="reg-image-content">
-            {{-- Brand logo --}}
-            <div>
-                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap" style="height:4.25rem;width:auto;object-fit:contain;">
+            {{-- Brand logo (centred, larger on big screens) --}}
+            <div class="reg-image-panel-logo">
+                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap">
             </div>
 
             {{-- Headline --}}
             <div>
-                <h1 style="font-size:2rem;font-weight:800;color:#fff;line-height:1.2;letter-spacing:-0.02em;margin:0 0 0.875rem;">
+                <h1 class="reg-image-hero-title">
                     Join Nigeria's leading<br>
-                    <span style="color:#c4b5fd;">telehealth platform</span>
+                    <span>telehealth platform</span>
                 </h1>
-                <p style="font-size:0.9375rem;color:rgba(255,255,255,0.72);margin:0 0 2.25rem;line-height:1.65;max-width:22rem;">
+                <p class="reg-image-hero-subtitle">
                     Connect with patients across Nigeria, manage consultations, and grow your practice — all from one place.
                 </p>
 
@@ -604,7 +672,7 @@
             </div>
 
             {{-- Footer --}}
-            <p style="font-size:0.75rem;color:rgba(255,255,255,0.4);">&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
+            <p class="text-[0.75rem] text-white/40">&copy; {{ date('Y') }} DoctorOnTap. All rights reserved.</p>
         </div>
     </aside>
 
@@ -700,7 +768,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <x-doctor-registration.input label="A. First Name" name="first_name" id="first_name" :value="old('first_name')" required type="text" minlength="2" maxlength="255" pattern="[a-zA-Z\s'\-]+" placeholder="e.g., Glory" title="First name should only contain letters, spaces, hyphens, or apostrophes" />
                             <x-doctor-registration.input label="B. Last Name" name="last_name" id="last_name" :value="old('last_name')" required type="text" minlength="2" maxlength="255" pattern="[a-zA-Z\s'\-]+" placeholder="e.g., Iniabasi" title="Last name should only contain letters, spaces, hyphens, or apostrophes" />
                             <x-doctor-registration.select label="C. Gender" name="gender" id="gender" required>
@@ -740,7 +808,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <x-doctor-registration.select label="F. Specialty" name="specialization" id="specialization" required class="sm:col-span-2" hint="Select your area of medical expertise from the list.">
                                 <option value="">Select your medical specialty</option>
                                 @foreach($specialties as $specialty)
@@ -847,17 +915,17 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <x-doctor-registration.password-with-toggle name="password" id="password" label="Password" toggleId="password-eye" />
                             <x-doctor-registration.password-with-toggle name="password_confirmation" id="password_confirmation" label="Confirm Password" toggleId="password-confirmation-eye" />
                         </div>
 
                         {{-- Completion note --}}
-                        <div style="display:flex;align-items:flex-start;gap:0.625rem;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:0.875rem;padding:1rem 1.125rem;margin-top:1.5rem;">
-                            <svg width="18" height="18" fill="none" stroke="#16a34a" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:0.1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <div class="flex items-start gap-3 bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-4 mt-6">
+                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                             <div>
-                                <p style="font-size:0.8125rem;font-weight:600;color:#15803d;margin:0 0 0.25rem;">Almost done!</p>
-                                <p style="font-size:0.8125rem;color:#16a34a;margin:0;line-height:1.5;">Applications are reviewed within 1–2 business days. You'll receive a confirmation email once approved.</p>
+                                <p class="text-sm font-semibold text-emerald-800 m-0 mb-1">Almost done!</p>
+                                <p class="text-sm text-emerald-700 m-0 leading-relaxed">Applications are reviewed within 1–2 business days. You'll receive a confirmation email once approved.</p>
                             </div>
                         </div>
 
@@ -883,6 +951,12 @@
                     </section>
 
                 </form>
+
+                {{-- Secure badge under form ─────────────────── }}
+                <div class="reg-secure-badge" aria-hidden="true">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <span>Encrypted &amp; Secure Access</span>
+                </div>
             </div>
         </div>
     </div>{{-- end form panel --}}

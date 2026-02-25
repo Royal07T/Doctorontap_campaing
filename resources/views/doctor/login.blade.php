@@ -70,6 +70,21 @@
             padding: 2.5rem 2.75rem;
         }
 
+        .reg-image-panel-logo {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .reg-image-panel-logo img {
+            height: 4.25rem;
+            width: auto;
+            object-fit: contain;
+        }
+        @media (min-width: 1024px) {
+            .reg-image-panel-logo img { height: 6rem; }
+        }
+
         .reg-trust-badges {
             display: flex;
             flex-direction: column;
@@ -333,8 +348,8 @@
         <img src="{{ asset('img/Stethoscope wallpaper for doctors.jpeg') }}" alt="Doctor login" loading="eager">
         <div class="reg-image-overlay"></div>
         <div class="reg-image-content">
-            <div>
-                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap" style="height:4.25rem;width:auto;object-fit:contain;">
+            <div class="reg-image-panel-logo">
+                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap">
             </div>
             <div>
                 <h1 style="font-size:2.25rem;font-weight:800;color:#fff;line-height:1.2;letter-spacing:-0.02em;margin:0 0 0.875rem;">
@@ -364,7 +379,7 @@
     <div class="reg-form-panel">
         <header class="reg-topbar">
             <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap" class="reg-topbar-logo">
-            <span class="reg-topbar-tagline">Doctor Portal</span>
+            <span class="reg-topbar-tagline"></span>
             <a href="{{ route('doctor.register') }}" class="reg-topbar-btn">
                 Need an account?
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
