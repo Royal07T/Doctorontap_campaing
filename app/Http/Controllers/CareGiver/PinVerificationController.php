@@ -16,13 +16,13 @@ class PinVerificationController extends Controller
     public function show()
     {
         $caregiver = Auth::guard('care_giver')->user();
-        
+
         // If PIN not set, redirect to dashboard with warning
         if (!$caregiver->hasPin()) {
             return redirect()->route('care_giver.dashboard')
                 ->with('warning', 'PIN not set. Please contact administrator to set your PIN.');
         }
-        
+
         return view('care-giver.pin-verify');
     }
 
@@ -32,7 +32,7 @@ class PinVerificationController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'pin' => 'required|string|min:4|max:6',
+            'pin' => 'required|string|size:6',
         ]);
 
         $caregiver = Auth::guard('care_giver')->user();
@@ -75,7 +75,7 @@ class PinVerificationController extends Controller
         // PIN verified - store in session
         $pinVerifiedKey = 'caregiver_pin_verified_' . $caregiver->id;
         Session::put($pinVerifiedKey, true);
-        
+
         // Clear attempt counter
         Session::forget('pin_attempts_' . $caregiver->id);
 

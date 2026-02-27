@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use App\Mail\PaymentRequest;
 use App\Mail\DocumentsForwardedToDoctor;
 use App\Mail\TreatmentPlanNotification;
@@ -28,6 +29,7 @@ use App\Models\Notification;
 use App\Mail\CanvasserAccountCreated;
 use App\Mail\NurseAccountCreated;
 use App\Mail\CustomerCareAccountCreated;
+use App\Models\FamilyMember;
 use App\Mail\CareGiverAccountCreated;
 use App\Notifications\ConsultationSmsNotification;
 use App\Notifications\ConsultationWhatsAppNotification;
@@ -35,14 +37,11 @@ use App\Notifications\ConsultationWhatsAppNotification;
 class DashboardController extends Controller
 {
     /**
-     * Display admin dashboard
+     * Display admin dashboard - Command Center
      */
     public function index()
     {
-        // OPTIMIZATION: Combined multiple count queries into single aggregated query
-        // Reduces database round trips from 13 queries to 2 queries
         $stats = Cache::remember('admin_dashboard_stats', 300, function () {
-            // Single query for consultation statistics using conditional aggregation
             $consultationStats = Consultation::selectRaw('
                 COUNT(*) as total_consultations,
                 SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending_consultations,
@@ -50,17 +49,7 @@ class DashboardController extends Controller
                 SUM(CASE WHEN status = "completed" AND payment_status = "unpaid" THEN 1 ELSE 0 END) as unpaid_consultations,
                 SUM(CASE WHEN payment_status = "paid" THEN 1 ELSE 0 END) as paid_consultations
             ')->first();
-            
-            // Single query for user statistics
-            $userStats = [
-                'total_canvassers' => Canvasser::count(),
-                'active_canvassers' => Canvasser::where('is_active', true)->count(),
-                'total_nurses' => Nurse::count(),
-                'active_nurses' => Nurse::where('is_active', true)->count(),
-                'total_patients' => \App\Models\Patient::count(),
-                'consulted_patients' => \App\Models\Patient::where('has_consulted', true)->count(),
-            ];
-            
+
             return [
                 'total_consultations' => (int) $consultationStats->total_consultations,
                 'pending_consultations' => (int) $consultationStats->pending_consultations,
@@ -68,34 +57,48 @@ class DashboardController extends Controller
                 'unpaid_consultations' => (int) $consultationStats->unpaid_consultations,
                 'paid_consultations' => (int) $consultationStats->paid_consultations,
                 'total_revenue' => Payment::where('status', 'success')->sum('amount'),
-                'total_vital_records' => \App\Models\VitalSign::count(),
-            ] + $userStats;
+                'active_caregivers' => CareGiver::where('is_active', true)->count(),
+                'total_patients' => Patient::count(),
+                'pending_matchings' => Consultation::where('status', 'pending')->whereNull('doctor_id')->count(),
+                'monthly_revenue' => Payment::where('status', 'success')
+                    ->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('amount'),
+            ];
         });
 
-        // Cache top performers for 5 minutes
-        $topCanvassers = Cache::remember('admin_top_canvassers', 300, function () {
-            return Canvasser::withCount('patients')
-                          ->orderBy('patients_count', 'desc')
-                          ->limit(5)
-                          ->get();
+        // Operational queue - recent critical items
+        $operationalQueue = Consultation::with('patient', 'doctor')
+            ->where('status', 'pending')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Recent patients for matching
+        $recentPatients = Patient::with('canvasser')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        // Available caregivers for matching
+        $availableCaregivers = CareGiver::where('is_active', true)
+            ->take(5)
+            ->get();
+
+        // Payment stats
+        $paymentStats = Cache::remember('admin_payment_stats', 300, function () {
+            return [
+                'total_outstanding' => Payment::where('status', 'pending')->sum('amount'),
+                'processed_today' => Payment::where('status', 'success')
+                    ->whereDate('created_at', today())
+                    ->sum('amount'),
+                'failed_charges' => Payment::where('status', 'failed')
+                    ->whereMonth('created_at', now()->month)
+                    ->count(),
+            ];
         });
 
-        $topNurses = Cache::remember('admin_top_nurses', 300, function () {
-            return Nurse::withCount('vitalSigns')
-                       ->orderBy('vital_signs_count', 'desc')
-                       ->limit(5)
-                       ->get();
-        });
-
-        // Recent patients - cache for 1 minute (more dynamic)
-        $recentPatients = Cache::remember('admin_recent_patients', 60, function () {
-            return \App\Models\Patient::with('canvasser')
-                                     ->latest()
-                                     ->limit(10)
-                                     ->get();
-        });
-
-        return view('admin.dashboard', compact('stats', 'topCanvassers', 'topNurses', 'recentPatients'));
+        return view('admin.dashboard', compact('stats', 'operationalQueue', 'recentPatients', 'availableCaregivers', 'paymentStats'));
     }
 
     /**
@@ -163,22 +166,22 @@ class DashboardController extends Controller
         if ($request->has('payment_status') && $request->payment_status != '') {
             $query->where('payment_status', $request->payment_status);
         }
-        
+
         // Filter by doctor
         if ($request->filled('doctor_id')) {
             $query->where('doctor_id', $request->doctor_id);
         }
-        
+
         // Filter by canvasser
         if ($request->filled('canvasser_id')) {
             $query->where('canvasser_id', $request->canvasser_id);
         }
-        
+
         // Filter by nurse
         if ($request->filled('nurse_id')) {
             $query->where('nurse_id', $request->nurse_id);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -196,7 +199,7 @@ class DashboardController extends Controller
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('reference', 'like', "%{$search}%")
                   ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-                
+
                 // If search contains a space, also try searching first and last name separately
                 if (strpos($search, ' ') !== false) {
                     $parts = explode(' ', trim($search), 2);
@@ -216,7 +219,7 @@ class DashboardController extends Controller
         }
 
         $consultations = $query->latest()->paginate(20);
-        
+
         // Prepare consultations data for bulk actions modal (JavaScript)
         $consultationsData = $consultations->map(function($c) {
             return [
@@ -227,15 +230,15 @@ class DashboardController extends Controller
                 'payment_status' => $c->payment_status
             ];
         })->values()->toArray();
-        
+
         // Get all nurses for assignment dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
-        
-        // Get all available doctors for reassignment dropdown  
+
+        // Get all available doctors for reassignment dropdown
         $doctors = Doctor::where('is_available', true)
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
-        
+
         // Get all canvassers for filter dropdown
         $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
@@ -260,22 +263,22 @@ class DashboardController extends Controller
             if ($request->has('payment_status') && $request->payment_status != '') {
                 $query->where('payment_status', $request->payment_status);
             }
-            
+
             // Filter by doctor
             if ($request->filled('doctor_id')) {
                 $query->where('doctor_id', $request->doctor_id);
             }
-            
+
             // Filter by canvasser
             if ($request->filled('canvasser_id')) {
                 $query->where('canvasser_id', $request->canvasser_id);
             }
-            
+
             // Filter by nurse
             if ($request->filled('nurse_id')) {
                 $query->where('nurse_id', $request->nurse_id);
             }
-            
+
             // Date range filters
             if ($request->filled('date_from')) {
                 $query->whereDate('created_at', '>=', $request->date_from);
@@ -293,7 +296,7 @@ class DashboardController extends Controller
                       ->orWhere('email', 'like', "%{$search}%")
                       ->orWhere('reference', 'like', "%{$search}%")
                       ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-                    
+
                     // If search contains a space, try searching first and last name separately
                     if (strpos($search, ' ') !== false) {
                         $parts = explode(' ', trim($search), 2);
@@ -309,17 +312,17 @@ class DashboardController extends Controller
 
             // Get all consultations (not paginated)
             $consultations = $query->latest()->get();
-            
+
             // Generate filename with timestamp
             $filename = 'consultations_export_' . now()->format('Y-m-d_His') . '.csv';
-            
+
             // Create CSV response
             return response()->streamDownload(function() use ($consultations) {
                 $file = fopen('php://output', 'w');
-                
+
                 // Add UTF-8 BOM for Excel compatibility
                 fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-                
+
                 // CSV Headers
                 $headers = [
                     'Reference',
@@ -352,9 +355,9 @@ class DashboardController extends Controller
                     'Created At',
                     'Updated At',
                 ];
-                
+
                 fputcsv($file, $headers);
-                
+
                 // Add data rows
                 foreach ($consultations as $consultation) {
                     $row = [
@@ -388,16 +391,16 @@ class DashboardController extends Controller
                         $consultation->created_at ? $consultation->created_at->format('Y-m-d H:i:s') : '',
                         $consultation->updated_at ? $consultation->updated_at->format('Y-m-d H:i:s') : '',
                     ];
-                    
+
                     fputcsv($file, $row);
                 }
-                
+
                 fclose($file);
             }, $filename, [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
-            
+
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to export CSV: ' . $e->getMessage());
         }
@@ -422,7 +425,7 @@ class DashboardController extends Controller
                   ->orWhere('mobile', 'like', "%{$search}%")
                   ->orWhere('reference', 'like', "%{$search}%")
                   ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-                
+
                 // If search contains a space, also try searching first and last name separately
                 if (strpos($search, ' ') !== false) {
                     $parts = explode(' ', trim($search), 2);
@@ -445,17 +448,17 @@ class DashboardController extends Controller
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
         }
-        
+
         // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
+
         // Filter by canvasser
         if ($request->filled('canvasser_id')) {
             $query->where('canvasser_id', $request->canvasser_id);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -466,7 +469,7 @@ class DashboardController extends Controller
 
         // Get all patients, grouped by email to avoid duplicates in view
         $patients = $query->latest()->paginate(20);
-        
+
         // Get canvassers for filter dropdown
         $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
@@ -480,15 +483,15 @@ class DashboardController extends Controller
     {
         // Admins can view all consultations (no filtering needed)
         $consultation = Consultation::with(['doctor', 'payment', 'booking.bookingPatients.patient', 'booking.invoice.items'])->findOrFail($id);
-        
+
         // Log viewing for HIPAA compliance
         $consultation->logViewed();
-        
+
         // Get available doctors for reassignment
         $doctors = Doctor::where('is_available', true)
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
-        
+
         return view('admin.consultation-details', compact('consultation', 'doctors'));
     }
 
@@ -499,7 +502,7 @@ class DashboardController extends Controller
     {
         try {
             $consultation = Consultation::findOrFail($id);
-            
+
             // Soft delete the consultation
             $consultation->delete();
 
@@ -680,7 +683,7 @@ class DashboardController extends Controller
 
                 if ($consultation->email) {
                     Mail::to($consultation->email)->send(new PaymentRequest($consultation));
-                    
+
                     $consultation->update([
                         'payment_request_sent' => true,
                         'payment_request_sent_at' => now(),
@@ -752,7 +755,7 @@ class DashboardController extends Controller
             try {
                 // Use the existing reassignDoctor logic
                 $oldDoctor = $consultation->doctor;
-                
+
                 $consultation->update([
                     'doctor_id' => $doctorId
                 ]);
@@ -835,7 +838,7 @@ class DashboardController extends Controller
         ]);
 
         $consultation = Consultation::findOrFail($id);
-        
+
         $consultation->update([
             'status' => $request->status,
             'consultation_completed_at' => $request->status === 'completed' ? now() : $consultation->consultation_completed_at,
@@ -896,7 +899,7 @@ class DashboardController extends Controller
         }
 
         $oldDoctor = $consultation->doctor;
-        
+
         $consultation->update([
             'doctor_id' => $request->doctor_id
         ]);
@@ -1029,18 +1032,18 @@ class DashboardController extends Controller
                     'old_doctor' => $oldDoctor ? $oldDoctor->full_name : 'No Doctor',
                     'new_doctor' => $doctor->full_name,
                 ]);
-                
+
                 // Create a custom SMS message for reassignment
                 $patientName = $consultation->first_name;
                 $reference = $consultation->reference;
                 $newDoctorName = $doctor->full_name;
                 $oldDoctorName = $oldDoctor ? $oldDoctor->full_name : 'No Doctor';
-                
+
                 $smsMessage = "Dear {$patientName}, your consultation (Ref: {$reference}) has been reassigned from {$oldDoctorName} to Dr. {$newDoctorName}. We'll contact you shortly. - DoctorOnTap";
-                
+
                 $termiiService = app(\App\Services\TermiiService::class);
                 $smsResult = $termiiService->sendSMS($consultation->mobile, $smsMessage);
-                
+
                 if ($smsResult['success']) {
                     \Log::info('Patient reassignment SMS sent', [
                         'consultation_id' => $consultation->id,
@@ -1057,7 +1060,7 @@ class DashboardController extends Controller
             try {
                 $smsNotification = new ConsultationSmsNotification();
                 $doctorSmsResult = $smsNotification->sendDoctorNewConsultation($doctor, $consultationData);
-                
+
                 if ($doctorSmsResult['success']) {
                     \Log::info('Doctor reassignment SMS sent', [
                         'consultation_id' => $consultation->id,
@@ -1078,12 +1081,12 @@ class DashboardController extends Controller
         if (config('services.termii.whatsapp_enabled') && $consultation->mobile) {
             try {
                 $whatsapp = new ConsultationWhatsAppNotification();
-                
+
                 $patientName = $consultation->first_name;
                 $reference = $consultation->reference;
                 $newDoctorName = $doctor->full_name;
                 $oldDoctorName = $oldDoctor ? $oldDoctor->full_name : 'No Doctor';
-                
+
                 $whatsappMessage = "🔄 *Doctor Reassignment Notice*\n\n";
                 $whatsappMessage .= "Hi {$patientName},\n\n";
                 $whatsappMessage .= "Your consultation has been reassigned:\n\n";
@@ -1093,10 +1096,10 @@ class DashboardController extends Controller
                 $whatsappMessage .= "We'll contact you shortly with more details.\n\n";
                 $whatsappMessage .= "Questions? Reply to this message!\n\n";
                 $whatsappMessage .= "— *DoctorOnTap Healthcare* 🏥";
-                
+
                 $termiiService = app(\App\Services\TermiiService::class);
                 $whatsappResult = $termiiService->sendWhatsAppMessage($consultation->mobile, $whatsappMessage);
-                
+
                 if ($whatsappResult['success']) {
                     \Log::info('Patient reassignment WhatsApp sent', [
                         'consultation_id' => $consultation->id,
@@ -1117,7 +1120,7 @@ class DashboardController extends Controller
                     $consultationData,
                     'doctor_new_consultation' // Template ID from Termii dashboard
                 );
-                
+
                 if ($doctorWhatsappResult['success']) {
                     \Log::info('Doctor reassignment WhatsApp sent', [
                         'consultation_id' => $consultation->id,
@@ -1130,8 +1133,8 @@ class DashboardController extends Controller
             }
         }
 
-        $message = 'Doctor reassigned successfully from ' . 
-                ($oldDoctor ? $oldDoctor->full_name : 'No Doctor') . 
+        $message = 'Doctor reassigned successfully from ' .
+                ($oldDoctor ? $oldDoctor->full_name : 'No Doctor') .
                 ' to ' . $doctor->full_name . '. Notifications sent to patient and doctor.';
 
         return response()->json([
@@ -1210,7 +1213,7 @@ class DashboardController extends Controller
             try {
                 $smsNotification = new \App\Notifications\ConsultationSmsNotification();
                 $smsResult = $smsNotification->sendDelayQuerySms($doctor, $notificationData);
-                
+
                 if ($smsResult['success']) {
                     \Log::info('Delay query SMS sent to doctor', [
                         'consultation_id' => $consultation->id,
@@ -1296,7 +1299,7 @@ class DashboardController extends Controller
         // Determine recipient email: check multiple sources
         $recipientEmail = null;
         $recipientName = $consultation->full_name;
-        
+
         // 1. First try consultation email field
         if (!empty($consultation->email)) {
             $recipientEmail = $consultation->email;
@@ -1332,7 +1335,7 @@ class DashboardController extends Controller
             if ($isPaid) {
                 // Payment has been made - send treatment plan
                 Mail::to($recipientEmail)->send(new TreatmentPlanNotification($consultation));
-                
+
                 \Log::info('Treatment plan manually forwarded by admin (payment confirmed)', [
                     'consultation_id' => $consultation->id,
                     'reference' => $consultation->reference,
@@ -1348,7 +1351,7 @@ class DashboardController extends Controller
             } else {
                 // Payment has NOT been made - send payment request instead
                 Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
-                
+
                 \Log::info('Payment request sent by admin (treatment plan forward - payment not made)', [
                     'consultation_id' => $consultation->id,
                     'reference' => $consultation->reference,
@@ -1372,7 +1375,7 @@ class DashboardController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             $emailType = $isPaid ? 'treatment plan' : 'payment request';
             return response()->json([
                 'success' => false,
@@ -1406,7 +1409,7 @@ class DashboardController extends Controller
         try {
             Mail::to($consultation->email)->send(new PaymentRequest($consultation));
             $results['email'] = ['sent' => true, 'message' => 'Email sent successfully'];
-            
+
             \Log::info('Payment request email resent by admin', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
@@ -1425,7 +1428,7 @@ class DashboardController extends Controller
         try {
             $smsNotification = new \App\Notifications\ConsultationSmsNotification();
             $smsResult = $smsNotification->sendTreatmentPlanReady($consultation);
-            
+
             if ($smsResult['success']) {
                 $results['sms'] = ['sent' => true, 'message' => 'SMS sent successfully'];
                 \Log::info('Treatment plan SMS resent by admin', [
@@ -1529,7 +1532,7 @@ class DashboardController extends Controller
                 // Send payment request email
                 try {
                     Mail::to($consultation->email)->send(new PaymentRequest($consultation));
-                    
+
                     \Log::info('Payment request sent after manual payment', [
                         'consultation_id' => $consultation->id,
                         'reference' => $consultation->reference,
@@ -1562,7 +1565,7 @@ class DashboardController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to mark payment as paid: ' . $e->getMessage()
@@ -1591,12 +1594,12 @@ class DashboardController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
+
         // Filter by doctor
         if ($request->filled('doctor_id')) {
             $query->where('doctor_id', $request->doctor_id);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1604,7 +1607,7 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         // Amount range filters
         if ($request->filled('amount_min')) {
             $query->where('amount', '>=', $request->amount_min);
@@ -1612,14 +1615,14 @@ class DashboardController extends Controller
         if ($request->filled('amount_max')) {
             $query->where('amount', '<=', $request->amount_max);
         }
-        
+
         // Payment method filter
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->payment_method);
         }
 
         $payments = $query->latest()->paginate(20);
-        
+
         // Get all doctors for filter dropdown
         $doctors = Doctor::approved()->orderBy('name')->get();
 
@@ -1656,12 +1659,12 @@ class DashboardController extends Controller
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
         }
-        
+
         // Filter by specialization (exact match or contains)
         if ($request->filled('specialization')) {
             $query->where('specialization', 'like', "%{$request->specialization}%");
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1757,7 +1760,7 @@ class DashboardController extends Controller
 
         // Handle checkbox value
         $validated['is_available'] = $request->has('is_available') ? true : false;
-        
+
         // Handle MDCN license - convert 'yes'/'no' to boolean
         if (isset($validated['mdcn_license_current'])) {
             $validated['mdcn_license_current'] = $validated['mdcn_license_current'] === 'yes';
@@ -1828,7 +1831,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             // Soft delete the doctor (consultations will remain with doctor_id)
             $doctor->delete();
 
@@ -1840,6 +1843,33 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete doctor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Set password for a doctor
+     */
+    public function setDoctorPassword(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try {
+            $doctor = Doctor::findOrFail($id);
+            $doctor->update([
+                'password' => Hash::make($request->password),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Password set successfully for {$doctor->name}.",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to set password: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -1914,7 +1944,7 @@ class DashboardController extends Controller
     public function adminUsers(Request $request)
     {
         $query = AdminUser::query();
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -1923,12 +1953,12 @@ class DashboardController extends Controller
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
-        
+
         // Role filter
         if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1936,9 +1966,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $admins = $query->latest()->paginate(20);
-        
+
         return view('admin.admin-users', compact('admins'));
     }
 
@@ -1959,7 +1989,7 @@ class DashboardController extends Controller
 
         try {
             $admin = AdminUser::create($validated);
-            
+
             // Send email verification notification
             $admin->sendEmailVerificationNotification();
 
@@ -1977,7 +2007,7 @@ class DashboardController extends Controller
 
     /**
      * Update an existing admin user
-     * 
+     *
      * Updated to use unified user system - updates both users table and admin_users table
      */
     public function updateAdminUser(Request $request, $id)
@@ -1991,7 +2021,7 @@ class DashboardController extends Controller
 
         // Use UnifiedUserUpdateService to update both users and admin_users tables
         $userUpdateService = app(\App\Services\UnifiedUserUpdateService::class);
-        
+
         // Prepare data for unified update
         $updateData = [
             'name' => $validated['name'],
@@ -2032,7 +2062,7 @@ class DashboardController extends Controller
     {
         try {
             $admin = AdminUser::findOrFail($id);
-            
+
             // Prevent deactivating yourself
             if ($admin->id === auth()->guard('admin')->id()) {
                 return response()->json([
@@ -2063,7 +2093,7 @@ class DashboardController extends Controller
     {
         try {
             $admin = AdminUser::findOrFail($id);
-            
+
             // Prevent deleting yourself
             if ($admin->id === auth()->guard('admin')->id()) {
                 return response()->json([
@@ -2071,7 +2101,7 @@ class DashboardController extends Controller
                     'message' => 'You cannot delete your own account'
                 ], 400);
             }
-            
+
             // Soft delete the admin user
             $admin->delete();
 
@@ -2095,7 +2125,7 @@ class DashboardController extends Controller
     public function canvassers(Request $request)
     {
         $query = Canvasser::with('createdBy')->withCount('consultations');
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -2105,7 +2135,7 @@ class DashboardController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
@@ -2114,7 +2144,7 @@ class DashboardController extends Controller
                 $query->where('is_active', false);
             }
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -2122,9 +2152,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $canvassers = $query->latest()->paginate(20);
-        
+
         return view('admin.canvassers', compact('canvassers'));
     }
 
@@ -2143,17 +2173,17 @@ class DashboardController extends Controller
 
         // Store plain password before hashing
         $plainPassword = $validated['password'];
-        
+
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
             $canvasser = Canvasser::create($validated);
-            
+
             // Get admin name
             $adminName = auth()->guard('admin')->user()->name;
-            
+
             // Send account creation email with password and verification link
             Mail::to($canvasser->email)->send(new CanvasserAccountCreated($canvasser, $plainPassword, $adminName));
 
@@ -2237,7 +2267,7 @@ class DashboardController extends Controller
     {
         try {
             $canvasser = Canvasser::findOrFail($id);
-            
+
             // Soft delete the canvasser (patients and consultations will remain with canvasser_id)
             $canvasser->delete();
 
@@ -2261,7 +2291,7 @@ class DashboardController extends Controller
     public function nurses(Request $request)
     {
         $query = Nurse::with('createdBy')->withCount('consultations');
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -2271,7 +2301,7 @@ class DashboardController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
@@ -2280,7 +2310,7 @@ class DashboardController extends Controller
                 $query->where('is_active', false);
             }
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -2288,9 +2318,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $nurses = $query->latest()->paginate(20);
-        
+
         return view('admin.nurses', compact('nurses'));
     }
 
@@ -2309,17 +2339,17 @@ class DashboardController extends Controller
 
         // Store plain password before hashing
         $plainPassword = $validated['password'];
-        
+
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
             $nurse = Nurse::create($validated);
-            
+
             // Get admin name
             $adminName = auth()->guard('admin')->user()->name;
-            
+
             // Send account creation email with password and verification link
             Mail::to($nurse->email)->send(new NurseAccountCreated($nurse, $plainPassword, $adminName));
 
@@ -2403,7 +2433,7 @@ class DashboardController extends Controller
     {
         try {
             $nurse = Nurse::findOrFail($id);
-            
+
             // Soft delete the nurse (consultations and vital signs will remain with nurse_id)
             $nurse->delete();
 
@@ -2427,7 +2457,7 @@ class DashboardController extends Controller
     public function customerCares(Request $request)
     {
         $query = CustomerCare::with('createdBy')->withCount('consultations');
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -2437,7 +2467,7 @@ class DashboardController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
@@ -2446,7 +2476,7 @@ class DashboardController extends Controller
                 $query->where('is_active', false);
             }
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -2454,9 +2484,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $customerCares = $query->latest()->paginate(20);
-        
+
         return view('admin.customer-cares', compact('customerCares'));
     }
 
@@ -2476,17 +2506,17 @@ class DashboardController extends Controller
 
         // Store plain password before hashing
         $plainPassword = $validated['password'];
-        
+
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
             $customerCare = CustomerCare::create($validated);
-            
+
             // Get admin name
             $adminName = auth()->guard('admin')->user()->name;
-            
+
             // Send account creation email with password and verification link
             Mail::to($customerCare->email)->send(new CustomerCareAccountCreated($customerCare, $plainPassword, $adminName));
 
@@ -2499,7 +2529,7 @@ class DashboardController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create customer care: ' . $e->getMessage()
@@ -2588,7 +2618,7 @@ class DashboardController extends Controller
     {
         try {
             $customerCare = CustomerCare::findOrFail($id);
-            
+
             // Soft delete the customer care
             $customerCare->delete();
 
@@ -2612,7 +2642,7 @@ class DashboardController extends Controller
     public function careGivers(Request $request)
     {
         $query = CareGiver::with('createdBy')->withCount('consultations');
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -2622,7 +2652,7 @@ class DashboardController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
@@ -2631,7 +2661,7 @@ class DashboardController extends Controller
                 $query->where('is_active', false);
             }
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -2639,9 +2669,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $careGivers = $query->latest()->paginate(20);
-        
+
         return view('admin.care-givers', compact('careGivers'));
     }
 
@@ -2659,20 +2689,24 @@ class DashboardController extends Controller
             $careGiver = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $request) {
                 // Store plain password before hashing
                 $plainPassword = $validated['password'];
-                
+                $plainPin = $request->input('pin', '123456'); // Default PIN if not provided
+
                 $validated['password'] = bcrypt($validated['password']);
                 $validated['is_active'] = $request->has('is_active') ? true : false;
                 $validated['created_by'] = auth()->guard('admin')->id();
 
                 $careGiver = CareGiver::create($validated);
-                
+
+                // Set PIN for caregiver
+                $careGiver->setPin($plainPin);
+
                 // Get admin name
                 $adminName = auth()->guard('admin')->user()->name;
-                
+
                 // OPTIMIZATION: Email is now queued (ShouldQueue), so it won't block
                 // The transaction completes, then email is sent asynchronously
                 Mail::to($careGiver->email)->send(new CareGiverAccountCreated($careGiver, $plainPassword, $adminName));
-                
+
                 return $careGiver;
             });
 
@@ -2706,7 +2740,7 @@ class DashboardController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:care_givers,email,' . $id,
                 'phone' => 'nullable|string|max:20',
-                'password' => 'nullable|string|min:8|confirmed',
+                'password' => 'nullable|string|min:8',
                 'is_active' => 'nullable|boolean',
             ]);
 
@@ -2720,6 +2754,11 @@ class DashboardController extends Controller
             $validated['is_active'] = $request->has('is_active') ? true : false;
 
             $careGiver->update($validated);
+
+            // Update PIN if provided
+            if ($request->filled('pin')) {
+                $careGiver->setPin($request->input('pin'));
+            }
 
             return response()->json([
                 'success' => true,
@@ -2768,7 +2807,7 @@ class DashboardController extends Controller
     {
         try {
             $careGiver = CareGiver::findOrFail($id);
-            
+
             // Soft delete the care giver (consultations will remain with care_giver_id)
             $careGiver->delete();
 
@@ -2814,17 +2853,17 @@ class DashboardController extends Controller
                   ->orWhere('specialization', 'like', "%{$search}%");
             });
         }
-        
+
         // Filter by specialization
         if ($request->filled('specialization')) {
             $query->where('specialization', 'like', "%{$request->specialization}%");
         }
-        
+
         // Filter by gender
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -2846,7 +2885,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             if ($doctor->is_approved) {
                 return response()->json([
                     'success' => false,
@@ -2899,7 +2938,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             // Delete the certificate file if exists
             if ($doctor->certificate_path && \Storage::disk('public')->exists($doctor->certificate_path)) {
                 \Storage::disk('public')->delete($doctor->certificate_path);
@@ -2930,7 +2969,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::with('verifiedByAdmin')->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'doctor' => [
@@ -3000,10 +3039,10 @@ class DashboardController extends Controller
         $securityAlertThresholdHigh = Setting::get('security_alert_threshold_high', 5);
 
         return view('admin.settings', compact(
-            'settings', 
-            'defaultFee', 
-            'multiPatientFee', 
-            'useDefaultForAll', 
+            'settings',
+            'defaultFee',
+            'multiPatientFee',
+            'useDefaultForAll',
             'doctorPaymentPercentage',
             'consultationFeePayLater',
             'consultationFeePayNow',
@@ -3023,10 +3062,10 @@ class DashboardController extends Controller
     {
         try {
             $formType = $request->input('form_type', 'both');
-            
+
             // Build validation rules based on form type
             $rules = [];
-            
+
             // Company settings (only validate if company form is submitted)
             if ($formType === 'company' || $formType === 'both') {
                 $rules['company_name'] = 'required|string|max:255';
@@ -3066,26 +3105,26 @@ class DashboardController extends Controller
             if ($formType === 'pricing' || $formType === 'both') {
                 // Use pay_later fee as default if default_consultation_fee is not provided
                 $defaultFee = $validated['default_consultation_fee'] ?? ($validated['consultation_fee_pay_later'] ?? null);
-                
+
                 if ($defaultFee !== null) {
                     Setting::set('default_consultation_fee', $defaultFee, 'number');
                 }
-                
+
                 if (isset($validated['multi_patient_booking_fee'])) {
                     Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
                 }
-                
+
                 if (isset($validated['additional_child_discount_percentage'])) {
                     Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
                 }
-                
+
                 Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
                 Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
-                
+
                 if (isset($validated['consultation_fee_pay_later'])) {
                     Setting::set('consultation_fee_pay_later', $validated['consultation_fee_pay_later'], 'number');
                 }
-                
+
                 if (isset($validated['consultation_fee_pay_now'])) {
                     Setting::set('consultation_fee_pay_now', $validated['consultation_fee_pay_now'], 'number');
                 }
@@ -3094,7 +3133,7 @@ class DashboardController extends Controller
             // Update security alert settings (only if security form was submitted)
             if ($formType === 'security_alerts' || $formType === 'both') {
                 Setting::set('security_alerts_enabled', $request->has('security_alerts_enabled') ? 1 : 0, 'boolean');
-                
+
                 if ($request->has('security_alert_emails')) {
                     $emails = array_filter($request->input('security_alert_emails', []));
                     Setting::set('security_alert_emails', $emails, 'json');
@@ -3104,15 +3143,15 @@ class DashboardController extends Controller
                         'updated_by' => auth()->guard('admin')->id()
                     ]);
                 }
-                
+
                 if ($request->has('security_alert_severities')) {
                     Setting::set('security_alert_severities', $request->input('security_alert_severities', []), 'json');
                 }
-                
+
                 if ($request->has('security_alert_threshold_critical')) {
                     Setting::set('security_alert_threshold_critical', $request->input('security_alert_threshold_critical', 1), 'integer');
                 }
-                
+
                 if ($request->has('security_alert_threshold_high')) {
                     Setting::set('security_alert_threshold_high', $request->input('security_alert_threshold_high', 5), 'integer');
                 }
@@ -3131,23 +3170,23 @@ class DashboardController extends Controller
                 if (isset($validated['company_name'])) {
                     Setting::set('company_name', $validated['company_name'], 'string');
                 }
-                
+
                 if (isset($validated['company_email'])) {
                     Setting::set('company_email', $validated['company_email'], 'string');
                 }
-                
+
                 if (isset($validated['company_phone'])) {
                     Setting::set('company_phone', $validated['company_phone'], 'string');
                 }
-                
+
                 if (isset($validated['company_address'])) {
                     Setting::set('company_address', $validated['company_address'], 'string');
                 }
-                
+
                 if (isset($validated['company_website'])) {
                     Setting::set('company_website', $validated['company_website'], 'string');
                 }
-                
+
                 if ($formType === 'company') {
                     return redirect()->back()->with('success', 'Company information updated successfully!');
                 }
@@ -3166,13 +3205,13 @@ class DashboardController extends Controller
     {
         try {
             $alertEmails = Setting::get('security_alert_emails', []);
-            
+
             \Log::info('Test security alert requested', [
                 'configured_emails' => $alertEmails,
                 'emails_count' => is_array($alertEmails) ? count($alertEmails) : 0,
                 'ip' => $request->ip(),
             ]);
-            
+
             if (empty($alertEmails) || !is_array($alertEmails)) {
                 \Log::warning('Test security alert failed: No email recipients configured');
                 return response()->json([
@@ -3218,9 +3257,9 @@ class DashboardController extends Controller
                     ]);
 
                     \Mail::to($email)->send(new \App\Mail\SecurityAlert('test_alert', $testData, 'medium'));
-                    
+
                     $sentCount++;
-                    
+
                     \Log::info('Test security alert email sent successfully', [
                         'recipient' => $email
                     ]);
@@ -3236,7 +3275,7 @@ class DashboardController extends Controller
 
             if ($sentCount > 0) {
                 $message = "Test security alert email sent successfully to {$sentCount} recipient(s): " . implode(', ', array_diff($validEmails, $failedEmails));
-                
+
                 if (!empty($failedEmails)) {
                     $message .= ". Failed to send to: " . implode(', ', $failedEmails);
                 }
@@ -3283,7 +3322,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             // Try to get from private storage first, fallback to base64
             if ($doctor->certificate_path && Storage::exists($doctor->certificate_path)) {
                 $fileContent = Storage::get($doctor->certificate_path);
@@ -3298,18 +3337,18 @@ class DashboardController extends Controller
                     'message' => 'No certificate found for this doctor.'
                 ], 404);
             }
-            
+
             // Return the file for viewing/download
             return response($fileContent)
                 ->header('Content-Type', $mimeType)
                 ->header('Content-Disposition', 'inline; filename="' . ($doctor->certificate_original_name ?? 'mdcn-certificate.pdf') . '"');
-                
+
         } catch (\Exception $e) {
             \Log::error('Failed to view doctor certificate', [
                 'doctor_id' => $id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load certificate: ' . $e->getMessage()
@@ -3324,29 +3363,29 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             if (!$doctor->certificate_path && !$doctor->certificate_data) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No certificate found to verify.'
                 ], 400);
             }
-            
+
             $admin = Auth::guard('admin')->user();
-            
+
             $doctor->update([
                 'mdcn_certificate_verified' => true,
                 'mdcn_certificate_verified_at' => now(),
                 'mdcn_certificate_verified_by' => $admin->id,
             ]);
-            
+
             \Log::info('MDCN certificate verified by admin', [
                 'doctor_id' => $doctor->id,
                 'doctor_name' => $doctor->full_name,
                 'admin_id' => $admin->id,
                 'admin_name' => $admin->name,
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'MDCN certificate verified successfully.',
@@ -3359,7 +3398,7 @@ class DashboardController extends Controller
                 'doctor_id' => $id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to verify certificate: ' . $e->getMessage()
@@ -3374,19 +3413,19 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             $doctor->update([
                 'mdcn_certificate_verified' => false,
                 'mdcn_certificate_verified_at' => null,
                 'mdcn_certificate_verified_by' => null,
             ]);
-            
+
             \Log::info('MDCN certificate unverified by admin', [
                 'doctor_id' => $doctor->id,
                 'doctor_name' => $doctor->full_name,
                 'admin_id' => Auth::guard('admin')->user()->id,
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'MDCN certificate verification removed.',
@@ -3533,7 +3572,7 @@ class DashboardController extends Controller
         }
 
         $vitalSigns = $query->latest()->paginate(20);
-        
+
         // Get all nurses for filter dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
 
@@ -3555,13 +3594,13 @@ class DashboardController extends Controller
     public function canvasserPatients(Request $request)
     {
         $canvasserId = $request->query('canvasser_id');
-        
+
         $query = Patient::with('canvasser');
-        
+
         if ($canvasserId) {
             $query->where('canvasser_id', $canvasserId);
         }
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -3571,7 +3610,7 @@ class DashboardController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Filter by verification status
         if ($request->filled('verification_status')) {
             if ($request->verification_status === 'verified') {
@@ -3580,12 +3619,12 @@ class DashboardController extends Controller
                 $query->where('is_verified', false);
             }
         }
-        
+
         // Filter by gender
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -3593,12 +3632,12 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $patients = $query->latest()->paginate(20);
-        
+
         // Get canvassers for filter dropdown
         $canvassers = Canvasser::select('id', 'name')->get();
-        
+
         // Statistics
         $stats = [
             'total_patients' => Patient::count(),
@@ -3607,7 +3646,7 @@ class DashboardController extends Controller
             'patients_with_consultations' => Patient::where('consultations_count', '>', 0)->count(),
             'patients_without_consultations' => Patient::where('consultations_count', 0)->count(),
         ];
-        
+
         return view('admin.canvasser-patients', compact('patients', 'canvassers', 'stats'));
     }
 
@@ -3631,7 +3670,7 @@ class DashboardController extends Controller
                                                                               ->count();
                                   return $canvasser;
                               });
-        
+
         $stats = [
             'total_canvassers' => Canvasser::count(),
             'active_canvassers' => Canvasser::where('is_active', true)->count(),
@@ -3639,7 +3678,7 @@ class DashboardController extends Controller
             'verified_patients' => Patient::where('is_verified', true)->count(),
             'total_revenue_generated' => Patient::sum('total_amount_paid'),
         ];
-        
+
         return view('admin.canvasser-performance', compact('canvassers', 'stats'));
     }
 
@@ -3652,15 +3691,15 @@ class DashboardController extends Controller
                                    ->with('canvasser')
                                    ->latest()
                                    ->paginate(20);
-        
+
         $stats = [
             'total_patients' => Patient::count(),
             'verified_patients' => Patient::where('is_verified', true)->count(),
             'unverified_patients' => Patient::where('is_verified', false)->count(),
-            'verification_rate' => Patient::count() > 0 ? 
+            'verification_rate' => Patient::count() > 0 ?
                 round((Patient::where('is_verified', true)->count() / Patient::count()) * 100, 2) : 0,
         ];
-        
+
         return view('admin.patient-verification', compact('unverifiedPatients', 'stats'));
     }
 
@@ -3671,7 +3710,7 @@ class DashboardController extends Controller
     {
         try {
             $patient = Patient::findOrFail($id);
-            
+
             // Soft delete the patient
             $patient->delete();
 
@@ -3694,7 +3733,7 @@ class DashboardController extends Controller
     {
         try {
             $vitalSign = VitalSign::findOrFail($id);
-            
+
             // Soft delete the vital sign
             $vitalSign->delete();
 
@@ -3716,7 +3755,7 @@ class DashboardController extends Controller
     public function viewDoctorProfile($id)
     {
         $doctor = Doctor::with(['bankAccounts', 'consultations', 'payments'])->findOrFail($id);
-        
+
         // Calculate statistics
         $stats = [
             'total_consultations' => $doctor->consultations()->count(),
@@ -3760,7 +3799,7 @@ class DashboardController extends Controller
 
     /**
      * Reset doctor penalty and set to available (Admin only)
-     * 
+     *
      * Only admins can reset penalties and set doctors back to available
      * after they have been auto-set to unavailable due to missed consultations.
      */
@@ -3858,7 +3897,7 @@ class DashboardController extends Controller
     public function doctorPayments(Request $request)
     {
         $query = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -3889,7 +3928,7 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->where('created_at', '<=', $request->date_to);
         }
-        
+
         // Amount range filters
         if ($request->filled('amount_min')) {
             $query->where('doctor_amount', '>=', $request->amount_min);
@@ -4015,7 +4054,7 @@ class DashboardController extends Controller
 
             // Get verified bank account (prefer default, otherwise get first verified)
             $bankAccount = $doctor->defaultBankAccount;
-            
+
             // If no default account, get the first verified account
             if (!$bankAccount || !$bankAccount->is_verified) {
                 $bankAccount = $doctor->bankAccounts()
@@ -4033,7 +4072,7 @@ class DashboardController extends Controller
 
             // Validate that all submitted consultations belong to this doctor and are paid
             $submittedConsultations = Consultation::whereIn('id', $validated['consultation_ids'])->get();
-            
+
             // Check if all consultations belong to this doctor
             $invalidDoctorConsultations = $submittedConsultations->where('doctor_id', '!=', $doctor->id);
             if ($invalidDoctorConsultations->isNotEmpty()) {
@@ -4078,7 +4117,7 @@ class DashboardController extends Controller
 
             // Use custom percentage or default from settings
             $doctorPercentage = $validated['doctor_percentage'] ?? Setting::get('doctor_payment_percentage', 70);
-            
+
             // Calculate payment details
             $paymentData = \App\Models\DoctorPayment::calculatePayment(
                 $consultations,
@@ -4293,10 +4332,10 @@ class DashboardController extends Controller
 
             if ($result['success'] && !empty($result['data'])) {
                 $data = $result['data'];
-                
+
                 // Update payment status based on verification
                 $korapayStatus = $data['status'] ?? 'processing';
-                $paymentStatus = $korapayStatus === 'success' ? 'completed' : 
+                $paymentStatus = $korapayStatus === 'success' ? 'completed' :
                                 ($korapayStatus === 'failed' ? 'failed' : 'processing');
 
                 $updateData = [
@@ -4307,18 +4346,18 @@ class DashboardController extends Controller
 
                 if ($korapayStatus === 'success') {
                     $wasCompleted = $payment->status === 'completed';
-                    
+
                     $updateData['paid_at'] = now();
                     $updateData['payout_completed_at'] = now();
                     $updateData['transaction_reference'] = $payment->korapay_reference;
-                    
+
                     if (isset($data['fee'])) {
                         $updateData['korapay_fee'] = (float) $data['fee'];
                     }
                 }
 
                 $payment->update($updateData);
-                
+
                 // Send notification if payment was just completed
                 if ($korapayStatus === 'success' && !$wasCompleted && $payment->doctor_id) {
                     try {
@@ -4452,7 +4491,7 @@ class DashboardController extends Controller
                     $q->whereNotIn('id', $excludedConsultationIds);
                 })
                 ->count();
-            
+
             $totalAmount = $totalUnpaidCount * $doctor->effective_consultation_fee;
 
             // Log for debugging
@@ -4547,5 +4586,141 @@ class DashboardController extends Controller
         ])->findOrFail($id);
 
         return view('admin.booking-details', compact('booking'));
+    }
+
+    /**
+     * Admin Reports page
+     */
+    public function adminReports()
+    {
+        $stats = Cache::remember('admin_reports_stats', 300, function () {
+            $totalRevenue = Payment::where('status', 'paid')->sum('amount');
+            $totalConsultations = Consultation::count();
+            $completedConsultations = Consultation::where('status', 'completed')->count();
+            $pendingPayments = Payment::where('status', 'pending')->count();
+            $operationalEfficiency = $totalConsultations > 0 ? round(($completedConsultations / $totalConsultations) * 100, 1) : 0;
+
+            return [
+                'totalRevenue' => $totalRevenue,
+                'operationalEfficiency' => $operationalEfficiency,
+                'clinicalOutcomeRate' => 88.5,
+                'pendingSettlements' => $pendingPayments,
+            ];
+        });
+
+        $recentLogs = Consultation::with('doctor', 'patient')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('admin.admin-reports', compact('stats', 'recentLogs'));
+    }
+
+    /**
+     * Comms Center page
+     */
+    public function commsCenter()
+    {
+        $patients = Patient::latest()->take(20)->get();
+        $careGivers = CareGiver::where('is_active', true)->get();
+
+        return view('admin.comms-center', compact('patients', 'careGivers'));
+    }
+
+    /**
+     * Family Members Management
+     */
+    public function familyMembers(Request $request)
+    {
+        $query = FamilyMember::with('patient');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $familyMembers = $query->latest()->paginate(20);
+        $patients = Patient::orderBy('name')->get();
+
+        return view('admin.family-members', compact('familyMembers', 'patients'));
+    }
+
+    /**
+     * Store a new family member
+     */
+    public function storeFamilyMember(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:family_members,email',
+            'password' => 'required|string|min:8',
+            'phone' => 'nullable|string|max:20',
+            'patient_id' => 'required|exists:patients,id',
+            'relationship' => 'required|string|max:100',
+        ]);
+
+        FamilyMember::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'phone' => $request->phone,
+            'patient_id' => $request->patient_id,
+            'relationship' => $request->relationship,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member account created successfully.');
+    }
+
+    /**
+     * Update a family member
+     */
+    public function updateFamilyMember(Request $request, $id)
+    {
+        $familyMember = FamilyMember::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:family_members,email,' . $id,
+            'phone' => 'nullable|string|max:20',
+            'patient_id' => 'required|exists:patients,id',
+            'relationship' => 'required|string|max:100',
+        ]);
+
+        $data = $request->only(['name', 'email', 'phone', 'patient_id', 'relationship']);
+
+        if ($request->filled('password')) {
+            $data['password'] = bcrypt($request->password);
+        }
+
+        $familyMember->update($data);
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member updated successfully.');
+    }
+
+    /**
+     * Toggle family member active status
+     */
+    public function toggleFamilyMemberStatus($id)
+    {
+        $familyMember = FamilyMember::findOrFail($id);
+        $familyMember->update(['is_active' => !$familyMember->is_active]);
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member status updated.');
+    }
+
+    /**
+     * Delete a family member
+     */
+    public function deleteFamilyMember($id)
+    {
+        $familyMember = FamilyMember::findOrFail($id);
+        $familyMember->delete();
+
+        return redirect()->route('admin.family-members')->with('success', 'Family member deleted.');
     }
 }

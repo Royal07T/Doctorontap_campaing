@@ -134,8 +134,8 @@
             <form method="GET" action="{{ route('admin.doctors') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Search</label>
-                    <input type="text" 
-                           name="search" 
+                    <input type="text"
+                           name="search"
                            value="{{ request('search') }}"
                            placeholder="Name, email, phone, location..."
                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
@@ -221,10 +221,10 @@
                                 </div>
                             </div>
                             <div class="flex-shrink-0 ml-4">
-                                <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" 
-                                     :class="{ 'rotate-180': open }" 
-                                     fill="none" 
-                                     stroke="currentColor" 
+                                <svg class="w-5 h-5 text-gray-400 transition-transform duration-200"
+                                     :class="{ 'rotate-180': open }"
+                                     fill="none"
+                                     stroke="currentColor"
                                      viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
@@ -233,7 +233,7 @@
                     </button>
 
                     <!-- Dropdown Content -->
-                    <div x-show="open" 
+                    <div x-show="open"
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 transform -translate-y-2"
                          x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -334,19 +334,26 @@
 
                             <!-- Action Buttons -->
                             <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
-                                <a href="{{ route('admin.doctors.profile', $doctor->id) }}" 
+                                <a href="{{ route('admin.doctors.profile', $doctor->id) }}"
                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                     Profile
                                 </a>
-                                <button onclick='openEditDoctorModal(@json($doctor))' 
+                                <button onclick='openEditDoctorModal(@json($doctor))'
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                     Edit
+                                </button>
+                                <button onclick="openSetPasswordModal({{ $doctor->id }}, '{{ addslashes($doctor->name) }}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    Set Password
                                 </button>
                             </div>
                         </div>
@@ -398,6 +405,62 @@
                     </ul>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Set Password Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div class="purple-gradient text-white px-6 py-4 flex items-center justify-between rounded-t-xl">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Set Doctor Password
+                </h2>
+                <button onclick="closePasswordModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="passwordForm" method="POST" class="p-6">
+                @csrf
+                <input type="hidden" id="passwordDoctorId" name="doctor_id">
+
+                <div id="passwordFormMessage" class="hidden mb-4 p-3 rounded-lg"></div>
+
+                <p class="text-sm text-gray-600 mb-4">Setting password for: <strong id="passwordDoctorName" class="text-gray-900"></strong></p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password <span class="text-red-500">*</span></label>
+                        <input type="password" id="newPassword" name="password" required minlength="8"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                               placeholder="Minimum 8 characters">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password <span class="text-red-500">*</span></label>
+                        <input type="password" id="confirmPassword" name="password_confirmation" required minlength="8"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                               placeholder="Re-enter password">
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+                    <button type="button" onclick="closePasswordModal()"
+                            class="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" id="passwordSubmitBtn"
+                            class="flex-1 px-4 py-2.5 purple-gradient text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span id="passwordSubmitBtnText">Set Password</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -536,7 +599,7 @@
 
                 <!-- Form Actions -->
                 <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-                    <button type="button" onclick="closeDoctorModal()" 
+                    <button type="button" onclick="closeDoctorModal()"
                             class="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition-all">
                         Cancel
                     </button>
@@ -606,16 +669,16 @@
         // Handle Form Submission
         document.getElementById('doctorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const submitBtn = document.getElementById('submitBtn');
             const submitBtnText = document.getElementById('submitBtnText');
             const formMessage = document.getElementById('formMessage');
-            
+
             // Disable button and show loading state
             submitBtn.disabled = true;
             submitBtnText.textContent = 'Saving...';
             formMessage.classList.add('hidden');
-            
+
             try {
                 const formData = new FormData(this);
                 const response = await fetch(this.action, {
@@ -626,15 +689,15 @@
                     },
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok && data.success) {
                     // Show success message
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200';
                     formMessage.textContent = data.message || 'Doctor saved successfully!';
                     formMessage.classList.remove('hidden');
-                    
+
                     // Reload page after short delay
                     setTimeout(() => {
                         window.location.reload();
@@ -642,17 +705,17 @@
                 } else {
                     // Handle validation errors (422) or other errors
                     let errorMessage = data.message || 'An error occurred. Please try again.';
-                    
+
                     // If there are validation errors, display them
                     if (data.errors) {
                         const errorsList = Object.values(data.errors).flat();
                         errorMessage = errorsList.join('<br>');
                     }
-                    
+
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
                     formMessage.innerHTML = errorMessage;
                     formMessage.classList.remove('hidden');
-                    
+
                     // Re-enable button
                     submitBtn.disabled = false;
                     submitBtnText.textContent = document.getElementById('doctorId').value ? 'Update Doctor' : 'Save Doctor';
@@ -662,7 +725,7 @@
                 formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
                 formMessage.textContent = 'A network error occurred. Please try again.';
                 formMessage.classList.remove('hidden');
-                
+
                 // Re-enable button
                 submitBtn.disabled = false;
                 submitBtnText.textContent = document.getElementById('doctorId').value ? 'Update Doctor' : 'Save Doctor';
@@ -680,6 +743,85 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && document.getElementById('doctorModal').style.display === 'flex') {
                 closeDoctorModal();
+            }
+            if (e.key === 'Escape' && document.getElementById('passwordModal').style.display === 'flex') {
+                closePasswordModal();
+            }
+        });
+
+        // ── Set Password Modal ──
+        function openSetPasswordModal(doctorId, doctorName) {
+            document.getElementById('passwordDoctorId').value = doctorId;
+            document.getElementById('passwordDoctorName').textContent = doctorName;
+            document.getElementById('passwordForm').reset();
+            document.getElementById('passwordDoctorId').value = doctorId;
+            document.getElementById('passwordFormMessage').classList.add('hidden');
+            document.getElementById('passwordModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('passwordModal').addEventListener('click', function(e) {
+            if (e.target === this) closePasswordModal();
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('passwordSubmitBtn');
+            const btnText = document.getElementById('passwordSubmitBtnText');
+            const msg = document.getElementById('passwordFormMessage');
+            const pw = document.getElementById('newPassword').value;
+            const pwc = document.getElementById('confirmPassword').value;
+
+            if (pw !== pwc) {
+                msg.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                msg.textContent = 'Passwords do not match.';
+                msg.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btnText.textContent = 'Saving...';
+            msg.classList.add('hidden');
+
+            try {
+                const doctorId = document.getElementById('passwordDoctorId').value;
+                const formData = new FormData(this);
+                const response = await fetch(`/admin/doctors/${doctorId}/set-password`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    msg.className = 'mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200';
+                    msg.textContent = data.message || 'Password set successfully!';
+                    msg.classList.remove('hidden');
+                    setTimeout(() => closePasswordModal(), 1500);
+                } else {
+                    let errorMessage = data.message || 'An error occurred.';
+                    if (data.errors) {
+                        errorMessage = Object.values(data.errors).flat().join('<br>');
+                    }
+                    msg.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                    msg.innerHTML = errorMessage;
+                    msg.classList.remove('hidden');
+                }
+            } catch (error) {
+                msg.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
+                msg.textContent = 'A network error occurred. Please try again.';
+                msg.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Set Password';
             }
         });
     </script>
@@ -729,7 +871,7 @@
                         <!-- Campaign Name -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Campaign Name</label>
-                            <input type="text" id="campaign_name" name="campaign_name" 
+                            <input type="text" id="campaign_name" name="campaign_name"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                    placeholder="Healthcare Access Campaign"
                                    value="Healthcare Access Campaign">
@@ -739,7 +881,7 @@
                         <!-- Start Date -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                            <input type="text" id="start_date" name="start_date" 
+                            <input type="text" id="start_date" name="start_date"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                    placeholder="e.g., October 20, 2025"
                                    value="{{ date('F d, Y') }}">
@@ -749,7 +891,7 @@
                         <!-- End Date (Optional) -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
-                            <input type="text" id="end_date" name="end_date" 
+                            <input type="text" id="end_date" name="end_date"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                    placeholder="e.g., December 31, 2025">
                             <p class="text-xs text-gray-500 mt-1">When the campaign ends (optional)</p>
@@ -797,7 +939,7 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
 
                     <!-- Submit Button -->
                     <div class="mt-6 flex gap-3 justify-end border-t pt-4">
-                        <button type="button" onclick="closeCampaignModal()" 
+                        <button type="button" onclick="closeCampaignModal()"
                                 class="px-5 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
                             Cancel
                         </button>
@@ -855,18 +997,18 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
         // Handle Campaign Form Submission
         document.getElementById('campaignForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const submitBtn = document.getElementById('campaignSubmitBtn');
             const btnText = document.getElementById('campaignBtnText');
             const btnLoading = document.getElementById('campaignBtnLoading');
             const campaignMessage = document.getElementById('campaignMessage');
-            
+
             // Disable button and show loading
             submitBtn.disabled = true;
             btnText.classList.add('hidden');
             btnLoading.classList.remove('hidden');
             campaignMessage.classList.add('hidden');
-            
+
             try {
                 const formData = new FormData(this);
                 const response = await fetch('{{ route('admin.doctors.send-campaign') }}', {
@@ -877,9 +1019,9 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
                     },
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     campaignMessage.className = 'mb-4 p-3 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200';
                     campaignMessage.innerHTML = `
@@ -894,7 +1036,7 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
                         </div>
                     `;
                     campaignMessage.classList.remove('hidden');
-                    
+
                     // Close modal after 3 seconds
                     setTimeout(() => {
                         closeCampaignModal();
@@ -910,7 +1052,7 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
                         </div>
                     `;
                     campaignMessage.classList.remove('hidden');
-                    
+
                     // Re-enable button
                     submitBtn.disabled = false;
                     btnText.classList.remove('hidden');
@@ -921,7 +1063,7 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
                 campaignMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
                 campaignMessage.textContent = 'A network error occurred. Please try again.';
                 campaignMessage.classList.remove('hidden');
-                
+
                 // Re-enable button
                 submitBtn.disabled = false;
                 btnText.classList.remove('hidden');
@@ -945,7 +1087,7 @@ Thank you for being a valued member of the DoctorOnTap medical team. Together, w
     </script>
 
     <!-- Overlay for mobile sidebar -->
-    <div x-show="sidebarOpen" 
+    <div x-show="sidebarOpen"
          @click="sidebarOpen = false"
          x-transition:enter="transition-opacity ease-linear duration-300"
          x-transition:enter-start="opacity-0"

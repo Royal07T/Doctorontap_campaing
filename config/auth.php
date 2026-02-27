@@ -40,40 +40,45 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-        
+
         'admin' => [
             'driver' => 'session',
             'provider' => 'admin_users',
         ],
-        
+
         'canvasser' => [
             'driver' => 'session',
             'provider' => 'canvassers',
         ],
-        
+
         'nurse' => [
             'driver' => 'session',
             'provider' => 'nurses',
         ],
-        
+
         'doctor' => [
             'driver' => 'session',
             'provider' => 'doctors',
         ],
-        
+
         'patient' => [
             'driver' => 'session',
             'provider' => 'patients',
         ],
-        
+
         'customer_care' => [
             'driver' => 'session',
             'provider' => 'customer_cares',
         ],
-        
+
         'care_giver' => [
             'driver' => 'session',
             'provider' => 'care_givers',
+        ],
+
+        'family' => [
+            'driver' => 'session',
+            'provider' => 'family_members',
         ],
     ],
 
@@ -99,7 +104,7 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
-        
+
         // NOTE: In the unified user architecture, admin_users should use User model
         // with role='admin'. Keeping AdminUser for backward compatibility during migration.
         // TODO: Update to use User model with role filtering after full migration.
@@ -107,28 +112,28 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\AdminUser::class,
         ],
-        
+
         // NOTE: In the unified user architecture, canvassers should use User model
         // with role='canvasser'. Keeping Canvasser for backward compatibility during migration.
         'canvassers' => [
             'driver' => 'eloquent',
             'model' => App\Models\Canvasser::class,
         ],
-        
+
         // NOTE: In the unified user architecture, nurses should use User model
         // with role='nurse'. Keeping Nurse for backward compatibility during migration.
         'nurses' => [
             'driver' => 'eloquent',
             'model' => App\Models\Nurse::class,
         ],
-        
+
         // NOTE: In the unified user architecture, doctors should use User model
         // with role='doctor'. Keeping Doctor for backward compatibility during migration.
         'doctors' => [
             'driver' => 'eloquent',
             'model' => App\Models\Doctor::class,
         ],
-        
+
         // NOTE: In the unified user architecture, patients should use User model
         // with role='patient'. Keeping Patient for backward compatibility during migration.
         // TODO: Update to use User model with role filtering after full migration.
@@ -136,19 +141,24 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Patient::class,
         ],
-        
+
         // NOTE: In the unified user architecture, customer_cares should use User model
         // with role='customer_care'. Keeping CustomerCare for backward compatibility during migration.
         'customer_cares' => [
             'driver' => 'eloquent',
             'model' => App\Models\CustomerCare::class,
         ],
-        
+
         // NOTE: In the unified user architecture, care_givers should use User model
         // with role='care_giver'. Keeping CareGiver for backward compatibility during migration.
         'care_givers' => [
             'driver' => 'eloquent',
             'model' => App\Models\CareGiver::class,
+        ],
+
+        'family_members' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\FamilyMember::class,
         ],
 
         // 'users' => [
@@ -183,35 +193,35 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
-        
+
         'patients' => [
             'provider' => 'patients',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
         ],
-        
+
         'doctors' => [
             'provider' => 'doctors',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
         ],
-        
+
         'nurses' => [
             'provider' => 'nurses',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
         ],
-        
+
         'canvassers' => [
             'provider' => 'canvassers',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
         ],
-        
+
         'admin_users' => [
             'provider' => 'admin_users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),

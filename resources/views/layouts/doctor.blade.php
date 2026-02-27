@@ -22,7 +22,7 @@
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Top Header -->
             <header class="purple-gradient shadow-lg z-10">
-                <div class="flex items-center justify-between px-6 py-6">
+                <div class="flex items-center justify-between px-6 py-4">
                     <div class="flex items-center space-x-4">
                         <button @click="sidebarOpen = true" class="lg:hidden text-white hover:text-purple-200 focus:outline-none">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,10 +50,10 @@
     </div>
 
     @stack('scripts')
-    
+
     <!-- Global Page Loader -->
     <x-system-preloader x-show="pageLoading" message="Loading page..." />
-    
+
     <script>
         // Global page loading handler
         (function() {
@@ -61,17 +61,17 @@
             if (document.readyState === 'loading') {
                 // Page is still loading
             }
-            
+
             // Wait for Alpine to initialize
             function initPageLoader() {
                 const body = document.body;
                 let alpineData = null;
-                
+
                 // Try to get Alpine data
                 if (typeof Alpine !== 'undefined' && Alpine.$data) {
                     alpineData = Alpine.$data(body);
                 }
-                
+
                 if (alpineData && typeof alpineData.pageLoading !== 'undefined') {
                     // Show loader on link clicks
                     document.addEventListener('click', function(e) {
@@ -83,7 +83,7 @@
                             }
                         }
                     });
-                    
+
                     // Hide loader when page is fully loaded
                     if (document.readyState === 'complete') {
                         alpineData.pageLoading = false;
@@ -92,7 +92,7 @@
                             alpineData.pageLoading = false;
                         });
                     }
-                    
+
                     // Hide loader on popstate (back/forward navigation)
                     window.addEventListener('popstate', function() {
                         alpineData.pageLoading = false;
@@ -102,7 +102,7 @@
                     setTimeout(initPageLoader, 100);
                 }
             }
-            
+
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initPageLoader);
             } else {

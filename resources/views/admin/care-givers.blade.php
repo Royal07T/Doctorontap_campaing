@@ -185,10 +185,10 @@
                                         </div>
                                     </div>
                                     <div class="flex-shrink-0 ml-4">
-                                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" 
-                                             :class="{ 'rotate-180': open }" 
-                                             fill="none" 
-                                             stroke="currentColor" 
+                                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-200"
+                                             :class="{ 'rotate-180': open }"
+                                             fill="none"
+                                             stroke="currentColor"
                                              viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
@@ -197,7 +197,7 @@
                             </button>
 
                             <!-- Dropdown Content -->
-                            <div x-show="open" 
+                            <div x-show="open"
                                  x-transition:enter="transition ease-out duration-200"
                                  x-transition:enter-start="opacity-0 transform -translate-y-2"
                                  x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -271,21 +271,21 @@
 
                                     <!-- Action Buttons -->
                                     <div class="pt-3 border-t border-gray-200 flex flex-wrap gap-2">
-                                        <button onclick='openEditModal(@json($careGiver))' 
+                                        <button onclick='openEditModal(@json($careGiver))'
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
                                             Edit
                                         </button>
-                                        <button onclick="toggleStatus({{ $careGiver->id }}, {{ $careGiver->is_active ? 'false' : 'true' }})" 
+                                        <button onclick="toggleStatus({{ $careGiver->id }}, {{ $careGiver->is_active ? 'false' : 'true' }})"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white {{ $careGiver->is_active ? 'bg-gray-600' : 'bg-emerald-600' }} rounded-lg hover:opacity-90 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
                                             {{ $careGiver->is_active ? 'Deactivate' : 'Activate' }}
                                         </button>
-                                        <button onclick="deleteRecord({{ $careGiver->id }})" 
+                                        <button onclick="deleteRecord({{ $careGiver->id }})"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -333,6 +333,19 @@
                 <input type="hidden" id="recordId" name="id">
                 <input type="hidden" id="formMethod" name="_method" value="POST">
 
+                <!-- Unsaved Changes Warning -->
+                <div id="unsavedWarning" class="hidden mb-4 p-3 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-amber-800">You have unsaved changes</p>
+                            <p class="text-xs text-amber-700 mt-0.5">Your data will be lost if you close this form without saving</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Error/Success Messages -->
                 <div id="formMessage" class="hidden mb-4 p-3 rounded-lg"></div>
 
@@ -370,7 +383,7 @@
                         <input type="password" id="password" name="password"
                                class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                placeholder="Minimum 8 characters">
-                        <button type="button" onclick="togglePasswordVisibility('password', 'passwordToggle')" 
+                        <button type="button" onclick="togglePasswordVisibility('password', 'passwordToggle')"
                                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none">
                             <svg id="passwordToggle" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -380,21 +393,16 @@
                     </div>
                 </div>
 
-                <!-- Confirm Password -->
-                <div class="mb-4" id="confirmPasswordField">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                    <div class="relative">
-                        <input type="password" id="password_confirmation" name="password_confirmation"
-                               class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                               placeholder="Re-enter password">
-                        <button type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmationToggle')" 
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none">
-                            <svg id="passwordConfirmationToggle" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </button>
-                    </div>
+                <!-- PIN (6 digits) -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Security PIN (6 digits)
+                        <span class="text-xs text-gray-500" id="pinOptional">(Leave blank for default: 123456)</span>
+                    </label>
+                    <input type="text" id="pin" name="pin" pattern="[0-9]{6}" maxlength="6"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                           placeholder="e.g. 123456">
+                    <p class="text-xs text-gray-500 mt-1">Caregiver will need this 6-digit PIN after login</p>
                 </div>
 
                 <!-- Active Status -->
@@ -408,7 +416,7 @@
 
                 <!-- Form Actions -->
                 <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-                    <button type="button" onclick="closeModal()" 
+                    <button type="button" onclick="closeModal()"
                             class="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition-all">
                         Cancel
                     </button>
@@ -422,6 +430,77 @@
     </div>
 
     <script>
+        // Track form changes
+        let hasUnsavedChanges = false;
+        let initialFormState = {};
+        let formInputsListenerAttached = false;
+
+        // Capture current form state
+        function captureFormState() {
+            const form = document.getElementById('form');
+            const formData = new FormData(form);
+            const state = {};
+
+            // Get all form fields
+            const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    state[input.id] = input.checked;
+                } else {
+                    state[input.id] = input.value || '';
+                }
+            });
+
+            return state;
+        }
+
+        // Check if form has actually changed
+        function hasFormChanged() {
+            const currentState = captureFormState();
+
+            for (let key in currentState) {
+                if (currentState[key] !== initialFormState[key]) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Mark form as changed
+        function checkAndMarkFormAsChanged() {
+            const changed = hasFormChanged();
+
+            if (changed && !hasUnsavedChanges) {
+                hasUnsavedChanges = true;
+                document.getElementById('unsavedWarning').classList.remove('hidden');
+            } else if (!changed && hasUnsavedChanges) {
+                hasUnsavedChanges = false;
+                document.getElementById('unsavedWarning').classList.add('hidden');
+            }
+        }
+
+        // Attach change listeners to form
+        function attachFormChangeListeners() {
+            if (formInputsListenerAttached) return;
+
+            const form = document.getElementById('form');
+            const formInputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+
+            formInputs.forEach(input => {
+                input.addEventListener('input', checkAndMarkFormAsChanged);
+                input.addEventListener('change', checkAndMarkFormAsChanged);
+            });
+
+            formInputsListenerAttached = true;
+        }
+
+        // Reset form change tracking
+        function resetFormTracking() {
+            hasUnsavedChanges = false;
+            document.getElementById('unsavedWarning').classList.add('hidden');
+            initialFormState = {};
+        }
+
         // Open Add Modal
         function openAddModal() {
             document.getElementById('modalTitle').textContent = 'Add New Care Giver';
@@ -437,6 +516,14 @@
             document.getElementById('formMessage').classList.add('hidden');
             document.getElementById('modal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
+
+            resetFormTracking();
+            attachFormChangeListeners();
+
+            // Capture initial form state after modal is rendered
+            setTimeout(() => {
+                initialFormState = captureFormState();
+            }, 50);
         }
 
         // Open Edit Modal
@@ -448,7 +535,6 @@
             document.getElementById('email').value = record.email || '';
             document.getElementById('phone').value = record.phone || '';
             document.getElementById('password').value = '';
-            document.getElementById('password_confirmation').value = '';
             document.getElementById('password').required = false;
             document.getElementById('passwordRequired').style.display = 'none';
             document.getElementById('passwordOptional').style.display = 'inline';
@@ -458,19 +544,34 @@
             document.getElementById('formMessage').classList.add('hidden');
             document.getElementById('modal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
+
+            resetFormTracking();
+            attachFormChangeListeners();
+
+            // Capture initial form state after modal is rendered and fields are populated
+            setTimeout(() => {
+                initialFormState = captureFormState();
+            }, 50);
         }
 
         // Close Modal
         function closeModal() {
+            if (hasFormChanged()) {
+                if (!confirm('You have unsaved changes. Are you sure you want to close this form? All your data will be lost.')) {
+                    return;
+                }
+            }
+
             document.getElementById('modal').style.display = 'none';
             document.body.style.overflow = 'auto';
+            resetFormTracking();
         }
 
         // Toggle Password Visibility
         function togglePasswordVisibility(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
-            
+
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.innerHTML = `
@@ -567,25 +668,25 @@
         // Handle Form Submission
         document.getElementById('form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const submitBtn = document.getElementById('submitBtn');
             const submitBtnText = document.getElementById('submitBtnText');
             const formMessage = document.getElementById('formMessage');
-            
+
             submitBtn.disabled = true;
             submitBtnText.textContent = 'Saving...';
             formMessage.classList.add('hidden');
-            
+
             try {
                 const formData = new FormData(this);
                 const method = document.getElementById('formMethod').value;
                 const recordId = document.getElementById('recordId').value;
-                
+
                 // Add _method for PUT requests
                 if (method === 'PUT') {
                     formData.append('_method', 'PUT');
                 }
-                
+
                 const response = await fetch(this.action, {
                     method: 'POST',
                     headers: {
@@ -594,7 +695,7 @@
                     },
                     body: formData
                 });
-                
+
                 // Check if response is JSON
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
@@ -602,20 +703,23 @@
                     console.error('Non-JSON response:', text.substring(0, 200));
                     throw new Error('Server returned non-JSON response. Please check the console for details.');
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok && data.success) {
+                    // Reset form tracking on successful save
+                    resetFormTracking();
+
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200';
                     formMessage.textContent = data.message || 'Care Giver saved successfully!';
                     formMessage.classList.remove('hidden');
-                    
+
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);
                 } else {
                     formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
-                    
+
                     // Handle validation errors
                     if (data.errors) {
                         const errorMessages = Object.values(data.errors).flat().join('<br>');
@@ -623,9 +727,9 @@
                     } else {
                         formMessage.textContent = data.message || 'An error occurred. Please try again.';
                     }
-                    
+
                     formMessage.classList.remove('hidden');
-                    
+
                     submitBtn.disabled = false;
                     submitBtnText.textContent = document.getElementById('recordId').value ? 'Update Care Giver' : 'Create Care Giver';
                 }
@@ -634,16 +738,19 @@
                 formMessage.className = 'mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200';
                 formMessage.textContent = error.message || 'A network error occurred. Please try again.';
                 formMessage.classList.remove('hidden');
-                
+
                 submitBtn.disabled = false;
                 submitBtnText.textContent = document.getElementById('recordId').value ? 'Update Care Giver' : 'Create Care Giver';
             }
         });
 
-        // Close modal when clicking outside
-        document.getElementById('modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
+        // Handle ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('modal');
+                if (modal.style.display === 'flex') {
+                    closeModal();
+                }
             }
         });
 
@@ -674,9 +781,9 @@
             const modal = document.getElementById('alertModal');
             const icon = document.getElementById('alertIcon');
             const text = document.getElementById('alertMessage');
-            
+
             text.textContent = message;
-            
+
             if (type === 'success') {
                 icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
                 icon.parentElement.className = 'flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-green-100';
@@ -686,7 +793,7 @@
                 icon.parentElement.className = 'flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-100';
                 icon.className = 'w-6 h-6 text-red-600';
             }
-            
+
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }

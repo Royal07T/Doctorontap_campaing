@@ -64,11 +64,11 @@
                     <label for="email" class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
                         Email Address
                     </label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
+                    <input type="email"
+                           id="email"
+                           name="email"
                            value="{{ old('email') }}"
-                           required 
+                           required
                            autofocus
                            placeholder="caregiver@doctorontap.com"
                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 @error('email') border-red-500 @enderror">
@@ -83,13 +83,13 @@
                         Password
                     </label>
                     <div class="relative">
-                        <input :type="showPassword ? 'text' : 'password'" 
-                               id="password" 
-                               name="password" 
+                        <input :type="showPassword ? 'text' : 'password'"
+                               id="password"
+                               name="password"
                                required
                                placeholder="Enter your password"
                                class="w-full px-4 py-2.5 pr-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 @error('password') border-red-500 @enderror">
-                        <button type="button" 
+                        <button type="button"
                                 @click="showPassword = !showPassword"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none">
                             <!-- Eye Icon (Show) -->
@@ -110,8 +110,8 @@
 
                 <!-- Remember Me -->
                 <div class="mb-5 flex items-center">
-                    <input type="checkbox" 
-                           id="remember" 
+                    <input type="checkbox"
+                           id="remember"
                            name="remember"
                            class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
                     <label for="remember" class="ml-2 text-sm text-gray-600">
@@ -120,22 +120,13 @@
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" 
+                <button type="submit"
                         class="w-full px-6 py-3 purple-gradient text-white font-semibold text-sm rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                     Sign In to Dashboard
                 </button>
-
-                <div class="mt-4 text-center">
-                    <p class="text-sm text-gray-600">
-                        Don't have an account? 
-                        <a href="{{ route('caregiver.register') }}" class="font-medium text-purple-600 hover:text-purple-500">
-                            Apply Here
-                        </a>
-                    </p>
-                </div>
             </form>
 
             <!-- Footer Links -->
@@ -161,7 +152,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- System Preloader (hidden by default, shown only during form submission) -->
     <x-system-preloader x-show="pageLoading" message="Signing in..." />
 
@@ -176,7 +167,7 @@
                 }
             }
         });
-        
+
         // Show preloader on form submission
         document.addEventListener('submit', function(e) {
             const form = e.target;

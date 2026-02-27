@@ -19,60 +19,60 @@ class DashboardController extends Controller
     public function index()
     {
         $doctor = Auth::guard('doctor')->user();
-        
+
         // Get doctor payment percentage from settings
         $doctorPercentage = \App\Models\Setting::get('doctor_payment_percentage', 70);
-        
+
         // Get all paid consultations
         $paidConsultations = Consultation::where('doctor_id', $doctor->id)
                                          ->where('payment_status', 'paid')
                                          ->get();
-        
+
         // Calculate total earnings from paid consultations
         $totalEarnings = $paidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
             $consultationFee = $doctor->effective_consultation_fee ?? 0;
             return ($consultationFee * $doctorPercentage) / 100;
         });
-        
+
         // Calculate pending earnings (completed but not yet paid out to doctor)
         $completedPaidConsultations = Consultation::where('doctor_id', $doctor->id)
                                                    ->where('status', 'completed')
                                                    ->where('payment_status', 'paid')
                                                    ->get();
-        
+
         $pendingEarnings = $completedPaidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
             $consultationFee = $doctor->effective_consultation_fee ?? 0;
             return ($consultationFee * $doctorPercentage) / 100;
         });
-        
+
         // Calculate growth percentages (comparing last 30 days to previous 30 days)
         $currentMonthConsultations = Consultation::where('doctor_id', $doctor->id)
                                                  ->where('created_at', '>=', now()->subDays(30))
                                                  ->count();
-        
+
         $previousMonthConsultations = Consultation::where('doctor_id', $doctor->id)
                                                   ->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])
                                                   ->count();
-        
-        $consultationsGrowth = $previousMonthConsultations > 0 
-            ? round((($currentMonthConsultations - $previousMonthConsultations) / $previousMonthConsultations) * 100) 
+
+        $consultationsGrowth = $previousMonthConsultations > 0
+            ? round((($currentMonthConsultations - $previousMonthConsultations) / $previousMonthConsultations) * 100)
             : 0;
-        
+
         // Calculate earnings growth
         $currentMonthEarnings = Consultation::where('doctor_id', $doctor->id)
                                             ->where('payment_status', 'paid')
                                             ->where('created_at', '>=', now()->subDays(30))
                                             ->count() * ($doctor->effective_consultation_fee * $doctorPercentage / 100);
-        
+
         $previousMonthEarnings = Consultation::where('doctor_id', $doctor->id)
                                              ->where('payment_status', 'paid')
                                              ->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])
                                              ->count() * ($doctor->effective_consultation_fee * $doctorPercentage / 100);
-        
-        $earningsGrowth = $previousMonthEarnings > 0 
-            ? round((($currentMonthEarnings - $previousMonthEarnings) / $previousMonthEarnings) * 100) 
+
+        $earningsGrowth = $previousMonthEarnings > 0
+            ? round((($currentMonthEarnings - $previousMonthEarnings) / $previousMonthEarnings) * 100)
             : 0;
-        
+
         $stats = [
             'total_consultations' => Consultation::where('doctor_id', $doctor->id)->count(),
             'pending_consultations' => Consultation::where('doctor_id', $doctor->id)
@@ -102,10 +102,10 @@ class DashboardController extends Controller
         $priorityConsultations = Consultation::where('doctor_id', $doctor->id)
                                              ->whereIn('status', ['pending', 'scheduled'])
                                              ->with(['patient'])
-                                             ->orderByRaw("CASE 
-                                                 WHEN status = 'pending' THEN 1 
-                                                 WHEN status = 'scheduled' THEN 2 
-                                                 ELSE 3 
+                                             ->orderByRaw("CASE
+                                                 WHEN status = 'pending' THEN 1
+                                                 WHEN status = 'scheduled' THEN 2
+                                                 ELSE 3
                                              END")
                                              ->orderBy('created_at', 'desc')
                                              ->limit(5)
@@ -118,7 +118,59 @@ class DashboardController extends Controller
                                                  ->limit(2)
                                                  ->get();
 
-        return view('doctor.dashboard', compact('stats', 'priorityConsultations', 'recentForumPosts'));
+        // ── Clinical Hub data ──────────────────────────────────────
+
+        // Triage patients — patients from recent consultations with risk context
+        $triagePatients = \App\Models\Patient::whereHas('consultations', function ($q) use ($doctor) {
+                $q->where('doctor_id', $doctor->id);
+            })
+            ->with(['vitalSigns' => fn($q) => $q->latest()->limit(3)])
+            ->withCount(['vitalSigns as critical_vitals_count' => function ($q) {
+                $q->where('flag_status', 'critical')->where('created_at', '>=', now()->subDays(7));
+            }])
+            ->orderByDesc('critical_vitals_count')
+            ->limit(10)
+            ->get();
+
+        $highRiskCount = $triagePatients->where('critical_vitals_count', '>', 0)->count();
+
+        // Selected patient (first high-risk or first in list)
+        $selectedPatient = $triagePatients->first();
+        $selectedPatientVitals = null;
+        $selectedPatientMeds = collect();
+        $selectedPatientCaregiver = null;
+        $patientRiskFlags = collect();
+
+        if ($selectedPatient) {
+            $selectedPatientVitals = $selectedPatient->vitalSigns()->latest()->first();
+
+            $selectedPatientMeds = \App\Models\MedicationLog::where('patient_id', $selectedPatient->id)
+                ->whereIn('status', ['pending', 'missed'])
+                ->orderBy('scheduled_time')
+                ->limit(5)
+                ->get();
+
+            $selectedPatientCaregiver = $selectedPatient->assignedCaregivers()
+                ->wherePivot('status', 'active')
+                ->first();
+
+            // Risk flags from vitals
+            $recentCriticalVitals = $selectedPatient->vitalSigns()
+                ->where('created_at', '>=', now()->subDays(7))
+                ->whereIn('flag_status', ['critical', 'warning'])
+                ->latest()
+                ->limit(5)
+                ->get();
+
+            $patientRiskFlags = $recentCriticalVitals;
+        }
+
+        return view('doctor.dashboard', compact(
+            'stats', 'priorityConsultations', 'recentForumPosts',
+            'triagePatients', 'highRiskCount', 'selectedPatient',
+            'selectedPatientVitals', 'selectedPatientMeds',
+            'selectedPatientCaregiver', 'patientRiskFlags'
+        ));
     }
 
     /**
@@ -127,19 +179,19 @@ class DashboardController extends Controller
     public function consultations(Request $request)
     {
         $doctor = Auth::guard('doctor')->user();
-        
+
         $query = Consultation::where('doctor_id', $doctor->id)->with(['payment', 'booking']);
-        
+
         // Filter by consultation status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
+
         // Filter by payment status
         if ($request->filled('payment_status')) {
             $query->where('payment_status', $request->payment_status);
         }
-        
+
         // Search by patient name, email, or reference
         if ($request->filled('search')) {
             $search = $request->search;
@@ -150,7 +202,7 @@ class DashboardController extends Controller
                   ->orWhere('mobile', 'like', "%{$search}%")
                   ->orWhere('reference', 'like', "%{$search}%")
                   ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-                
+
                 // If search contains a space, also try searching first and last name separately
                 if (strpos($search, ' ') !== false) {
                     $parts = explode(' ', trim($search), 2);
@@ -168,21 +220,21 @@ class DashboardController extends Controller
                 }
             });
         }
-        
+
         // Get doctor payment percentage from settings
         $doctorPercentage = \App\Models\Setting::get('doctor_payment_percentage', 70);
-        
+
         // Get all paid consultations
         $paidConsultations = Consultation::where('doctor_id', $doctor->id)
                                          ->where('payment_status', 'paid')
                                          ->get();
-        
+
         // Calculate total earnings from paid consultations
         $totalEarnings = $paidConsultations->sum(function($consultation) use ($doctor, $doctorPercentage) {
             $consultationFee = $doctor->effective_consultation_fee ?? 0;
             return ($consultationFee * $doctorPercentage) / 100;
         });
-        
+
         // Calculate statistics
         $stats = [
             'total' => Consultation::where('doctor_id', $doctor->id)->count(),
@@ -194,9 +246,9 @@ class DashboardController extends Controller
             'completed' => Consultation::where('doctor_id', $doctor->id)->where('status', 'completed')->count(),
             'total_earnings' => $totalEarnings,
         ];
-        
+
         $consultations = $query->latest()->paginate(20);
-        
+
         return view('doctor.consultations', compact('consultations', 'stats'));
     }
 
@@ -212,9 +264,9 @@ class DashboardController extends Controller
                 'user_agent' => $request->userAgent(),
                 'ip' => $request->ip()
             ]);
-            
+
             $doctor = Auth::guard('doctor')->user();
-            
+
             if (!$doctor) {
                 \Log::error('No authenticated doctor found');
                 return response()->json([
@@ -222,21 +274,21 @@ class DashboardController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
-            
+
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
-            
+
             $validated = $request->validate([
                 'status' => 'required|in:pending,scheduled,completed,cancelled',
                 'notes' => 'nullable|string|max:1000',
                 // NOTE: consultation_mode is NOT in validation - it is set by patient and cannot be changed by doctors
             ]);
-            
+
             \Log::info('Validation passed', ['validated_data' => $validated]);
-            
+
             $newStatus = $validated['status'];
-            
+
             // IMPORTANT: Only update status and notes - consultation_mode is set by patient and cannot be changed
             $consultation->update([
                 'status' => $newStatus,
@@ -244,7 +296,7 @@ class DashboardController extends Controller
                 'consultation_completed_at' => $newStatus === 'completed' ? now() : $consultation->consultation_completed_at,
                 // NOTE: consultation_mode is NOT included - it is set by patient during booking and cannot be changed
             ]);
-            
+
             // If consultation is marked as completed, check for missed consultations
             // (This ensures doctors who complete consultations don't get penalized)
             if ($newStatus === 'completed') {
@@ -260,20 +312,20 @@ class DashboardController extends Controller
                     // Don't fail the request if penalty check fails
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Consultation status updated successfully!',
                 'status' => $newStatus
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('Consultation status update failed', [
                 'id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update status: ' . $e->getMessage()
@@ -288,12 +340,12 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Auth::guard('doctor')->user();
-            
+
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking', 'patient'])
                                        ->firstOrFail();
-            
+
             // Return JSON for AJAX requests
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -328,7 +380,7 @@ class DashboardController extends Controller
                     ]
                 ]);
             }
-            
+
             // Get available doctors for referral (excluding current doctor)
             $availableDoctors = \App\Models\Doctor::where('id', '!=', $doctor->id)
                 ->where('is_available', true)
@@ -347,16 +399,16 @@ class DashboardController extends Controller
                     ];
                 })
                 ->values();
-            
+
             // Load patient medical information if consultation is not completed and patient is authenticated
             $patientMedicalInfo = null;
             if ($consultation->status !== 'completed' && $consultation->patient_id) {
                 $patientMedicalInfo = \App\Models\Patient::find($consultation->patient_id);
             }
-            
+
             // Return view for regular HTTP requests
             return view('doctor.consultation-details', compact('consultation', 'availableDoctors', 'patientMedicalInfo'));
-            
+
         } catch (\Exception $e) {
             // For AJAX requests, return JSON error
             if ($request->ajax() || $request->wantsJson()) {
@@ -365,7 +417,7 @@ class DashboardController extends Controller
                     'message' => 'Failed to load consultation: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             // For regular requests, redirect with error
             return redirect()->route('doctor.consultations')
                 ->with('error', 'Failed to load consultation: ' . $e->getMessage());
@@ -382,15 +434,15 @@ class DashboardController extends Controller
             'doctor_id' => Auth::guard('doctor')->id(),
             'request_data_keys' => array_keys($request->all())
         ]);
-        
+
         try {
             $doctor = Auth::guard('doctor')->user();
-            
+
             $consultation = Consultation::with(['patient', 'booking'])
                                        ->where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
-            
+
             \Illuminate\Support\Facades\Log::info('Consultation found for treatment plan update', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
@@ -403,10 +455,10 @@ class DashboardController extends Controller
                 'is_paid' => $consultation->isPaid(),
                 'treatment_plan_created' => $consultation->treatment_plan_created
             ]);
-            
+
             // Check if it's an update or create
             $isUpdate = $consultation->treatment_plan_created;
-            
+
             // Prevent editing if treatment plan has already been created/saved
             // Once saved, treatment plan becomes a permanent medical record and cannot be edited
             if ($isUpdate) {
@@ -415,7 +467,7 @@ class DashboardController extends Controller
                     'message' => 'Treatment plan cannot be edited once it has been saved. The treatment plan has been finalized and cannot be modified.'
                 ], 403);
             }
-            
+
             // Handle JSON fields that come as strings from FormData
             $requestData = $request->all();
             if (isset($requestData['prescribed_medications']) && is_string($requestData['prescribed_medications'])) {
@@ -425,7 +477,7 @@ class DashboardController extends Controller
                 $requestData['referrals'] = json_decode($requestData['referrals'], true);
             }
             $request->merge($requestData);
-            
+
             $validated = $request->validate([
                 // Medical Format Fields
                 'presenting_complaint' => 'required|string|max:2000',
@@ -454,17 +506,17 @@ class DashboardController extends Controller
                 'treatment_plan_attachments' => 'nullable|array',
                 'treatment_plan_attachments.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx|max:10240',
             ]);
-            
+
             // Handle treatment plan attachments
             $attachments = $consultation->treatment_plan_attachments ?? [];
-            
+
             if ($request->hasFile('treatment_plan_attachments')) {
                 try {
                     foreach ($request->file('treatment_plan_attachments') as $file) {
                         $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                         // Store in private storage (storage/app/treatment_plan_attachments)
                         $filePath = $file->storeAs('treatment_plan_attachments', $fileName);
-                        
+
                         $attachments[] = [
                             'original_name' => $file->getClientOriginalName(),
                             'stored_name' => $fileName,
@@ -482,7 +534,7 @@ class DashboardController extends Controller
                     // Continue without attachments rather than failing completely
                 }
             }
-            
+
             // Update consultation with treatment plan
             // IMPORTANT: consultation_mode is set by the patient during booking and cannot be changed by doctors
             // It is intentionally NOT included in the update data to prevent modification
@@ -508,20 +560,20 @@ class DashboardController extends Controller
                 'treatment_plan_created' => true,
                 // NOTE: consultation_mode is NOT included - it is set by patient and cannot be changed
             ];
-            
+
             // Only set these on first create, not on update
             if (!$isUpdate) {
                 $updateData['treatment_plan_created_at'] = now();
                 $updateData['status'] = 'completed';
                 $updateData['consultation_completed_at'] = now();
             }
-            
+
             $consultation->update($updateData);
 
             // Sync to patient medical history
             $historyService = app(\App\Services\PatientMedicalHistoryService::class);
             $historyService->syncConsultationToHistory($consultation);
-            
+
             \Illuminate\Support\Facades\Log::info($isUpdate ? 'Treatment plan updated' : 'Treatment plan created', [
                 'consultation_id' => $consultation->id,
                 'doctor_id' => $doctor->id,
@@ -534,16 +586,16 @@ class DashboardController extends Controller
                 'is_paid' => $consultation->isPaid(),
                 'payment_status' => $consultation->payment_status
             ]);
-            
+
             if (!$consultation->isPaid()) {
                 \Illuminate\Support\Facades\Log::info('Consultation is not paid, proceeding to send payment request email', [
                     'consultation_id' => $consultation->id
                 ]);
-                
+
                 try {
                     // Determine recipient email: check multiple sources
                     $recipientEmail = null;
-                    
+
                     // 1. First try consultation email field
                     if (!empty($consultation->email)) {
                         $recipientEmail = $consultation->email;
@@ -573,7 +625,7 @@ class DashboardController extends Controller
                             'payer_email' => $recipientEmail
                         ]);
                     }
-                    
+
                     if ($recipientEmail) {
                         \Illuminate\Support\Facades\Log::info('Attempting to send payment request email', [
                             'consultation_id' => $consultation->id,
@@ -581,9 +633,9 @@ class DashboardController extends Controller
                             'mail_driver' => config('mail.default'),
                             'mail_host' => config('mail.mailers.smtp.host')
                         ]);
-                        
+
                         \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\PaymentRequest($consultation));
-                        
+
                         \Illuminate\Support\Facades\Log::info('Payment request email sent successfully after treatment plan ' . ($isUpdate ? 'update' : 'creation'), [
                             'consultation_id' => $consultation->id,
                             'reference' => $consultation->reference,
@@ -618,13 +670,13 @@ class DashboardController extends Controller
                     'payment_status' => $consultation->payment_status,
                     'is_paid' => $consultation->isPaid()
                 ]);
-                
+
                 // If payment is already made and treatment plan was just created, send treatment plan email
                 if (!$isUpdate && $consultation->isPaid() && $consultation->hasTreatmentPlan()) {
                     try {
                         // Determine recipient email: check multiple sources
                         $recipientEmail = null;
-                        
+
                         // 1. First try consultation email field
                         if (!empty($consultation->email)) {
                             $recipientEmail = $consultation->email;
@@ -637,21 +689,21 @@ class DashboardController extends Controller
                         elseif ($consultation->booking && !empty($consultation->booking->payer_email)) {
                             $recipientEmail = $consultation->booking->payer_email;
                         }
-                        
+
                         if ($recipientEmail) {
                             // Ensure treatment plan is unlocked
                             if (!$consultation->treatment_plan_unlocked) {
                                 $consultation->unlockTreatmentPlan();
                             }
-                            
+
                             \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\TreatmentPlanNotification($consultation));
-                            
+
                             \Illuminate\Support\Facades\Log::info('Treatment plan email sent immediately after creation (payment already made)', [
                                 'consultation_id' => $consultation->id,
                                 'reference' => $consultation->reference,
                                 'email' => $recipientEmail
                             ]);
-                            
+
                             // Create in-app notification for patient
                             if ($consultation->patient_id) {
                                 try {
@@ -677,7 +729,7 @@ class DashboardController extends Controller
                                     ]);
                                 }
                             }
-                            
+
                             // Send Review Request email
                             try {
                                 \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\ReviewRequest($consultation));
@@ -708,33 +760,33 @@ class DashboardController extends Controller
                     }
                 }
             }
-            
+
             \Illuminate\Support\Facades\Log::info('Treatment plan update completed successfully', [
                 'consultation_id' => $consultation->id,
                 'is_update' => $isUpdate
             ]);
-            
+
             return response()->json([
                 'success' => true,
-                'message' => $isUpdate 
-                    ? 'Treatment plan updated successfully! Changes saved to patient medical history.' 
+                'message' => $isUpdate
+                    ? 'Treatment plan updated successfully! Changes saved to patient medical history.'
                     : 'Treatment plan created successfully! Patient will need to pay to access it.',
                 'treatment_plan_created' => true,
                 'is_update' => $isUpdate
             ]);
-            
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Illuminate\Support\Facades\Log::error('Validation failed for treatment plan update', [
                 'consultation_id' => $id,
                 'errors' => $e->errors()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-            
+
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to save treatment plan', [
                 'consultation_id' => $id,
@@ -743,7 +795,7 @@ class DashboardController extends Controller
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save treatment plan: ' . $e->getMessage()
@@ -753,7 +805,7 @@ class DashboardController extends Controller
 
     /**
      * Delete a treatment plan attachment
-     * 
+     *
      * @param Request $request
      * @param int $id Consultation ID
      * @param string $file Stored filename
@@ -763,11 +815,11 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Auth::guard('doctor')->user();
-            
+
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
-            
+
             // Prevent deletion if treatment plan is locked
             if ($consultation->treatment_plan_created) {
                 return response()->json([
@@ -775,11 +827,11 @@ class DashboardController extends Controller
                     'message' => 'Cannot delete attachments from a finalized treatment plan.'
                 ], 403);
             }
-            
+
             $attachments = $consultation->treatment_plan_attachments ?? [];
             $attachmentIndex = null;
             $attachmentToDelete = null;
-            
+
             // Find the attachment to delete
             foreach ($attachments as $index => $attachment) {
                 $storedName = $attachment['stored_name'] ?? basename($attachment['path'] ?? '');
@@ -789,14 +841,14 @@ class DashboardController extends Controller
                     break;
                 }
             }
-            
+
             if ($attachmentIndex === null) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Attachment not found.'
                 ], 404);
             }
-            
+
             // Delete the file from storage
             if (isset($attachmentToDelete['path'])) {
                 try {
@@ -811,29 +863,29 @@ class DashboardController extends Controller
                     // Continue with database update even if file deletion fails
                 }
             }
-            
+
             // Remove from attachments array
             unset($attachments[$attachmentIndex]);
             $attachments = array_values($attachments); // Re-index array
-            
+
             // Update consultation
             $consultation->update([
                 'treatment_plan_attachments' => !empty($attachments) ? $attachments : null
             ]);
-            
+
             \Log::info('Treatment plan attachment deleted', [
                 'consultation_id' => $consultation->id,
                 'doctor_id' => $doctor->id,
                 'file' => $file,
                 'original_name' => $attachmentToDelete['original_name'] ?? 'N/A'
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Attachment deleted successfully.',
                 'remaining_attachments' => count($attachments)
             ]);
-            
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
@@ -846,7 +898,7 @@ class DashboardController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while deleting the attachment. Please try again.'
@@ -861,11 +913,11 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Auth::guard('doctor')->user();
-            
+
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
-            
+
             // Prevent editing if treatment plan has already been created/saved
             // Once saved, treatment plan becomes a permanent medical record and cannot be edited
             if ($consultation->treatment_plan_created) {
@@ -874,7 +926,7 @@ class DashboardController extends Controller
                     'message' => 'Treatment plan cannot be edited once it has been saved. The treatment plan has been finalized and cannot be modified.'
                 ], 403);
             }
-            
+
             // Save whatever data is provided (no validation for drafts)
             // IMPORTANT: consultation_mode is set by the patient during booking and cannot be changed by doctors
             // It is intentionally NOT included in the allowed fields to prevent modification
@@ -896,9 +948,9 @@ class DashboardController extends Controller
                 'additional_notes',
                 // NOTE: consultation_mode is NOT included - it is set by patient and cannot be changed
             ]);
-            
+
             $consultation->update($data);
-            
+
             // Sync medical information to patient medical history (even for drafts)
             // This ensures family history, social history, etc. are always up-to-date
             try {
@@ -911,19 +963,19 @@ class DashboardController extends Controller
                     'error' => $e->getMessage()
                 ]);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Draft saved',
                 'timestamp' => now()->format('H:i:s')
             ]);
-            
+
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to auto-save treatment plan', [
                 'consultation_id' => $id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Auto-save failed'
@@ -938,14 +990,14 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Auth::guard('doctor')->user();
-            
+
             $consultation = Consultation::where('id', $id)
                                        ->where('doctor_id', $doctor->id)
                                        ->firstOrFail();
-            
+
             $historyService = app(\App\Services\PatientMedicalHistoryService::class);
             $previousHistory = $historyService->getPreviousHistoryForConsultation($consultation);
-            
+
             return response()->json([
                 'success' => true,
                 'has_history' => $previousHistory !== null,
@@ -957,7 +1009,7 @@ class DashboardController extends Controller
                     'last_consultation_date' => $previousHistory->consultation_date->format('Y-m-d'),
                 ] : null
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1065,7 +1117,7 @@ class DashboardController extends Controller
                         ->withInput()
                         ->with('error', 'This bank account was previously added and deleted. Please contact support if you need to restore it.');
                 }
-                
+
                 return redirect()->back()
                     ->withInput()
                     ->with('error', 'This bank account has already been added to your account. Please use a different account number or edit the existing account.');
@@ -1089,7 +1141,7 @@ class DashboardController extends Controller
 
             // Check if this is the first bank account (excluding soft-deleted)
             $isFirstAccount = !$doctor->bankAccounts()->exists();
-            
+
             // Use database transaction to ensure atomicity
             \DB::beginTransaction();
             try {
@@ -1116,23 +1168,23 @@ class DashboardController extends Controller
                 \DB::commit();
             } catch (QueryException $e) {
                 \DB::rollBack();
-                
+
                 // Handle specific database constraint violations
                 if ($e->getCode() === '23000') {
                     $errorMessage = $e->getMessage();
-                    
+
                     // Check for unique constraint violations
                     if (str_contains($errorMessage, 'unique_default_bank_per_doctor')) {
                         \Log::error('Bank account unique constraint violation', [
                             'doctor_id' => $doctor->id,
                             'error' => $errorMessage
                         ]);
-                        
+
                         return redirect()->back()
                             ->withInput()
                             ->with('error', 'Unable to add bank account. There was a conflict with your existing accounts. Please try again or contact support if the issue persists.');
                     }
-                    
+
                     // Generic duplicate entry error
                     if (str_contains($errorMessage, 'Duplicate entry')) {
                         return redirect()->back()
@@ -1140,7 +1192,7 @@ class DashboardController extends Controller
                             ->with('error', 'This bank account already exists in your account. Please use a different account number or edit the existing account.');
                     }
                 }
-                
+
                 // Re-throw if it's not a constraint violation we can handle
                 throw $e;
             } catch (\Exception $e) {
@@ -1160,13 +1212,13 @@ class DashboardController extends Controller
             // Handle database constraint violations with friendly messages
             if ($e->getCode() === '23000') {
                 $errorMessage = $e->getMessage();
-                
+
                 if (str_contains($errorMessage, 'unique_default_bank_per_doctor')) {
                     return redirect()->back()
                         ->withInput()
                         ->with('error', 'Unable to add bank account. There was a conflict with your existing accounts. Please try again or contact support if the issue persists.');
                 }
-                
+
                 if (str_contains($errorMessage, 'Duplicate entry')) {
                     return redirect()->back()
                         ->withInput()
@@ -1177,7 +1229,7 @@ class DashboardController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Unable to add bank account at this time. Please try again later or contact support if the problem continues.');
-                
+
         } catch (\Exception $e) {
             \Log::error('Failed to add bank account', [
                 'doctor_id' => Auth::guard('doctor')->id(),
@@ -1233,7 +1285,7 @@ class DashboardController extends Controller
         try {
             $doctor = Auth::guard('doctor')->user();
             $bankAccount = $doctor->bankAccounts()->findOrFail($id);
-            
+
             $bankAccount->setAsDefault();
 
             return redirect()->back()->with('success', 'Default bank account updated!');
@@ -1272,7 +1324,7 @@ class DashboardController extends Controller
     public function paymentHistory()
     {
         $doctor = Auth::guard('doctor')->user();
-        
+
         $payments = $doctor->payments()
             ->with(['bankAccount', 'paidBy'])
             ->latest()
@@ -1322,7 +1374,7 @@ class DashboardController extends Controller
             'is_international' => 'nullable|boolean',
             'country_of_practice' => 'nullable|required_if:is_international,1|string|max:255',
         ]);
-        
+
         // Convert checkbox values to boolean
         $validated['can_provide_second_opinion'] = $request->has('can_provide_second_opinion');
         $validated['is_international'] = $request->has('is_international');
@@ -1341,16 +1393,16 @@ class DashboardController extends Controller
                 // Store new photo
                 $photo = $request->file('photo');
                 $fileName = Str::slug($doctor->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
-                
+
                 // Use putFileAs which properly handles the file stream
                 // This stores the file at storage/app/public/doctors/filename.jpg
                 // and returns the path 'doctors/filename.jpg'
                 $path = Storage::disk('public')->putFileAs('doctors', $photo, $fileName);
-                
+
                 // Verify the file was stored
                 if ($path && Storage::disk('public')->exists($path)) {
                     $validated['photo'] = $path;
-                    
+
                     \Log::info('Photo uploaded successfully', [
                         'doctor_id' => $doctor->id,
                         'photo_path' => $path,
@@ -1362,7 +1414,7 @@ class DashboardController extends Controller
                         'photo_name' => $photoName,
                         'path' => $path
                     ]);
-                    
+
                     return redirect()->back()->with('error', 'Failed to upload photo. Please try again.');
                 }
             } catch (\Exception $e) {
@@ -1371,7 +1423,7 @@ class DashboardController extends Controller
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                
+
                 return redirect()->back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
             }
         }
@@ -1386,10 +1438,10 @@ class DashboardController extends Controller
 
                 $file = $request->file('insurance_document');
                 $fileName = 'insurance-' . Str::slug($doctor->name) . '-' . time() . '.' . $file->getClientOriginalExtension();
-                
+
                 // Store in public disk under 'insurance_documents' folder
                 $path = Storage::disk('public')->putFileAs('insurance_documents', $file, $fileName);
-                
+
                 if ($path) {
                     $validated['insurance_document'] = $path;
                 }
@@ -1414,7 +1466,7 @@ class DashboardController extends Controller
     public function availability()
     {
         $doctor = Auth::guard('doctor')->user();
-        
+
         // Parse availability schedule if exists
         $schedule = $doctor->availability_schedule ?? [];
         $defaultSchedule = [
@@ -1426,10 +1478,10 @@ class DashboardController extends Controller
             'saturday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
             'sunday' => ['enabled' => false, 'start' => '09:00', 'end' => '17:00'],
         ];
-        
+
         // Merge with existing schedule
         $schedule = array_merge($defaultSchedule, $schedule);
-        
+
         return view('doctor.availability', compact('doctor', 'schedule'));
     }
 
@@ -1444,22 +1496,22 @@ class DashboardController extends Controller
         // Only admins can reset penalties and set doctors back to available
         if ($doctor->is_auto_unavailable) {
             $requestedAvailable = $request->has('is_available') ? true : false;
-            
+
             // If doctor is trying to set themselves to available, reject it
             if ($requestedAvailable) {
                 return redirect()->back()->with('error', 'You cannot set yourself to available. You have been automatically set to unavailable due to missed consultations. Please contact an administrator to resolve this issue.');
             }
-            
+
             // Allow doctors to update schedule even when auto-unavailable, but keep them unavailable
             // Process availability schedule
             $schedule = [];
             $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            
+
             foreach ($days as $day) {
                 $enabled = $request->has("availability_schedule.{$day}.enabled");
                 $start = $request->input("availability_schedule.{$day}.start", '09:00');
                 $end = $request->input("availability_schedule.{$day}.end", '17:00');
-                
+
                 // Validate time format
                 if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $start)) {
                     $start = '09:00';
@@ -1467,12 +1519,12 @@ class DashboardController extends Controller
                 if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $end)) {
                     $end = '17:00';
                 }
-                
+
                 // Ensure end time is after start time
                 if (strtotime($end) <= strtotime($start)) {
                     $end = date('H:i', strtotime($start . ' +8 hours'));
                 }
-                
+
                 $schedule[$day] = [
                     'enabled' => $enabled,
                     'start' => $start,
@@ -1496,12 +1548,12 @@ class DashboardController extends Controller
         // Process availability schedule
         $schedule = [];
         $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        
+
         foreach ($days as $day) {
             $enabled = $request->has("availability_schedule.{$day}.enabled");
             $start = $request->input("availability_schedule.{$day}.start", '09:00');
             $end = $request->input("availability_schedule.{$day}.end", '17:00');
-            
+
             // Validate time format
             if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $start)) {
                 $start = '09:00';
@@ -1509,12 +1561,12 @@ class DashboardController extends Controller
             if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $end)) {
                 $end = '17:00';
             }
-            
+
             // Ensure end time is after start time
             if (strtotime($end) <= strtotime($start)) {
                 $end = date('H:i', strtotime($start . ' +8 hours'));
             }
-            
+
             $schedule[$day] = [
                 'enabled' => $enabled,
                 'start' => $start,
@@ -1537,7 +1589,7 @@ class DashboardController extends Controller
     public function referPatient(Request $request, $id)
     {
         $doctor = Auth::guard('doctor')->user();
-        
+
         $consultation = Consultation::where('id', $id)
                                    ->where('doctor_id', $doctor->id)
                                    ->with(['patient', 'doctor'])
