@@ -16,12 +16,18 @@ use OpenTok\Role as OpenTokRole;
 
 /**
  * VonageVideoService
- * 
+ *
  * Handles Vonage Video API operations for in-app video consultations.
  * Supports both authentication methods:
  * 1. Unified Environment: Application ID + Private Key (JWT) - Recommended
  * 2. Legacy OpenTok: API Key + API Secret
- * 
+ *
+ * IMPORTANT NOTES:
+ * - When using JWT auth, OT.initSession() on the client expects the APPLICATION ID (not API key)
+ * - When using legacy auth, OT.initSession() expects the API KEY
+ * - The getClientApiKey() method returns the correct value for either mode
+ * - Token expiration max is 24 hours (86400s) for JWT, varies for OpenTok
+ *
  * SECURITY: All credentials come from .env, never hardcoded.
  */
 class VonageVideoService
@@ -34,19 +40,43 @@ class VonageVideoService
     protected $videoClient; // Vonage Video SDK client
     protected $opentok; // Legacy OpenTok SDK client
     protected $authMethod; // 'jwt' or 'legacy'
+    protected bool $debug;
 
     public function __construct()
     {
         $this->enabled = config('services.vonage.video_enabled', false);
-        
+        $this->debug = config('app.debug', false);
+
         if (!$this->enabled) {
+            Log::debug('VonageVideoService: disabled via config');
             return;
         }
 
-        // Try JWT authentication first (Application ID + Private Key)
+        // Load and validate credentials
         $this->applicationId = config('services.vonage.application_id');
         $this->privateKey = $this->getPrivateKey();
+        $this->apiKey = config('services.vonage.video_api_key') ?: config('services.vonage.api_key');
+        $this->apiSecret = config('services.vonage.video_api_secret') ?: config('services.vonage.api_secret');
 
+        // CRITICAL: Validate that API secret is not a file path (common misconfiguration)
+        if ($this->apiSecret && (file_exists($this->apiSecret) || str_contains($this->apiSecret, '/') || str_contains($this->apiSecret, '\\'))) {
+            Log::error('VonageVideoService: VONAGE_VIDEO_API_SECRET appears to be a file path, not an actual secret string', [
+                'api_secret_preview' => substr($this->apiSecret, 0, 30) . '...',
+                'hint' => 'Set VONAGE_VIDEO_API_SECRET to the actual secret VALUE from Vonage dashboard, not a file path. Private key paths go in VONAGE_PRIVATE_KEY_PATH.'
+            ]);
+            $this->apiSecret = null; // Prevent using invalid secret
+        }
+
+        // CRITICAL: Validate Application ID is a UUID, not a phone number
+        if ($this->applicationId && !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $this->applicationId)) {
+            Log::error('VonageVideoService: VONAGE_APPLICATION_ID does not look like a valid UUID', [
+                'application_id' => $this->applicationId,
+                'hint' => 'Vonage Application IDs are UUIDs like "87592234-e76c-4c4b-b4fe-401b71d15d45". Check your Vonage dashboard.'
+            ]);
+            // Don't null it out — let Vonage SDK return a proper error for debugging
+        }
+
+        // Try JWT authentication first (Application ID + Private Key)
         if ($this->applicationId && $this->privateKey) {
             try {
                 $credentials = new Keypair($this->privateKey, $this->applicationId);
@@ -54,38 +84,21 @@ class VonageVideoService
                 $this->videoClient = $client->video();
                 $this->authMethod = 'jwt';
 
-                Log::info('Vonage Video Service initialized with JWT (Application ID + Private Key)', [
-                    'application_id' => substr($this->applicationId, 0, 20) . '...',
+                Log::info('VonageVideoService: initialized with JWT', [
+                    'application_id' => substr($this->applicationId, 0, 12) . '...',
                     'auth_method' => 'jwt',
-                    'note' => 'Using JWT for both session creation and token generation. OpenTok SDK not needed.'
                 ]);
-                
-                // Note: We're using JWT for token generation via generateClientToken() method
-                // OpenTok SDK is no longer needed when using JWT authentication
-                // Skip OpenTok SDK initialization to avoid unnecessary warnings
-                
+
                 return;
             } catch (\Exception $e) {
-                Log::warning('Failed to initialize Vonage Video Service with JWT, falling back to legacy method', [
+                Log::warning('VonageVideoService: JWT init failed, trying legacy', [
                     'error' => $e->getMessage()
                 ]);
             }
         }
 
         // Fall back to legacy OpenTok authentication (API Key + Secret)
-        $this->apiKey = config('services.vonage.video_api_key') ?: config('services.vonage.api_key');
-        $this->apiSecret = config('services.vonage.video_api_secret') ?: config('services.vonage.api_secret');
-
         if ($this->apiKey && $this->apiSecret) {
-            // Validate that API secret is not a file path
-            if (file_exists($this->apiSecret) || str_contains($this->apiSecret, '/') || str_contains($this->apiSecret, '\\')) {
-                Log::error('Vonage Video Service: API Secret appears to be a file path. OpenTok requires the actual API secret value, not a file path.', [
-                    'api_secret_preview' => substr($this->apiSecret, 0, 20) . '...',
-                    'hint' => 'Set VONAGE_VIDEO_API_SECRET to the actual secret value, not a file path'
-                ]);
-                return;
-            }
-
             $options = [];
             if (config('services.vonage.video_timeout')) {
                 $options['timeout'] = config('services.vonage.video_timeout');
@@ -98,16 +111,26 @@ class VonageVideoService
                 $this->opentok = new OpenTok($this->apiKey, $this->apiSecret, $options);
                 $this->authMethod = 'legacy';
 
-                Log::info('Vonage Video Service initialized with Legacy OpenTok (API Key + Secret)', [
-                    'api_key_prefix' => substr($this->apiKey, 0, 8) . '...',
+                Log::info('VonageVideoService: initialized with Legacy OpenTok', [
+                    'api_key' => $this->apiKey,
                     'auth_method' => 'legacy'
                 ]);
             } catch (\Exception $e) {
-                Log::error('Failed to initialize Vonage Video Service', [
+                Log::error('VonageVideoService: all initialization failed', [
                     'error' => $e->getMessage(),
-                    'auth_method_attempted' => 'legacy'
+                    'has_application_id' => !empty($this->applicationId),
+                    'has_private_key' => !empty($this->privateKey),
+                    'has_api_key' => !empty($this->apiKey),
+                    'has_api_secret' => !empty($this->apiSecret),
                 ]);
             }
+        } else {
+            Log::warning('VonageVideoService: no valid credentials found', [
+                'has_application_id' => !empty($this->applicationId),
+                'has_private_key' => !empty($this->privateKey),
+                'has_api_key' => !empty($this->apiKey),
+                'has_api_secret' => !empty($this->apiSecret),
+            ]);
         }
     }
 
@@ -136,7 +159,7 @@ class VonageVideoService
 
     /**
      * Check if the service is properly initialized
-     * 
+     *
      * @return bool
      */
     public function isInitialized(): bool
@@ -146,7 +169,7 @@ class VonageVideoService
 
     /**
      * Get service status information
-     * 
+     *
      * @return array
      */
     public function getStatus(): array
@@ -163,16 +186,34 @@ class VonageVideoService
     }
 
     /**
+     * Get the correct identifier for OT.initSession() on the client side.
+     *
+     * CRITICAL: This is what the frontend passes as the first argument to OT.initSession(apiKey, sessionId)
+     * - JWT auth: returns the Application ID (UUID)
+     * - Legacy auth: returns the API Key (numeric)
+     *
+     * @return string|null
+     */
+    public function getClientApiKey(): ?string
+    {
+        if ($this->authMethod === 'jwt') {
+            return $this->applicationId;
+        }
+        return $this->apiKey;
+    }
+
+    /**
      * Get Application ID (for JWT auth) or API Key (for legacy auth)
+     * @deprecated Use getClientApiKey() for clarity
      */
     public function getApplicationId(): ?string
     {
-        return $this->authMethod === 'jwt' ? $this->applicationId : $this->apiKey;
+        return $this->getClientApiKey();
     }
 
     /**
      * Create a new Video session
-     * 
+     *
      * @param array $options Optional session options (mediaMode, archiveMode, location)
      * @return array ['success' => bool, 'session_id' => string|null, 'error' => string|null]
      */
@@ -206,8 +247,8 @@ class VonageVideoService
                     $mediaMode = 'default';
                 } else {
                     // Routed session (needed for archiving, etc.)
-                    $mediaMode = isset($options['mediaMode']) && $options['mediaMode'] === 'RELAYED' 
-                        ? MediaMode::RELAYED 
+                    $mediaMode = isset($options['mediaMode']) && $options['mediaMode'] === 'RELAYED'
+                        ? MediaMode::RELAYED
                         : MediaMode::ROUTED;
 
                     $sessionOptions = new SessionOptions([
@@ -216,7 +257,7 @@ class VonageVideoService
 
                     $session = $this->videoClient->createSession($sessionOptions);
                 }
-                
+
                 $sessionId = $session->getSessionId();
 
                 Log::info('Vonage Video session created (JWT)', [
@@ -270,15 +311,15 @@ class VonageVideoService
 
     /**
      * Generate a token for a user to join a video session
-     * 
+     *
      * @param string $sessionId The session ID
-     * @param string $role The role: Role::PUBLISHER (default) or Role::MODERATOR or Role::SUBSCRIBER
+     * @param string $role The role: 'PUBLISHER', 'MODERATOR', 'SUBSCRIBER' (case-insensitive)
      * @param string $userName Display name for the user
-     * @param int $expiresIn Token expiration in seconds (default: 24 hours)
+     * @param int $expiresIn Token expiration in seconds (default: 2 hours, max: 24 hours)
      * @param array $initialLayoutClassList Optional layout classes for archives/broadcasts
-     * @return array ['success' => bool, 'token' => string|null, 'error' => string|null]
+     * @return array ['success' => bool, 'token' => string|null, 'api_key' => string|null, 'error' => string|null]
      */
-    public function generateToken(string $sessionId, string $role = 'PUBLISHER', string $userName = 'User', int $expiresIn = 86400, array $initialLayoutClassList = []): array
+    public function generateToken(string $sessionId, string $role = 'PUBLISHER', string $userName = 'User', int $expiresIn = 7200, array $initialLayoutClassList = []): array
     {
         if (!$this->enabled) {
             return [
@@ -296,14 +337,27 @@ class VonageVideoService
             ];
         }
 
+        if (empty($sessionId)) {
+            Log::error('VonageVideoService::generateToken called with empty sessionId');
+            return [
+                'success' => false,
+                'message' => 'Session ID is required',
+                'error' => 'invalid_session_id'
+            ];
+        }
+
         try {
-            $expiresIn = min(max(60, $expiresIn), 7200);
+            // Clamp expiry: min 60s, max 86400s (24 hours)
+            // Vonage Video API JWT tokens support up to 24 hours
+            // OpenTok legacy tokens also support up to 24 hours
+            $expiresIn = min(max(60, $expiresIn), 86400);
+
+            // Normalize role to uppercase for consistent matching
+            $normalizedRole = strtoupper(trim($role));
 
             // Try using Vonage Video SDK with JWT first (preferred method)
             if ($this->authMethod === 'jwt' && $this->videoClient) {
-                // Use Vonage Video SDK's generateClientToken with JWT credentials
-                // This is the modern approach using Application ID + Private Key
-                $roleEnum = match($role) {
+                $roleEnum = match($normalizedRole) {
                     'MODERATOR' => Role::MODERATOR,
                     'SUBSCRIBER' => Role::SUBSCRIBER,
                     default => Role::PUBLISHER
@@ -324,20 +378,32 @@ class VonageVideoService
 
                 $token = $this->videoClient->generateClientToken($sessionId, $tokenOptions);
 
-                Log::info('Vonage Video token generated (JWT)', [
-                    'session_id' => $sessionId,
-                    'role' => $role,
-                    'auth_method' => 'jwt'
+                Log::info('VonageVideoService: token generated (JWT)', [
+                    'session_id' => substr($sessionId, 0, 20) . '...',
+                    'role' => $normalizedRole,
+                    'expires_in' => $expiresIn,
+                    'auth_method' => 'jwt',
                 ]);
+
+                if ($this->debug) {
+                    Log::debug('VonageVideoService DEBUG: token details', [
+                        'session_id' => $sessionId,
+                        'token_prefix' => substr($token, 0, 30) . '...',
+                        'role' => $normalizedRole,
+                        'expire_time' => date('Y-m-d H:i:s', time() + $expiresIn),
+                        'client_api_key' => $this->getClientApiKey(),
+                    ]);
+                }
 
                 return [
                     'success' => true,
                     'token' => $token,
+                    'api_key' => $this->getClientApiKey(),
                     'expires_in' => $expiresIn
                 ];
             } elseif ($this->opentok) {
                 // Fallback to OpenTok SDK for token generation (legacy/Basic credentials)
-                $roleEnum = match($role) {
+                $roleEnum = match($normalizedRole) {
                     'MODERATOR' => OpenTokRole::MODERATOR,
                     'SUBSCRIBER' => OpenTokRole::SUBSCRIBER,
                     default => OpenTokRole::PUBLISHER
@@ -346,7 +412,7 @@ class VonageVideoService
                 $tokenOptions = [
                     'role' => $roleEnum,
                     'expireTime' => time() + $expiresIn,
-                    'data' => 'v=1',
+                    'data' => !empty($userName) ? json_encode(['name' => $userName]) : 'v=1',
                 ];
 
                 if (!empty($initialLayoutClassList)) {
@@ -355,48 +421,54 @@ class VonageVideoService
 
                 $token = $this->opentok->generateToken($sessionId, $tokenOptions);
 
-                Log::info('OpenTok Video token generated (Legacy)', [
-                    'session_id' => $sessionId,
-                    'role' => $role,
-                    'auth_method' => $this->authMethod ?? 'legacy'
+                Log::info('VonageVideoService: token generated (Legacy OpenTok)', [
+                    'session_id' => substr($sessionId, 0, 20) . '...',
+                    'role' => $normalizedRole,
+                    'expires_in' => $expiresIn,
+                    'auth_method' => 'legacy',
                 ]);
+
+                if ($this->debug) {
+                    Log::debug('VonageVideoService DEBUG: token details', [
+                        'session_id' => $sessionId,
+                        'token_prefix' => substr($token, 0, 30) . '...',
+                        'role' => $normalizedRole,
+                        'expire_time' => date('Y-m-d H:i:s', time() + $expiresIn),
+                        'client_api_key' => $this->getClientApiKey(),
+                    ]);
+                }
 
                 return [
                     'success' => true,
                     'token' => $token,
+                    'api_key' => $this->getClientApiKey(),
                     'expires_in' => $expiresIn
                 ];
             } else {
-                // OpenTok SDK not available for token generation
-                // OpenTok SDK not available for token generation
-                // Note: Even with JWT for session creation, token generation requires OpenTok SDK
-                // with Basic credentials (API Key + Secret) for backward compatibility
-                Log::error('Cannot generate token: OpenTok SDK not initialized', [
+                Log::error('VonageVideoService: no SDK available for token generation', [
                     'session_id' => $sessionId,
                     'auth_method' => $this->authMethod ?? 'unknown',
                     'has_video_client' => !empty($this->videoClient),
                     'has_opentok' => !empty($this->opentok),
-                    'api_key_configured' => !empty($this->apiKey),
-                    'api_secret_configured' => !empty($this->apiSecret)
                 ]);
-                
+
                 return [
                     'success' => false,
-                    'message' => 'Token generation requires OpenTok SDK with Basic credentials (API Key + Secret). Configure VONAGE_VIDEO_API_KEY and VONAGE_VIDEO_API_SECRET (string values, not file paths).',
-                    'error' => 'opentok_not_initialized',
-                    'hint' => 'Get your OpenTok API Key (numeric) and API Secret (string) from Vonage Dashboard. These are different from Application ID + Private Key used for session creation.'
+                    'message' => 'No video SDK available. Configure either VONAGE_APPLICATION_ID + VONAGE_PRIVATE_KEY_PATH (JWT) or VONAGE_VIDEO_API_KEY + VONAGE_VIDEO_API_SECRET (Legacy).',
+                    'error' => 'no_sdk_available',
                 ];
             }
         } catch (\Exception $e) {
-            Log::error('Failed to generate Video token', [
+            Log::error('VonageVideoService: token generation failed', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'auth_method' => $this->authMethod
+                'auth_method' => $this->authMethod,
+                'error_class' => get_class($e),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Failed to generate video token',
+                'message' => 'Failed to generate video token: ' . $e->getMessage(),
                 'error' => $e->getMessage()
             ];
         }

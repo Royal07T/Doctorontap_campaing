@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * ConsultationSessionService
- * 
+ *
  * Orchestrates Vonage session creation and management for in-app consultations.
  * Handles voice, video, and chat modes.
- * 
+ *
  * SECURITY:
  * - Tokens are encrypted before storage
  * - Only assigned doctor and owning patient can access sessions
@@ -40,7 +40,7 @@ class ConsultationSessionService
 
     /**
      * Create a new consultation session based on consultation mode
-     * 
+     *
      * @param Consultation $consultation
      * @return array ['success' => bool, 'session' => ConsultationSession|null, 'error' => string|null]
      */
@@ -58,7 +58,7 @@ class ConsultationSessionService
         // CONCURRENCY LOCKING: Prevent race conditions when multiple requests create sessions
         $lockKey = "consultation_session_lock:{$consultation->id}";
         $lockTimeout = 10; // seconds
-        
+
         // Try to acquire lock (using Redis or Cache)
         $lockAcquired = $this->acquireLock($lockKey, $lockTimeout);
         if (!$lockAcquired) {
@@ -67,7 +67,7 @@ class ConsultationSessionService
                 'lock_key' => $lockKey,
                 'timestamp' => now()->toIso8601String()
             ]);
-            
+
             // Wait briefly and check for existing session
             usleep(100000); // 100ms
             $existingActiveSession = $consultation->activeSession();
@@ -79,7 +79,7 @@ class ConsultationSessionService
                     'message' => 'Using existing active session (acquired after lock wait)'
                 ];
             }
-            
+
             return [
                 'success' => false,
                 'message' => 'Unable to acquire lock for session creation. Please try again.',
@@ -91,19 +91,19 @@ class ConsultationSessionService
             // FIX 4: Single Active Session Guarantee (with lock protection)
             // Check if there's already an active session for this consultation
             DB::beginTransaction();
-            
+
             $existingActiveSession = DB::table('consultation_sessions')
                 ->where('consultation_id', $consultation->id)
                 ->whereIn('status', ['pending', 'waiting', 'active'])
                 ->lockForUpdate() // Database-level lock
                 ->first();
-            
+
             if ($existingActiveSession) {
                 $session = ConsultationSession::find($existingActiveSession->id);
-                
+
                 DB::commit();
                 $this->releaseLock($lockKey);
-                
+
                 Log::info('Active session already exists, returning existing session', [
                     'event_type' => 'session_creation_attempt',
                     'consultation_id' => $consultation->id,
@@ -112,7 +112,7 @@ class ConsultationSessionService
                     'vonage_session_id' => $session->vonage_session_id,
                     'timestamp' => now()->toIso8601String()
                 ]);
-                
+
                 return [
                     'success' => true,
                     'session' => $session,
@@ -166,7 +166,7 @@ class ConsultationSessionService
             if (!$result['success']) {
                 DB::rollBack();
                 $this->releaseLock($lockKey);
-                
+
                 // Check if error is due to Vonage being disabled
                 if (isset($result['error']) && $result['error'] === 'disabled') {
                     Log::warning('Vonage service disabled, consultation can proceed without session', [
@@ -177,7 +177,7 @@ class ConsultationSessionService
                         'message' => $result['message'] ?? 'Vonage service disabled',
                         'timestamp' => now()->toIso8601String()
                     ]);
-                    
+
                     // Return graceful failure - consultation can still proceed
                     return [
                         'success' => false,
@@ -186,7 +186,7 @@ class ConsultationSessionService
                         'graceful_failure' => true // Flag for controller to handle gracefully
                     ];
                 }
-                
+
                 // For other errors, return as-is
                 return $result;
             }
@@ -197,7 +197,7 @@ class ConsultationSessionService
                 'vonage_session_id' => $result['vonage_session_id'],
                 'mode' => $mode,
                 'status' => 'pending',
-                'token_expires_at' => now()->addHours(24), // Tokens expire in 24 hours
+                'token_expires_at' => now()->addHours(2), // Must match actual Vonage token expiry (7200s)
             ]);
 
             // Store encrypted tokens
@@ -239,10 +239,10 @@ class ConsultationSessionService
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Release lock on error
             $this->releaseLock($lockKey);
-            
+
             // Structured error logging
             Log::error('Failed to create consultation session', [
                 'event_type' => 'session_creation_failed',
@@ -270,10 +270,10 @@ class ConsultationSessionService
      */
     /**
      * Acquire a distributed lock using Laravel Cache
-     * 
+     *
      * Uses Cache::lock() which works with any cache driver (Redis, Memcached, file, etc.)
      * Falls back gracefully if locking is unavailable.
-     * 
+     *
      * @param string $lockKey
      * @param int $timeoutSeconds
      * @return bool
@@ -284,16 +284,16 @@ class ConsultationSessionService
             // Use Laravel's Cache::lock() which is driver-agnostic
             // This works with Redis, Memcached, file cache, or any cache driver
             $lock = Cache::lock($lockKey, $timeoutSeconds);
-            
+
             // Try to acquire the lock (non-blocking)
             $acquired = $lock->get();
-            
+
             if ($acquired !== false) {
                 // Store the lock instance for later release
                 $this->acquiredLocks[$lockKey] = $lock;
                 return true;
             }
-            
+
             return false;
         } catch (\Exception $e) {
             Log::warning('Failed to acquire lock', [
@@ -311,7 +311,7 @@ class ConsultationSessionService
 
     /**
      * Release a distributed lock
-     * 
+     *
      * @param string $lockKey
      * @return void
      */
@@ -343,9 +343,9 @@ class ConsultationSessionService
 
     /**
      * Transition session to a new state with validation
-     * 
+     *
      * STATE MACHINE: Enforces valid state transitions
-     * 
+     *
      * @param ConsultationSession $session
      * @param string $newStatus
      * @param array $context Additional context for logging
@@ -354,7 +354,7 @@ class ConsultationSessionService
     public function transitionToState(ConsultationSession $session, string $newStatus, array $context = []): bool
     {
         $oldStatus = $session->status;
-        
+
         // Validate transition
         if (!$session->canTransitionTo($newStatus)) {
             Log::warning('Invalid state transition attempted', [
@@ -367,7 +367,7 @@ class ConsultationSessionService
                 'context' => $context,
                 'timestamp' => now()->toIso8601String()
             ]);
-            
+
             return false;
         }
 
@@ -376,16 +376,16 @@ class ConsultationSessionService
 
             // Update session status
             $updateData = ['status' => $newStatus];
-            
+
             // Update timestamps based on state
             if ($newStatus === 'active' && !$session->session_started_at) {
                 $updateData['session_started_at'] = now();
             }
-            
+
             if (in_array($newStatus, ['ended', 'failed', 'cancelled']) && !$session->session_ended_at) {
                 $updateData['session_ended_at'] = now();
             }
-            
+
             if ($newStatus === 'failed' && isset($context['error_message'])) {
                 $updateData['error_message'] = $context['error_message'];
             }
@@ -402,7 +402,7 @@ class ConsultationSessionService
                     'cancelled' => 'cancelled',
                     default => $consultation->session_status
                 };
-                
+
                 if ($consultation->session_status !== $consultationSessionStatus) {
                     $consultation->update(['session_status' => $consultationSessionStatus]);
                 }
@@ -436,7 +436,7 @@ class ConsultationSessionService
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Failed to transition session state', [
                 'event_type' => 'state_transition_failed',
                 'session_id' => $session->id,
@@ -447,7 +447,7 @@ class ConsultationSessionService
                 'error_class' => get_class($e),
                 'timestamp' => now()->toIso8601String()
             ]);
-            
+
             return false;
         }
     }
@@ -466,22 +466,25 @@ class ConsultationSessionService
         $sessionId = $sessionResult['session_id'];
 
         // Generate tokens for doctor and patient
+        // IMPORTANT: Pass role as uppercase string — VonageVideoService normalizes it.
+        // Using \OpenTok\Role::MODERATOR ('moderator' lowercase) caused role mismatch.
         $doctorTokenResult = $this->videoService->generateToken(
             $sessionId,
-            \OpenTok\Role::MODERATOR,
-            'doctor',
-            7200
+            'MODERATOR',
+            "Dr. {$doctor->name}",
+            7200 // 2 hours
         );
 
         if (!$doctorTokenResult['success']) {
             return $doctorTokenResult;
         }
 
+        $patientName = $patient ? "{$patient->first_name} {$patient->last_name}" : "{$consultation->first_name} {$consultation->last_name}";
         $patientTokenResult = $this->videoService->generateToken(
             $sessionId,
-            \OpenTok\Role::PUBLISHER,
-            'patient',
-            7200
+            'PUBLISHER',
+            $patientName,
+            7200 // 2 hours
         );
 
         if (!$patientTokenResult['success']) {
@@ -553,10 +556,10 @@ class ConsultationSessionService
 
     /**
      * Create a voice session
-     * 
+     *
      * IMPORTANT: Voice consultations use Vonage Video API in audio-only mode,
      * NOT Vonage Voice API (telephony). This is documented in config/consultation.php
-     * 
+     *
      * This ensures:
      * - Consistent WebRTC-based communication
      * - No phone number requirements
@@ -568,7 +571,7 @@ class ConsultationSessionService
         // Voice sessions can use Video API with audio-only mode
         // Or use Voice API for PSTN calls
         // For in-app voice, we'll use Video API with audio-only
-        
+
         $sessionResult = $this->videoService->createSession();
         if (!$sessionResult['success']) {
             return $sessionResult;
@@ -577,11 +580,12 @@ class ConsultationSessionService
         $sessionId = $sessionResult['session_id'];
 
         // Generate tokens for doctor and patient (audio-only)
+        // IMPORTANT: Use uppercase role strings, not OpenTok constants
         $doctorTokenResult = $this->videoService->generateToken(
             $sessionId,
-            \OpenTok\Role::PUBLISHER,
+            'PUBLISHER',
             "Dr. {$doctor->name}",
-            86400
+            7200 // 2 hours — matches video token expiry
         );
 
         if (!$doctorTokenResult['success']) {
@@ -591,9 +595,9 @@ class ConsultationSessionService
         $patientName = $patient ? "{$patient->first_name} {$patient->last_name}" : "{$consultation->first_name} {$consultation->last_name}";
         $patientTokenResult = $this->videoService->generateToken(
             $sessionId,
-            \OpenTok\Role::PUBLISHER,
+            'PUBLISHER',
             $patientName,
-            86400
+            7200 // 2 hours — matches video token expiry
         );
 
         if (!$patientTokenResult['success']) {
@@ -612,7 +616,7 @@ class ConsultationSessionService
      * Get session tokens for a user
      * SECURITY: Only returns tokens if user is authorized
      * TOKEN INVALIDATION: Returns null if session is in terminal state
-     * 
+     *
      * @param ConsultationSession $session
      * @param string $userType 'doctor' or 'patient'
      * @param int|null $userId The user ID to verify authorization
@@ -622,7 +626,7 @@ class ConsultationSessionService
     {
         // Verify authorization
         $consultation = $session->consultation;
-        
+
         // Structured logging for token request
         Log::info('Session token requested', [
             'event_type' => 'token_request',
@@ -633,7 +637,7 @@ class ConsultationSessionService
             'session_status' => $session->status,
             'timestamp' => now()->toIso8601String()
         ]);
-        
+
         if ($userType === 'doctor') {
             if ($consultation->doctor_id !== $userId) {
                 Log::warning('Unauthorized token request - doctor', [
@@ -645,7 +649,7 @@ class ConsultationSessionService
                     'assigned_doctor_id' => $consultation->doctor_id,
                     'timestamp' => now()->toIso8601String()
                 ]);
-                
+
                 return [
                     'success' => false,
                     'message' => 'Unauthorized: Only assigned doctor can access this session',
@@ -660,10 +664,10 @@ class ConsultationSessionService
                 $isOwner = true;
             } elseif ($userId === null && auth()->guard('patient')->check()) {
                 $patient = auth()->guard('patient')->user();
-                $isOwner = $consultation->patient_id === $patient->id || 
+                $isOwner = $consultation->patient_id === $patient->id ||
                           $consultation->email === $patient->email;
             }
-            
+
             if (!$isOwner) {
                 Log::warning('Unauthorized token request - patient', [
                     'event_type' => 'token_request_unauthorized',
@@ -675,7 +679,7 @@ class ConsultationSessionService
                     'consultation_email' => $consultation->email,
                     'timestamp' => now()->toIso8601String()
                 ]);
-                
+
                 return [
                     'success' => false,
                     'message' => 'Unauthorized: Only consultation owner can access this session',
@@ -712,7 +716,7 @@ class ConsultationSessionService
                 'expires_at' => $session->token_expires_at?->toIso8601String(),
                 'timestamp' => now()->toIso8601String()
             ]);
-            
+
             return [
                 'success' => false,
                 'message' => 'Session tokens have expired',
@@ -737,6 +741,7 @@ class ConsultationSessionService
             'token' => $token,
             'session_id' => $session->vonage_session_id,
             'mode' => $session->mode,
+            'api_key' => $this->videoService->getClientApiKey(),
         ];
     }
 

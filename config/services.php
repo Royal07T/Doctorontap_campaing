@@ -51,7 +51,7 @@ return [
         'base_url' => env('TERMII_BASE_URL', 'https://v3.api.termii.com'),
         'channel' => env('TERMII_CHANNEL', 'generic'),
         'enabled' => env('TERMII_ENABLED', true),
-        
+
         // WhatsApp Configuration
         'whatsapp_device_id' => env('TERMII_WHATSAPP_DEVICE_ID'),
         'whatsapp_enabled' => env('TERMII_WHATSAPP_ENABLED', false),
@@ -64,36 +64,36 @@ return [
         'api_secret' => env('VONAGE_API_SECRET') ?: env('VONAGE_SECRET'),
         'key' => env('VONAGE_KEY') ?: env('VONAGE_API_KEY'), // Alias for backward compatibility
         'secret' => env('VONAGE_SECRET') ?: env('VONAGE_API_SECRET'), // Alias for backward compatibility
-        
+
         // Method 2: Messages API (newer, uses Application with JWT)
-        'application_id' => env('VONAGE_APPLICATION_ID', '250782187688'), // DoctorOnTap LLC Application ID
+        'application_id' => env('VONAGE_APPLICATION_ID'), // Vonage Application ID (UUID format)
         'private_key_path' => env('VONAGE_PRIVATE_KEY_PATH'), // Path to private key file
         'private_key' => env('VONAGE_PRIVATE_KEY'), // Or inline private key (newlines as \n)
-        
+
         // Common settings
         'brand_name' => env('VONAGE_BRAND_NAME', 'DoctorOnTap'),
         'sms_from' => env('VONAGE_SMS_FROM') ?: env('VONAGE_BRAND_NAME', 'DoctorOnTap'),
         'api_method' => env('VONAGE_API_METHOD', 'legacy'), // 'legacy' or 'messages'
         'enabled' => env('VONAGE_ENABLED', false),
         'messages_sandbox' => env('VONAGE_WHATSAPP_SANDBOX', false),
-        
+
         // WhatsApp Configuration (requires Messages API)
         'whatsapp_enabled' => env('VONAGE_WHATSAPP_ENABLED', false),
-        'whatsapp_number' => env('VONAGE_WHATSAPP_NUMBER', '405228299348572'), // DoctorOnTap LLC WhatsApp Business Number
+        'whatsapp_number' => env('VONAGE_WHATSAPP_NUMBER'), // WhatsApp sender number (E.164 format)
         'whatsapp_id' => env('VONAGE_WHATSAPP_ID'), // WhatsApp Business Number ID (for Messages API 'from' parameter)
         'whatsapp' => [
-            'from_phone_number' => env('WHATSAPP_PHONE_NUMBER') ?: env('VONAGE_WHATSAPP_NUMBER', '405228299348572'),
+            'from_phone_number' => env('WHATSAPP_PHONE_NUMBER') ?: env('VONAGE_WHATSAPP_NUMBER'),
             'business_number_id' => env('VONAGE_WHATSAPP_ID'), // WhatsApp Business Number ID (preferred for Messages API)
         ],
-        
+
         // Voice API Configuration
         'voice_enabled' => env('VONAGE_VOICE_ENABLED', false),
         'voice_number' => env('VONAGE_VOICE_NUMBER'), // Your Vonage phone number for outbound calls
         'voice_webhook_url' => env('VONAGE_VOICE_WEBHOOK_URL'), // Base URL for voice webhooks
-        
+
         // MMS Configuration (for SMS with media)
         'mms_number' => env('VONAGE_MMS_NUMBER'), // Your Vonage phone number for MMS (can use same as voice_number)
-        
+
         // Video API Configuration (for in-app video consultations)
         // NOTE: Video API uses separate credentials from Messages API
         'video_enabled' => env('VONAGE_VIDEO_ENABLED', false),
@@ -101,7 +101,7 @@ return [
         'video_api_secret' => env('VONAGE_VIDEO_API_SECRET'), // Separate API secret for Video (optional, defaults to main API_SECRET)
         'video_location' => env('VONAGE_VIDEO_LOCATION', 'us'), // Data center location: us, eu, ap, etc.
         'video_timeout' => env('VONAGE_VIDEO_TIMEOUT', 30), // Timeout in seconds
-        
+
         // Conversations API Configuration (for in-app chat consultations)
         'conversation_enabled' => env('VONAGE_CONVERSATION_ENABLED', false),
     ],

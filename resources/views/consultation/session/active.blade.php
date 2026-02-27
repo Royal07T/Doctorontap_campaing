@@ -7,13 +7,13 @@
     <div class="max-w-4xl mx-auto">
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h1 class="text-2xl font-bold text-gray-800 mb-4">Active Consultation</h1>
-            
+
             <div class="mb-6">
                 <p class="text-gray-600 mb-2">
                     <strong>Consultation Reference:</strong> {{ $consultation->reference }}
                 </p>
                 <p class="text-gray-600 mb-2">
-                    <strong>Mode:</strong> 
+                    <strong>Mode:</strong>
                     <span class="capitalize">{{ $consultation->consultation_mode }}</span>
                 </p>
                 @if($consultation->doctor)
@@ -24,12 +24,10 @@
             </div>
 
             <!-- Alpine.js Vonage Integration Component -->
-            <div 
+            <div
                 x-data="vonageConsultation({
                     consultationId: {{ $consultation->id }},
                     mode: '{{ $consultation->consultation_mode }}',
-                    vonageApiKey: '{{ config('services.vonage.api_key') }}', // Legacy fallback
-                    applicationId: '{{ config('services.vonage.application_id') }}', // JWT Application ID (preferred)
                     tokenUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.token" : "patient.consultations.session.token", $consultation->id) }}',
                     statusUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.status" : "patient.consultations.session.status", $consultation->id) }}',
                     endSessionUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.session.end" : "patient.consultations.session.end", $consultation->id) }}',
@@ -42,7 +40,8 @@
                     videoRecordingStopUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.video.recording.stop" : "patient.consultations.video.recording.stop", $consultation->id) }}',
                     dashboardUrl: '{{ auth()->guard("patient")->check() ? route("patient.dashboard") : route("doctor.dashboard") }}',
                     consultationDetailsUrl: '{{ route(auth()->guard("doctor")->check() ? "doctor.consultations.view" : "patient.consultation.view", $consultation->id) }}',
-                    isPatient: {{ auth()->guard('patient')->check() ? 'true' : 'false' }}
+                    isPatient: {{ auth()->guard('patient')->check() ? 'true' : 'false' }},
+                    debugMode: {{ config('app.debug') ? 'true' : 'false' }}
                 })"
                 x-init="init()"
             >
@@ -68,7 +67,7 @@
                         </div>
                         <h2 class="text-xl font-bold text-gray-900 mb-2">Ready to Join Consultation</h2>
                         <p class="text-gray-600 mb-6" x-text="`Click the button below to join the ${mode === 'voice' ? 'voice call' : (mode === 'video' ? 'video call' : 'chat session')}.`"></p>
-                        <button 
+                        <button
                             @click="joinConsultation()"
                             :disabled="loading"
                             class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -110,19 +109,19 @@
                                     'text-red-700': errorType === '401' || errorType === '403' || errorType === 'generic',
                                     'text-yellow-700': errorType === '429' || errorType === '503'
                                 }" x-text="errorMessage"></p>
-                                <button 
-                                    @click="joinConsultation()" 
+                                <button
+                                    @click="joinConsultation()"
                                     x-show="errorType === '429'"
-                                    class="mt-2 text-sm underline" 
+                                    class="mt-2 text-sm underline"
                                     :class="{
                                         'text-yellow-800 hover:text-yellow-900': errorType === '429'
                                     }"
                                 >
                                     Try Again
                                 </button>
-                                <a 
+                                <a
                                     :href="consultationDetailsUrl"
-                                    class="text-sm underline" 
+                                    class="text-sm underline"
                                     :class="{
                                         'text-red-800 hover:text-red-900': errorType === '401' || errorType === '403' || errorType === 'generic',
                                         'text-yellow-800 hover:text-yellow-900': errorType === '503'
@@ -144,13 +143,13 @@
 
                 <!-- Action Buttons -->
                 <div x-show="state === 'connected'" class="flex justify-end space-x-4">
-                    <a 
+                    <a
                         :href="consultationDetailsUrl"
                         class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                         Return to Consultation
                     </a>
-                    <button 
+                    <button
                         @click="endSession()"
                         :disabled="ending"
                         class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
@@ -166,7 +165,7 @@
 
 <!-- Review Modal (Patient Only) -->
 <template x-if="isPatient">
-    <div 
+    <div
         x-show="showReviewModal"
         @click.away="showReviewModal = false"
         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
@@ -183,16 +182,16 @@
                 <p class="text-gray-600 mb-6">How was your experience? Please take a moment to rate us on Google.</p>
             </div>
             <div class="space-y-3">
-                <a 
-                    href="https://g.page/r/CUgGQ-i_PAOUEAI/review" 
-                    target="_blank" 
+                <a
+                    href="https://g.page/r/CUgGQ-i_PAOUEAI/review"
+                    target="_blank"
                     @click="redirectToDashboard(true)"
                     class="block w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition transform hover:scale-105 shadow-md no-underline"
                 >
                     ⭐⭐⭐⭐⭐ Rate Us on Google
                 </a>
-                <button 
-                    @click="redirectToDashboard(false)" 
+                <button
+                    @click="redirectToDashboard(false)"
                     class="block w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition"
                 >
                     Skip & Go to Dashboard
@@ -210,8 +209,7 @@ function vonageConsultation(config) {
         // Configuration
         consultationId: config.consultationId,
         mode: config.mode,
-        vonageApiKey: config.vonageApiKey, // Legacy fallback
-        applicationId: config.applicationId, // JWT Application ID (preferred)
+        debugMode: config.debugMode || false,
         tokenUrl: config.tokenUrl,
         statusUrl: config.statusUrl,
         endSessionUrl: config.endSessionUrl,
@@ -225,7 +223,7 @@ function vonageConsultation(config) {
         dashboardUrl: config.dashboardUrl,
         consultationDetailsUrl: config.consultationDetailsUrl,
         isPatient: config.isPatient,
-        
+
         // State
         state: 'idle', // idle, loading, connected, error, ended
         loading: false,
@@ -234,14 +232,14 @@ function vonageConsultation(config) {
         errorTitle: '',
         errorMessage: '',
         showReviewModal: false,
-        
+
         // OpenTok SDK
         session: null,
         publisher: null,
         subscribers: [], // Array to track all subscribers
         statusPollInterval: null,
         currentArchiveId: null,
-        
+
         // Chat SDK
         conversationClient: null,
         conversation: null,
@@ -249,7 +247,7 @@ function vonageConsultation(config) {
         typingUsers: new Set(),
         isTyping: false,
         typingTimeout: null,
-        
+
         // Controls state
         isMuted: false,
         isVideoEnabled: true,
@@ -257,10 +255,10 @@ function vonageConsultation(config) {
         isRecording: false,
         connectionQuality: 'good', // good, fair, poor
         participants: [],
-        
+
         // File upload
         fileInput: null,
-        
+
         init() {
             // Check if OpenTok.js SDK is loaded
             // OpenTok.js is the official SDK for Vonage Video API
@@ -273,7 +271,7 @@ function vonageConsultation(config) {
                 this.cleanupVonage();
             });
         },
-        
+
         async joinConsultation() {
             if (this.mode === 'video') {
                 return this.joinVideoRoom();
@@ -282,7 +280,7 @@ function vonageConsultation(config) {
             this.state = 'loading';
             this.loading = true;
             this.errorType = null;
-            
+
             try {
                 // Fetch JWT token from Laravel
                 const response = await fetch(this.tokenUrl, {
@@ -294,35 +292,35 @@ function vonageConsultation(config) {
                     },
                     body: JSON.stringify({})
                 });
-                
+
                 const data = await response.json();
-                
+
                 // Handle HTTP errors
                 if (response.status === 401) {
                     this.showError('401', 'Unauthorized Access', 'You are not authorized to join this consultation. Please contact support if you believe this is an error.');
                     return;
                 }
-                
+
                 if (response.status === 403) {
                     this.showError('403', 'Access Denied', 'You do not have permission to join this consultation session.');
                     return;
                 }
-                
+
                 if (response.status === 429) {
                     this.showError('429', 'Too Many Requests', 'You have made too many requests. Please wait a moment and try again.');
                     return;
                 }
-                
+
                 if (response.status === 503) {
                     this.showError('503', 'Service Unavailable', data.message || 'In-app consultation temporarily unavailable. Please contact support or use WhatsApp consultation.');
                     return;
                 }
-                
+
                 if (!response.ok) {
                     this.showError('generic', 'Connection Error', data.message || `Server error (${response.status})`);
                     return;
                 }
-                
+
                 if (!data.success) {
                     if (data.message && data.message.toLowerCase().includes('vonage') && data.message.toLowerCase().includes('disabled')) {
                         this.showError('503', 'Service Unavailable', data.message);
@@ -331,13 +329,20 @@ function vonageConsultation(config) {
                     }
                     return;
                 }
-                
+
                 // Store token for chat
                 this.chatToken = data.token;
-                
-                // Initialize Vonage Client SDK
-                await this.initializeVonage(this.vonageApiKey, data.token, data.session_id);
-                
+
+                // The backend returns api_key which is the correct identifier
+                // (Application ID for JWT auth, API Key for legacy auth)
+                const apiKey = data.api_key;
+                if (!apiKey) {
+                    this.showError('generic', 'Configuration Error', 'Server did not return an API key. Please contact support.');
+                    return;
+                }
+                if (this.debugMode) console.log('[Vonage] joinConsultation: api_key from backend:', apiKey);
+                await this.initializeVonage(apiKey, data.token, data.session_id);
+
             } catch (error) {
                 console.error('Error joining consultation:', error);
                 this.showError('generic', 'Network Error', 'Network error. Please check your connection and try again.');
@@ -401,8 +406,14 @@ function vonageConsultation(config) {
                     return;
                 }
 
-                // Use applicationId (JWT) from backend, fallback to api_key or config values for legacy
-                const apiKey = data.applicationId || data.api_key || this.applicationId || this.vonageApiKey;
+                // The backend returns api_key which is the correct identifier
+                // (Application ID for JWT auth, API Key for legacy auth)
+                const apiKey = data.api_key || data.applicationId;
+                if (!apiKey) {
+                    this.showError('generic', 'Configuration Error', 'Server did not return an API key. Please contact support.');
+                    return;
+                }
+                if (this.debugMode) console.log('[Vonage] joinVideoRoom: api_key from backend:', apiKey);
                 await this.initializeVonage(apiKey, data.token, data.session_id);
             } catch (error) {
                 console.error('Error joining video room:', error);
@@ -411,28 +422,42 @@ function vonageConsultation(config) {
                 this.loading = false;
             }
         },
-        
+
         async initializeVonage(apiKey, token, sessionId) {
             try {
                 // Check if OpenTok.js SDK is loaded
                 if (typeof OT === 'undefined') {
                     throw new Error('OpenTok.js SDK not loaded. Please refresh the page.');
                 }
-                
+
+                if (this.debugMode) {
+                    console.log('[Vonage] initializeVonage called with:', {
+                        apiKey: apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING',
+                        sessionId: sessionId ? sessionId.substring(0, 16) + '...' : 'MISSING',
+                        tokenPrefix: token ? token.substring(0, 20) + '...' : 'MISSING',
+                        mode: this.mode
+                    });
+                }
+
+                // Validate required parameters
+                if (!apiKey || !token || !sessionId) {
+                    throw new Error('Missing required Vonage session parameters (apiKey, token, or sessionId).');
+                }
+
                 // Initialize OpenTok session
                 // OpenTok.js uses OT.initSession() to create a session
                 this.session = OT.initSession(apiKey, sessionId);
-                
+
                 // Handle session events
                 this.session.on('sessionConnected', () => {
                     console.log('OpenTok session connected');
                 });
-                
+
                 this.session.on('sessionDisconnected', () => {
                     console.log('OpenTok session disconnected');
                     this.state = 'ended';
                 });
-                
+
                 this.session.on('error', (error) => {
                     console.error('OpenTok session error:', error);
                     if ((error.code === 1004 || error.code === 1006 || error.code === 1008) && this.mode === 'video') {
@@ -442,7 +467,25 @@ function vonageConsultation(config) {
                     this.showError('generic', 'Session Error', 'An error occurred with the consultation session. Please try again.');
                     this.state = 'error';
                 });
-                
+
+                // Handle exceptions (auth failures, invalid params, etc.)
+                this.session.on('exception', (event) => {
+                    console.error('OpenTok exception:', event.code, event.message);
+                    if (this.debugMode) {
+                        console.error('[Vonage] Exception details:', {
+                            code: event.code,
+                            message: event.message,
+                            title: event.title
+                        });
+                    }
+                    // OT_AUTHENTICATION_ERROR = 1004
+                    if (event.code === 1004) {
+                        this.showError('generic', 'Authentication Error',
+                            'Failed to authenticate with video service. This usually means the API key or token is invalid. Please try re-joining.');
+                        this.state = 'error';
+                    }
+                });
+
                 // Connect to session with token
                 this.session.connect(token, (error) => {
                     if (error) {
@@ -455,16 +498,16 @@ function vonageConsultation(config) {
                         this.state = 'error';
                         return;
                     }
-                    
+
                     console.log('Connected to OpenTok session');
-                    
+
                     // Render based on mode
                     const container = document.getElementById('vonage-container');
                     if (!container) {
                         console.error('Vonage container not found');
                         return;
                     }
-                    
+
                     if (this.mode === 'video') {
                         this.renderVideo(container, sessionId);
                     } else if (this.mode === 'voice') {
@@ -472,11 +515,11 @@ function vonageConsultation(config) {
                     } else if (this.mode === 'chat') {
                         this.renderChat(container, sessionId);
                     }
-                    
+
                     this.state = 'connected';
                     this.startStatusPolling();
                 });
-                
+
             } catch (error) {
                 console.error('Error initializing Vonage:', error);
                 this.showError('generic', 'Initialization Error', error.message || 'Failed to initialize consultation. Please try again.');
@@ -505,8 +548,12 @@ function vonageConsultation(config) {
                 }
 
                 this.cleanupVonage();
-                // Use applicationId (JWT) from backend, fallback to vonageApiKey for legacy
-                const apiKey = data.applicationId || data.api_key || this.vonageApiKey;
+                // The backend returns api_key which is the correct identifier
+                const apiKey = data.api_key || data.applicationId;
+                if (!apiKey) {
+                    throw new Error('Server did not return an API key for token refresh');
+                }
+                if (this.debugMode) console.log('[Vonage] refreshToken: api_key from backend:', apiKey);
                 await this.initializeVonage(apiKey, data.token, data.session_id);
             } catch (e) {
                 console.error('Token refresh failed:', e);
@@ -514,15 +561,15 @@ function vonageConsultation(config) {
                 this.state = 'error';
             }
         },
-        
+
         renderVideo(container, sessionId) {
             // Clear container
             container.innerHTML = '';
-            
+
             // Create main video container with grid layout
             const videoGrid = document.createElement('div');
             videoGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4';
-            
+
             // Create publisher container (local video)
             const publisherWrapper = document.createElement('div');
             publisherWrapper.className = 'relative bg-gray-900 rounded-lg overflow-hidden';
@@ -530,13 +577,13 @@ function vonageConsultation(config) {
             publisherContainer.id = 'publisher-container';
             publisherContainer.className = 'w-full h-64';
             publisherWrapper.appendChild(publisherContainer);
-            
+
             // Add local video label
             const localLabel = document.createElement('div');
             localLabel.className = 'absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded';
             localLabel.textContent = 'You';
             publisherWrapper.appendChild(localLabel);
-            
+
             // Create subscriber container (remote video)
             const subscriberWrapper = document.createElement('div');
             subscriberWrapper.className = 'relative bg-gray-800 rounded-lg overflow-hidden';
@@ -544,26 +591,26 @@ function vonageConsultation(config) {
             subscriberContainer.id = 'subscriber-container';
             subscriberContainer.className = 'w-full h-64';
             subscriberWrapper.appendChild(subscriberContainer);
-            
+
             // Add remote video label
             const remoteLabel = document.createElement('div');
             remoteLabel.id = 'remote-label';
             remoteLabel.className = 'absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded';
             remoteLabel.textContent = 'Waiting for participant...';
             subscriberWrapper.appendChild(remoteLabel);
-            
+
             videoGrid.appendChild(publisherWrapper);
             videoGrid.appendChild(subscriberWrapper);
             container.appendChild(videoGrid);
-            
+
             // Create controls bar
             const controlsBar = this.createControlsBar('video');
             container.appendChild(controlsBar);
-            
+
             // Create connection quality indicator
             const qualityIndicator = this.createQualityIndicator();
             container.appendChild(qualityIndicator);
-            
+
             // Publish local video/audio stream
             this.publisher = OT.initPublisher(publisherContainer, {
                 videoSource: 'camera',
@@ -582,7 +629,7 @@ function vonageConsultation(config) {
                     this.showError('generic', 'Camera/Microphone Error', 'Failed to access camera or microphone. Please check permissions.');
                     return;
                 }
-                
+
                 // Publish to session
                 this.session.publish(this.publisher, (error) => {
                     if (error) {
@@ -594,10 +641,10 @@ function vonageConsultation(config) {
                     }
                 });
             });
-            
+
             // Monitor connection quality
             this.monitorConnectionQuality();
-            
+
             // Subscribe to remote streams
             this.session.on('streamCreated', (event) => {
                 console.log('Remote stream created:', event.stream);
@@ -613,13 +660,13 @@ function vonageConsultation(config) {
                         console.log('Subscribed to remote stream');
                         this.subscribers.push(subscriber);
                         remoteLabel.textContent = 'Participant';
-                        
+
                         // Update participant list
                         this.updateParticipants();
                     }
                 });
             });
-            
+
             // Handle stream destroyed
             this.session.on('streamDestroyed', (event) => {
                 console.log('Stream destroyed:', event.stream);
@@ -630,19 +677,19 @@ function vonageConsultation(config) {
                 this.updateParticipants();
             });
         },
-        
+
         renderVoice(container, sessionId) {
             // Clear container
             container.innerHTML = '';
-            
+
             // Create audio call UI
             const audioCallUI = document.createElement('div');
             audioCallUI.className = 'text-center py-12';
-            
+
             // Create participant avatars
             const avatarsContainer = document.createElement('div');
             avatarsContainer.className = 'flex justify-center items-center space-x-8 mb-8';
-            
+
             // Local participant avatar
             const localAvatar = document.createElement('div');
             localAvatar.className = 'w-32 h-32 bg-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold relative';
@@ -651,7 +698,7 @@ function vonageConsultation(config) {
             localLabel.className = 'absolute -bottom-6 text-sm text-gray-600 font-medium';
             localLabel.textContent = 'You';
             localAvatar.appendChild(localLabel);
-            
+
             // Remote participant avatar
             const remoteAvatar = document.createElement('div');
             remoteAvatar.id = 'remote-avatar';
@@ -662,34 +709,34 @@ function vonageConsultation(config) {
             remoteLabel.className = 'absolute -bottom-6 text-sm text-gray-600 font-medium';
             remoteLabel.textContent = 'Waiting...';
             remoteAvatar.appendChild(remoteLabel);
-            
+
             avatarsContainer.appendChild(localAvatar);
             avatarsContainer.appendChild(remoteAvatar);
             audioCallUI.appendChild(avatarsContainer);
-            
+
             // Call status
             const callStatus = document.createElement('div');
             callStatus.id = 'call-status';
             callStatus.className = 'text-gray-600 mb-6';
             callStatus.textContent = 'Connecting...';
             audioCallUI.appendChild(callStatus);
-            
+
             container.appendChild(audioCallUI);
-            
+
             // Create controls bar
             const controlsBar = this.createControlsBar('voice');
             container.appendChild(controlsBar);
-            
+
             // Create connection quality indicator
             const qualityIndicator = this.createQualityIndicator();
             container.appendChild(qualityIndicator);
-            
+
             // Create audio-only publisher container (hidden, for audio only)
             const publisherContainer = document.createElement('div');
             publisherContainer.id = 'publisher-container';
             publisherContainer.className = 'hidden';
             container.appendChild(publisherContainer);
-            
+
             // Publish audio-only stream
             this.publisher = OT.initPublisher(publisherContainer, {
                 videoSource: null, // No video
@@ -708,7 +755,7 @@ function vonageConsultation(config) {
                     this.showError('generic', 'Microphone Error', 'Failed to access microphone. Please check permissions.');
                     return;
                 }
-                
+
                 // Publish to session
                 this.session.publish(this.publisher, (error) => {
                     if (error) {
@@ -721,10 +768,10 @@ function vonageConsultation(config) {
                     }
                 });
             });
-            
+
             // Monitor connection quality
             this.monitorConnectionQuality();
-            
+
             // Subscribe to remote audio streams
             this.session.on('streamCreated', (event) => {
                 console.log('Remote audio stream created:', event.stream);
@@ -732,7 +779,7 @@ function vonageConsultation(config) {
                 subscriberContainer.id = 'subscriber-container';
                 subscriberContainer.className = 'hidden';
                 container.appendChild(subscriberContainer);
-                
+
                 const subscriber = this.session.subscribe(event.stream, subscriberContainer, {
                     width: '100%',
                     height: 'auto',
@@ -751,7 +798,7 @@ function vonageConsultation(config) {
                     }
                 });
             });
-            
+
             // Handle stream destroyed
             this.session.on('streamDestroyed', (event) => {
                 console.log('Audio stream destroyed:', event.stream);
@@ -764,12 +811,12 @@ function vonageConsultation(config) {
                 this.updateParticipants();
             });
         },
-        
+
         async renderChat(container, sessionId) {
             // Clear container
             container.innerHTML = '';
             container.className = 'flex flex-col h-[600px] bg-white rounded-lg border border-gray-200 overflow-hidden';
-            
+
             // Create chat header
             const chatHeader = document.createElement('div');
             chatHeader.className = 'bg-purple-600 text-white px-4 py-3 flex items-center justify-between';
@@ -783,24 +830,24 @@ function vonageConsultation(config) {
             chatHeader.appendChild(headerTitle);
             chatHeader.appendChild(participantCount);
             container.appendChild(chatHeader);
-            
+
             // Create messages container
             const messagesContainer = document.createElement('div');
             messagesContainer.id = 'chat-messages';
             messagesContainer.className = 'flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50';
             container.appendChild(messagesContainer);
-            
+
             // Create typing indicator
             const typingIndicator = document.createElement('div');
             typingIndicator.id = 'typing-indicator';
             typingIndicator.className = 'px-4 py-2 text-sm text-gray-500 italic hidden';
             typingIndicator.textContent = 'Someone is typing...';
             container.appendChild(typingIndicator);
-            
+
             // Create input area
             const inputArea = document.createElement('div');
             inputArea.className = 'border-t border-gray-200 p-4 bg-white';
-            
+
             // File input (hidden)
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
@@ -810,11 +857,11 @@ function vonageConsultation(config) {
             fileInput.multiple = false;
             this.fileInput = fileInput;
             inputArea.appendChild(fileInput);
-            
+
             // Input container
             const inputContainer = document.createElement('div');
             inputContainer.className = 'flex items-center space-x-2';
-            
+
             // File attach button
             const attachBtn = document.createElement('button');
             attachBtn.type = 'button';
@@ -822,7 +869,7 @@ function vonageConsultation(config) {
             attachBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>';
             attachBtn.onclick = () => fileInput.click();
             inputContainer.appendChild(attachBtn);
-            
+
             // Message input
             const messageInput = document.createElement('input');
             messageInput.type = 'text';
@@ -839,7 +886,7 @@ function vonageConsultation(config) {
                 this.handleTyping();
             };
             inputContainer.appendChild(messageInput);
-            
+
             // Send button
             const sendBtn = document.createElement('button');
             sendBtn.type = 'button';
@@ -847,10 +894,10 @@ function vonageConsultation(config) {
             sendBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
             sendBtn.onclick = () => this.sendChatMessage();
             inputContainer.appendChild(sendBtn);
-            
+
             inputArea.appendChild(inputContainer);
             container.appendChild(inputArea);
-            
+
             // Initialize Vonage Conversations SDK
             try {
                 await this.initializeChatClient(sessionId);
@@ -859,7 +906,7 @@ function vonageConsultation(config) {
                 this.showError('generic', 'Chat Error', 'Failed to initialize chat. Please try again.');
             }
         },
-        
+
         async initializeChatClient(conversationId) {
             try {
                 // Get token from current session data
@@ -867,13 +914,13 @@ function vonageConsultation(config) {
                 if (!token) {
                     throw new Error('Failed to get chat token');
                 }
-                
+
                 // Initialize Vonage Conversations Client
                 // Note: Using the token we already have from the session
                 this.conversationClient = new ConversationClient({
                     debug: false
                 });
-                
+
                 // Join conversation
                 this.conversation = await this.conversationClient.joinConversation(conversationId, {
                     token: token,
@@ -881,15 +928,15 @@ function vonageConsultation(config) {
                         name: this.isPatient ? 'Patient' : 'Doctor'
                     }
                 });
-                
+
                 // Load previous messages
                 await this.loadChatHistory();
-                
+
                 // Listen for new messages
                 this.conversation.on('text', (event) => {
                     this.handleIncomingMessage(event);
                 });
-                
+
                 // Listen for typing events
                 this.conversation.on('typing:start', (event) => {
                     if (event.from.name !== (this.isPatient ? 'Patient' : 'Doctor')) {
@@ -897,34 +944,34 @@ function vonageConsultation(config) {
                         this.updateTypingIndicator();
                     }
                 });
-                
+
                 this.conversation.on('typing:stop', (event) => {
                     this.typingUsers.delete(event.from.name);
                     this.updateTypingIndicator();
                 });
-                
+
                 // Listen for member events
                 this.conversation.on('member:joined', () => {
                     this.updateParticipantCount();
                 });
-                
+
                 this.conversation.on('member:left', () => {
                     this.updateParticipantCount();
                 });
-                
+
                 console.log('Chat client initialized successfully');
             } catch (error) {
                 console.error('Error initializing chat client:', error);
                 throw error;
             }
         },
-        
+
         async getChatToken() {
             // Token is already available from joinConsultation
             // We'll store it when we get it
             return this.chatToken;
         },
-        
+
         async loadChatHistory() {
             try {
                 // Load chat history from backend
@@ -935,7 +982,7 @@ function vonageConsultation(config) {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.messages) {
@@ -949,7 +996,7 @@ function vonageConsultation(config) {
                 console.error('Error loading chat history:', error);
             }
         },
-        
+
         handleIncomingMessage(event) {
             const message = {
                 id: event.id,
@@ -959,68 +1006,68 @@ function vonageConsultation(config) {
                 sent_at: new Date(event.timestamp),
                 message_type: 'text'
             };
-            
+
             this.addMessageToUI(message, true);
             this.saveMessageToBackend(message);
         },
-        
+
         addMessageToUI(message, isNew) {
             const messagesContainer = document.getElementById('chat-messages');
             if (!messagesContainer) return;
-            
+
             const messageDiv = document.createElement('div');
-            const isOwnMessage = (message.sender_type === 'patient' && this.isPatient) || 
+            const isOwnMessage = (message.sender_type === 'patient' && this.isPatient) ||
                                 (message.sender_type === 'doctor' && !this.isPatient);
-            
+
             messageDiv.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
-            
+
             const messageBubble = document.createElement('div');
             messageBubble.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                isOwnMessage 
-                    ? 'bg-purple-600 text-white' 
+                isOwnMessage
+                    ? 'bg-purple-600 text-white'
                     : 'bg-white text-gray-800 border border-gray-200'
             }`;
-            
+
             if (!isOwnMessage) {
                 const senderName = document.createElement('div');
                 senderName.className = 'text-xs font-semibold mb-1 text-gray-600';
                 senderName.textContent = message.sender_name;
                 messageBubble.appendChild(senderName);
             }
-            
+
             const messageText = document.createElement('div');
             messageText.className = 'text-sm whitespace-pre-wrap';
             messageText.textContent = message.message;
             messageBubble.appendChild(messageText);
-            
+
             const timestamp = document.createElement('div');
             timestamp.className = `text-xs mt-1 ${isOwnMessage ? 'text-purple-100' : 'text-gray-500'}`;
             timestamp.textContent = this.formatTime(message.sent_at);
             messageBubble.appendChild(timestamp);
-            
+
             messageDiv.appendChild(messageBubble);
             messagesContainer.appendChild(messageDiv);
-            
+
             if (isNew) {
                 this.scrollToBottom();
             }
-            
+
             this.chatMessages.push(message);
         },
-        
+
         async sendChatMessage() {
             const input = document.getElementById('chat-message-input');
             const message = input.value.trim();
-            
+
             if (!message || !this.conversation) return;
-            
+
             try {
                 // Send via Vonage Conversations
                 await this.conversation.sendText(message);
-                
+
                 // Clear input
                 input.value = '';
-                
+
                 // Stop typing indicator
                 this.stopTyping();
             } catch (error) {
@@ -1028,19 +1075,19 @@ function vonageConsultation(config) {
                 alert('Failed to send message. Please try again.');
             }
         },
-        
+
         handleTyping() {
             if (!this.isTyping && this.conversation) {
                 this.isTyping = true;
                 this.conversation.startTyping();
             }
-            
+
             clearTimeout(this.typingTimeout);
             this.typingTimeout = setTimeout(() => {
                 this.stopTyping();
             }, 3000);
         },
-        
+
         stopTyping() {
             if (this.isTyping && this.conversation) {
                 this.conversation.stopTyping();
@@ -1048,14 +1095,14 @@ function vonageConsultation(config) {
             }
             clearTimeout(this.typingTimeout);
         },
-        
+
         updateTypingIndicator() {
             const indicator = document.getElementById('typing-indicator');
             if (!indicator) return;
-            
+
             if (this.typingUsers.size > 0) {
                 const names = Array.from(this.typingUsers);
-                indicator.textContent = names.length === 1 
+                indicator.textContent = names.length === 1
                     ? `${names[0]} is typing...`
                     : 'Someone is typing...';
                 indicator.classList.remove('hidden');
@@ -1063,7 +1110,7 @@ function vonageConsultation(config) {
                 indicator.classList.add('hidden');
             }
         },
-        
+
         updateParticipantCount() {
             const countEl = document.getElementById('chat-participant-count');
             if (countEl && this.conversation) {
@@ -1071,24 +1118,24 @@ function vonageConsultation(config) {
                 countEl.textContent = `${memberCount} participant${memberCount !== 1 ? 's' : ''}`;
             }
         },
-        
+
         scrollToBottom() {
             const messagesContainer = document.getElementById('chat-messages');
             if (messagesContainer) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         },
-        
+
         formatTime(date) {
             const d = new Date(date);
             const now = new Date();
             const diff = now - d;
-            
+
             if (diff < 60000) return 'Just now';
             if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
             return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         },
-        
+
         async saveMessageToBackend(message) {
             try {
                 await fetch(`/consultations/${this.consultationId}/chat/messages`, {
@@ -1104,11 +1151,11 @@ function vonageConsultation(config) {
                 console.error('Error saving message to backend:', error);
             }
         },
-        
+
         createControlsBar(mode) {
             const controlsBar = document.createElement('div');
             controlsBar.className = 'flex justify-center items-center space-x-4 p-4 bg-gray-100 rounded-lg mt-4';
-            
+
             // Mute/Unmute button
             const muteBtn = document.createElement('button');
             muteBtn.id = 'mute-btn';
@@ -1116,7 +1163,7 @@ function vonageConsultation(config) {
             muteBtn.innerHTML = '<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>';
             muteBtn.onclick = () => this.toggleMute();
             controlsBar.appendChild(muteBtn);
-            
+
             // Video toggle (only for video mode)
             if (mode === 'video') {
                 const videoBtn = document.createElement('button');
@@ -1125,7 +1172,7 @@ function vonageConsultation(config) {
                 videoBtn.innerHTML = '<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
                 videoBtn.onclick = () => this.toggleVideo();
                 controlsBar.appendChild(videoBtn);
-                
+
                 // Screen share button
                 const screenShareBtn = document.createElement('button');
                 screenShareBtn.id = 'screen-share-btn';
@@ -1134,7 +1181,7 @@ function vonageConsultation(config) {
                 screenShareBtn.onclick = () => this.toggleScreenShare();
                 controlsBar.appendChild(screenShareBtn);
             }
-            
+
             // Recording button (optional)
             const recordBtn = document.createElement('button');
             recordBtn.id = 'record-btn';
@@ -1142,36 +1189,36 @@ function vonageConsultation(config) {
             recordBtn.innerHTML = '<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
             recordBtn.onclick = () => this.toggleRecording();
             controlsBar.appendChild(recordBtn);
-            
+
             return controlsBar;
         },
-        
+
         createQualityIndicator() {
             const qualityDiv = document.createElement('div');
             qualityDiv.id = 'connection-quality';
             qualityDiv.className = 'flex items-center justify-center space-x-2 mt-2 text-sm';
-            
+
             const qualityIcon = document.createElement('div');
             qualityIcon.id = 'quality-icon';
             qualityIcon.className = 'w-3 h-3 rounded-full bg-green-500';
-            
+
             const qualityText = document.createElement('span');
             qualityText.id = 'quality-text';
             qualityText.className = 'text-gray-600';
             qualityText.textContent = 'Connection: Good';
-            
+
             qualityDiv.appendChild(qualityIcon);
             qualityDiv.appendChild(qualityText);
-            
+
             return qualityDiv;
         },
-        
+
         toggleMute() {
             if (!this.publisher) return;
-            
+
             this.isMuted = !this.isMuted;
             this.publisher.publishAudio(!this.isMuted);
-            
+
             const muteBtn = document.getElementById('mute-btn');
             if (muteBtn) {
                 if (this.isMuted) {
@@ -1187,13 +1234,13 @@ function vonageConsultation(config) {
                 }
             }
         },
-        
+
         toggleVideo() {
             if (!this.publisher) return;
-            
+
             this.isVideoEnabled = !this.isVideoEnabled;
             this.publisher.publishVideo(this.isVideoEnabled);
-            
+
             const videoBtn = document.getElementById('video-btn');
             if (videoBtn) {
                 if (!this.isVideoEnabled) {
@@ -1209,10 +1256,10 @@ function vonageConsultation(config) {
                 }
             }
         },
-        
+
         async toggleScreenShare() {
             if (!this.session) return;
-            
+
             try {
                 if (!this.isScreenSharing) {
                     // Start screen sharing
@@ -1228,7 +1275,7 @@ function vonageConsultation(config) {
                             alert('Failed to start screen sharing. Please check permissions.');
                             return;
                         }
-                        
+
                         this.session.publish(screenPublisher, (error) => {
                             if (error) {
                                 console.error('Error publishing screen share:', error);
@@ -1264,7 +1311,7 @@ function vonageConsultation(config) {
                 alert('Screen sharing is not supported in this browser.');
             }
         },
-        
+
         toggleRecording() {
             this.isRecording = !this.isRecording;
             const btn = document.getElementById('record-btn');
@@ -1279,7 +1326,7 @@ function vonageConsultation(config) {
                     btn.querySelector('svg').classList.remove('text-white');
                 }
             }
-            
+
             if (this.mode !== 'video') {
                 fetch(`/consultations/${this.consultationId}/session/recording`, {
                     method: 'POST',
@@ -1328,15 +1375,15 @@ function vonageConsultation(config) {
                     .catch(err => console.error('Error stopping recording:', err));
             }
         },
-        
+
         monitorConnectionQuality() {
             if (!this.session) return;
-            
+
             setInterval(() => {
                 if (this.publisher) {
                     const stats = this.publisher.getStats((error, stats) => {
                         if (error || !stats) return;
-                        
+
                         // Analyze connection quality
                         let quality = 'good';
                         if (stats.video && stats.video.packetsLost > 10) {
@@ -1344,55 +1391,55 @@ function vonageConsultation(config) {
                         } else if (stats.video && stats.video.packetsLost > 5) {
                             quality = 'fair';
                         }
-                        
+
                         this.connectionQuality = quality;
                         this.updateQualityIndicator();
                     });
                 }
             }, 5000);
         },
-        
+
         updateQualityIndicator() {
             const icon = document.getElementById('quality-icon');
             const text = document.getElementById('quality-text');
-            
+
             if (!icon || !text) return;
-            
+
             const qualityMap = {
                 good: { color: 'bg-green-500', text: 'Connection: Good' },
                 fair: { color: 'bg-yellow-500', text: 'Connection: Fair' },
                 poor: { color: 'bg-red-500', text: 'Connection: Poor' }
             };
-            
+
             const quality = qualityMap[this.connectionQuality] || qualityMap.good;
             icon.className = `w-3 h-3 rounded-full ${quality.color}`;
             text.textContent = quality.text;
         },
-        
+
         updateParticipants() {
             if (!this.session) return;
-            
+
             const connections = this.session.getConnections();
             this.participants = connections.map(conn => ({
                 id: conn.connectionId,
                 data: conn.data
             }));
         },
-        
+
         showError(type, title, message) {
             this.state = 'error';
             this.errorType = type;
             this.errorTitle = title;
             this.errorMessage = message;
         },
-        
+
         async endSession() {
             if (!confirm('Are you sure you want to end this consultation?')) {
                 return;
             }
-            
+
             this.ending = true;
-            
+
             try {
                 const response = await fetch(this.mode === 'video' ? this.videoEndUrl : this.endSessionUrl, {
                     method: 'POST',
@@ -1403,9 +1450,9 @@ function vonageConsultation(config) {
                     },
                     body: JSON.stringify({})
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     this.cleanupVonage();
                     if (this.isPatient) {
@@ -1423,13 +1470,13 @@ function vonageConsultation(config) {
                 this.ending = false;
             }
         },
-        
+
         startStatusPolling() {
             if (this.statusPollInterval) return;
-            
+
             this.statusPollInterval = setInterval(async () => {
                 if (this.state !== 'connected') return;
-                
+
                 try {
                     const response = await fetch(this.mode === 'video' ? this.videoStatusUrl : this.statusUrl, {
                         method: 'GET',
@@ -1439,12 +1486,12 @@ function vonageConsultation(config) {
                         },
                         cache: 'no-cache'
                     });
-                    
+
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         const status = data.session_status || data.consultation_status;
-                        
+
                         if (status === 'ended' || status === 'completed') {
                             this.cleanup();
                             if (this.isPatient) {
@@ -1462,16 +1509,16 @@ function vonageConsultation(config) {
                 }
             }, 5000);
         },
-        
+
         cleanup() {
             if (this.statusPollInterval) {
                 clearInterval(this.statusPollInterval);
                 this.statusPollInterval = null;
             }
-            
+
             // Stop typing
             this.stopTyping();
-            
+
             // Disconnect chat
             if (this.conversation) {
                 try {
@@ -1481,7 +1528,7 @@ function vonageConsultation(config) {
                 }
                 this.conversation = null;
             }
-            
+
             if (this.conversationClient) {
                 this.conversationClient = null;
             }
@@ -1525,7 +1572,7 @@ function vonageConsultation(config) {
 
             this.session = null;
         },
-        
+
         cleanupVonage() {
             if (this.statusPollInterval) {
                 clearInterval(this.statusPollInterval);
@@ -1568,7 +1615,7 @@ function vonageConsultation(config) {
 
             this.session = null;
         },
-        
+
         redirectToDashboard(delayed) {
             if (delayed) {
                 setTimeout(() => {

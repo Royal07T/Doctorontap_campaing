@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use OpenTok\ArchiveMode;
-use OpenTok\Role;
 
 class VideoRoomController extends Controller
 {
@@ -63,8 +62,8 @@ class VideoRoomController extends Controller
             // Update consultation session_status if not already set
             if (!$consultation->session_status) {
                 $consultation->update([
-                    'session_status' => $consultation->scheduled_at && $consultation->scheduled_at->isFuture() 
-                        ? 'scheduled' 
+                    'session_status' => $consultation->scheduled_at && $consultation->scheduled_at->isFuture()
+                        ? 'scheduled'
                         : 'waiting'
                 ]);
             }
@@ -126,12 +125,13 @@ class VideoRoomController extends Controller
             ], 500);
         }
 
-        // Get the correct identifier: Application ID (JWT) or API Key (Legacy)
-        $applicationId = $this->videoService->getApplicationId();
+        // Get the correct identifier for OT.initSession(): Application ID (JWT) or API Key (Legacy)
+        $clientApiKey = $this->videoService->getClientApiKey();
 
         return response()->json([
             'success' => true,
-            'applicationId' => $applicationId, // Application ID (JWT) or API Key (Legacy)
+            'api_key' => $clientApiKey,
+            'applicationId' => $clientApiKey, // Backward compatibility
             'session_id' => $room->vonage_session_id,
             'token' => $tokenResult['token'],
             'room' => [
@@ -176,12 +176,13 @@ class VideoRoomController extends Controller
             ], 500);
         }
 
-        // Get the correct identifier: Application ID (JWT) or API Key (Legacy)
-        $applicationId = $this->videoService->getApplicationId();
+        // Get the correct identifier for OT.initSession(): Application ID (JWT) or API Key (Legacy)
+        $clientApiKey = $this->videoService->getClientApiKey();
 
         return response()->json([
             'success' => true,
-            'applicationId' => $applicationId, // Application ID (JWT) or API Key (Legacy)
+            'api_key' => $clientApiKey,
+            'applicationId' => $clientApiKey, // Backward compatibility
             'session_id' => $room->vonage_session_id,
             'token' => $tokenResult['token'],
             'room_uuid' => $room->uuid,
@@ -204,7 +205,7 @@ class VideoRoomController extends Controller
 
         // Map room status to session status for waiting room compatibility
         $sessionStatus = $consultation->session_status;
-        
+
         // If no room exists but consultation has session_status, use that
         if (!$room) {
             // If consultation is scheduled and hasn't started, return scheduled
@@ -213,7 +214,7 @@ class VideoRoomController extends Controller
             } elseif (!$sessionStatus) {
                 $sessionStatus = 'waiting'; // Default to waiting if no status set
             }
-            
+
             return response()->json([
                 'success' => true,
                 'session_status' => $sessionStatus,
@@ -230,8 +231,8 @@ class VideoRoomController extends Controller
         if (!$sessionStatus) {
             switch ($room->status) {
                 case 'pending':
-                    $sessionStatus = $consultation->scheduled_at && $consultation->scheduled_at->isFuture() 
-                        ? 'scheduled' 
+                    $sessionStatus = $consultation->scheduled_at && $consultation->scheduled_at->isFuture()
+                        ? 'scheduled'
                         : 'waiting';
                     break;
                 case 'active':
@@ -421,12 +422,16 @@ class VideoRoomController extends Controller
         return null;
     }
 
+    /**
+     * Return the role string for OT.initSession token generation.
+     * IMPORTANT: Must be uppercase to match VonageVideoService::generateToken() normalization.
+     */
     protected function roleForActor($actor): string
     {
         if ($actor instanceof \App\Models\Doctor || $actor instanceof \App\Models\AdminUser) {
-            return Role::MODERATOR;
+            return 'MODERATOR';
         }
 
-        return Role::PUBLISHER;
+        return 'PUBLISHER';
     }
 }

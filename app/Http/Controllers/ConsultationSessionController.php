@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * ConsultationSessionController
- * 
+ *
  * Handles consultation session management for in-app consultations (voice, video, chat).
- * 
+ *
  * SECURITY:
  * - Only assigned doctor can access doctor endpoints
  * - Only consultation owner (patient) can access patient endpoints
@@ -73,13 +73,13 @@ class ConsultationSessionController extends Controller
 
     /**
      * Get session token for joining consultation
-     * 
+     *
      * SECURITY:
      * - Uses POST method to prevent token exposure in logs, browser history, or URL parameters
      * - Verifies user authorization before returning token
      * - Rate limited to prevent abuse (10 requests per minute)
      * - Tokens are encrypted at rest and only decrypted for authorized users
-     * 
+     *
      * NOTE: This endpoint was changed from GET to POST for security reasons.
      * Tokens should never be exposed in URLs or server logs.
      */
@@ -100,7 +100,7 @@ class ConsultationSessionController extends Controller
         if (auth()->guard('doctor')->check()) {
             $userType = 'doctor';
             $userId = auth()->guard('doctor')->id();
-            
+
             // Verify doctor is assigned to this consultation
             if ($consultation->doctor_id !== $userId) {
                 return response()->json([
@@ -111,7 +111,7 @@ class ConsultationSessionController extends Controller
         } elseif (auth()->guard('patient')->check()) {
             $userType = 'patient';
             $userId = auth()->guard('patient')->id();
-            
+
             // Verify patient owns this consultation
             if ($consultation->patient_id !== $userId && $consultation->email !== auth()->guard('patient')->user()->email) {
                 return response()->json([
@@ -128,7 +128,7 @@ class ConsultationSessionController extends Controller
 
         // Get active session or create new one
         $session = $consultation->activeSession();
-        
+
         if (!$session) {
             // Create new session
             $result = $this->sessionService->createSession($consultation);
@@ -143,7 +143,7 @@ class ConsultationSessionController extends Controller
                         'graceful_failure' => true
                     ], 503); // 503 Service Unavailable - indicates temporary unavailability
                 }
-                
+
                 // For other errors, return 500
                 return response()->json([
                     'success' => false,
@@ -155,7 +155,7 @@ class ConsultationSessionController extends Controller
 
         // Get token for user
         $tokenResult = $this->sessionService->getSessionToken($session, $userType, $userId);
-        
+
         if (!$tokenResult['success']) {
             return response()->json([
                 'success' => false,
@@ -168,6 +168,7 @@ class ConsultationSessionController extends Controller
             'token' => $tokenResult['token'],
             'session_id' => $tokenResult['session_id'],
             'mode' => $tokenResult['mode'],
+            'api_key' => $tokenResult['api_key'] ?? null,
             'consultation_id' => $consultation->id,
         ]);
     }
@@ -271,7 +272,7 @@ class ConsultationSessionController extends Controller
             'mode' => $consultation->consultation_mode,
         ]);
     }
-    
+
     /**
      * Toggle session recording
      */
@@ -280,7 +281,7 @@ class ConsultationSessionController extends Controller
         $request->validate([
             'recording' => 'required|boolean'
         ]);
-        
+
         // Verify authorization
         if (auth()->guard('doctor')->check()) {
             if ($consultation->doctor_id !== auth()->guard('doctor')->id()) {
@@ -294,12 +295,12 @@ class ConsultationSessionController extends Controller
         } else {
             return response()->json(['success' => false, 'message' => 'Authentication required'], 401);
         }
-        
+
         $session = $consultation->activeSession();
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'No active session found'], 404);
         }
-        
+
         // Log recording toggle
         Log::info('Session recording toggled', [
             'consultation_id' => $consultation->id,
@@ -307,10 +308,10 @@ class ConsultationSessionController extends Controller
             'recording' => $request->recording,
             'user_type' => auth()->guard('doctor')->check() ? 'doctor' : 'patient'
         ]);
-        
+
         // TODO: Implement actual recording start/stop via Vonage API
         // For now, just acknowledge the request
-        
+
         return response()->json([
             'success' => true,
             'recording' => $request->recording,

@@ -25,7 +25,7 @@ class WhatsAppService
 {
     /**
      * Send a WhatsApp text message
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format (e.g., 447123456789 or +447123456789)
      * @param string $message Message text
      * @return array Response with success status and data
@@ -35,15 +35,15 @@ class WhatsAppService
         try {
             // Format phone number (ensure E.164 format)
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // For WhatsApp Messages API, use WhatsApp Business Number ID (required)
             // The Business Number ID is what the API expects in the 'from' parameter
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id');
-            
+
             // If Business Number ID not available, fallback to phone number (remove +)
             if (empty($fromNumber)) {
-                $fromNumber = config('services.vonage.whatsapp.from_phone_number') 
+                $fromNumber = config('services.vonage.whatsapp.from_phone_number')
                     ?: config('services.vonage.whatsapp_number');
                 if ($fromNumber) {
                     $fromNumber = str_replace('+', '', $fromNumber);
@@ -71,8 +71,8 @@ class WhatsAppService
                 ->send($whatsAppMessage);
 
             // Handle response
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp message sent successfully', [
@@ -121,9 +121,9 @@ class WhatsAppService
     /**
      * Send a WhatsApp template message (MTM - Message Template)
      * Use this to start a new conversation window (24-hour window starts after this)
-     * 
+     *
      * Template name format: "namespace:template_name" (e.g., "whatsapp:hugotemplate")
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format
      * @param string $templateName Template name in format "namespace:template_name" (must be approved by WhatsApp)
      * @param string $templateLanguage Template language code (e.g., 'en_US', 'en')
@@ -131,16 +131,16 @@ class WhatsAppService
      * @return array Response with success status and data
      */
     public function sendTemplate(
-        string $toNumber, 
-        string $templateName, 
+        string $toNumber,
+        string $templateName,
         string $templateLanguage = 'en_US',
         array $templateParameters = []
     ): array {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // Use WhatsApp Business Number ID if available (preferred for Messages API)
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id')
                 ?: config('services.vonage.whatsapp.from_phone_number');
 
@@ -172,8 +172,8 @@ class WhatsAppService
                 ->messages()
                 ->send($whatsAppTemplate);
 
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp template sent successfully', [
@@ -223,33 +223,45 @@ class WhatsAppService
 
     /**
      * Format phone number to E.164 format
-     * 
+     * Default country code: Nigeria (+234)
+     *
      * @param string $phone Phone number in any format
-     * @return string Phone number in E.164 format (e.g., +447123456789)
+     * @return string Phone number in E.164 format (e.g., +2348012345678)
      */
     protected function formatPhoneNumber(string $phone): string
     {
         // Remove all non-numeric characters except +
         $phone = preg_replace('/[^0-9+]/', '', $phone);
 
-        // If doesn't start with +, add it
-        if (!str_starts_with($phone, '+')) {
-            // If starts with 0, remove it (assuming local format)
-            if (str_starts_with($phone, '0')) {
-                $phone = substr($phone, 1);
-            }
-            // Add country code if not present (default to 44 for UK, adjust as needed)
-            // You may want to make this configurable
-            $phone = '+' . $phone;
+        // If already has a + prefix, validate and return
+        if (str_starts_with($phone, '+')) {
+            return $phone;
         }
 
-        return $phone;
+        // If starts with 0, replace with +234 (Nigeria country code)
+        if (str_starts_with($phone, '0')) {
+            return '+234' . substr($phone, 1);
+        }
+
+        // If starts with 234 (country code without +), add +
+        if (str_starts_with($phone, '234') && strlen($phone) >= 13) {
+            return '+' . $phone;
+        }
+
+        // For numbers without country code, assume Nigeria (+234)
+        // This handles cases like bare 8012345678 (without leading 0)
+        if (strlen($phone) === 10 || strlen($phone) === 11) {
+            return '+234' . $phone;
+        }
+
+        // Fallback: just prepend + (for international numbers without +)
+        return '+' . $phone;
     }
 
     /**
      * Send a WhatsApp image message
      * Can only be sent within 24-hour customer care window
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format
      * @param string $imageUrl Public URL to the image
      * @param string|null $caption Optional caption for the image
@@ -259,9 +271,9 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // Use WhatsApp Business Number ID if available (preferred for Messages API)
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id')
                 ?: config('services.vonage.whatsapp.from_phone_number');
 
@@ -280,8 +292,8 @@ class WhatsAppService
                 ->messages()
                 ->send($whatsAppImage);
 
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp image sent successfully', [
@@ -316,7 +328,7 @@ class WhatsAppService
     /**
      * Send a WhatsApp video message
      * Can only be sent within 24-hour customer care window
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format
      * @param string $videoUrl Public URL to the video
      * @param string|null $caption Optional caption for the video
@@ -326,9 +338,9 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // Use WhatsApp Business Number ID if available (preferred for Messages API)
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id')
                 ?: config('services.vonage.whatsapp.from_phone_number');
 
@@ -347,8 +359,8 @@ class WhatsAppService
                 ->messages()
                 ->send($whatsAppVideo);
 
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             return [
@@ -377,7 +389,7 @@ class WhatsAppService
     /**
      * Send a WhatsApp audio message
      * Can only be sent within 24-hour customer care window
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format
      * @param string $audioUrl Public URL to the audio file
      * @return array Response with success status and data
@@ -386,9 +398,9 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // Use WhatsApp Business Number ID if available (preferred for Messages API)
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id')
                 ?: config('services.vonage.whatsapp.from_phone_number');
 
@@ -407,8 +419,8 @@ class WhatsAppService
                 ->messages()
                 ->send($whatsAppAudio);
 
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             return [
@@ -437,7 +449,7 @@ class WhatsAppService
     /**
      * Send a WhatsApp file/document message
      * Can only be sent within 24-hour customer care window
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format
      * @param string $fileUrl Public URL to the file
      * @param string|null $caption Optional caption for the file
@@ -448,9 +460,9 @@ class WhatsAppService
     {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // Use WhatsApp Business Number ID if available (preferred for Messages API)
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id')
                 ?: config('services.vonage.whatsapp.from_phone_number');
 
@@ -469,8 +481,8 @@ class WhatsAppService
                 ->messages()
                 ->send($whatsAppFile);
 
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             return [
@@ -499,7 +511,7 @@ class WhatsAppService
     /**
      * Send a WhatsApp location message
      * Can only be sent within 24-hour customer care window
-     * 
+     *
      * @param string $toNumber Phone number in E.164 format
      * @param float $longitude Longitude coordinate
      * @param float $latitude Latitude coordinate
@@ -508,17 +520,17 @@ class WhatsAppService
      * @return array Response with success status and data
      */
     public function sendLocation(
-        string $toNumber, 
-        float $longitude, 
-        float $latitude, 
-        ?string $name = null, 
+        string $toNumber,
+        float $longitude,
+        float $latitude,
+        ?string $name = null,
         ?string $address = null
     ): array {
         try {
             $formattedTo = $this->formatPhoneNumber($toNumber);
-            
+
             // Use WhatsApp Business Number ID if available (preferred for Messages API)
-            $fromNumber = config('services.vonage.whatsapp.business_number_id') 
+            $fromNumber = config('services.vonage.whatsapp.business_number_id')
                 ?: config('services.vonage.whatsapp_id')
                 ?: config('services.vonage.whatsapp.from_phone_number');
 
@@ -558,8 +570,8 @@ class WhatsAppService
                 ->messages()
                 ->send($whatsAppMessage);
 
-            $messageUuid = is_object($response) 
-                ? $response->getMessageUuid() 
+            $messageUuid = is_object($response)
+                ? $response->getMessageUuid()
                 : ($response['message_uuid'] ?? null);
 
             Log::info('Vonage WhatsApp location sent successfully', [
