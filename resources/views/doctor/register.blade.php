@@ -745,7 +745,7 @@
         <div class="reg-form-area">
             <div class="reg-form-inner">
 
-                <form method="POST" action="{{ route('doctor.register.post') }}" enctype="multipart/form-data" id="doctor-registration-form" @submit="isSubmitting = true">
+                <form method="POST" action="{{ route('doctor.register.post') }}" enctype="multipart/form-data" id="doctor-registration-form" novalidate @submit="isSubmitting = true">
                     @csrf
 
                     <x-doctor-registration.form-errors :errors="$errors" />
@@ -993,6 +993,34 @@
             if (panel) panel.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        /** Return first invalid required field in a step section, or null if valid */
+        function getFirstInvalidInStep(stepIndex) {
+            var section = document.querySelector('.registration-step[data-step="' + stepIndex + '"]');
+            if (!section) return null;
+            var required = section.querySelectorAll('input[required], select[required], textarea[required]');
+            for (var i = 0; i < required.length; i++) {
+                var el = required[i];
+                if (el.offsetParent === null) continue;
+                if (!el.checkValidity()) return el;
+            }
+            return null;
+        }
+
+        /** Validate all steps; return { valid: true } or { valid: false, step: n, element: el } */
+        function validateAllSteps() {
+            for (var s = 0; s < totalSteps; s++) {
+                var section = document.querySelector('.registration-step[data-step="' + s + '"]');
+                if (!section) continue;
+                var required = section.querySelectorAll('input[required], select[required], textarea[required]');
+                for (var j = 0; j < required.length; j++) {
+                    if (!required[j].checkValidity()) {
+                        return { valid: false, step: s, element: required[j] };
+                    }
+                }
+            }
+            return { valid: true };
+        }
+
         function updateProgress(step) {
             var pct = ((step + 1) / totalSteps) * 100;
             if (progressBar) {
@@ -1024,7 +1052,14 @@
 
         document.querySelectorAll('.registration-next').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                if (currentStep < totalSteps - 1) goToStep(currentStep + 1);
+                if (currentStep >= totalSteps - 1) return;
+                var invalid = getFirstInvalidInStep(currentStep);
+                if (invalid) {
+                    invalid.focus();
+                    invalid.reportValidity();
+                    return;
+                }
+                goToStep(currentStep + 1);
             });
         });
         document.querySelectorAll('.registration-prev').forEach(function (btn) {
@@ -1032,6 +1067,21 @@
                 if (currentStep > 0) goToStep(currentStep - 1);
             });
         });
+
+        var form = document.getElementById('doctor-registration-form');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                var result = validateAllSteps();
+                if (!result.valid) {
+                    e.preventDefault();
+                    goToStep(result.step);
+                    setTimeout(function () {
+                        result.element.focus();
+                        result.element.reportValidity();
+                    }, 100);
+                }
+            });
+        }
 
         goToStep(0);
 
