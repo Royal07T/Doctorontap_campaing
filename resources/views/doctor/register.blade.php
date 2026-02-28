@@ -51,10 +51,12 @@
         .reg-image-overlay {
             position: absolute;
             inset: 0;
-            background:
-                radial-gradient(ellipse 80% 50% at 50% 20%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
-                radial-gradient(ellipse 100% 100% at 80% 80%, rgba(109, 40, 217, 0.25) 0%, transparent 45%),
-                linear-gradient(160deg, rgba(109, 40, 217, 0.55) 0%, rgba(79, 16, 171, 0.45) 45%, rgba(30, 20, 60, 0.7) 100%);
+            background: linear-gradient(
+                135deg,
+                rgba(147, 51, 234, 0.82) 0%,
+                rgba(126, 34, 206, 0.78) 40%,
+                rgba(88, 28, 135, 0.88) 100%
+            );
         }
 
         .reg-image-content {
@@ -144,17 +146,18 @@
             position: sticky;
             top: 0;
             z-index: 50;
-            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%);
-            padding: 0.7rem 1.25rem;
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
+            padding: 0.85rem 1.25rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            box-shadow: 0 4px 20px rgba(91,33,182,0.45);
+            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         @media (min-width: 640px) { .reg-topbar { padding: 0.8rem 2rem; } }
         /* Invert logo to white on the purple bar; hide on desktop (image panel shows it instead) */
-        .reg-topbar .reg-topbar-logo { height: 3.25rem; width: auto; filter: brightness(0) invert(1); opacity: 0.95; }
+        .reg-topbar .reg-topbar-logo { height: 2rem; width: auto; opacity: 1; }
         @media (min-width: 1024px) { .reg-topbar .reg-topbar-logo { display: none; } }
         /* Centre tagline (desktop only) */
         .reg-topbar-tagline {
@@ -198,8 +201,8 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 2rem 1.5rem 1.75rem;
-            background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #a855f7 80%, #ec4899 100%);
+            padding: 2.75rem 1.5rem;
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
             position: relative;
             overflow: hidden;
         }
@@ -266,9 +269,9 @@
             top: 3.5rem;
             z-index: 40;
             padding: 1rem 1.25rem 1rem;
-            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%);
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            box-shadow: 0 2px 12px rgba(91,33,182,0.25);
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.3);
         }
         @media (min-width: 640px) { .reg-progress-wrap { padding: 1rem 2rem 1.125rem; } }
 
@@ -291,20 +294,20 @@
         }
         /* Step-specific bar colours (set from JS via data-step attr on fill) */
         .reg-progress-fill[data-step="0"] {
-            background: linear-gradient(90deg, #7c3aed, #8b5cf6);
-            box-shadow: 0 0 10px rgba(124,58,237,0.5);
+            background: linear-gradient(90deg, #c084fc, #e879f9);
+            box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
         }
         .reg-progress-fill[data-step="1"] {
-            background: linear-gradient(90deg, #7c3aed, #a855f7, #ec4899);
-            box-shadow: 0 0 10px rgba(168,85,247,0.5);
+            background: linear-gradient(90deg, #c084fc, #e879f9, #f472b6);
+            box-shadow: 0 0 10px rgba(232, 121, 249, 0.5);
         }
         .reg-progress-fill[data-step="2"] {
-            background: linear-gradient(90deg, #7c3aed, #a855f7, #ec4899, #f97316);
-            box-shadow: 0 0 10px rgba(249,115,22,0.45);
+            background: linear-gradient(90deg, #c084fc, #e879f9, #f472b6, #fb7185);
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
         }
         .reg-progress-fill[data-step="3"] {
-            background: linear-gradient(90deg, #7c3aed, #a855f7, #ec4899, #f97316, #10b981);
-            box-shadow: 0 0 12px rgba(16,185,129,0.45);
+            background: linear-gradient(90deg, #c084fc, #e879f9, #f472b6, #fb7185, #34d399);
+            box-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
         }
         /* Shimmer animation on the bar */
         .reg-progress-fill::after {
@@ -626,7 +629,7 @@
         <div class="reg-image-content">
             {{-- Brand logo (centred, larger on big screens) --}}
             <div class="reg-image-panel-logo">
-                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap">
+                <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap">
             </div>
 
             {{-- Headline --}}
@@ -684,7 +687,7 @@
         {{-- Topbar --}}
         <header class="reg-topbar">
             {{-- Logo: always visible, white-filtered on purple bg --}}
-            <img src="{{ asset('img/sitelogo.png') }}" alt="DoctorOnTap" class="reg-topbar-logo">
+            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="reg-topbar-logo">
 
             {{-- Tagline, desktop only --}}
             <span class="reg-topbar-tagline"></span>

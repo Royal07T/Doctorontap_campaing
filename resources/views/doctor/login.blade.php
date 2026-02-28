@@ -53,10 +53,10 @@
             position: absolute;
             inset: 0;
             background: linear-gradient(
-                160deg,
-                rgba(109, 40, 217, 0.82) 0%,
-                rgba(79, 16, 171, 0.75) 40%,
-                rgba(15, 10, 40, 0.88) 100%
+                135deg,
+                rgba(147, 51, 234, 0.82) 0%,
+                rgba(126, 34, 206, 0.78) 40%,
+                rgba(88, 28, 135, 0.88) 100%
             );
         }
 
@@ -129,16 +129,17 @@
             position: sticky;
             top: 0;
             z-index: 50;
-            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%);
-            padding: 0.7rem 1.25rem;
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
+            padding: 0.85rem 1.25rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            box-shadow: 0 4px 20px rgba(91,33,182,0.45);
+            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         @media (min-width: 640px) { .reg-topbar { padding: 0.8rem 2rem; } }
-        .reg-topbar .reg-topbar-logo { height: 3.25rem; width: auto; filter: brightness(0) invert(1); opacity: 0.95; }
+        .reg-topbar .reg-topbar-logo { height: 2rem; width: auto; opacity: 1; }
         @media (min-width: 1024px) { .reg-topbar .reg-topbar-logo { display: none; } }
         
         .reg-topbar-tagline {
@@ -182,8 +183,8 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 2rem 1.5rem 1.75rem;
-            background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #a855f7 80%, #ec4899 100%);
+            padding: 2.75rem 1.5rem;
+            background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%);
             position: relative;
             overflow: hidden;
         }
@@ -349,7 +350,7 @@
         <div class="reg-image-overlay"></div>
         <div class="reg-image-content">
             <div class="reg-image-panel-logo">
-                <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap">
+                <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap">
             </div>
             <div>
                 <h1 style="font-size:2.25rem;font-weight:800;color:#fff;line-height:1.2;letter-spacing:-0.02em;margin:0 0 0.875rem;">
@@ -378,7 +379,7 @@
     {{-- Right Form Panel --}}
     <div class="reg-form-panel">
         <header class="reg-topbar">
-            <img src="{{ asset('img/dashlogo.png') }}" alt="DoctorOnTap" class="reg-topbar-logo">
+            <img src="{{ asset('img/whitelogo.png') }}" alt="DoctorOnTap" class="reg-topbar-logo">
             <span class="reg-topbar-tagline"></span>
             <a href="{{ route('doctor.register') }}" class="reg-topbar-btn">
                 Need an account?
