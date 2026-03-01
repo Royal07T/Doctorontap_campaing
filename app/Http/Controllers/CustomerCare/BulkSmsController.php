@@ -144,7 +144,7 @@ class BulkSmsController extends Controller
 
         $template = CommunicationTemplate::where('id', $request->template_id)
             ->where('channel', 'sms')
-            ->where('is_active', true)
+            ->where('active', true)
             ->firstOrFail();
 
         // Build message from template only (staff cannot submit free text)
