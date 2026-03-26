@@ -3167,34 +3167,12 @@ class DashboardController extends Controller
      */
     public function completeDoctorPayment(Request $request, $id)
     {
-        try {
-            $validated = $request->validate([
-                'payment_method' => 'required|string|max:255',
-                'transaction_reference' => 'nullable|string|max:255',
-                'payment_notes' => 'nullable|string|max:1000',
-            ]);
-
-            $payment = \App\Models\DoctorPayment::findOrFail($id);
-            $admin = auth()->guard('admin')->user();
-
-            $payment->markAsCompleted(
-                $admin->id,
-                $validated['payment_method'],
-                $validated['transaction_reference'] ?? null,
-                $validated['payment_notes'] ?? null
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment marked as completed successfully!'
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to complete payment: ' . $e->getMessage()
-            ], 500);
-        }
+        // Manual completion is intentionally disabled to enforce KoraPay flow:
+        // create payout -> initiate payout -> webhook/verify updates final status.
+        return response()->json([
+            'success' => false,
+            'message' => 'Manual completion is disabled. Use KoraPay Initiate Payout and Verify Status actions.'
+        ], 403);
     }
 
     /**

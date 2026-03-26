@@ -36,13 +36,23 @@
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Create Payment</span>
+                        <span>Create Payout Batch</span>
                     </button>
                 </div>
             </header>
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
+                    <p class="text-xs font-semibold text-indigo-900 uppercase tracking-wide mb-2">KoraPay Payout Flow</p>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs text-indigo-800">
+                        <p><strong>1.</strong> Create payout batch</p>
+                        <p><strong>2.</strong> Initiate payout</p>
+                        <p><strong>3.</strong> Wait for webhook/update</p>
+                        <p><strong>4.</strong> Verify status if processing</p>
+                    </div>
+                </div>
+
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
@@ -132,7 +142,7 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>
-                            Initiate Bulk Payout
+                            Initiate Bulk Payout (KoraPay)
                         </button>
                     </div>
                 </div>
@@ -257,13 +267,6 @@
                                         </svg>
                                         Initiate Payout
                                     </button>
-                                    <button @click="completePayment({{ $payment->id }})" 
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Complete
-                                    </button>
                                 @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
                                     <button @click="initiatePayout({{ $payment->id }})" 
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
@@ -278,7 +281,7 @@
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
-                                        Verify
+                                        Verify Status
                                     </button>
                                 @endif
                                 <button @click="viewPayment({{ $payment->id }})" 
@@ -425,74 +428,6 @@
                                         class="flex-1 purple-gradient text-white px-4 py-2 text-xs font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
                                         :disabled="selectedConsultations.length === 0 || !selectedDoctor || consultations.length === 0">
                                     Create Payment
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Complete Payment Modal -->
-                <div x-show="showCompleteModal" 
-                     x-cloak
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0"
-                     x-transition:enter-end="opacity-100"
-                     x-transition:leave="transition ease-in duration-200"
-                     x-transition:leave-start="opacity-100"
-                     x-transition:leave-end="opacity-0"
-                     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div @click.away="showCompleteModal = false" 
-                         x-transition:enter="transition ease-out duration-300"
-                         x-transition:enter-start="opacity-0 transform scale-95"
-                         x-transition:enter-end="opacity-100 transform scale-100"
-                         x-transition:leave="transition ease-in duration-200"
-                         x-transition:leave-start="opacity-100 transform scale-100"
-                         x-transition:leave-end="opacity-0 transform scale-95"
-                         class="bg-white rounded-xl p-6 max-w-lg w-full">
-                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Complete Payment
-                            </h2>
-                            <button @click="showCompleteModal = false" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <form @submit.prevent="submitComplete">
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Payment Method *</label>
-                                    <select x-model="completeForm.payment_method" required class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                        <option value="">Select method</option>
-                                        <option value="bank_transfer">Bank Transfer</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="mobile_money">Mobile Money</option>
-                                        <option value="cheque">Cheque</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Transaction Reference</label>
-                                    <input type="text" x-model="completeForm.transaction_reference" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Payment Notes</label>
-                                    <textarea x-model="completeForm.payment_notes" rows="3" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
-                                </div>
-                            </div>
-
-                            <div class="mt-4 flex space-x-2">
-                                <button type="button" @click="showCompleteModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all">
-                                    Cancel
-                                </button>
-                                <button type="submit" class="flex-1 bg-emerald-600 text-white px-4 py-2 text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-all">
-                                    Mark as Completed
                                 </button>
                             </div>
                         </form>
@@ -761,7 +696,6 @@
                 pageLoading: false,
                 sidebarOpen: false,
                 showCreateModal: false,
-                showCompleteModal: false,
                 showDetailsModal: false,
                 selectedDoctor: '',
                 consultations: [],
@@ -773,11 +707,6 @@
                 selectedPayment: null,
                 loadingPaymentDetails: false,
                 paymentConsultations: [],
-                completeForm: {
-                    payment_method: '',
-                    transaction_reference: '',
-                    payment_notes: ''
-                },
                 
                 // Helper functions to parse error response
                 getErrorData(response) {
@@ -897,7 +826,7 @@
 
                         if (data.success) {
                             if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'success', 'Payment Created Successfully');
+                                showAlertModal(data.message, 'success', 'Payout Batch Created');
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
@@ -910,42 +839,6 @@
                             showAlertModal('An error occurred while creating payment. Please check the console for details.', 'error');
                         }
                         console.error('Payment creation error:', error);
-                    }
-                },
-
-                completePayment(paymentId) {
-                    this.currentPaymentId = paymentId;
-                    this.showCompleteModal = true;
-                },
-
-                async submitComplete() {
-                    try {
-                        const response = await fetch(`/admin/doctor-payments/${this.currentPaymentId}/complete`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify(this.completeForm)
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'success');
-                            }
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal('Error: ' + data.message, 'error');
-                            }
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('An error occurred', 'error');
-                        }
-                        console.error(error);
                     }
                 },
 
