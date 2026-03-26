@@ -673,9 +673,45 @@ class DashboardController extends Controller
 
             if ($existingAccount) {
                 if ($existingAccount->trashed()) {
+                    // Restore previously deleted account instead of blocking the doctor.
+                    $isFirstAccount = !$doctor->bankAccounts()->exists();
+
+                    \DB::beginTransaction();
+                    try {
+                        // Keep only one default account.
+                        \DB::table('doctor_bank_accounts')
+                            ->where('doctor_id', $doctor->id)
+                            ->where('is_default', true)
+                            ->update(['is_default' => false]);
+
+                        $existingAccount->restore();
+                        $existingAccount->update([
+                            'bank_name' => $bank->name,
+                            'account_name' => $validated['account_name'],
+                            'account_type' => $validated['account_type'] ?? null,
+                            'swift_code' => $validated['swift_code'] ?? null,
+                            'notes' => $validated['notes'] ?? null,
+                            'is_default' => $isFirstAccount,
+                            'is_verified' => true,
+                            'verified_at' => now(),
+                        ]);
+
+                        \DB::commit();
+                    } catch (\Exception $e) {
+                        \DB::rollBack();
+                        \Log::error('Failed to restore deleted bank account', [
+                            'doctor_id' => $doctor->id,
+                            'bank_account_id' => $existingAccount->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Failed to restore deleted bank account. Please try again.');
+                    }
+
                     return redirect()->back()
-                        ->withInput()
-                        ->with('error', 'This bank account was previously added and deleted. Please contact support if you need to restore it.');
+                        ->with('success', 'Previously deleted bank account has been restored successfully.');
                 }
                 
                 return redirect()->back()

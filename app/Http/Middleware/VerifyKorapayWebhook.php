@@ -35,10 +35,11 @@ class VerifyKorapayWebhook
                 'user_agent' => $request->userAgent()
             ]);
             
+            // Per KoraPay webhook best practices, acknowledge to avoid retries.
             return response()->json([
-                'status' => 'error',
+                'status' => 'invalid_signature',
                 'message' => 'Signature required'
-            ], 401);
+            ], 200);
         }
 
         if (!$secretKey) {
@@ -50,9 +51,9 @@ class VerifyKorapayWebhook
             ], 500);
         }
 
-        // Verify signature
+        // Verify signature against ONLY the "data" object.
         $data = $request->input('data', []);
-        $expectedSignature = hash_hmac('sha256', json_encode($data), $secretKey);
+        $expectedSignature = hash_hmac('sha256', json_encode($data, JSON_UNESCAPED_SLASHES), $secretKey);
 
         if (!hash_equals($expectedSignature, $signature)) {
             Log::critical('SECURITY ALERT: Invalid webhook signature detected', [
@@ -63,10 +64,11 @@ class VerifyKorapayWebhook
                 'timestamp' => now()->toDateTimeString()
             ]);
 
+            // Per KoraPay webhook best practices, acknowledge to avoid retries.
             return response()->json([
-                'status' => 'error',
+                'status' => 'invalid_signature',
                 'message' => 'Invalid signature'
-            ], 401);
+            ], 200);
         }
 
         Log::info('Webhook signature verified successfully', [

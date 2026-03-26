@@ -263,17 +263,6 @@ class PaymentController extends Controller
     {
         // Set precision to maintain amount field precision (per KoraPay docs)
         ini_set('serialize_precision', '-1');
-        
-        // Check for POST method and signature header (per KoraPay PHP example)
-        if (strtoupper($request->method()) !== 'POST' || !$request->hasHeader('x-korapay-signature')) {
-            Log::warning('Invalid webhook request', [
-                'method' => $request->method(),
-                'has_signature' => $request->hasHeader('x-korapay-signature'),
-                'ip' => $request->ip()
-            ]);
-            // Return 200 to prevent retries (per KoraPay docs)
-            return response()->json(['status' => 'invalid_request'], 200);
-        }
 
         // Log webhook payload for debugging
         Log::info('Korapay Webhook Received', [
@@ -284,38 +273,7 @@ class PaymentController extends Controller
         ]);
 
         try {
-            // Get request body and signature (per KoraPay PHP example)
-            $requestBody = $request->all();
-            $webhookSignature = $request->header('x-korapay-signature');
-            $korapaySecretKey = config('services.korapay.secret_key');
-            
-            // Verify signature according to KoraPay docs
-            if ($webhookSignature && $korapaySecretKey && isset($requestBody['data'])) {
-                // Signature is HMAC SHA256 of ONLY the data object (per KoraPay docs)
-                $dataJson = json_encode($requestBody['data'], JSON_UNESCAPED_SLASHES);
-                $expectedSignature = hash_hmac('sha256', $dataJson, $korapaySecretKey);
-                
-                if ($webhookSignature !== $expectedSignature) {
-                    Log::warning('SECURITY ALERT: Invalid webhook signature', [
-                        'expected' => $expectedSignature,
-                        'received' => $webhookSignature,
-                        'ip' => $request->ip(),
-                        'timestamp' => now()->toDateTimeString()
-                    ]);
-                    // Return 200 to prevent retries (per KoraPay docs)
-                    return response()->json(['status' => 'invalid_signature'], 200);
-                }
-                
-                Log::info('Webhook signature verified successfully');
-            } else {
-                Log::warning('Webhook received without signature or data', [
-                    'has_signature' => !empty($webhookSignature),
-                    'has_secret' => !empty($korapaySecretKey),
-                    'has_data' => isset($requestBody['data'])
-                ]);
-                // Return 200 to prevent retries
-                return response()->json(['status' => 'missing_signature_or_data'], 200);
-            }
+            // Signature verification is handled centrally by verify.korapay.webhook middleware.
 
             $event = $request->input('event');
             $data = $request->input('data');
@@ -371,7 +329,8 @@ class PaymentController extends Controller
                 }
                 
                 Log::warning('Payment record not found for webhook', ['reference' => $reference]);
-                return response()->json(['status' => 'payment_not_found'], 404);
+                // Acknowledge to avoid retries for non-actionable references.
+                return response()->json(['status' => 'payment_not_found'], 200);
             }
 
             // ============================================================
@@ -723,17 +682,6 @@ class PaymentController extends Controller
     {
         // Set precision to maintain amount field precision (per KoraPay docs)
         ini_set('serialize_precision', '-1');
-        
-        // Check for POST method and signature header (per KoraPay docs)
-        if (strtoupper($request->method()) !== 'POST' || !$request->hasHeader('x-korapay-signature')) {
-            Log::warning('Invalid payout webhook request', [
-                'method' => $request->method(),
-                'has_signature' => $request->hasHeader('x-korapay-signature'),
-                'ip' => $request->ip()
-            ]);
-            // Return 200 to prevent retries
-            return response()->json(['status' => 'invalid_request'], 200);
-        }
 
         // Log webhook payload for debugging
         Log::info('Korapay Payout Webhook Received', [
@@ -744,38 +692,7 @@ class PaymentController extends Controller
         ]);
 
         try {
-            // Get request body and signature (per KoraPay PHP example)
-            $requestBody = $request->all();
-            $webhookSignature = $request->header('x-korapay-signature');
-            $korapaySecretKey = config('services.korapay.secret_key');
-            
-            // Verify signature according to KoraPay docs
-            if ($webhookSignature && $korapaySecretKey && isset($requestBody['data'])) {
-                // Signature is HMAC SHA256 of ONLY the data object (per KoraPay docs)
-                $dataJson = json_encode($requestBody['data'], JSON_UNESCAPED_SLASHES);
-                $expectedSignature = hash_hmac('sha256', $dataJson, $korapaySecretKey);
-                
-                if ($webhookSignature !== $expectedSignature) {
-                    Log::warning('SECURITY ALERT: Invalid payout webhook signature', [
-                        'expected' => $expectedSignature,
-                        'received' => $webhookSignature,
-                        'ip' => $request->ip(),
-                        'timestamp' => now()->toDateTimeString()
-                    ]);
-                    // Return 200 to prevent retries (per KoraPay docs)
-                    return response()->json(['status' => 'invalid_signature'], 200);
-                }
-                
-                Log::info('Payout webhook signature verified successfully');
-            } else {
-                Log::warning('Payout webhook received without signature or data', [
-                    'has_signature' => !empty($webhookSignature),
-                    'has_secret' => !empty($korapaySecretKey),
-                    'has_data' => isset($requestBody['data'])
-                ]);
-                // Return 200 to prevent retries
-                return response()->json(['status' => 'missing_signature_or_data'], 200);
-            }
+            // Signature verification is handled centrally by verify.korapay.webhook middleware.
 
             $event = $request->input('event');
             $data = $request->input('data');

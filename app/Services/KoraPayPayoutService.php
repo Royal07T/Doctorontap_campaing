@@ -146,15 +146,16 @@ class KoraPayPayoutService
                 ];
             }
 
-            // Check bank availability (optional but recommended per KoraPay docs)
-            // Note: This endpoint may not be available for all banks or may return "resource not found"
-            // This is a known limitation - the check is optional and payouts will proceed regardless
-            $availability = $this->checkBankAvailability($bankAccount->bank_code, 'NGN');
+            // Check payout network availability (optional per KoraPay docs)
+            // Docs endpoint: POST /merchant/api/v1/payouts/availability
+            $availability = $this->checkBankAvailability('bank_account', 'NGN');
             if (!$availability['success'] || !$availability['available']) {
                 // Only log as info (not warning) if it's a "resource not found" error
                 // This is likely an API limitation, not an actual problem
                 $isResourceNotFound = str_contains(strtolower($availability['message'] ?? ''), 'resource not found') ||
-                                     str_contains(strtolower($availability['message'] ?? ''), 'not found');
+                                     str_contains(strtolower($availability['message'] ?? ''), 'not found') ||
+                                     str_contains(strtolower($availability['message'] ?? ''), 'not available') ||
+                                     str_contains(strtolower($availability['message'] ?? ''), 'corridor');
                 
                 if ($isResourceNotFound) {
                     // This is likely an API limitation - the endpoint may not support all banks
@@ -178,9 +179,8 @@ class KoraPayPayoutService
             // Note: Reference is required (despite docs saying optional, API returns error if missing)
             $korapayReference = 'KPY-D-' . strtoupper(Str::random(12));
 
-            // Format amount as string (KoraPay API expects string format, e.g., "100.00")
-            // Amount should be in two decimal places
-            $amount = number_format($payment->doctor_amount, 2, '.', '');
+            // Docs specify amount as Number with two decimal places.
+            $amount = round((float) $payment->doctor_amount, 2);
 
             // Prepare payout payload according to KoraPay API documentation
             // Endpoint: POST /merchant/api/v1/transactions/disburse
@@ -189,7 +189,7 @@ class KoraPayPayoutService
                 'reference' => $korapayReference, // Required (despite docs saying optional)
                 'destination' => [
                     'type' => 'bank_account', // Required: 'bank_account' or 'mobile_money'
-                    'amount' => $amount, // Required: string format with two decimal places
+                    'amount' => $amount, // Required: number with two decimal places
                     'currency' => 'NGN', // Required: NGN, KES, GHS, XOF, XAF, EGP, USD, or GBP
                     'narration' => 'Doctor payment - ' . $payment->reference, // Optional
                     'bank_account' => [ // Required if type is 'bank_account'
@@ -599,7 +599,7 @@ class KoraPayPayoutService
      * Query payouts in a bulk batch
      * 
      * According to KoraPay documentation: https://docs.korapay.com
-     * Endpoint: GET /merchant/api/v1/transactions/bulk/:bulk_reference/payout
+     * Endpoint: GET /merchant/api/v1/transactions/bulk/:bulk_reference/payouts
      * 
      * @param string $bulkReference The bulk batch reference
      * @return array ['success' => bool, 'data' => array, 'message' => string]
@@ -610,7 +610,7 @@ class KoraPayPayoutService
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->get($this->baseUrl . '/transactions/bulk/' . $bulkReference . '/payout');
+            ])->timeout(30)->get($this->baseUrl . '/transactions/bulk/' . $bulkReference . '/payouts');
 
             $responseData = $response->json();
 
@@ -643,49 +643,64 @@ class KoraPayPayoutService
     }
 
     /**
-     * Check bank or mobile money network availability
+     * Check payout network availability
      * 
      * According to KoraPay documentation: https://developers.korapay.com/docs/payout-via-api
-     * Endpoint: GET /merchant/api/v1/misc/banks/availability?bank={bank_code}&currency={currency}
+     * Endpoint: POST /merchant/api/v1/payouts/availability
      * 
-     * This is Step 3 in the payout workflow - Optional but recommended to check before initiating payout
+     * This is Step 3 in the payout workflow (optional).
      * 
-     * @param string $bankCode Bank code (e.g., "033" for UBA, "044" for Access Bank)
+     * @param string $type Payout destination type (e.g. bank_account, mobile_money)
      * @param string $currency Currency code (default: "NGN")
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
-    public function checkBankAvailability(string $bankCode, string $currency = 'NGN'): array
+    public function checkBankAvailability(string $type = 'bank_account', string $currency = 'NGN'): array
     {
         try {
+            // KoraPay currently documents this check for ZA payouts.
+            // For NGN payouts, skip without blocking payout initiation.
+            if (strtoupper($currency) !== 'ZAR') {
+                return [
+                    'success' => true,
+                    'data' => ['status' => 'skipped'],
+                    'message' => 'Availability check skipped for non-ZAR corridor',
+                    'available' => true,
+                ];
+            }
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->get($this->baseUrl . '/misc/banks/availability', [
-                'bank' => $bankCode,
+            ])->timeout(30)->post($this->baseUrl . '/payouts/availability', [
+                'type' => $type,
                 'currency' => $currency,
             ]);
 
             $responseData = $response->json();
 
-            // Handle 404 or "resource not found" responses gracefully
-            // This endpoint may not be available for all banks
+            // Handle unsupported/limited corridor coverage gracefully.
             if ($response->status() === 404 || 
                 str_contains(strtolower($responseData['message'] ?? ''), 'resource not found') ||
-                str_contains(strtolower($responseData['message'] ?? ''), 'not found')) {
+                str_contains(strtolower($responseData['message'] ?? ''), 'not found') ||
+                str_contains(strtolower($responseData['message'] ?? ''), 'not available')) {
                 return [
                     'success' => false,
                     'data' => null,
-                    'message' => 'resource not found', // Standardized message for API limitation
+                    'message' => 'availability endpoint not available for this corridor',
                     'available' => false,
                 ];
             }
 
             if ($response->successful() && ($responseData['status'] ?? false)) {
+                $availabilityData = $responseData['data'] ?? [];
+                $normalizedStatus = strtolower((string) ($availabilityData['status'] ?? 'available'));
+                $isAvailable = in_array($normalizedStatus, ['available', 'up', 'active', 'instant'], true);
+
                 return [
                     'success' => true,
-                    'data' => $responseData['data'] ?? [],
-                    'message' => $responseData['message'] ?? 'Bank availability checked successfully',
-                    'available' => $responseData['data']['available'] ?? true,
+                    'data' => $availabilityData,
+                    'message' => $responseData['message'] ?? 'Payout network availability checked successfully',
+                    'available' => $isAvailable,
                 ];
             }
 
@@ -699,7 +714,7 @@ class KoraPayPayoutService
         } catch (\Exception $e) {
             Log::error('KoraPay bank availability check failed', [
                 'error' => $e->getMessage(),
-                'bank_code' => $bankCode,
+                'type' => $type,
                 'currency' => $currency,
             ]);
 

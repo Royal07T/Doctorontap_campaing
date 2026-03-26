@@ -82,8 +82,8 @@ class KorapayPayoutService
                 ];
             }
 
-            // Format amount as string with 2 decimal places
-            $amountString = number_format($amount, 2, '.', '');
+            // Docs specify amount as Number with two decimal places.
+            $amountValue = round((float) $amount, 2);
 
             // Prepare payout payload according to Korapay API
             // Endpoint: POST /merchant/api/v1/transactions/disburse
@@ -96,7 +96,7 @@ class KorapayPayoutService
                 'reference' => $payoutReference,
                 'destination' => [
                     'type' => 'bank_account',
-                    'amount' => $amountString,
+                    'amount' => $amountValue,
                     'currency' => 'NGN',
                     'narration' => $narration,
                     'bank_account' => [
@@ -113,7 +113,7 @@ class KorapayPayoutService
             Log::info('Initiating Korapay payout', [
                 'payout_reference' => $payoutReference,
                 'doctor_id' => $doctor->id,
-                'amount' => $amountString,
+                'amount' => $amountValue,
                 'bank_code' => $bankAccount->bank_code,
                 'metadata' => $metadata,
             ]);
@@ -125,6 +125,50 @@ class KorapayPayoutService
             ])->timeout(30)->post($this->baseUrl . '/transactions/disburse', $payload);
 
             $responseData = $response->json();
+
+            // Handle unexpected request errors (KoraPay recommends verification before failing)
+            if (!$response->successful() && in_array($response->status(), [500, 502, 503, 504], true)) {
+                Log::warning('Korapay payout request error - attempting verification', [
+                    'payout_reference' => $payoutReference,
+                    'doctor_id' => $doctor->id,
+                    'status' => $response->status(),
+                ]);
+
+                $verification = $this->verifyPayoutStatus($payoutReference);
+
+                if ($verification['success']) {
+                    $verifiedData = $verification['data'] ?? [];
+                    $verifiedStatus = $verifiedData['status'] ?? 'processing';
+
+                    return [
+                        'success' => true,
+                        'data' => [
+                            'korapay_reference' => $verifiedData['reference'] ?? $payoutReference,
+                            'status' => $verifiedStatus,
+                            'amount' => $verifiedData['amount'] ?? $amountValue,
+                            'fee' => $verifiedData['fee'] ?? null,
+                            'currency' => $verifiedData['currency'] ?? 'NGN',
+                            'message' => $verifiedData['message'] ?? null,
+                            'needs_verification' => $verifiedStatus !== 'success',
+                        ],
+                        'message' => 'Payout request errored but transaction was found via verification.',
+                        'response' => $responseData,
+                    ];
+                }
+
+                return [
+                    'success' => true,
+                    'data' => [
+                        'korapay_reference' => $payoutReference,
+                        'status' => 'processing',
+                        'amount' => $amountValue,
+                        'currency' => 'NGN',
+                        'needs_verification' => true,
+                    ],
+                    'message' => 'Payout request returned an unexpected error. Verify transaction status before treating as failed.',
+                    'response' => $responseData,
+                ];
+            }
 
             // Handle successful response
             if ($response->successful() && ($responseData['status'] ?? false)) {
@@ -141,7 +185,7 @@ class KorapayPayoutService
                     'data' => [
                         'korapay_reference' => $data['reference'] ?? $payoutReference,
                         'status' => $data['status'] ?? 'processing',
-                        'amount' => $data['amount'] ?? $amountString,
+                        'amount' => $data['amount'] ?? $amountValue,
                         'fee' => $data['fee'] ?? null,
                         'currency' => $data['currency'] ?? 'NGN',
                         'message' => $data['message'] ?? null,
@@ -274,6 +318,62 @@ class KorapayPayoutService
                 'success' => false,
                 'data' => null,
                 'message' => 'Bank verification error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Verify payout transaction status
+     *
+     * Endpoint: GET /merchant/api/v1/transactions/:transactionReference
+     *
+     * @param string $transactionReference
+     * @return array ['success' => bool, 'data' => array, 'message' => string]
+     */
+    public function verifyPayoutStatus(string $transactionReference): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->get($this->baseUrl . '/transactions/' . $transactionReference);
+
+            $responseData = $response->json();
+
+            if ($response->successful() && ($responseData['status'] ?? false)) {
+                $data = $responseData['data'] ?? [];
+
+                return [
+                    'success' => true,
+                    'data' => [
+                        'reference' => $data['reference'] ?? $transactionReference,
+                        'status' => $data['status'] ?? 'processing',
+                        'amount' => $data['amount'] ?? null,
+                        'fee' => $data['fee'] ?? null,
+                        'currency' => $data['currency'] ?? 'NGN',
+                        'narration' => $data['narration'] ?? null,
+                        'message' => $data['message'] ?? null,
+                        'customer' => $data['customer'] ?? null,
+                    ],
+                    'message' => $responseData['message'] ?? 'Transaction retrieved successfully'
+                ];
+            }
+
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => $responseData['message'] ?? 'Failed to verify payout status'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Korapay payout verification failed', [
+                'reference' => $transactionReference,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => 'Verification error: ' . $e->getMessage()
             ];
         }
     }

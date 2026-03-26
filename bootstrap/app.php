@@ -12,6 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Webhook endpoints must be CSRF-exempt for third-party callbacks.
+        $middleware->validateCsrfTokens(except: [
+            'payment/webhook',
+            'payment/payout-webhook',
+            'webhooks/korapay/payout',
+            'webhooks/whatsapp',
+        ]);
+
         // SECURITY: Input sanitization for all requests
         $middleware->append(\App\Http\Middleware\SanitizeInput::class);
         
