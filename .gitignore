@@ -26,6 +26,7 @@ yarn-error.log
 .DS_Store
 
 # Environment files with secrets
+envprodd
 .envprodd
 .env.prodd.backup
 .envprod
