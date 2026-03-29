@@ -66,7 +66,7 @@ class DoctorPayment extends Model
 
         static::creating(function ($payment) {
             if (empty($payment->reference)) {
-                $payment->reference = 'DOCPAY-' . strtoupper(Str::random(12));
+                $payment->reference = 'DOCPAY-'.strtoupper(Str::random(12));
             }
         });
     }
@@ -93,6 +93,32 @@ class DoctorPayment extends Model
     public function paidBy(): BelongsTo
     {
         return $this->belongsTo(AdminUser::class, 'paid_by');
+    }
+
+    /**
+     * Consultation IDs already tied to an open or completed payout batch (cannot be batched again).
+     *
+     * @return array<int>
+     */
+    public static function lockedConsultationIds(?int $doctorId = null): array
+    {
+        $query = self::query()
+            ->whereIn('status', ['pending', 'processing', 'completed'])
+            ->whereNotNull('consultation_ids');
+
+        if ($doctorId !== null) {
+            $query->where('doctor_id', $doctorId);
+        }
+
+        return $query->get()
+            ->flatMap(function ($payment) {
+                $ids = $payment->consultation_ids ?? [];
+
+                return is_array($ids) ? $ids : [];
+            })
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

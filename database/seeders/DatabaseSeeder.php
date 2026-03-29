@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             DemoDoctorSeeder::class,
             DemoCanvasserSeeder::class,
             DemoNurseSeeder::class,
+            KorapaySandboxTestDoctorSeeder::class,
         ]);
     }
 }

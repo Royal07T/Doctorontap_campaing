@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Consultation extends Model
 {
-    use SoftDeletes, Auditable;
+    use Auditable, SoftDeletes;
 
     protected $fillable = [
         'reference',
@@ -179,7 +179,7 @@ class Consultation extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return $this->patient?->name ?? ($this->first_name . ' ' . $this->last_name);
+        return $this->patient?->name ?? ($this->first_name.' '.$this->last_name);
     }
 
     /**
@@ -191,14 +191,33 @@ class Consultation extends Model
         if ($this->patient && $this->patient->user) {
             return $this->patient->user->email;
         }
-        
+
         // Fallback to patient's own email field (which should also be synchronized)
-        if ($this->patient && !empty($this->patient->email)) {
+        if ($this->patient && ! empty($this->patient->email)) {
             return $this->patient->email;
         }
 
         // Ultimate fallback to the consultation record email
         return $this->email;
+    }
+
+    /**
+     * Completed consultations where the patient has paid — may be included in a doctor payout batch.
+     * Optionally exclude IDs already locked in an active payout (pending / processing / completed).
+     *
+     * @param  array<int>  $excludeConsultationIds
+     */
+    public function scopeEligibleForDoctorPayout($query, int $doctorId, array $excludeConsultationIds = [])
+    {
+        $query->where('doctor_id', $doctorId)
+            ->where('status', 'completed')
+            ->where('payment_status', 'paid');
+
+        if ($excludeConsultationIds !== []) {
+            $query->whereNotIn('id', $excludeConsultationIds);
+        }
+
+        return $query;
     }
 
     /**
@@ -254,7 +273,7 @@ class Consultation extends Model
      */
     public function hasTreatmentPlan(): bool
     {
-        return $this->treatment_plan_created && !empty($this->treatment_plan);
+        return $this->treatment_plan_created && ! empty($this->treatment_plan);
     }
 
     /**
@@ -272,7 +291,7 @@ class Consultation extends Model
     public function requiresPaymentForTreatmentPlan(): bool
     {
         // STRICT PAYMENT GATING: Always require payment unless explicitly disabled
-        return $this->payment_required_for_treatment && !$this->isPaid();
+        return $this->payment_required_for_treatment && ! $this->isPaid();
     }
 
     /**
@@ -292,17 +311,17 @@ class Consultation extends Model
      */
     public function markTreatmentPlanAccessed(): void
     {
-        if (!$this->treatment_plan_accessed_at) {
+        if (! $this->treatment_plan_accessed_at) {
             $this->update([
                 'treatment_plan_accessed_at' => now(),
             ]);
         }
     }
-    
+
     // ============================================
     // RBAC Query Scopes for Access Control
     // ============================================
-    
+
     /**
      * Scope: Filter consultations for a specific doctor
      */
@@ -310,7 +329,7 @@ class Consultation extends Model
     {
         return $query->where('doctor_id', $doctorId);
     }
-    
+
     /**
      * Scope: Filter consultations for a specific nurse
      */
@@ -318,7 +337,7 @@ class Consultation extends Model
     {
         return $query->where('nurse_id', $nurseId);
     }
-    
+
     /**
      * Scope: Filter consultations for a specific patient email
      */
@@ -326,7 +345,7 @@ class Consultation extends Model
     {
         return $query->where('email', $patientEmail);
     }
-    
+
     /**
      * Scope: Filter consultations for a specific canvasser
      */
@@ -334,35 +353,39 @@ class Consultation extends Model
     {
         return $query->where('canvasser_id', $canvasserId);
     }
-    
+
     /**
      * Scope: Filter consultations based on current authenticated user
      */
     public function scopeForCurrentUser($query)
     {
         $user = auth()->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             // Try multiple guards
             if (auth()->guard('admin')->check()) {
                 return $query; // Admins see all
             } elseif (auth()->guard('doctor')->check()) {
                 $user = auth()->guard('doctor')->user();
+
                 return $query->where('doctor_id', $user->id);
             } elseif (auth()->guard('nurse')->check()) {
                 $user = auth()->guard('nurse')->user();
+
                 return $query->where('nurse_id', $user->id);
             } elseif (auth()->guard('patient')->check()) {
                 $user = auth()->guard('patient')->user();
+
                 return $query->where('email', $user->email);
             } elseif (auth()->guard('canvasser')->check()) {
                 $user = auth()->guard('canvasser')->user();
+
                 return $query->where('canvasser_id', $user->id);
             }
-            
+
             return $query->whereRaw('1 = 0'); // Return no results
         }
-        
+
         // Check user type and filter accordingly
         if ($user instanceof \App\Models\Admin) {
             return $query; // Admins see all
@@ -375,7 +398,7 @@ class Consultation extends Model
         } elseif ($user instanceof \App\Models\Canvasser) {
             return $query->where('canvasser_id', $user->id);
         }
-        
+
         return $query->whereRaw('1 = 0'); // Return no results if user type unknown
     }
 
@@ -392,7 +415,7 @@ class Consultation extends Model
      */
     public function invoiceItem()
     {
-        if (!$this->isPartOfMultiPatientBooking()) {
+        if (! $this->isPartOfMultiPatientBooking()) {
             return null;
         }
 

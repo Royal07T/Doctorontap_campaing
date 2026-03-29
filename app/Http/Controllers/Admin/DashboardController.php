@@ -3,24 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Consultation;
-use App\Models\Payment;
-use App\Models\Doctor;
-use App\Models\Booking;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\PaymentRequest;
+use App\Mail\CanvasserAccountCreated;
 use App\Mail\DocumentsForwardedToDoctor;
+use App\Mail\NurseAccountCreated;
+use App\Mail\PaymentRequest;
 use App\Mail\TreatmentPlanNotification;
 use App\Models\AdminUser;
+use App\Models\Booking;
 use App\Models\Canvasser;
+use App\Models\Consultation;
+use App\Models\Doctor;
 use App\Models\Nurse;
-use App\Models\Setting;
-use App\Models\VitalSign;
 use App\Models\Patient;
+use App\Models\Payment;
+use App\Models\Setting;
 use App\Models\User;
-use App\Mail\CanvasserAccountCreated;
-use App\Mail\NurseAccountCreated;
+use App\Models\VitalSign;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class DashboardController extends Controller
 {
@@ -36,7 +36,7 @@ class DashboardController extends Controller
             'unpaid_consultations' => Consultation::where('payment_status', 'unpaid')->where('status', 'completed')->count(),
             'paid_consultations' => Consultation::where('payment_status', 'paid')->count(),
             'total_revenue' => Payment::where('status', 'success')->sum('amount'),
-            
+
             // Canvasser and Nurse statistics
             'total_canvassers' => Canvasser::count(),
             'active_canvassers' => Canvasser::where('is_active', true)->count(),
@@ -49,21 +49,21 @@ class DashboardController extends Controller
 
         // Top performing canvassers
         $topCanvassers = Canvasser::withCount('patients')
-                                  ->orderBy('patients_count', 'desc')
-                                  ->limit(5)
-                                  ->get();
+            ->orderBy('patients_count', 'desc')
+            ->limit(5)
+            ->get();
 
         // Top performing nurses
         $topNurses = Nurse::withCount('vitalSigns')
-                         ->orderBy('vital_signs_count', 'desc')
-                         ->limit(5)
-                         ->get();
+            ->orderBy('vital_signs_count', 'desc')
+            ->limit(5)
+            ->get();
 
         // Recent patients
         $recentPatients = \App\Models\Patient::with('canvasser')
-                                             ->latest()
-                                             ->limit(10)
-                                             ->get();
+            ->latest()
+            ->limit(10)
+            ->get();
 
         return view('admin.dashboard', compact('stats', 'topCanvassers', 'topNurses', 'recentPatients'));
     }
@@ -84,22 +84,22 @@ class DashboardController extends Controller
         if ($request->has('payment_status') && $request->payment_status != '') {
             $query->where('payment_status', $request->payment_status);
         }
-        
+
         // Filter by doctor
         if ($request->filled('doctor_id')) {
             $query->where('doctor_id', $request->doctor_id);
         }
-        
+
         // Filter by canvasser
         if ($request->filled('canvasser_id')) {
             $query->where('canvasser_id', $request->canvasser_id);
         }
-        
+
         // Filter by nurse
         if ($request->filled('nurse_id')) {
             $query->where('nurse_id', $request->nurse_id);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -111,25 +111,25 @@ class DashboardController extends Controller
         // Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%")
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-                
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%")
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+
                 // If search contains a space, also try searching first and last name separately
                 if (strpos($search, ' ') !== false) {
                     $parts = explode(' ', trim($search), 2);
                     if (count($parts) == 2) {
-                        $q->orWhere(function($subQ) use ($parts) {
+                        $q->orWhere(function ($subQ) use ($parts) {
                             $subQ->where('first_name', 'like', "%{$parts[0]}%")
-                                 ->where('last_name', 'like', "%{$parts[1]}%");
+                                ->where('last_name', 'like', "%{$parts[1]}%");
                         });
                         // Also try reversed in case user typed "last first"
-                        $q->orWhere(function($subQ) use ($parts) {
+                        $q->orWhere(function ($subQ) use ($parts) {
                             $subQ->where('first_name', 'like', "%{$parts[1]}%")
-                                 ->where('last_name', 'like', "%{$parts[0]}%");
+                                ->where('last_name', 'like', "%{$parts[0]}%");
                         });
                     }
                 }
@@ -137,15 +137,15 @@ class DashboardController extends Controller
         }
 
         $consultations = $query->latest()->paginate(20);
-        
+
         // Get all nurses for assignment dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
-        
-        // Get all available doctors for reassignment dropdown  
+
+        // Get all available doctors for reassignment dropdown
         $doctors = Doctor::where('is_available', true)
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
-        
+
         // Get all canvassers for filter dropdown
         $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
@@ -183,32 +183,32 @@ class DashboardController extends Controller
         }
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%")
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%")
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
             });
         }
 
         $consultations = $query->latest()->get();
 
-        $filename = 'consultations-report-' . now()->format('Y-m-d-His') . '.csv';
+        $filename = 'consultations-report-'.now()->format('Y-m-d-His').'.csv';
 
         $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Pragma'              => 'no-cache',
-            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires'             => '0',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $callback = function () use ($consultations) {
             $handle = fopen('php://output', 'w');
 
             // UTF-8 BOM so Excel opens it correctly
-            fputs($handle, "\xEF\xBB\xBF");
+            fwrite($handle, "\xEF\xBB\xBF");
 
             // Header row
             fputcsv($handle, [
@@ -258,7 +258,7 @@ class DashboardController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-        /**
+    /**
      * Display all patient records from the unified patients table
      */
     public function patients(Request $request)
@@ -268,10 +268,10 @@ class DashboardController extends Controller
         // Search functionality
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -279,12 +279,12 @@ class DashboardController extends Controller
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
-        
+
         // Filter by canvasser
         if ($request->filled('canvasser_id')) {
             $query->where('canvasser_id', $request->canvasser_id);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -294,7 +294,7 @@ class DashboardController extends Controller
         }
 
         $patients = $query->latest()->paginate(20);
-        
+
         // Get canvassers for filter dropdown
         $canvassers = Canvasser::where('is_active', true)->orderBy('name')->get();
 
@@ -308,15 +308,15 @@ class DashboardController extends Controller
     {
         // Admins can view all consultations (no filtering needed)
         $consultation = Consultation::with(['doctor', 'payment', 'booking.bookingPatients.patient', 'booking.invoice.items'])->findOrFail($id);
-        
+
         // Log viewing for HIPAA compliance
         $consultation->logViewed();
-        
+
         // Get available doctors for reassignment
         $doctors = Doctor::where('is_available', true)
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
-        
+
         return view('admin.consultation-details', compact('consultation', 'doctors'));
     }
 
@@ -327,18 +327,18 @@ class DashboardController extends Controller
     {
         try {
             $consultation = Consultation::findOrFail($id);
-            
+
             // Soft delete the consultation
             $consultation->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Consultation deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Consultation deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete consultation: ' . $e->getMessage()
+                'message' => 'Failed to delete consultation: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -349,11 +349,11 @@ class DashboardController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:pending,scheduled,completed,cancelled'
+            'status' => 'required|in:pending,scheduled,completed,cancelled',
         ]);
 
         $consultation = Consultation::findOrFail($id);
-        
+
         $consultation->update([
             'status' => $request->status,
             'consultation_completed_at' => $request->status === 'completed' ? now() : $consultation->consultation_completed_at,
@@ -361,7 +361,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Consultation status updated successfully'
+            'message' => 'Consultation status updated successfully',
         ]);
     }
 
@@ -371,26 +371,26 @@ class DashboardController extends Controller
     public function assignNurse(Request $request, $id)
     {
         $request->validate([
-            'nurse_id' => 'required|exists:nurses,id'
+            'nurse_id' => 'required|exists:nurses,id',
         ]);
 
         $consultation = Consultation::findOrFail($id);
         $nurse = Nurse::findOrFail($request->nurse_id);
 
-        if (!$nurse->is_active) {
+        if (! $nurse->is_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'This nurse is not active'
+                'message' => 'This nurse is not active',
             ], 400);
         }
 
         $consultation->update([
-            'nurse_id' => $request->nurse_id
+            'nurse_id' => $request->nurse_id,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Nurse assigned successfully to consultation'
+            'message' => 'Nurse assigned successfully to consultation',
         ]);
     }
 
@@ -400,23 +400,23 @@ class DashboardController extends Controller
     public function reassignDoctor(Request $request, $id)
     {
         $request->validate([
-            'doctor_id' => 'required|exists:doctors,id'
+            'doctor_id' => 'required|exists:doctors,id',
         ]);
 
         $consultation = Consultation::findOrFail($id);
         $doctor = Doctor::findOrFail($request->doctor_id);
 
-        if (!$doctor->is_available) {
+        if (! $doctor->is_available) {
             return response()->json([
                 'success' => false,
-                'message' => 'This doctor is not available'
+                'message' => 'This doctor is not available',
             ], 400);
         }
 
         $oldDoctor = $consultation->doctor;
-        
+
         $consultation->update([
-            'doctor_id' => $request->doctor_id
+            'doctor_id' => $request->doctor_id,
         ]);
 
         // Send unified email notification to the doctor
@@ -439,20 +439,20 @@ class DashboardController extends Controller
                 'doctor' => $doctor->full_name,
                 'doctor_fee' => $doctor->effective_consultation_fee,
                 'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
-                'has_documents' => !empty($consultation->medical_documents),
-                'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
+                'has_documents' => ! empty($consultation->medical_documents),
+                'documents_count' => ! empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
             ]));
         } catch (\Exception $e) {
-            \Log::warning("Failed to send notification to reassigned doctor: " . $e->getMessage());
+            \Log::warning('Failed to send notification to reassigned doctor: '.$e->getMessage());
         }
 
-           $message = 'Doctor reassigned successfully from ' . 
-                   ($oldDoctor ? $oldDoctor->full_name : 'No Doctor') . 
-                   ' to ' . $doctor->full_name;
+        $message = 'Doctor reassigned successfully from '.
+                ($oldDoctor ? $oldDoctor->full_name : 'No Doctor').
+                ' to '.$doctor->full_name;
 
         return response()->json([
             'success' => true,
-            'message' => $message
+            'message' => $message,
         ]);
     }
 
@@ -464,10 +464,10 @@ class DashboardController extends Controller
         $consultation = Consultation::with('doctor')->findOrFail($id);
 
         // Validate that consultation has a doctor assigned
-        if (!$consultation->doctor) {
+        if (! $consultation->doctor) {
             return response()->json([
                 'success' => false,
-                'message' => 'No doctor assigned to this consultation'
+                'message' => 'No doctor assigned to this consultation',
             ], 400);
         }
 
@@ -475,7 +475,7 @@ class DashboardController extends Controller
         if ($consultation->status === 'completed') {
             return response()->json([
                 'success' => false,
-                'message' => 'Consultation is already completed'
+                'message' => 'Consultation is already completed',
             ], 400);
         }
 
@@ -496,8 +496,8 @@ class DashboardController extends Controller
             'doctor' => $doctor->full_name,
             'doctor_fee' => $doctor->effective_consultation_fee ?? 0,
             'emergency_symptoms' => $consultation->emergency_symptoms ?? [],
-            'has_documents' => !empty($consultation->medical_documents),
-            'documents_count' => !empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
+            'has_documents' => ! empty($consultation->medical_documents),
+            'documents_count' => ! empty($consultation->medical_documents) ? count($consultation->medical_documents) : 0,
         ];
 
         // Send urgent email notification
@@ -509,38 +509,39 @@ class DashboardController extends Controller
                 'consultation_id' => $consultation->id,
                 'consultation_reference' => $consultation->reference,
                 'doctor_id' => $doctor->id,
-                'doctor_email' => $doctor->email
+                'doctor_email' => $doctor->email,
             ]);
         } catch (\Exception $e) {
             \Log::error('Failed to send delay query notification to doctor', [
                 'consultation_id' => $consultation->id,
                 'doctor_id' => $doctor->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send notification: ' . $e->getMessage()
+                'message' => 'Failed to send notification: '.$e->getMessage(),
             ], 500);
         }
 
         // Send SMS notification if available
         if ($doctor->phone) {
             try {
-                $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+                $smsNotification = new \App\Notifications\ConsultationSmsNotification;
                 $smsResult = $smsNotification->sendDelayQuerySms($doctor, $notificationData);
-                
+
                 if ($smsResult['success']) {
                     \Log::info('Delay query SMS sent to doctor', [
                         'consultation_id' => $consultation->id,
                         'doctor_id' => $doctor->id,
-                        'doctor_phone' => $doctor->phone
+                        'doctor_phone' => $doctor->phone,
                     ]);
                 }
             } catch (\Exception $e) {
                 \Log::warning('Failed to send delay query SMS to doctor', [
                     'consultation_id' => $consultation->id,
                     'doctor_id' => $doctor->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Don't fail the request if SMS fails
             }
@@ -548,7 +549,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Urgent delay query notification sent to Dr. ' . $doctor->full_name . ' successfully'
+            'message' => 'Urgent delay query notification sent to Dr. '.$doctor->full_name.' successfully',
         ]);
     }
 
@@ -560,17 +561,17 @@ class DashboardController extends Controller
         $consultation = Consultation::with('doctor')->findOrFail($id);
 
         // Validate
-        if (!$consultation->isCompleted()) {
+        if (! $consultation->isCompleted()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Consultation must be completed before sending payment request'
+                'message' => 'Consultation must be completed before sending payment request',
             ], 400);
         }
 
-        if (!$consultation->requiresPayment()) {
+        if (! $consultation->requiresPayment()) {
             return response()->json([
                 'success' => false,
-                'message' => 'This consultation does not require payment (no fee set)'
+                'message' => 'This consultation does not require payment (no fee set)',
             ], 400);
         }
 
@@ -585,14 +586,15 @@ class DashboardController extends Controller
                     'payment_request_sent_at' => now(),
                 ]);
             }
+
             return response()->json([
                 'success' => true,
-                'message' => ($consultation->payment_request_sent ? 'Payment request email resent' : 'Payment request email sent') . ' successfully to ' . $recipientEmail
+                'message' => ($consultation->payment_request_sent ? 'Payment request email resent' : 'Payment request email sent').' successfully to '.$recipientEmail,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send email: ' . $e->getMessage()
+                'message' => 'Failed to send email: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -605,27 +607,27 @@ class DashboardController extends Controller
         $consultation = Consultation::with(['doctor', 'patient', 'booking'])->findOrFail($id);
 
         // Validate - treatment plan must exist
-        if (!$consultation->hasTreatmentPlan()) {
+        if (! $consultation->hasTreatmentPlan()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No treatment plan has been created for this consultation yet'
+                'message' => 'No treatment plan has been created for this consultation yet',
             ], 400);
         }
 
         // Determine recipient email: prioritize unified user email
         $recipientEmail = $consultation->getEmailFromUser();
         $recipientName = $consultation->full_name;
-        
+
         // Multi-patient fallback logic (if no direct email on consultation or patient)
-        if (!$recipientEmail && $consultation->booking && !empty($consultation->booking->payer_email)) {
+        if (! $recipientEmail && $consultation->booking && ! empty($consultation->booking->payer_email)) {
             $recipientEmail = $consultation->booking->payer_email;
             $recipientName = $consultation->booking->payer_name ?? $recipientName;
         }
 
-        if (!$recipientEmail) {
+        if (! $recipientEmail) {
             return response()->json([
                 'success' => false,
-                'message' => 'No email address found for this consultation. Please ensure the patient has an email address.'
+                'message' => 'No email address found for this consultation. Please ensure the patient has an email address.',
             ], 400);
         }
 
@@ -639,35 +641,35 @@ class DashboardController extends Controller
             if ($isPaid) {
                 // Payment has been made - send treatment plan
                 Mail::to($recipientEmail)->send(new TreatmentPlanNotification($consultation));
-                
+
                 \Log::info('Treatment plan manually forwarded by admin (payment confirmed)', [
                     'consultation_id' => $consultation->id,
                     'reference' => $consultation->reference,
                     'email' => $recipientEmail,
                     'payment_status' => $paymentStatus,
-                    'admin_action' => 'manual_forward_treatment_plan'
+                    'admin_action' => 'manual_forward_treatment_plan',
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Treatment plan has been sent successfully to ' . $recipientEmail . ' (Payment confirmed)'
+                    'message' => 'Treatment plan has been sent successfully to '.$recipientEmail.' (Payment confirmed)',
                 ]);
             } else {
                 // Payment has NOT been made - send payment request instead
                 Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
-                
+
                 \Log::info('Payment request sent by admin (treatment plan forward - payment not made)', [
                     'consultation_id' => $consultation->id,
                     'reference' => $consultation->reference,
                     'email' => $recipientEmail,
                     'payment_status' => $paymentStatus,
                     'admin_action' => 'manual_forward_payment_request',
-                    'note' => 'Treatment plan exists but payment not made - sent payment request instead'
+                    'note' => 'Treatment plan exists but payment not made - sent payment request instead',
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Payment request has been sent to ' . $recipientEmail . '. Treatment plan will be sent automatically once payment is confirmed.'
+                    'message' => 'Payment request has been sent to '.$recipientEmail.'. Treatment plan will be sent automatically once payment is confirmed.',
                 ]);
             }
         } catch (\Exception $e) {
@@ -677,13 +679,14 @@ class DashboardController extends Controller
                 'email' => $recipientEmail,
                 'payment_status' => $paymentStatus,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             $emailType = $isPaid ? 'treatment plan' : 'payment request';
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send ' . $emailType . ': ' . $e->getMessage()
+                'message' => 'Failed to send '.$emailType.': '.$e->getMessage(),
             ], 500);
         }
     }
@@ -697,10 +700,10 @@ class DashboardController extends Controller
         $consultation = Consultation::with('doctor')->findOrFail($id);
 
         // Validate - treatment plan must exist
-        if (!$consultation->hasTreatmentPlan()) {
+        if (! $consultation->hasTreatmentPlan()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No treatment plan has been created for this consultation yet'
+                'message' => 'No treatment plan has been created for this consultation yet',
             ], 400);
         }
 
@@ -713,33 +716,33 @@ class DashboardController extends Controller
         try {
             $recipientEmail = $consultation->getEmailFromUser();
             Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
-            $results['email'] = ['sent' => true, 'message' => 'Email sent successfully to ' . $recipientEmail];
-            
+            $results['email'] = ['sent' => true, 'message' => 'Email sent successfully to '.$recipientEmail];
+
             \Log::info('Payment request email resent by admin (Unified)', [
                 'consultation_id' => $consultation->id,
                 'reference' => $consultation->reference,
                 'email' => $recipientEmail,
-                'admin_user' => auth()->user()->name ?? 'Unknown'
+                'admin_user' => auth()->user()->name ?? 'Unknown',
             ]);
         } catch (\Exception $e) {
             $results['email'] = ['sent' => false, 'message' => $e->getMessage()];
             \Log::error('Failed to resend treatment plan email', [
                 'consultation_id' => $consultation->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
 
         // Send SMS
         try {
-            $smsNotification = new \App\Notifications\ConsultationSmsNotification();
+            $smsNotification = new \App\Notifications\ConsultationSmsNotification;
             $smsResult = $smsNotification->sendTreatmentPlanReady($consultation);
-            
+
             if ($smsResult['success']) {
                 $results['sms'] = ['sent' => true, 'message' => 'SMS sent successfully'];
                 \Log::info('Treatment plan SMS resent by admin', [
                     'consultation_id' => $consultation->id,
                     'reference' => $consultation->reference,
-                    'mobile' => $consultation->mobile
+                    'mobile' => $consultation->mobile,
                 ]);
             } else {
                 $results['sms'] = ['sent' => false, 'message' => $smsResult['message'] ?? 'SMS failed'];
@@ -748,7 +751,7 @@ class DashboardController extends Controller
             $results['sms'] = ['sent' => false, 'message' => $e->getMessage()];
             \Log::error('Failed to resend treatment plan SMS', [
                 'consultation_id' => $consultation->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
 
@@ -760,16 +763,16 @@ class DashboardController extends Controller
             $message = 'Treatment plan resent successfully via Email and SMS';
         } elseif ($anySuccess) {
             $sent = $results['email']['sent'] ? 'Email' : 'SMS';
-            $failed = !$results['email']['sent'] ? 'Email' : 'SMS';
-            $message = "Treatment plan sent via {$sent}. {$failed} failed: " . $results[strtolower($failed)]['message'];
+            $failed = ! $results['email']['sent'] ? 'Email' : 'SMS';
+            $message = "Treatment plan sent via {$sent}. {$failed} failed: ".$results[strtolower($failed)]['message'];
         } else {
-            $message = 'Failed to resend treatment plan. Email: ' . $results['email']['message'] . '. SMS: ' . $results['sms']['message'];
+            $message = 'Failed to resend treatment plan. Email: '.$results['email']['message'].'. SMS: '.$results['sms']['message'];
         }
 
         return response()->json([
             'success' => $anySuccess,
             'message' => $message,
-            'details' => $results
+            'details' => $results,
         ], $anySuccess ? 200 : 500);
     }
 
@@ -792,13 +795,13 @@ class DashboardController extends Controller
             if ($consultation->isPaid()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This consultation has already been marked as paid'
+                    'message' => 'This consultation has already been marked as paid',
                 ], 400);
             }
 
             // Create or update payment record
             $payment = Payment::updateOrCreate(
-                ['reference' => 'MANUAL-' . $consultation->reference],
+                ['reference' => 'MANUAL-'.$consultation->reference],
                 [
                     'customer_email' => $consultation->email,
                     'customer_name' => $consultation->full_name,
@@ -807,7 +810,7 @@ class DashboardController extends Controller
                     'currency' => 'NGN',
                     'status' => 'success',
                     'payment_method' => $request->payment_method,
-                    'payment_reference' => $request->payment_reference ?? 'MANUAL-' . time(),
+                    'payment_reference' => $request->payment_reference ?? 'MANUAL-'.time(),
                     'doctor_id' => $consultation->doctor_id,
                     'metadata' => [
                         'consultation_id' => $consultation->id,
@@ -827,7 +830,7 @@ class DashboardController extends Controller
             ]);
 
             // Unlock treatment plan if it exists
-            if ($consultation->hasTreatmentPlan() && !$consultation->treatment_plan_unlocked) {
+            if ($consultation->hasTreatmentPlan() && ! $consultation->treatment_plan_unlocked) {
                 $consultation->update([
                     'treatment_plan_unlocked' => true,
                     'treatment_plan_unlocked_at' => now(),
@@ -838,17 +841,17 @@ class DashboardController extends Controller
                 try {
                     $recipientEmail = $consultation->getEmailFromUser();
                     Mail::to($recipientEmail)->send(new PaymentRequest($consultation));
-                    
+
                     \Log::info('Payment request sent after manual payment (Unified)', [
                         'consultation_id' => $consultation->id,
                         'reference' => $consultation->reference,
                         'email' => $recipientEmail,
-                        'payment_method' => $request->payment_method
+                        'payment_method' => $request->payment_method,
                     ]);
                 } catch (\Exception $e) {
                     \Log::error('Failed to send treatment plan after manual payment', [
                         'consultation_id' => $consultation->id,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -858,24 +861,24 @@ class DashboardController extends Controller
                 'reference' => $consultation->reference,
                 'payment_method' => $request->payment_method,
                 'payment_reference' => $request->payment_reference,
-                'admin' => auth()->guard('admin')->user()->name ?? 'Unknown'
+                'admin' => auth()->guard('admin')->user()->name ?? 'Unknown',
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment marked as paid successfully! ' . ($consultation->hasTreatmentPlan() ? 'Treatment plan has been unlocked and sent to patient.' : '')
+                'message' => 'Payment marked as paid successfully! '.($consultation->hasTreatmentPlan() ? 'Treatment plan has been unlocked and sent to patient.' : ''),
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Failed to mark payment as paid', [
                 'consultation_id' => $id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to mark payment as paid: ' . $e->getMessage()
+                'message' => 'Failed to mark payment as paid: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -888,12 +891,12 @@ class DashboardController extends Controller
         $query = Payment::with('doctor');
 
         // Search functionality
-       if ($request->filled('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhere('customer_email', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhere('customer_email', 'like', "%{$search}%");
             });
         }
 
@@ -901,12 +904,12 @@ class DashboardController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
+
         // Filter by doctor
         if ($request->filled('doctor_id')) {
             $query->where('doctor_id', $request->doctor_id);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -914,7 +917,7 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         // Amount range filters
         if ($request->filled('amount_min')) {
             $query->where('amount', '>=', $request->amount_min);
@@ -922,14 +925,14 @@ class DashboardController extends Controller
         if ($request->filled('amount_max')) {
             $query->where('amount', '<=', $request->amount_max);
         }
-        
+
         // Payment method filter
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->payment_method);
         }
 
         $payments = $query->latest()->paginate(20);
-        
+
         // Get all doctors for filter dropdown
         $doctors = Doctor::approved()->orderBy('name')->get();
 
@@ -946,14 +949,14 @@ class DashboardController extends Controller
         // Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('specialization', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%");
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('specialization', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%");
             });
         }
 
@@ -966,12 +969,12 @@ class DashboardController extends Controller
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
         }
-        
+
         // Filter by specialization (exact match or contains)
         if ($request->filled('specialization')) {
             $query->where('specialization', 'like', "%{$request->specialization}%");
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1001,24 +1004,24 @@ class DashboardController extends Controller
         $consultation = Consultation::with('doctor')->findOrFail($id);
 
         // Validate
-        if (!$consultation->doctor) {
+        if (! $consultation->doctor) {
             return response()->json([
                 'success' => false,
-                'message' => 'No doctor assigned to this consultation'
+                'message' => 'No doctor assigned to this consultation',
             ], 400);
         }
 
-        if (!$consultation->medical_documents || count($consultation->medical_documents) === 0) {
+        if (! $consultation->medical_documents || count($consultation->medical_documents) === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'No medical documents to forward'
+                'message' => 'No medical documents to forward',
             ], 400);
         }
 
         if ($consultation->documents_forwarded_at) {
             return response()->json([
                 'success' => false,
-                'message' => 'Documents already forwarded to doctor on ' . $consultation->documents_forwarded_at->format('M d, Y H:i')
+                'message' => 'Documents already forwarded to doctor on '.$consultation->documents_forwarded_at->format('M d, Y H:i'),
             ], 400);
         }
 
@@ -1034,12 +1037,12 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Medical documents forwarded successfully to Dr. ' . $consultation->doctor->full_name
+                'message' => 'Medical documents forwarded successfully to Dr. '.$consultation->doctor->full_name,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to forward documents: ' . $e->getMessage()
+                'message' => 'Failed to forward documents: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1066,7 +1069,7 @@ class DashboardController extends Controller
 
         // Handle checkbox value
         $validated['is_available'] = $request->has('is_available') ? true : false;
-        
+
         // Handle MDCN license - convert 'yes'/'no' to boolean
         if (isset($validated['mdcn_license_current'])) {
             $validated['mdcn_license_current'] = $validated['mdcn_license_current'] === 'yes';
@@ -1075,28 +1078,28 @@ class DashboardController extends Controller
         }
 
         try {
-        // Create user record first for unified authentication
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => \Hash::make(\Illuminate\Support\Str::random(12)), // Random password for admin-added doctors
-            'role' => 'doctor',
-        ]);
+            // Create user record first for unified authentication
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => \Hash::make(\Illuminate\Support\Str::random(12)), // Random password for admin-added doctors
+                'role' => 'doctor',
+            ]);
 
-        $validated['user_id'] = $user->id;
-        $doctor = Doctor::create($validated);
+            $validated['user_id'] = $user->id;
+            $doctor = Doctor::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Doctor added successfully with unified user account!',
-            'doctor' => $doctor->fresh('user')
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to add doctor: ' . $e->getMessage()
-        ], 500);
-    }
+            return response()->json([
+                'success' => true,
+                'message' => 'Doctor added successfully with unified user account!',
+                'doctor' => $doctor->fresh('user'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add doctor: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -1108,7 +1111,7 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:doctors,email,' . $id,
+            'email' => 'required|email|unique:doctors,email,'.$id,
             'phone' => 'required|string|max:20',
             'gender' => 'required|in:Male,Female',
             'specialization' => 'nullable|string|max:255',
@@ -1124,37 +1127,37 @@ class DashboardController extends Controller
         $validated['is_available'] = $request->has('is_available') ? true : false;
 
         try {
-        // Update doctor record
-        $doctor->update($validated);
+            // Update doctor record
+            $doctor->update($validated);
 
-        // Synchronize with user record if it exists
-        if ($doctor->user) {
-            $doctor->user->update([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
+            // Synchronize with user record if it exists
+            if ($doctor->user) {
+                $doctor->user->update([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                ]);
+            } else {
+                // Create user record if legacy doctor has no user_id
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
+                    'role' => 'doctor',
+                ]);
+                $doctor->update(['user_id' => $user->id]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Doctor updated and synchronized with unified user account!',
+                'doctor' => $doctor->fresh('user'),
             ]);
-        } else {
-            // Create user record if legacy doctor has no user_id
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => \Hash::make(\Illuminate\Support\Str::random(12)),
-                'role' => 'doctor',
-            ]);
-            $doctor->update(['user_id' => $user->id]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update doctor: '.$e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Doctor updated and synchronized with unified user account!',
-            'doctor' => $doctor->fresh('user')
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update doctor: ' . $e->getMessage()
-        ], 500);
-    }
     }
 
     /**
@@ -1164,18 +1167,18 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             // Soft delete the doctor (consultations will remain with doctor_id)
             $doctor->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Doctor deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Doctor deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete doctor: ' . $e->getMessage()
+                'message' => 'Failed to delete doctor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1200,7 +1203,7 @@ class DashboardController extends Controller
             if ($doctors->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No active doctors found to send notifications to.'
+                    'message' => 'No active doctors found to send notifications to.',
                 ], 404);
             }
 
@@ -1225,7 +1228,7 @@ class DashboardController extends Controller
                     $emailsSent++;
                 } catch (\Exception $e) {
                     $emailsFailed++;
-                    \Log::error("Failed to send campaign notification to doctor {$doctor->id}: " . $e->getMessage());
+                    \Log::error("Failed to send campaign notification to doctor {$doctor->id}: ".$e->getMessage());
                 }
             }
 
@@ -1235,13 +1238,13 @@ class DashboardController extends Controller
                 'details' => [
                     'total_doctors' => $doctors->count(),
                     'emails_sent' => $emailsSent,
-                    'emails_failed' => $emailsFailed
-                ]
+                    'emails_failed' => $emailsFailed,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send campaign notifications: ' . $e->getMessage()
+                'message' => 'Failed to send campaign notifications: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1252,21 +1255,21 @@ class DashboardController extends Controller
     public function adminUsers(Request $request)
     {
         $query = AdminUser::query();
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
-        
+
         // Role filter
         if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1274,9 +1277,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $admins = $query->latest()->paginate(20);
-        
+
         return view('admin.admin-users', compact('admins'));
     }
 
@@ -1296,30 +1299,30 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-        // Create user record first for unified authentication
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'], // Already hashed or will be hashed by cast/mutator
-            'role' => 'admin',
-        ]);
+            // Create user record first for unified authentication
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'], // Already hashed or will be hashed by cast/mutator
+                'role' => 'admin',
+            ]);
 
-        $validated['user_id'] = $user->id;
-        $admin = AdminUser::create($validated);
-        
-        // Send email verification notification using unified email logic
-        $admin->sendEmailVerificationNotification();
+            $validated['user_id'] = $user->id;
+            $admin = AdminUser::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Admin user created successfully with unified account! A verification email has been sent to ' . $admin->getEmailFromUser() . '.'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create admin: ' . $e->getMessage()
-        ], 500);
-    }
+            // Send email verification notification using unified email logic
+            $admin->sendEmailVerificationNotification();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Admin user created successfully with unified account! A verification email has been sent to '.$admin->getEmailFromUser().'.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create admin: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     // updateAdminUser method removed per user request to disable admin editing functionality
@@ -1330,12 +1333,12 @@ class DashboardController extends Controller
     {
         try {
             $admin = AdminUser::findOrFail($id);
-            
+
             // Prevent deactivating yourself
             if ($admin->id === auth()->guard('admin')->id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You cannot deactivate your own account'
+                    'message' => 'You cannot deactivate your own account',
                 ], 400);
             }
 
@@ -1344,12 +1347,12 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Admin status updated successfully!'
+                'message' => 'Admin status updated successfully!',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update status: ' . $e->getMessage()
+                'message' => 'Failed to update status: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1361,26 +1364,26 @@ class DashboardController extends Controller
     {
         try {
             $admin = AdminUser::findOrFail($id);
-            
+
             // Prevent deleting yourself
             if ($admin->id === auth()->guard('admin')->id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You cannot delete your own account'
+                    'message' => 'You cannot delete your own account',
                 ], 400);
             }
-            
+
             // Soft delete the admin user
             $admin->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Admin user deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Admin user deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete admin user: ' . $e->getMessage()
+                'message' => 'Failed to delete admin user: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1393,17 +1396,17 @@ class DashboardController extends Controller
     public function canvassers(Request $request)
     {
         $query = Canvasser::with('createdBy')->withCount('consultations');
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
@@ -1412,7 +1415,7 @@ class DashboardController extends Controller
                 $query->where('is_active', false);
             }
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1420,9 +1423,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $canvassers = $query->latest()->paginate(20);
-        
+
         return view('admin.canvassers', compact('canvassers'));
     }
 
@@ -1441,40 +1444,40 @@ class DashboardController extends Controller
 
         // Store plain password before hashing
         $plainPassword = $validated['password'];
-        
+
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
-        // Create user record first for unified authentication
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => 'canvasser',
-        ]);
+            // Create user record first for unified authentication
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'role' => 'canvasser',
+            ]);
 
-        $validated['user_id'] = $user->id;
-        $canvasser = Canvasser::create($validated);
-        
-        // Get admin name
-        $adminName = auth()->guard('admin')->user()->name;
-        
-        // Send account creation email with password and verification link using unified email
-        $recipientEmail = $canvasser->getEmailFromUser();
-        Mail::to($recipientEmail)->send(new CanvasserAccountCreated($canvasser, $plainPassword, $adminName));
+            $validated['user_id'] = $user->id;
+            $canvasser = Canvasser::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Canvasser created successfully with unified account! An email with login credentials and verification link has been sent to ' . $recipientEmail . '.'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create canvasser: ' . $e->getMessage()
-        ], 500);
-    }
+            // Get admin name
+            $adminName = auth()->guard('admin')->user()->name;
+
+            // Send account creation email with password and verification link using unified email
+            $recipientEmail = $canvasser->getEmailFromUser();
+            Mail::to($recipientEmail)->send(new CanvasserAccountCreated($canvasser, $plainPassword, $adminName));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Canvasser created successfully with unified account! An email with login credentials and verification link has been sent to '.$recipientEmail.'.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create canvasser: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -1486,14 +1489,14 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:canvassers,email,' . $id,
+            'email' => 'required|email|unique:canvassers,email,'.$id,
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'is_active' => 'nullable|boolean',
         ]);
 
         // Only update password if provided
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
         } else {
             unset($validated['password']);
@@ -1502,40 +1505,40 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-        // Update canvasser record
-        $canvasser->update($validated);
+            // Update canvasser record
+            $canvasser->update($validated);
 
-        // Synchronize with user record if it exists
-        if ($canvasser->user) {
-            $userData = [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-            ];
-            if (!empty($validated['password'])) {
-                $userData['password'] = $validated['password'];
+            // Synchronize with user record if it exists
+            if ($canvasser->user) {
+                $userData = [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                ];
+                if (! empty($validated['password'])) {
+                    $userData['password'] = $validated['password'];
+                }
+                $canvasser->user->update($userData);
+            } else {
+                // Create user record if legacy canvasser has no user_id
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $validated['password'] ?? $canvasser->password,
+                    'role' => 'canvasser',
+                ]);
+                $canvasser->update(['user_id' => $user->id]);
             }
-            $canvasser->user->update($userData);
-        } else {
-            // Create user record if legacy canvasser has no user_id
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'] ?? $canvasser->password,
-                'role' => 'canvasser',
-            ]);
-            $canvasser->update(['user_id' => $user->id]);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Canvasser updated and synchronized with unified account!'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update canvasser: ' . $e->getMessage()
-        ], 500);
-    }
+            return response()->json([
+                'success' => true,
+                'message' => 'Canvasser updated and synchronized with unified account!',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update canvasser: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -1550,12 +1553,12 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Canvasser status updated successfully!'
+                'message' => 'Canvasser status updated successfully!',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update status: ' . $e->getMessage()
+                'message' => 'Failed to update status: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1567,18 +1570,18 @@ class DashboardController extends Controller
     {
         try {
             $canvasser = Canvasser::findOrFail($id);
-            
+
             // Soft delete the canvasser (patients and consultations will remain with canvasser_id)
             $canvasser->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Canvasser deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Canvasser deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete canvasser: ' . $e->getMessage()
+                'message' => 'Failed to delete canvasser: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1591,17 +1594,17 @@ class DashboardController extends Controller
     public function nurses(Request $request)
     {
         $query = Nurse::with('createdBy')->withCount('consultations');
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             if ($request->status === 'active') {
@@ -1610,7 +1613,7 @@ class DashboardController extends Controller
                 $query->where('is_active', false);
             }
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1618,9 +1621,9 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $nurses = $query->latest()->paginate(20);
-        
+
         return view('admin.nurses', compact('nurses'));
     }
 
@@ -1639,40 +1642,40 @@ class DashboardController extends Controller
 
         // Store plain password before hashing
         $plainPassword = $validated['password'];
-        
+
         $validated['password'] = bcrypt($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['created_by'] = auth()->guard('admin')->id();
 
         try {
-        // Create user record first for unified authentication
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => 'nurse',
-        ]);
+            // Create user record first for unified authentication
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'role' => 'nurse',
+            ]);
 
-        $validated['user_id'] = $user->id;
-        $nurse = Nurse::create($validated);
-        
-        // Get admin name
-        $adminName = auth()->guard('admin')->user()->name;
-        
-        // Send account creation email with password and verification link using unified email
-        $recipientEmail = $nurse->getEmailFromUser();
-        Mail::to($recipientEmail)->send(new NurseAccountCreated($nurse, $plainPassword, $adminName));
+            $validated['user_id'] = $user->id;
+            $nurse = Nurse::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nurse created successfully with unified account! An email with login credentials and verification link has been sent to ' . $recipientEmail . '.'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create nurse: ' . $e->getMessage()
-        ], 500);
-    }
+            // Get admin name
+            $adminName = auth()->guard('admin')->user()->name;
+
+            // Send account creation email with password and verification link using unified email
+            $recipientEmail = $nurse->getEmailFromUser();
+            Mail::to($recipientEmail)->send(new NurseAccountCreated($nurse, $plainPassword, $adminName));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nurse created successfully with unified account! An email with login credentials and verification link has been sent to '.$recipientEmail.'.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create nurse: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -1684,14 +1687,14 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:nurses,email,' . $id,
+            'email' => 'required|email|unique:nurses,email,'.$id,
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'is_active' => 'nullable|boolean',
         ]);
 
         // Only update password if provided
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
         } else {
             unset($validated['password']);
@@ -1700,40 +1703,40 @@ class DashboardController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         try {
-        // Update nurse record
-        $nurse->update($validated);
+            // Update nurse record
+            $nurse->update($validated);
 
-        // Synchronize with user record if it exists
-        if ($nurse->user) {
-            $userData = [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-            ];
-            if (!empty($validated['password'])) {
-                $userData['password'] = $validated['password'];
+            // Synchronize with user record if it exists
+            if ($nurse->user) {
+                $userData = [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                ];
+                if (! empty($validated['password'])) {
+                    $userData['password'] = $validated['password'];
+                }
+                $nurse->user->update($userData);
+            } else {
+                // Create user record if legacy nurse has no user_id
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $validated['password'] ?? $nurse->password,
+                    'role' => 'nurse',
+                ]);
+                $nurse->update(['user_id' => $user->id]);
             }
-            $nurse->user->update($userData);
-        } else {
-            // Create user record if legacy nurse has no user_id
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'] ?? $nurse->password,
-                'role' => 'nurse',
-            ]);
-            $nurse->update(['user_id' => $user->id]);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nurse updated and synchronized with unified account!'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update nurse: ' . $e->getMessage()
-        ], 500);
-    }
+            return response()->json([
+                'success' => true,
+                'message' => 'Nurse updated and synchronized with unified account!',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update nurse: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -1748,12 +1751,12 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Nurse status updated successfully!'
+                'message' => 'Nurse status updated successfully!',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update status: ' . $e->getMessage()
+                'message' => 'Failed to update status: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1765,18 +1768,18 @@ class DashboardController extends Controller
     {
         try {
             $nurse = Nurse::findOrFail($id);
-            
+
             // Soft delete the nurse (consultations and vital signs will remain with nurse_id)
             $nurse->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Nurse deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Nurse deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete nurse: ' . $e->getMessage()
+                'message' => 'Failed to delete nurse: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1803,25 +1806,25 @@ class DashboardController extends Controller
         // Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('specialization', 'like', "%{$search}%");
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('specialization', 'like', "%{$search}%");
             });
         }
-        
+
         // Filter by specialization
         if ($request->filled('specialization')) {
             $query->where('specialization', 'like', "%{$request->specialization}%");
         }
-        
+
         // Filter by gender
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -1843,11 +1846,11 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             if ($doctor->is_approved) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Doctor is already approved.'
+                    'message' => 'Doctor is already approved.',
                 ], 400);
             }
 
@@ -1865,7 +1868,7 @@ class DashboardController extends Controller
             ];
 
             // If not using default fee and custom fee is provided
-            if (!$validated['use_default_fee'] && isset($validated['custom_fee'])) {
+            if (! $validated['use_default_fee'] && isset($validated['custom_fee'])) {
                 $updateData['consultation_fee'] = $validated['custom_fee'];
             } elseif ($validated['use_default_fee']) {
                 // Use the system default fee
@@ -1879,12 +1882,12 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Doctor approved successfully! They can now log in to their account.'
+                'message' => 'Doctor approved successfully! They can now log in to their account.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to approve doctor: ' . $e->getMessage()
+                'message' => 'Failed to approve doctor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1896,7 +1899,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             // Delete the certificate file if exists
             if ($doctor->certificate_path && \Storage::disk('public')->exists($doctor->certificate_path)) {
                 \Storage::disk('public')->delete($doctor->certificate_path);
@@ -1910,12 +1913,12 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Doctor registration rejected and removed from the system.'
+                'message' => 'Doctor registration rejected and removed from the system.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to reject doctor: ' . $e->getMessage()
+                'message' => 'Failed to reject doctor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1927,7 +1930,7 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'doctor' => [
@@ -1952,12 +1955,12 @@ class DashboardController extends Controller
                     'certificate_data' => $doctor->certificate_data ? true : false, // Just check if exists, don't send full data
                     'certificate_original_name' => $doctor->certificate_original_name,
                     'is_approved' => $doctor->is_approved,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load doctor details: ' . $e->getMessage()
+                'message' => 'Failed to load doctor details: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1983,21 +1986,21 @@ class DashboardController extends Controller
         // Security Alert Settings
         $securityAlertsEnabled = Setting::get('security_alerts_enabled', false);
         $securityAlertEmails = Setting::get('security_alert_emails', [env('SECURITY_ALERT_EMAIL', 'admin@doctorontap.com')]);
-        if (!is_array($securityAlertEmails)) {
+        if (! is_array($securityAlertEmails)) {
             $securityAlertEmails = [$securityAlertEmails];
         }
         $securityAlertSeverities = Setting::get('security_alert_severities', ['critical', 'high']);
-        if (!is_array($securityAlertSeverities)) {
+        if (! is_array($securityAlertSeverities)) {
             $securityAlertSeverities = ['critical', 'high'];
         }
         $securityAlertThresholdCritical = Setting::get('security_alert_threshold_critical', 1);
         $securityAlertThresholdHigh = Setting::get('security_alert_threshold_high', 5);
 
         return view('admin.settings', compact(
-            'settings', 
-            'defaultFee', 
-            'multiPatientFee', 
-            'useDefaultForAll', 
+            'settings',
+            'defaultFee',
+            'multiPatientFee',
+            'useDefaultForAll',
             'doctorPaymentPercentage',
             'consultationFeePayLater',
             'consultationFeePayNow',
@@ -2017,10 +2020,10 @@ class DashboardController extends Controller
     {
         try {
             $formType = $request->input('form_type', 'both');
-            
+
             // Build validation rules based on form type
             $rules = [];
-            
+
             // Pricing settings (only validate if pricing form is submitted)
             if ($formType === 'pricing' || $formType === 'both') {
                 $rules['default_consultation_fee'] = 'nullable|numeric|min:0';
@@ -2051,26 +2054,26 @@ class DashboardController extends Controller
             if ($formType === 'pricing' || $formType === 'both') {
                 // Use pay_later fee as default if default_consultation_fee is not provided
                 $defaultFee = $validated['default_consultation_fee'] ?? ($validated['consultation_fee_pay_later'] ?? null);
-                
+
                 if ($defaultFee !== null) {
                     Setting::set('default_consultation_fee', $defaultFee, 'number');
                 }
-                
+
                 if (isset($validated['multi_patient_booking_fee'])) {
                     Setting::set('multi_patient_booking_fee', $validated['multi_patient_booking_fee'], 'number');
                 }
-                
+
                 if (isset($validated['additional_child_discount_percentage'])) {
                     Setting::set('additional_child_discount_percentage', $validated['additional_child_discount_percentage'], 'decimal');
                 }
-                
+
                 Setting::set('doctor_payment_percentage', $validated['doctor_payment_percentage'], 'decimal');
                 Setting::set('use_default_fee_for_all', $request->has('use_default_fee_for_all') ? 1 : 0, 'boolean');
-                
+
                 if (isset($validated['consultation_fee_pay_later'])) {
                     Setting::set('consultation_fee_pay_later', $validated['consultation_fee_pay_later'], 'number');
                 }
-                
+
                 if (isset($validated['consultation_fee_pay_now'])) {
                     Setting::set('consultation_fee_pay_now', $validated['consultation_fee_pay_now'], 'number');
                 }
@@ -2079,25 +2082,25 @@ class DashboardController extends Controller
             // Update security alert settings (only if security form was submitted)
             if ($formType === 'security_alerts' || $formType === 'both') {
                 Setting::set('security_alerts_enabled', $request->has('security_alerts_enabled') ? 1 : 0, 'boolean');
-                
+
                 if ($request->has('security_alert_emails')) {
                     $emails = array_filter($request->input('security_alert_emails', []));
                     Setting::set('security_alert_emails', $emails, 'json');
                     \Log::info('Security alert emails updated', [
                         'emails' => $emails,
                         'count' => count($emails),
-                        'updated_by' => auth()->guard('admin')->id()
+                        'updated_by' => auth()->guard('admin')->id(),
                     ]);
                 }
-                
+
                 if ($request->has('security_alert_severities')) {
                     Setting::set('security_alert_severities', $request->input('security_alert_severities', []), 'json');
                 }
-                
+
                 if ($request->has('security_alert_threshold_critical')) {
                     Setting::set('security_alert_threshold_critical', $request->input('security_alert_threshold_critical', 1), 'integer');
                 }
-                
+
                 if ($request->has('security_alert_threshold_high')) {
                     Setting::set('security_alert_threshold_high', $request->input('security_alert_threshold_high', 5), 'integer');
                 }
@@ -2107,13 +2110,13 @@ class DashboardController extends Controller
             if ($request->has('use_default_fee_for_all') && $defaultFee !== null) {
                 Doctor::query()->update([
                     'use_default_fee' => true,
-                    'consultation_fee' => $defaultFee
+                    'consultation_fee' => $defaultFee,
                 ]);
             }
 
             return redirect()->back()->with('success', 'Consultation fees updated successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to update settings: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to update settings: '.$e->getMessage());
         }
     }
 
@@ -2124,33 +2127,35 @@ class DashboardController extends Controller
     {
         try {
             $alertEmails = Setting::get('security_alert_emails', []);
-            
+
             \Log::info('Test security alert requested', [
                 'configured_emails' => $alertEmails,
                 'emails_count' => is_array($alertEmails) ? count($alertEmails) : 0,
                 'ip' => $request->ip(),
             ]);
-            
-            if (empty($alertEmails) || !is_array($alertEmails)) {
+
+            if (empty($alertEmails) || ! is_array($alertEmails)) {
                 \Log::warning('Test security alert failed: No email recipients configured');
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'No email recipients configured. Please add at least one email address in Security Alerts settings.'
+                    'message' => 'No email recipients configured. Please add at least one email address in Security Alerts settings.',
                 ], 400);
             }
 
             // Filter valid emails
-            $validEmails = array_filter($alertEmails, function($email) {
+            $validEmails = array_filter($alertEmails, function ($email) {
                 return filter_var($email, FILTER_VALIDATE_EMAIL);
             });
 
             if (empty($validEmails)) {
                 \Log::warning('Test security alert failed: No valid email addresses', [
-                    'provided_emails' => $alertEmails
+                    'provided_emails' => $alertEmails,
                 ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'No valid email addresses found. Please check your email configuration.'
+                    'message' => 'No valid email addresses found. Please check your email configuration.',
                 ], 400);
             }
 
@@ -2172,64 +2177,64 @@ class DashboardController extends Controller
                     \Log::info('Sending test security alert email', [
                         'recipient' => $email,
                         'event_type' => 'test_alert',
-                        'severity' => 'medium'
+                        'severity' => 'medium',
                     ]);
 
                     \Mail::to($email)->send(new \App\Mail\SecurityAlert('test_alert', $testData, 'medium'));
-                    
+
                     $sentCount++;
-                    
+
                     \Log::info('Test security alert email sent successfully', [
-                        'recipient' => $email
+                        'recipient' => $email,
                     ]);
                 } catch (\Exception $e) {
                     $failedEmails[] = $email;
                     \Log::error('Failed to send test security alert email', [
                         'recipient' => $email,
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
+                        'trace' => $e->getTraceAsString(),
                     ]);
                 }
             }
 
             if ($sentCount > 0) {
-                $message = "Test security alert email sent successfully to {$sentCount} recipient(s): " . implode(', ', array_diff($validEmails, $failedEmails));
-                
-                if (!empty($failedEmails)) {
-                    $message .= ". Failed to send to: " . implode(', ', $failedEmails);
+                $message = "Test security alert email sent successfully to {$sentCount} recipient(s): ".implode(', ', array_diff($validEmails, $failedEmails));
+
+                if (! empty($failedEmails)) {
+                    $message .= '. Failed to send to: '.implode(', ', $failedEmails);
                 }
 
                 \Log::info('Test security alert completed', [
                     'sent_count' => $sentCount,
                     'failed_count' => count($failedEmails),
                     'sent_to' => array_diff($validEmails, $failedEmails),
-                    'failed_to' => $failedEmails
+                    'failed_to' => $failedEmails,
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => $message
+                    'message' => $message,
                 ]);
             } else {
                 \Log::error('Test security alert failed: All emails failed to send', [
                     'attempted_emails' => $validEmails,
-                    'failed_emails' => $failedEmails
+                    'failed_emails' => $failedEmails,
                 ]);
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to send test alert to all recipients. Please check your mail configuration and logs.'
+                    'message' => 'Failed to send test alert to all recipients. Please check your mail configuration and logs.',
                 ], 500);
             }
         } catch (\Exception $e) {
             \Log::error('Failed to send test security alert', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send test alert: ' . $e->getMessage()
+                'message' => 'Failed to send test alert: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2241,26 +2246,26 @@ class DashboardController extends Controller
     {
         try {
             $doctor = Doctor::findOrFail($id);
-            
-            if (!$doctor->certificate_data) {
+
+            if (! $doctor->certificate_data) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No certificate found for this doctor.'
+                    'message' => 'No certificate found for this doctor.',
                 ], 404);
             }
-            
+
             // Decode the base64 data
             $fileContent = base64_decode($doctor->certificate_data);
-            
+
             // Return the file for viewing/download
             return response($fileContent)
                 ->header('Content-Type', $doctor->certificate_mime_type ?? 'application/pdf')
-                ->header('Content-Disposition', 'inline; filename="' . ($doctor->certificate_original_name ?? 'certificate.pdf') . '"');
-                
+                ->header('Content-Disposition', 'inline; filename="'.($doctor->certificate_original_name ?? 'certificate.pdf').'"');
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load certificate: ' . $e->getMessage()
+                'message' => 'Failed to load certificate: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2275,10 +2280,10 @@ class DashboardController extends Controller
         // Search by patient name or email
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('patient', function($q) use ($search) {
+            $query->whereHas('patient', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -2314,7 +2319,7 @@ class DashboardController extends Controller
         }
 
         $vitalSigns = $query->latest()->paginate(20);
-        
+
         // Get all nurses for filter dropdown
         $nurses = Nurse::where('is_active', true)->orderBy('name')->get();
 
@@ -2336,23 +2341,23 @@ class DashboardController extends Controller
     public function canvasserPatients(Request $request)
     {
         $canvasserId = $request->query('canvasser_id');
-        
+
         $query = Patient::with('canvasser');
-        
+
         if ($canvasserId) {
             $query->where('canvasser_id', $canvasserId);
         }
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
-        
+
         // Filter by verification status
         if ($request->filled('verification_status')) {
             if ($request->verification_status === 'verified') {
@@ -2361,12 +2366,12 @@ class DashboardController extends Controller
                 $query->where('is_verified', false);
             }
         }
-        
+
         // Filter by gender
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -2374,12 +2379,12 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         $patients = $query->latest()->paginate(20);
-        
+
         // Get canvassers for filter dropdown
         $canvassers = Canvasser::select('id', 'name')->get();
-        
+
         // Statistics
         $stats = [
             'total_patients' => Patient::count(),
@@ -2388,7 +2393,7 @@ class DashboardController extends Controller
             'patients_with_consultations' => Patient::where('consultations_count', '>', 0)->count(),
             'patients_without_consultations' => Patient::where('consultations_count', 0)->count(),
         ];
-        
+
         return view('admin.canvasser-patients', compact('patients', 'canvassers', 'stats'));
     }
 
@@ -2398,21 +2403,22 @@ class DashboardController extends Controller
     public function canvasserPerformance()
     {
         $canvassers = Canvasser::withCount(['patients', 'consultations'])
-                              ->withSum('patients', 'total_amount_paid')
-                              ->get()
-                              ->map(function ($canvasser) {
-                                  $canvasser->verified_patients_count = Patient::where('canvasser_id', $canvasser->id)
-                                                                              ->where('is_verified', true)
-                                                                              ->count();
-                                  $canvasser->unverified_patients_count = Patient::where('canvasser_id', $canvasser->id)
-                                                                                ->where('is_verified', false)
-                                                                                ->count();
-                                  $canvasser->consulted_patients_count = Patient::where('canvasser_id', $canvasser->id)
-                                                                              ->where('has_consulted', true)
-                                                                              ->count();
-                                  return $canvasser;
-                              });
-        
+            ->withSum('patients', 'total_amount_paid')
+            ->get()
+            ->map(function ($canvasser) {
+                $canvasser->verified_patients_count = Patient::where('canvasser_id', $canvasser->id)
+                    ->where('is_verified', true)
+                    ->count();
+                $canvasser->unverified_patients_count = Patient::where('canvasser_id', $canvasser->id)
+                    ->where('is_verified', false)
+                    ->count();
+                $canvasser->consulted_patients_count = Patient::where('canvasser_id', $canvasser->id)
+                    ->where('has_consulted', true)
+                    ->count();
+
+                return $canvasser;
+            });
+
         $stats = [
             'total_canvassers' => Canvasser::count(),
             'active_canvassers' => Canvasser::where('is_active', true)->count(),
@@ -2420,7 +2426,7 @@ class DashboardController extends Controller
             'verified_patients' => Patient::where('is_verified', true)->count(),
             'total_revenue_generated' => Patient::sum('total_amount_paid'),
         ];
-        
+
         return view('admin.canvasser-performance', compact('canvassers', 'stats'));
     }
 
@@ -2430,18 +2436,18 @@ class DashboardController extends Controller
     public function patientVerification()
     {
         $unverifiedPatients = Patient::where('is_verified', false)
-                                   ->with('canvasser')
-                                   ->latest()
-                                   ->paginate(20);
-        
+            ->with('canvasser')
+            ->latest()
+            ->paginate(20);
+
         $stats = [
             'total_patients' => Patient::count(),
             'verified_patients' => Patient::where('is_verified', true)->count(),
             'unverified_patients' => Patient::where('is_verified', false)->count(),
-            'verification_rate' => Patient::count() > 0 ? 
+            'verification_rate' => Patient::count() > 0 ?
                 round((Patient::where('is_verified', true)->count() / Patient::count()) * 100, 2) : 0,
         ];
-        
+
         return view('admin.patient-verification', compact('unverifiedPatients', 'stats'));
     }
 
@@ -2452,18 +2458,18 @@ class DashboardController extends Controller
     {
         try {
             $patient = Patient::findOrFail($id);
-            
+
             // Soft delete the patient
             $patient->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Patient deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Patient deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete patient: ' . $e->getMessage()
+                'message' => 'Failed to delete patient: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2508,12 +2514,12 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Patient created successfully!',
-                'patient' => $patient->fresh('user')
+                'patient' => $patient->fresh('user'),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create patient: ' . $e->getMessage()
+                'message' => 'Failed to create patient: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2528,7 +2534,7 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . ($patient->user_id ?? 'NULL') . '|unique:patients,email,' . $id,
+            'email' => 'required|email|unique:users,email,'.($patient->user_id ?? 'NULL').'|unique:patients,email,'.$id,
             'phone' => 'required|string|max:20',
             'gender' => 'required|in:Male,Female',
             'age' => 'nullable|integer|min:0|max:150',
@@ -2548,7 +2554,7 @@ class DashboardController extends Controller
             ];
 
             // Add password if provided
-            if (!empty($validated['password'])) {
+            if (! empty($validated['password'])) {
                 $patientData['password'] = \Hash::make($validated['password']);
             }
 
@@ -2562,36 +2568,36 @@ class DashboardController extends Controller
                     'email' => $validated['email'],
                 ];
 
-                if (!empty($validated['password'])) {
+                if (! empty($validated['password'])) {
                     $userData['password'] = \Hash::make($validated['password']);
                 }
 
                 $patient->user->update($userData);
             } else {
                 // Create user record if it doesn't exist (for legacy patients)
-            $userPassword = !empty($validated['password']) 
-                ? \Hash::make($validated['password']) 
-                : ($patient->password ?: \Hash::make(\Illuminate\Support\Str::random(12)));
+                $userPassword = ! empty($validated['password'])
+                    ? \Hash::make($validated['password'])
+                    : ($patient->password ?: \Hash::make(\Illuminate\Support\Str::random(12)));
 
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $userPassword,
-                'role' => 'patient',
-            ]);
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $userPassword,
+                    'role' => 'patient',
+                ]);
 
-            $patient->update(['user_id' => $user->id]);
+                $patient->update(['user_id' => $user->id]);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Patient updated successfully!',
-                'patient' => $patient->fresh('user')
+                'patient' => $patient->fresh('user'),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update patient: ' . $e->getMessage()
+                'message' => 'Failed to update patient: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2603,18 +2609,18 @@ class DashboardController extends Controller
     {
         try {
             $vitalSign = VitalSign::findOrFail($id);
-            
+
             // Soft delete the vital sign
             $vitalSign->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vital sign record deleted successfully! The record has been archived and can be restored if needed.'
+                'message' => 'Vital sign record deleted successfully! The record has been archived and can be restored if needed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete vital sign: ' . $e->getMessage()
+                'message' => 'Failed to delete vital sign: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2625,14 +2631,14 @@ class DashboardController extends Controller
     public function viewDoctorProfile($id)
     {
         $doctor = Doctor::with(['bankAccounts', 'consultations', 'payments'])->findOrFail($id);
-        
+
         // Calculate statistics
         $stats = [
             'total_consultations' => $doctor->consultations()->count(),
             'completed_consultations' => $doctor->consultations()->where('status', 'completed')->count(),
             'paid_consultations' => $doctor->consultations()->where('payment_status', 'paid')->count(),
             'unpaid_consultations' => $doctor->consultations()->where('status', 'completed')
-                                            ->where('payment_status', '!=', 'paid')->count(),
+                ->where('payment_status', '!=', 'paid')->count(),
             'total_paid_to_doctor' => $doctor->payments()->where('status', 'completed')->sum('doctor_amount'),
             'pending_payment' => 0, // Will calculate below
         ];
@@ -2645,7 +2651,7 @@ class DashboardController extends Controller
             ->get();
 
         // Calculate pending payment
-        $pendingAmount = $unpaidConsultations->sum(function($consultation) use ($doctor) {
+        $pendingAmount = $unpaidConsultations->sum(function ($consultation) use ($doctor) {
             return $doctor->effective_consultation_fee;
         });
         $stats['pending_payment'] = $pendingAmount;
@@ -2684,13 +2690,13 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Bank account verified successfully!'
+                'message' => 'Bank account verified successfully!',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to verify bank account: ' . $e->getMessage()
+                'message' => 'Failed to verify bank account: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2701,17 +2707,17 @@ class DashboardController extends Controller
     public function doctorPayments(Request $request)
     {
         $query = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
-        
+
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
-                  ->orWhereHas('doctor', function($doctorQ) use ($search) {
-                      $doctorQ->where('name', 'like', "%{$search}%")
-                              ->orWhere('first_name', 'like', "%{$search}%")
-                              ->orWhere('last_name', 'like', "%{$search}%");
-                  });
+                    ->orWhereHas('doctor', function ($doctorQ) use ($search) {
+                        $doctorQ->where('name', 'like', "%{$search}%")
+                            ->orWhere('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -2732,7 +2738,7 @@ class DashboardController extends Controller
         if ($request->filled('date_to')) {
             $query->where('created_at', '<=', $request->date_to);
         }
-        
+
         // Amount range filters
         if ($request->filled('amount_min')) {
             $query->where('doctor_amount', '>=', $request->amount_min);
@@ -2741,10 +2747,24 @@ class DashboardController extends Controller
             $query->where('doctor_amount', '<=', $request->amount_max);
         }
 
-        $payments = $query->latest()->paginate(20);
+        $payments = $query->latest()->paginate(20)->withQueryString();
 
         // Get all doctors for filter dropdown
         $doctors = Doctor::approved()->orderBy('name')->get();
+
+        // Paid + completed consultations not yet locked in an active payout batch (same rules as batch creation)
+        $lockedIds = \App\Models\DoctorPayment::lockedConsultationIds();
+        $eligibleConsultationsQuery = Consultation::query()
+            ->where('status', 'completed')
+            ->where('payment_status', 'paid')
+            ->when(! empty($lockedIds), fn ($q) => $q->whereNotIn('id', $lockedIds))
+            ->with(['doctor']);
+
+        if ($request->filled('doctor_id')) {
+            $eligibleConsultationsQuery->where('doctor_id', $request->doctor_id);
+        }
+
+        $eligiblePaidConsultations = $eligibleConsultationsQuery->latest()->paginate(15, ['*'], 'eligible_page')->withQueryString();
 
         // Statistics
         $stats = [
@@ -2753,9 +2773,10 @@ class DashboardController extends Controller
             'completed_payments' => \App\Models\DoctorPayment::where('status', 'completed')->count(),
             'total_paid_amount' => \App\Models\DoctorPayment::where('status', 'completed')->sum('doctor_amount'),
             'total_platform_fee' => \App\Models\DoctorPayment::where('status', 'completed')->sum('platform_fee'),
+            'eligible_paid_count' => $eligiblePaidConsultations->total(),
         ];
 
-        return view('admin.doctor-payments', compact('payments', 'doctors', 'stats'));
+        return view('admin.doctor-payments', compact('payments', 'doctors', 'stats', 'eligiblePaidConsultations'));
     }
 
     /**
@@ -2769,11 +2790,13 @@ class DashboardController extends Controller
 
             // Get consultations included in this payment
             $consultations = [];
-            if (!empty($payment->consultation_ids)) {
+            if (! empty($payment->consultation_ids)) {
                 $consultations = \App\Models\Consultation::whereIn('id', $payment->consultation_ids)
+                    ->where('status', 'completed')
+                    ->where('payment_status', 'paid')
                     ->with('payment')
                     ->get()
-                    ->map(function($consultation) use ($payment) {
+                    ->map(function ($consultation) use ($payment) {
                         return [
                             'id' => $consultation->id,
                             'reference' => $consultation->reference,
@@ -2781,6 +2804,7 @@ class DashboardController extends Controller
                             'created_at' => $consultation->created_at->toISOString(),
                             'amount' => $payment->doctor->effective_consultation_fee ?? 0,
                             'payment_status' => $consultation->payment_status,
+                            'consultation_status' => $consultation->status,
                         ];
                     })
                     ->toArray();
@@ -2829,12 +2853,12 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             \Log::error('Failed to load payment details', [
                 'payment_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load payment details: ' . $e->getMessage()
+                'message' => 'Failed to load payment details: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2858,31 +2882,31 @@ class DashboardController extends Controller
 
             // Get verified bank account (prefer default, otherwise get first verified)
             $bankAccount = $doctor->defaultBankAccount;
-            
+
             // If no default account, get the first verified account
-            if (!$bankAccount || !$bankAccount->is_verified) {
+            if (! $bankAccount || ! $bankAccount->is_verified) {
                 $bankAccount = $doctor->bankAccounts()
                     ->where('is_verified', true)
                     ->first();
             }
 
             // Check if doctor has a verified bank account
-            if (!$bankAccount || !$bankAccount->is_verified) {
+            if (! $bankAccount || ! $bankAccount->is_verified) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Doctor does not have a verified bank account.'
+                    'message' => 'Doctor does not have a verified bank account.',
                 ], 400);
             }
 
             // Validate that all submitted consultations belong to this doctor and are paid
             $submittedConsultations = Consultation::whereIn('id', $validated['consultation_ids'])->get();
-            
+
             // Check if all consultations belong to this doctor
             $invalidDoctorConsultations = $submittedConsultations->where('doctor_id', '!=', $doctor->id);
             if ($invalidDoctorConsultations->isNotEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Some consultations do not belong to this doctor.'
+                    'message' => 'Some consultations do not belong to this doctor.',
                 ], 400);
             }
 
@@ -2891,7 +2915,7 @@ class DashboardController extends Controller
             if ($incompleteConsultations->isNotEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Some consultations are not completed. Only completed consultations can be included in doctor payments.'
+                    'message' => 'Some consultations are not completed. Only completed consultations can be included in doctor payments.',
                 ], 400);
             }
 
@@ -2899,29 +2923,34 @@ class DashboardController extends Controller
             $unpaidConsultations = $submittedConsultations->where('payment_status', '!=', 'paid');
             if ($unpaidConsultations->isNotEmpty()) {
                 $unpaidReferences = $unpaidConsultations->pluck('reference')->implode(', ');
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Some consultations are not paid. Only consultations with payment_status = "paid" can be included in doctor payments. Unpaid consultations: ' . $unpaidReferences
+                    'message' => 'Some consultations are not paid. Only consultations with payment_status = "paid" can be included in doctor payments. Unpaid consultations: '.$unpaidReferences,
                 ], 400);
             }
 
-            // Get consultations - only include paid consultations
-            $consultations = Consultation::whereIn('id', $validated['consultation_ids'])
-                ->where('doctor_id', $doctor->id)
-                ->where('status', 'completed')
-                ->where('payment_status', 'paid')
+            // Only consultations that are completed, paid, and not already in an active payout batch for this doctor
+            $validatedIds = array_values(array_unique(array_map('intval', $validated['consultation_ids'])));
+            $lockedIds = \App\Models\DoctorPayment::lockedConsultationIds($doctor->id);
+
+            $consultations = Consultation::query()
+                ->eligibleForDoctorPayout($doctor->id, $lockedIds)
+                ->whereIn('id', $validatedIds)
                 ->get();
 
-            if ($consultations->isEmpty()) {
+            if ($consultations->isEmpty() || $consultations->count() !== count($validatedIds)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No valid paid consultations found. Only consultations with payment_status = "paid" can be included in doctor payments.'
+                    'message' => 'One or more consultations are not eligible. Each must be completed, paid (patient), and not already included in a pending, processing, or completed payout batch.',
                 ], 400);
             }
+
+            $canonicalConsultationIds = $consultations->pluck('id')->values()->all();
 
             // Use custom percentage or default from settings
             $doctorPercentage = $validated['doctor_percentage'] ?? Setting::get('doctor_payment_percentage', 70);
-            
+
             // Calculate payment details
             $paymentData = \App\Models\DoctorPayment::calculatePayment(
                 $consultations,
@@ -2932,7 +2961,7 @@ class DashboardController extends Controller
             $payment = \App\Models\DoctorPayment::create([
                 'doctor_id' => $doctor->id,
                 'bank_account_id' => $bankAccount->id,
-                'consultation_ids' => $validated['consultation_ids'],
+                'consultation_ids' => $canonicalConsultationIds,
                 'period_from' => $validated['period_from'] ?? null,
                 'period_to' => $validated['period_to'] ?? null,
                 ...$paymentData,
@@ -2942,18 +2971,18 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Payment created successfully!',
-                'payment' => $payment
+                'payment' => $payment,
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Failed to create doctor payment', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create payment: ' . $e->getMessage()
+                'message' => 'Failed to create payment: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2971,7 +3000,7 @@ class DashboardController extends Controller
             if ($payment->status === 'completed' && $payment->korapay_status === 'success') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This payment has already been completed.'
+                    'message' => 'This payment has already been completed.',
                 ], 400);
             }
 
@@ -2988,10 +3017,10 @@ class DashboardController extends Controller
             }
 
             // Check if doctor has verified bank account
-            if (!$payment->bankAccount || !$payment->bankAccount->is_verified) {
+            if (! $payment->bankAccount || ! $payment->bankAccount->is_verified) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Doctor does not have a verified bank account.'
+                    'message' => 'Doctor does not have a verified bank account.',
                 ], 400);
             }
 
@@ -2999,7 +3028,7 @@ class DashboardController extends Controller
             if (empty($payment->bankAccount->bank_code)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bank code is missing for this bank account. Please update the bank account with the correct bank code before initiating payout.'
+                    'message' => 'Bank code is missing for this bank account. Please update the bank account with the correct bank code before initiating payout.',
                 ], 400);
             }
 
@@ -3012,7 +3041,7 @@ class DashboardController extends Controller
                 $payment->update([
                     'paid_by' => $admin->id,
                     'payment_method' => 'korapay_bank_transfer',
-                    'admin_notes' => 'Payout initiated via KoraPay by ' . $admin->name,
+                    'admin_notes' => 'Payout initiated via KoraPay by '.$admin->name,
                 ]);
 
                 return response()->json([
@@ -3038,7 +3067,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to initiate payout: ' . $e->getMessage()
+                'message' => 'Failed to initiate payout: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -3087,7 +3116,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process bulk payouts: ' . $e->getMessage()
+                'message' => 'Failed to process bulk payouts: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -3100,22 +3129,22 @@ class DashboardController extends Controller
         try {
             $payment = \App\Models\DoctorPayment::findOrFail($id);
 
-            if (!$payment->korapay_reference) {
+            if (! $payment->korapay_reference) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No KoraPay reference found for this payment.'
+                    'message' => 'No KoraPay reference found for this payment.',
                 ], 400);
             }
 
             $payoutService = app(\App\Services\KoraPayPayoutService::class);
             $result = $payoutService->verifyPayoutStatus($payment->korapay_reference);
 
-            if ($result['success'] && !empty($result['data'])) {
+            if ($result['success'] && ! empty($result['data'])) {
                 $data = $result['data'];
-                
+
                 // Update payment status based on verification
                 $korapayStatus = $data['status'] ?? 'processing';
-                $paymentStatus = $korapayStatus === 'success' ? 'completed' : 
+                $paymentStatus = $korapayStatus === 'success' ? 'completed' :
                                 ($korapayStatus === 'failed' ? 'failed' : 'processing');
 
                 $updateData = [
@@ -3128,7 +3157,7 @@ class DashboardController extends Controller
                     $updateData['paid_at'] = now();
                     $updateData['payout_completed_at'] = now();
                     $updateData['transaction_reference'] = $payment->korapay_reference;
-                    
+
                     if (isset($data['fee'])) {
                         $updateData['korapay_fee'] = (float) $data['fee'];
                     }
@@ -3157,7 +3186,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to verify payout: ' . $e->getMessage()
+                'message' => 'Failed to verify payout: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -3171,57 +3200,35 @@ class DashboardController extends Controller
         // create payout -> initiate payout -> webhook/verify updates final status.
         return response()->json([
             'success' => false,
-            'message' => 'Manual completion is disabled. Use KoraPay Initiate Payout and Verify Status actions.'
+            'message' => 'Manual completion is disabled. Use KoraPay Initiate Payout and Verify Status actions.',
         ], 403);
     }
 
     /**
-     * Get doctor's unpaid consultations for payment creation
+     * Paid, completed consultations eligible for a new payout batch (not locked in an active batch).
      */
     public function getDoctorUnpaidConsultations($doctorId)
     {
         try {
-            // Get all consultation IDs that are already included in pending/processing/completed payments
-            $excludedConsultationIds = \App\Models\DoctorPayment::where('doctor_id', $doctorId)
-                ->whereIn('status', ['pending', 'processing', 'completed'])
-                ->whereNotNull('consultation_ids')
-                ->get()
-                ->flatMap(function($payment) {
-                    // Extract consultation IDs from JSON array
-                    $ids = $payment->consultation_ids ?? [];
-                    return is_array($ids) ? $ids : [];
-                })
-                ->unique()
-                ->values()
-                ->toArray();
+            $excludedConsultationIds = \App\Models\DoctorPayment::lockedConsultationIds($doctorId);
 
-            // Get consultations that are completed, paid by patient, but not yet paid to doctor
-            // Only include consultations with payment_status = 'paid'
-            $query = Consultation::where('doctor_id', $doctorId)
-                ->where('status', 'completed')
-                ->where('payment_status', 'paid');
-
-            // Exclude consultations already in pending/processing/completed payments
-            if (!empty($excludedConsultationIds)) {
-                $query->whereNotIn('id', $excludedConsultationIds);
-            }
-
-            $consultations = $query->with('payment')->latest()->get();
+            $consultations = Consultation::query()
+                ->eligibleForDoctorPayout($doctorId, $excludedConsultationIds)
+                ->with('payment')
+                ->latest()
+                ->get();
 
             $doctor = Doctor::findOrFail($doctorId);
 
-            // Log for debugging
-            \Log::info('Loading paid consultations (unpaid to doctor)', [
+            \Log::info('Loading paid consultations eligible for doctor payout batch', [
                 'doctor_id' => $doctorId,
                 'total_consultations' => $consultations->count(),
                 'excluded_ids_count' => count($excludedConsultationIds),
-                'excluded_ids' => $excludedConsultationIds,
-                'note' => 'Only consultations with payment_status = "paid" are included',
             ]);
 
             return response()->json([
                 'success' => true,
-                'consultations' => $consultations->map(function($c) use ($doctor) {
+                'consultations' => $consultations->map(function ($c) use ($doctor) {
                     return [
                         'id' => $c->id,
                         'reference' => $c->reference,
@@ -3235,7 +3242,7 @@ class DashboardController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Failed to load unpaid consultations', [
+            \Log::error('Failed to load eligible paid consultations for payout', [
                 'doctor_id' => $doctorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -3243,7 +3250,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load consultations: ' . $e->getMessage()
+                'message' => 'Failed to load consultations: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -3258,11 +3265,11 @@ class DashboardController extends Controller
         // Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
-                  ->orWhere('payer_name', 'like', "%{$search}%")
-                  ->orWhere('payer_email', 'like', "%{$search}%")
-                  ->orWhere('payer_mobile', 'like', "%{$search}%");
+                    ->orWhere('payer_name', 'like', "%{$search}%")
+                    ->orWhere('payer_email', 'like', "%{$search}%")
+                    ->orWhere('payer_mobile', 'like', "%{$search}%");
             });
         }
 
@@ -3291,7 +3298,7 @@ class DashboardController extends Controller
             'bookingPatients.patient',
             'bookingPatients.consultation',
             'invoice.items',
-            'feeAdjustmentLogs'
+            'feeAdjustmentLogs',
         ])->findOrFail($id);
 
         return view('admin.booking-details', compact('booking'));
@@ -3308,9 +3315,9 @@ class DashboardController extends Controller
         // Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -3365,7 +3372,7 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $id,
+            'email' => 'required|email|unique:users,email,'.$id,
             'role' => 'required|in:patient,admin,doctor,nurse,canvasser',
             'password' => 'nullable|string|min:8',
         ]);
@@ -3378,7 +3385,7 @@ class DashboardController extends Controller
                 'role' => $validated['role'],
             ];
 
-            if (!empty($validated['password'])) {
+            if (! empty($validated['password'])) {
                 $userData['password'] = \Hash::make($validated['password']);
             }
 
@@ -3392,7 +3399,7 @@ class DashboardController extends Controller
                     'email' => $validated['email'],
                 ];
 
-                if (!empty($validated['password'])) {
+                if (! empty($validated['password'])) {
                     $roleData['password'] = \Hash::make($validated['password']);
                 }
 
@@ -3402,12 +3409,12 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User updated successfully!',
-                'user' => $user->fresh(['patient', 'adminUser', 'doctor', 'nurse', 'canvasser'])
+                'user' => $user->fresh(['patient', 'adminUser', 'doctor', 'nurse', 'canvasser']),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update user: ' . $e->getMessage()
+                'message' => 'Failed to update user: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -3422,18 +3429,18 @@ class DashboardController extends Controller
             $user = User::findOrFail($id);
             $role = $user->role;
             $name = $user->name;
-            
+
             // Delete the user (will cascade to role-specific table)
             $user->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => ucfirst($role) . ' user "' . $name . '" deleted successfully!'
+                'message' => ucfirst($role).' user "'.$name.'" deleted successfully!',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete user: ' . $e->getMessage()
+                'message' => 'Failed to delete user: '.$e->getMessage(),
             ], 500);
         }
     }

@@ -32,7 +32,7 @@
                         </button>
                         <h1 class="text-xl font-bold text-white">Doctor Payments</h1>
                     </div>
-                    <button @click="showCreateModal = true" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                    <button type="button" @click="showCreateModal = true" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-lg transition shadow-md bg-white text-purple-800 hover:bg-purple-50 border border-white/80 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-700">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -54,7 +54,7 @@
                 </div>
 
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Payments</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total_payments'] }}</p>
@@ -75,6 +75,61 @@
                         <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_paid_amount'], 2) }}</p>
                         <p class="text-xs text-gray-500">Earnings</p>
                     </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-teal-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid &amp; eligible</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['eligible_paid_count'] ?? 0 }}</p>
+                        <p class="text-xs text-gray-500">Not in an active batch</p>
+                    </div>
+                </div>
+
+                <!-- Paid consultations eligible for a new payout batch -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                    <div class="mb-4 pb-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div>
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Paid consultations (eligible for payout)
+                            </h2>
+                            <p class="text-xs text-gray-500 mt-1 max-w-3xl">Lists <strong>completed</strong> consultations where the patient has <strong>paid</strong> (<code class="text-gray-700">payment_status = paid</code>), and the consultation is <strong>not</strong> already in a pending, processing, or completed payout batch. Uses the same doctor filter as below when set.</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto -mx-5 px-5">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Doctor</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Patient</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Fee basis</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @forelse($eligiblePaidConsultations as $ec)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-3 py-2 font-mono text-xs text-gray-900">{{ $ec->reference }}</td>
+                                    <td class="px-3 py-2 text-gray-800">{{ $ec->doctor->full_name ?? '—' }}</td>
+                                    <td class="px-3 py-2 text-gray-700">{{ $ec->full_name }}</td>
+                                    <td class="px-3 py-2 text-gray-600 whitespace-nowrap">{{ $ec->created_at->format('Y-m-d') }}</td>
+                                    <td class="px-3 py-2 text-right font-medium text-gray-900">₦{{ number_format($ec->doctor->effective_consultation_fee ?? 0, 2) }}</td>
+                                    <td class="px-3 py-2"><span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">Paid</span></td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="6" class="px-3 py-10 text-center text-gray-500 text-sm">No eligible paid consultations. They may all be in a payout batch already, or adjust the doctor filter.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($eligiblePaidConsultations->hasPages())
+                    <div class="mt-4 border-t border-gray-100 pt-4">
+                        {{ $eligiblePaidConsultations->links() }}
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Filters -->
@@ -330,11 +385,11 @@
                          x-transition:leave-end="opacity-0 transform scale-95"
                          class="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
                                 <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
-                                Create Doctor Payment
+                                Create payout batch
                             </h2>
                             <button @click="showCreateModal = false" class="text-gray-400 hover:text-gray-600">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +411,7 @@
                                 </div>
 
                                 <div x-show="selectedDoctor && consultations.length === 0 && !loadingConsultations" class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                                    <p class="text-xs text-amber-800">No unpaid consultations found for this doctor.</p>
+                                    <p class="text-xs text-amber-800">No <strong>paid</strong> consultations are eligible for a new batch (completed + patient paid, not already in an active payout).</p>
                                 </div>
                                 
                                 <div x-show="selectedDoctor && loadingConsultations" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -365,7 +420,7 @@
 
                                 <div x-show="consultations.length > 0">
                                     <div class="flex items-center justify-between mb-2">
-                                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Select Consultations *</label>
+                                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Select paid consultations *</label>
                                         <label class="flex items-center space-x-1.5 cursor-pointer">
                                             <input type="checkbox" 
                                                    @change="toggleSelectAllConsultations" 

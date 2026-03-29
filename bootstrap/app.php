@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust ngrok / load balancers so X-Forwarded-Proto and Host yield HTTPS + public hostname
+        // (fixes mixed content: asset(), @vite, url() must not emit http:// behind HTTPS tunnels).
+        $middleware->trustProxies(at: '*');
+
         // Webhook endpoints must be CSRF-exempt for third-party callbacks.
         $middleware->validateCsrfTokens(except: [
             'payment/webhook',
@@ -22,19 +26,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // SECURITY: Input sanitization for all requests
         $middleware->append(\App\Http\Middleware\SanitizeInput::class);
-        
+
         // SECURITY: Validate route parameters for injection attacks
         $middleware->append(\App\Http\Middleware\ValidateRouteParameters::class);
-        
+
         // HIPAA Compliance: Enforce HTTPS in production
         $middleware->append(\App\Http\Middleware\EnforceHttps::class);
-        
+
         // Add security monitoring to all requests
         $middleware->append(\App\Http\Middleware\SecurityMonitoring::class);
-        
+
         // Add performance headers for optimization
         $middleware->append(\App\Http\Middleware\PerformanceHeaders::class);
-        
+
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuthenticate::class,
             'canvasser.auth' => \App\Http\Middleware\CanvasserAuthenticate::class,

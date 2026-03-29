@@ -125,14 +125,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Zoho SalesIQ Widget Code
+    | Zoho SalesIQ
     |--------------------------------------------------------------------------
     |
-    | This value is the widget code for Zoho SalesIQ live chat integration.
-    | Set this in your ".env" file as ZOHO_SALESIQ_WIDGET_CODE.
-    | If not set, the default widget code will be used.
+    | Live chat loads scripts from salesiq.zoho.com and (for GDPR banners)
+    | static.zohocdn.com. If those return 503 or console noise while testing,
+    | set ZOHO_SALESIQ_ENABLED=false in .env.
+    |
+    | Widget code: ZOHO_SALESIQ_WIDGET_CODE (falls back to default if unset).
     |
     */
+
+    'zoho_salesiq_enabled' => (bool) env('ZOHO_SALESIQ_ENABLED', true),
 
     'zoho_salesiq_widget_code' => env('ZOHO_SALESIQ_WIDGET_CODE', 'siq6ff8d0e208a3d36b0174965f1f027ff8eb87189281447f4f7a86a3e7ca48178f'),
 

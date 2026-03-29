@@ -1,7 +1,8 @@
 @php
+    $enabled = config('app.zoho_salesiq_enabled', true);
     $widgetCode = config('app.zoho_salesiq_widget_code');
 @endphp
-@if($widgetCode)
+@if($enabled && $widgetCode)
 <script type="text/javascript">
     var $zoho = $zoho || {};
     $zoho.salesiq = $zoho.salesiq || {

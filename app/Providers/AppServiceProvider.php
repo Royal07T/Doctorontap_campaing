@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Pagination\Paginator;
 use App\Models\Consultation;
 use App\Observers\ConsultationObserver;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,12 +29,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Use custom Tailwind pagination view
         Paginator::defaultView('vendor.pagination.tailwind');
-        
+
         // Register Consultation observer
         Consultation::observe(ConsultationObserver::class);
-        
-        // HIPAA Compliance: Force HTTPS in production
-        if ($this->app->environment('production')) {
+
+        // HTTPS URLs for assets and route() when APP_URL is https (e.g. ngrok) or in production.
+        $appUrl = (string) config('app.url', '');
+        if ($this->app->environment('production') || str_starts_with($appUrl, 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
     }
