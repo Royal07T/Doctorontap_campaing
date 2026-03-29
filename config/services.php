@@ -43,6 +43,15 @@ return [
         'enforce_webhook_signature' => env('KORAPAY_ENFORCE_WEBHOOK_SIGNATURE', true),
     ],
 
+    /*
+    | Pusher Beams (Web Push) — instance ID is safe in the browser; secret is server-only.
+    | @see https://pusher.com/docs/beams/reference/web
+    */
+    'beams' => [
+        'instance_id' => env('PUSHER_BEAMS_INSTANCE_ID'),
+        'secret_key' => env('PUSHER_BEAMS_SECRET_KEY'),
+    ],
+
     'termii' => [
         // SMS Configuration
         'api_key' => env('TERMII_API_KEY'),
@@ -51,7 +60,7 @@ return [
         'base_url' => env('TERMII_BASE_URL', 'https://v3.api.termii.com'),
         'channel' => env('TERMII_CHANNEL', 'generic'),
         'enabled' => env('TERMII_ENABLED', true),
-        
+
         // WhatsApp Configuration
         'whatsapp_device_id' => env('TERMII_WHATSAPP_DEVICE_ID'),
         'whatsapp_enabled' => env('TERMII_WHATSAPP_ENABLED', false),

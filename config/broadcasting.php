@@ -11,10 +11,14 @@ return [
     | framework when an event needs to be broadcast. You may set this to
     | any of the connections defined in the "connections" array below.
     |
-    | Supported: "reverb", "pusher", "ably", "redis", "log", "null"
+    | Supported: "pusher", "ably", "redis", "log", "null"
     |
     */
 
+    /*
+     * Use Pusher Channels: set BROADCAST_CONNECTION=pusher and PUSHER_APP_* in .env.
+     * Vite/Echo needs VITE_PUSHER_APP_KEY and VITE_PUSHER_APP_CLUSTER (see resources/js/app.js).
+     */
     'default' => env('BROADCAST_CONNECTION', 'null'),
 
     /*
@@ -29,22 +33,6 @@ return [
     */
 
     'connections' => [
-
-        'reverb' => [
-            'driver' => 'reverb',
-            'key' => env('REVERB_APP_KEY'),
-            'secret' => env('REVERB_APP_SECRET'),
-            'app_id' => env('REVERB_APP_ID'),
-            'options' => [
-                'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
-            ],
-            'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
-            ],
-        ],
 
         'pusher' => [
             'driver' => 'pusher',

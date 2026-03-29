@@ -1,4 +1,5 @@
 import './bootstrap';
+import { initPusherBeams } from './beams';
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import Echo from 'laravel-echo';
@@ -10,20 +11,19 @@ Alpine.plugin(collapse);
 // Make Alpine available globally
 window.Alpine = Alpine;
 
-// Initialize Laravel Echo for WebSocket connections
+// Laravel Echo + Pusher Channels (https://github.com/pusher/pusher-http-php)
 window.Pusher = Pusher;
 
-// Only initialize Echo if Reverb configuration is available
-if (import.meta.env.VITE_REVERB_APP_KEY && import.meta.env.VITE_REVERB_HOST) {
+const pusherKey = import.meta.env.VITE_PUSHER_APP_KEY;
+const pusherCluster = import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'eu';
+
+if (pusherKey) {
     try {
-        window.Echo = new Echo({
-            broadcaster: 'reverb',
-            key: import.meta.env.VITE_REVERB_APP_KEY,
-            wsHost: import.meta.env.VITE_REVERB_HOST,
-            wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-            wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-            forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-            enabledTransports: ['ws', 'wss'],
+        const echoConfig = {
+            broadcaster: 'pusher',
+            key: pusherKey,
+            cluster: pusherCluster,
+            forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
             authEndpoint: '/broadcasting/auth',
             auth: {
                 headers: {
@@ -36,33 +36,40 @@ if (import.meta.env.VITE_REVERB_APP_KEY && import.meta.env.VITE_REVERB_HOST) {
                     },
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                withCredentials: true, // Send cookies with the request
+                withCredentials: true,
             },
-        });
+        };
 
-        // Handle connection errors gracefully
+        // Optional: self-hosted / custom host (e.g. Soketi). Leave unset for Pusher Cloud.
+        const customHost = import.meta.env.VITE_PUSHER_HOST;
+        if (customHost) {
+            echoConfig.wsHost = customHost;
+            echoConfig.wsPort = import.meta.env.VITE_PUSHER_PORT ?? 80;
+            echoConfig.wssPort = import.meta.env.VITE_PUSHER_PORT ?? 443;
+            echoConfig.disableStats = true;
+            echoConfig.enabledTransports = ['ws', 'wss'];
+        }
+
+        window.Echo = new Echo(echoConfig);
+
         window.Echo.connector.pusher.connection.bind('error', (err) => {
-            console.warn('WebSocket connection error (non-critical):', err);
-            // App will continue to work with polling fallback
+            console.warn('Pusher connection error (non-critical):', err);
         });
 
         window.Echo.connector.pusher.connection.bind('disconnected', () => {
-            console.warn('WebSocket disconnected. Real-time features will use polling fallback.');
+            console.warn('Pusher disconnected. Real-time features may fall back to polling.');
         });
 
-        console.log('Laravel Echo initialized for WebSocket connections');
+        console.log('Laravel Echo initialized (Pusher Channels)');
     } catch (error) {
         console.warn('Failed to initialize Laravel Echo:', error);
-        console.warn('Real-time features will use polling fallback');
-        // Create a dummy Echo object to prevent errors
         window.Echo = {
             private: () => ({ listen: () => {}, subscribed: () => {}, error: () => {} }),
             leave: () => {},
         };
     }
 } else {
-    console.warn('Reverb configuration not found. WebSocket features disabled.');
-    // Create a dummy Echo object to prevent errors
+    console.warn('VITE_PUSHER_APP_KEY not set. Real-time broadcasting disabled.');
     window.Echo = {
         private: () => ({ listen: () => {}, subscribed: () => {}, error: () => {} }),
         leave: () => {},
@@ -74,34 +81,24 @@ Alpine.start();
 
 // Initialize common functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize any global JavaScript functionality here
     console.log('DoctorOnTap app initialized with Alpine.js + Livewire');
-    
-    // Add any global event listeners or initialization code
     initializeGlobalFeatures();
+    initPusherBeams();
 });
 
 function initializeGlobalFeatures() {
-    // Add any global features that should be available on all pages
-    // For example: tooltips, global keyboard shortcuts, etc.
-    
-    // Global error handler for AJAX authentication errors
     window.addEventListener('unhandledrejection', function(event) {
         if (event.reason && event.reason.message && event.reason.message.includes('Unexpected token')) {
             console.warn('Caught JSON parsing error, likely due to authentication redirect');
-            // Don't prevent default, let the error be handled by individual fetch handlers
         }
     });
-    
-    // Override fetch to handle authentication errors globally
+
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
         return originalFetch.apply(this, args).then(response => {
-            // If we get HTML instead of JSON, it's likely an authentication redirect
             if (response.status === 401 || response.status === 403) {
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('text/html')) {
-                    // This is likely a redirect to login page
                     window.location.href = '/admin/login';
                     return Promise.reject(new Error('Authentication required'));
                 }

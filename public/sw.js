@@ -1,4 +1,7 @@
-const CACHE_NAME = 'doctorontap-v1.0.0';
+// Pusher Beams — must load first (see https://pusher.com/docs/beams/reference/web )
+importScripts('https://js.pusher.com/beams/service-worker.js');
+
+const CACHE_NAME = 'doctorontap-v1.0.1';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
@@ -113,28 +116,5 @@ async function syncConsultations() {
   console.log('[ServiceWorker] Background sync triggered');
 }
 
-// Push notifications
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'New notification from DoctorOnTap',
-    icon: '/img/pwa/icon-192x192.png',
-    badge: '/img/pwa/icon-72x72.png',
-    vibrate: [200, 100, 200],
-    tag: 'doctorontap-notification',
-    requireInteraction: false,
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('DoctorOnTap', options)
-  );
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  event.waitUntil(
-    clients.openWindow('/')
-  );
-});
+// Push / notification clicks are handled by Pusher Beams (importScripts above).
 
