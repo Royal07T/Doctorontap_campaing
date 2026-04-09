@@ -7,6 +7,15 @@ use App\Http\Controllers\Api\V1\Auth\AdminAuthController;
 use App\Http\Controllers\Api\V1\Auth\NurseAuthController;
 use App\Http\Controllers\Api\V1\Auth\CanvasserAuthController;
 use App\Http\Controllers\Api\V1\Auth\CustomerCareAuthController;
+use App\Http\Controllers\Api\V1\Auth\CareGiverAuthController;
+use App\Http\Controllers\Api\V1\CareGiver\PatientController as CareGiverPatientController;
+use App\Http\Controllers\Api\V1\CareGiver\CarePlanController as CareGiverCarePlanController;
+use App\Http\Controllers\Api\V1\CareGiver\ObservationController as CareGiverObservationController;
+use App\Http\Controllers\Api\V1\CareGiver\MedicationController as CareGiverMedicationController;
+use App\Http\Controllers\Api\V1\CareGiver\VitalsController as CareGiverVitalsController;
+use App\Http\Controllers\Api\V1\CareGiver\DietPlanController as CareGiverDietPlanController;
+use App\Http\Controllers\Api\V1\CareGiver\PhysioSessionController as CareGiverPhysioSessionController;
+use App\Http\Controllers\Api\V1\CareGiver\CommunicationController as CareGiverCommunicationController;
 use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\DoctorController;
@@ -34,7 +43,7 @@ use App\Http\Controllers\Api\V1\TreatmentPlanController;
 
 // Public routes (no authentication required) - WITH RATE LIMITING
 Route::group(['middleware' => ['throttle:api']], function () {
-    
+
     // Health check (no rate limit needed)
     Route::get('/health', function () {
         return response()->json([
@@ -88,6 +97,11 @@ Route::group(['middleware' => ['throttle:api']], function () {
         Route::prefix('customer-care')->group(function () {
             Route::post('/login', [CustomerCareAuthController::class, 'login'])->middleware('throttle:5,1');
         });
+
+        // Caregiver authentication
+        Route::prefix('caregiver')->group(function () {
+            Route::post('/login', [CareGiverAuthController::class, 'login'])->middleware('throttle:5,1');
+        });
     });
 
     // Public consultation routes - RATE LIMITED to prevent spam
@@ -103,7 +117,7 @@ Route::group(['middleware' => ['throttle:api']], function () {
 
 // Protected routes (authentication required) - WITH RATE LIMITING
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
-    
+
     // User profile routes
     Route::get('/user', function (\Illuminate\Http\Request $request) {
         return response()->json([
@@ -150,24 +164,24 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/{id}', [ConsultationController::class, 'show']);
         Route::put('/{id}', [ConsultationController::class, 'update']);
         Route::get('/{id}/status', [ConsultationController::class, 'getStatus']);
-        
+
         // Consultation Sessions (In-App Consultations)
         Route::post('/{id}/session/token', [ConsultationSessionController::class, 'getToken']);
         Route::post('/{id}/session/start', [ConsultationSessionController::class, 'startSession']);
         Route::post('/{id}/session/end', [ConsultationSessionController::class, 'endSession']);
         Route::get('/{id}/session/status', [ConsultationSessionController::class, 'getStatus']);
         Route::post('/{id}/session/recording', [ConsultationSessionController::class, 'toggleRecording']);
-        
+
         // Chat Messages
         Route::get('/{id}/chat/messages', [ChatMessageController::class, 'index']);
         Route::post('/{id}/chat/messages', [ChatMessageController::class, 'store']);
-        
+
         // Treatment Plans
         Route::get('/{id}/treatment-plan', [TreatmentPlanController::class, 'show']);
         Route::post('/{id}/treatment-plan', [TreatmentPlanController::class, 'create']);
         Route::put('/{id}/treatment-plan', [TreatmentPlanController::class, 'update']);
         Route::post('/{id}/treatment-plan/unlock', [TreatmentPlanController::class, 'unlock']);
-        
+
         // Medical Documents
         Route::get('/{id}/documents', [MedicalDocumentController::class, 'index']);
         Route::post('/{id}/documents', [MedicalDocumentController::class, 'store']);
@@ -194,7 +208,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/{id}/profile', [DoctorController::class, 'updateProfile']);
         Route::get('/{id}/availability-schedule', [DoctorController::class, 'getAvailabilitySchedule']);
         Route::put('/{id}/availability-schedule', [DoctorController::class, 'updateAvailabilitySchedule']);
-        
+
         // Bank Accounts
         Route::get('/{id}/bank-accounts', [BankAccountController::class, 'index']);
         Route::post('/{id}/bank-accounts', [BankAccountController::class, 'store']);
@@ -203,7 +217,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/{id}/bank-accounts/{accountId}/set-default', [BankAccountController::class, 'setDefault']);
         Route::post('/{id}/bank-accounts/verify', [BankAccountController::class, 'verifyAccount']);
         Route::get('/banks', [BankAccountController::class, 'getBanks']);
-        
+
         // Payment History
         Route::get('/{id}/payment-history', [DoctorController::class, 'getPaymentHistory']);
     });
@@ -297,6 +311,62 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/patients', [PatientController::class, 'canvasserPatients']);
         Route::post('/patients', [PatientController::class, 'storePatient']);
         Route::post('/patients/{id}/consultation', [ConsultationController::class, 'createForPatient']);
+    });
+
+    // Caregiver-specific routes
+    Route::prefix('caregiver')->group(function () {
+        // Auth
+        Route::post('/logout', [CareGiverAuthController::class, 'logout']);
+        Route::get('/profile', [CareGiverAuthController::class, 'profile']);
+        Route::put('/profile', [CareGiverAuthController::class, 'updateProfile']);
+
+        // Dashboard
+        Route::get('/dashboard', [CareGiverPatientController::class, 'dashboard']);
+
+        // Patients
+        Route::get('/patients', [CareGiverPatientController::class, 'index']);
+        Route::get('/patients/{id}', [CareGiverPatientController::class, 'show']);
+
+        // Care Plans
+        Route::get('/patients/{patientId}/care-plans', [CareGiverCarePlanController::class, 'index']);
+        Route::get('/patients/{patientId}/care-plans/active', [CareGiverCarePlanController::class, 'active']);
+        Route::get('/patients/{patientId}/care-plans/{id}', [CareGiverCarePlanController::class, 'show']);
+
+        // Observations
+        Route::get('/patients/{patientId}/observations', [CareGiverObservationController::class, 'index']);
+        Route::post('/patients/{patientId}/observations', [CareGiverObservationController::class, 'store']);
+        Route::get('/patients/{patientId}/observations/{id}', [CareGiverObservationController::class, 'show']);
+
+        // Medications
+        Route::get('/patients/{patientId}/medications', [CareGiverMedicationController::class, 'index']);
+        Route::post('/patients/{patientId}/medications', [CareGiverMedicationController::class, 'store']);
+        Route::post('/patients/{patientId}/medications/{id}/given', [CareGiverMedicationController::class, 'markGiven']);
+        Route::post('/patients/{patientId}/medications/{id}/missed', [CareGiverMedicationController::class, 'markMissed']);
+        Route::get('/patients/{patientId}/medications/compliance', [CareGiverMedicationController::class, 'compliance']);
+
+        // Vitals
+        Route::get('/patients/{patientId}/vitals', [CareGiverVitalsController::class, 'index']);
+        Route::post('/patients/{patientId}/vitals', [CareGiverVitalsController::class, 'store']);
+        Route::get('/patients/{patientId}/vitals/latest', [CareGiverVitalsController::class, 'latest']);
+
+        // Diet Plans
+        Route::get('/patients/{patientId}/diet-plans', [CareGiverDietPlanController::class, 'index']);
+        Route::post('/patients/{patientId}/diet-plans', [CareGiverDietPlanController::class, 'store']);
+        Route::get('/patients/{patientId}/diet-plans/{id}', [CareGiverDietPlanController::class, 'show']);
+        Route::put('/patients/{patientId}/diet-plans/{id}', [CareGiverDietPlanController::class, 'update']);
+
+        // Physio Sessions
+        Route::get('/patients/{patientId}/physio-sessions', [CareGiverPhysioSessionController::class, 'index']);
+        Route::post('/patients/{patientId}/physio-sessions', [CareGiverPhysioSessionController::class, 'store']);
+        Route::get('/patients/{patientId}/physio-sessions/{id}', [CareGiverPhysioSessionController::class, 'show']);
+        Route::put('/patients/{patientId}/physio-sessions/{id}', [CareGiverPhysioSessionController::class, 'update']);
+        Route::post('/patients/{patientId}/physio-sessions/{id}/complete', [CareGiverPhysioSessionController::class, 'complete']);
+        Route::post('/patients/{patientId}/physio-sessions/{id}/cancel', [CareGiverPhysioSessionController::class, 'cancel']);
+
+        // Communication
+        Route::get('/communication/threads', [CareGiverCommunicationController::class, 'threads']);
+        Route::get('/communication/{patientId}/messages', [CareGiverCommunicationController::class, 'messages']);
+        Route::post('/communication/{patientId}/send', [CareGiverCommunicationController::class, 'send']);
     });
 });
 

@@ -89,8 +89,8 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
     public function assignedPatients(): BelongsToMany
     {
         return $this->belongsToMany(
-            Patient::class, 
-            'caregiver_patient_assignments', 
+            Patient::class,
+            'caregiver_patient_assignments',
             'caregiver_id',  // Foreign key on caregiver_patient_assignments table
             'patient_id'     // Related key on patients table
         )
@@ -116,16 +116,44 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get observations recorded by this caregiver
+     */
+    public function observations(): HasMany
+    {
+        return $this->hasMany(Observation::class, 'caregiver_id');
+    }
+
+    /**
+     * Get medication logs recorded by this caregiver
+     */
+    public function medicationLogs(): HasMany
+    {
+        return $this->hasMany(MedicationLog::class, 'caregiver_id');
+    }
+
+    /**
+     * Get care plans linked through patient assignments
+     */
+    public function carePlans()
+    {
+        return CarePlan::whereIn('id',
+            $this->patientAssignments()
+                ->whereNotNull('care_plan_id')
+                ->pluck('care_plan_id')
+        );
+    }
+
+    /**
      * Check if caregiver is assigned to a specific patient
      */
     public function isAssignedToPatient(int $patientId, string $role = null): bool
     {
         $query = $this->assignedPatients()->where('patients.id', $patientId);
-        
+
         if ($role) {
             $query->wherePivot('role', $role);
         }
-        
+
         return $query->exists();
     }
 
@@ -138,7 +166,7 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
             ->where('patient_id', $patientId)
             ->where('status', 'active')
             ->first();
-            
+
         return $assignment ? $assignment->role : null;
     }
 
@@ -159,7 +187,7 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
         if (!$this->pin_hash) {
             return false;
         }
-        
+
         return Hash::check($pin, $this->pin_hash);
     }
 
@@ -189,7 +217,7 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
         if ($this->user_id && $this->relationLoaded('user') && $this->user) {
             return $this->user->email;
         }
-        
+
         // Fallback to direct email field for backward compatibility
         return $this->attributes['email'] ?? null;
     }
@@ -222,7 +250,7 @@ class CareGiver extends Authenticatable implements MustVerifyEmail
     {
         return !is_null($this->email_verified_at);
     }
-    
+
     /**
      * Get the photo URL
      */

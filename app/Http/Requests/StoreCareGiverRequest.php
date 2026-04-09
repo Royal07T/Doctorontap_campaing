@@ -27,7 +27,7 @@ class StoreCareGiverRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:care_givers,email',
             'phone' => 'nullable|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8',
             'is_active' => 'nullable|boolean',
         ];
     }
@@ -44,7 +44,6 @@ class StoreCareGiverRequest extends FormRequest
             'email.unique' => 'This email address is already registered.',
             'password.required' => 'A password is required.',
             'password.min' => 'The password must be at least 8 characters.',
-            'password.confirmed' => 'The password confirmation does not match.',
         ];
     }
 }
