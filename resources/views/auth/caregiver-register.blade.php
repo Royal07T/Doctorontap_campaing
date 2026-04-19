@@ -1,4 +1,4 @@
-@extends('layouts.') {{-- or whatever your layout file is named --}}
+@extends('layouts.caregiver-auth')
 
 @section('sidebar')
     {{-- Optional: You can leave sidebar empty for auth pages --}}
