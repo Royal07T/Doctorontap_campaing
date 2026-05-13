@@ -105,7 +105,7 @@ class KorapayPayoutService
                     ],
                     'customer' => [
                         'name' => $bankAccount->account_name,
-                        'email' => $doctor->email,
+                        'email' => $doctor->email ?? 'doctor@doctorontap.com.ng',
                     ],
                 ],
             ];
@@ -124,14 +124,33 @@ class KorapayPayoutService
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post($this->baseUrl . '/transactions/disburse', $payload);
 
-            $responseData = $response->json();
+            $responseData = $response->json() ?? [];
+            $httpStatus = $response->status();
+
+            // Handle authentication/authorization errors
+            if (in_array($httpStatus, [401, 403], true)) {
+                $apiMessage = $responseData['message'] ?? ($httpStatus === 403 ? 'Forbidden' : 'Unauthorized');
+
+                Log::error('Korapay payout rejected (auth)', [
+                    'http_status' => $httpStatus,
+                    'payout_reference' => $payoutReference,
+                    'response' => $responseData,
+                ]);
+
+                return [
+                    'success' => false,
+                    'data' => ['status' => 'failed', 'error_details' => $responseData],
+                    'message' => $apiMessage . ' — Fix: use Secret Key (sk_…) in KORAPAY_SECRET_KEY (not pk_); use test keys with sandbox URL and live keys with production; ensure disbursements are enabled on your KoraPay dashboard.',
+                    'response' => $responseData,
+                ];
+            }
 
             // Handle unexpected request errors (KoraPay recommends verification before failing)
-            if (!$response->successful() && in_array($response->status(), [500, 502, 503, 504], true)) {
+            if (!$response->successful() && in_array($httpStatus, [500, 502, 503, 504], true)) {
                 Log::warning('Korapay payout request error - attempting verification', [
                     'payout_reference' => $payoutReference,
                     'doctor_id' => $doctor->id,
-                    'status' => $response->status(),
+                    'status' => $httpStatus,
                 ]);
 
                 $verification = $this->verifyPayoutStatus($payoutReference);
@@ -218,7 +237,7 @@ class KorapayPayoutService
                 'payout_reference' => $payoutReference,
                 'doctor_id' => $doctor->id,
                 'error_message' => $errorMessage,
-                'response_status' => $response->status(),
+                'response_status' => $httpStatus,
                 'response_data' => $responseData,
             ]);
 

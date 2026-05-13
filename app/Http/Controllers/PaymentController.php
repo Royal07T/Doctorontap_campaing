@@ -7,6 +7,7 @@ use App\Models\Doctor;
 use App\Models\Consultation;
 use App\Models\Booking;
 use App\Models\Invoice;
+use App\Models\DoctorPayout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -291,9 +292,17 @@ class PaymentController extends Controller
             if ($event === 'transfer.success' || $event === 'transfer.failed') {
                 $isPayoutWebhook = true;
             } elseif (isset($data['status']) && in_array($data['status'], ['success', 'failed', 'processing'])) {
-                // Fallback: Check if it's a payout by looking for KoraPay reference format (KPY-D-*)
+                // Fallback: Check if it's a payout by looking for known payout reference prefixes
+                // KPY-D-* and KPY-* from KoraPayPayoutService (admin flow)
+                // DR-PAYOUT-* from KorapayPayoutService (API flow)
+                // DOCPAY-* from DoctorPayment model auto-generated references
                 $reference = $data['reference'] ?? null;
-                if ($reference && (strpos($reference, 'KPY-D-') === 0 || strpos($reference, 'KPY-') === 0)) {
+                if ($reference && (
+                    strpos($reference, 'KPY-D-') === 0 ||
+                    strpos($reference, 'KPY-') === 0 ||
+                    strpos($reference, 'DR-PAYOUT-') === 0 ||
+                    strpos($reference, 'DOCPAY-') === 0
+                )) {
                     $isPayoutWebhook = true;
                 }
             }
@@ -707,10 +716,46 @@ class PaymentController extends Controller
             // According to KoraPay docs: status can be "success" or "failed"
             $status = $data['status'] ?? 'processing';
 
-            // Find payment by KoraPay reference
+            // Find payment by KoraPay reference in DoctorPayment
             $payment = \App\Models\DoctorPayment::where('korapay_reference', $korapayReference)->first();
 
             if (!$payment) {
+                // Also check if this is a DoctorPayout (API flow uses DR-PAYOUT-* references)
+                $doctorPayout = DoctorPayout::where('korapay_reference', $korapayReference)
+                    ->orWhere('payout_reference', $korapayReference)
+                    ->first();
+
+                if ($doctorPayout) {
+                    // Process directly for DoctorPayout and sync DoctorPayment
+                    Log::info('Payout webhook matched DoctorPayout (API flow)', [
+                        'payout_id' => $doctorPayout->id,
+                        'payout_reference' => $doctorPayout->payout_reference,
+                        'status' => $status,
+                    ]);
+
+                    // Idempotency check
+                    if ($doctorPayout->status === 'success' && $status === 'success') {
+                        return response()->json(['status' => 'already_processed'], 200);
+                    }
+
+                    $payoutUpdate = ['korapay_response' => $data];
+                    if ($status === 'success') {
+                        $payoutUpdate['status'] = 'success';
+                        $payoutUpdate['korapay_reference'] = $korapayReference;
+                    } elseif ($status === 'failed') {
+                        $payoutUpdate['status'] = 'failed';
+                        $payoutUpdate['korapay_reference'] = $korapayReference;
+                    } else {
+                        $payoutUpdate['status'] = 'processing';
+                    }
+                    $doctorPayout->update($payoutUpdate);
+
+                    // Also sync any matching DoctorPayment
+                    $this->syncDoctorPaymentFromDoctorPayout($korapayReference, $status, $data);
+
+                    return response()->json(['status' => 'ok'], 200);
+                }
+
                 Log::warning('Payout webhook received for unknown payment', [
                     'korapay_reference' => $korapayReference,
                     'event' => $event
@@ -787,6 +832,9 @@ class PaymentController extends Controller
 
             $payment->update($updateData);
 
+            // Sync DoctorPayout records so both models stay consistent
+            $this->syncDoctorPayoutFromWebhook($korapayReference, $status, $data);
+
             // Always return 200 to acknowledge receipt (per KoraPay docs)
             return response()->json(['status' => 'ok'], 200);
 
@@ -797,7 +845,116 @@ class PaymentController extends Controller
                 'payload' => $request->all()
             ]);
 
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            // Always return 200 to acknowledge receipt (per KoraPay docs - prevents 72hr retries)
+            return response()->json(['status' => 'error'], 200);
+        }
+    }
+
+    /**
+     * Sync DoctorPayout model when a payout webhook is received.
+     * This ensures both DoctorPayment and DoctorPayout stay in sync
+     * regardless of which webhook URL Kora calls.
+     */
+    protected function syncDoctorPayoutFromWebhook(string $korapayReference, string $status, array $data): void
+    {
+        try {
+            $payout = DoctorPayout::where('korapay_reference', $korapayReference)
+                ->orWhere('payout_reference', $korapayReference)
+                ->first();
+
+            if (!$payout) {
+                return;
+            }
+
+            // Idempotency: skip if already at terminal status
+            if ($payout->status === 'success' && $status === 'success') {
+                return;
+            }
+
+            $updateData = [
+                'korapay_response' => $data,
+            ];
+
+            if ($status === 'success') {
+                $updateData['status'] = 'success';
+                $updateData['korapay_reference'] = $korapayReference;
+            } elseif ($status === 'failed') {
+                $updateData['status'] = 'failed';
+                $updateData['korapay_reference'] = $korapayReference;
+            } else {
+                $updateData['status'] = 'processing';
+            }
+
+            $payout->update($updateData);
+
+            Log::info('DoctorPayout synced from payout webhook', [
+                'payout_id' => $payout->id,
+                'payout_reference' => $payout->payout_reference,
+                'status' => $status,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to sync DoctorPayout from webhook', [
+                'korapay_reference' => $korapayReference,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Sync DoctorPayment model from a DoctorPayout webhook.
+     * When the webhook reference matches a DoctorPayout (API flow),
+     * also update any DoctorPayment that shares the same korapay_reference.
+     */
+    protected function syncDoctorPaymentFromDoctorPayout(string $korapayReference, string $status, array $data): void
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::where('korapay_reference', $korapayReference)->first();
+
+            if (!$payment) {
+                return;
+            }
+
+            if ($payment->status === 'completed' && $status === 'success') {
+                return;
+            }
+
+            $updateData = [
+                'korapay_status' => $status,
+                'korapay_response' => json_encode($data, JSON_UNESCAPED_SLASHES),
+            ];
+
+            if ($status === 'success') {
+                $updateData['status'] = 'completed';
+                $updateData['paid_at'] = now();
+                $updateData['payout_completed_at'] = now();
+                $updateData['transaction_reference'] = $korapayReference;
+
+                if (isset($data['fee'])) {
+                    $updateData['korapay_fee'] = (float) $data['fee'];
+                }
+
+                if ($payment->consultation_ids) {
+                    Consultation::whereIn('id', $payment->consultation_ids)
+                        ->update(['payment_status' => 'paid']);
+                }
+            } elseif ($status === 'failed') {
+                $updateData['status'] = 'failed';
+            } else {
+                $updateData['status'] = 'processing';
+            }
+
+            $payment->update($updateData);
+
+            Log::info('DoctorPayment synced from DoctorPayout webhook', [
+                'payment_id' => $payment->id,
+                'payment_reference' => $payment->reference,
+                'status' => $status,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to sync DoctorPayment from DoctorPayout webhook', [
+                'korapay_reference' => $korapayReference,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

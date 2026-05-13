@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\DoctorPayment;
-use App\Models\DoctorBankAccount;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -11,7 +10,9 @@ use Illuminate\Support\Str;
 class KoraPayPayoutService
 {
     protected string $apiUrl;
+
     protected string $secretKey;
+
     protected string $baseUrl;
 
     public function __construct()
@@ -23,13 +24,13 @@ class KoraPayPayoutService
 
     /**
      * Verify bank account before payout
-     * 
+     *
      * According to KoraPay documentation: https://docs.korapay.com
      * Endpoint: POST /merchant/api/v1/misc/banks/resolve
-     * 
-     * @param string $bankCode Bank code (e.g., "044" for Access Bank, "033" for UBA)
-     * @param string $accountNumber Account number to verify
-     * @param string $currency Optional currency (default: "NGN")
+     *
+     * @param  string  $bankCode  Bank code (e.g., "044" for Access Bank, "033" for UBA)
+     * @param  string  $accountNumber  Account number to verify
+     * @param  string  $currency  Optional currency (default: "NGN")
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function verifyBankAccount(string $bankCode, string $accountNumber, string $currency = 'NGN'): array
@@ -47,9 +48,9 @@ class KoraPayPayoutService
             }
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->post($this->baseUrl . '/misc/banks/resolve', $payload);
+            ])->timeout(30)->post($this->baseUrl.'/misc/banks/resolve', $payload);
 
             $responseData = $response->json();
 
@@ -58,26 +59,26 @@ class KoraPayPayoutService
                 return [
                     'success' => true,
                     'data' => $responseData['data'] ?? [],
-                    'message' => $responseData['message'] ?? 'Bank account verified successfully'
+                    'message' => $responseData['message'] ?? 'Bank account verified successfully',
                 ];
             }
 
             // Error response: { "status": false, "code": "...", "message": "...", "data": null }
             // Or: { "status": false, "error": "bad_request", "message": "invalid request data", "data": {...} }
             $errorMessage = $responseData['message'] ?? 'Bank account verification failed';
-            
+
             // Handle validation errors
             if (isset($responseData['error']) && $responseData['error'] === 'bad_request') {
                 $validationErrors = $responseData['data'] ?? [];
                 $errorDetails = [];
                 foreach ($validationErrors as $field => $error) {
                     if (is_array($error)) {
-                        $errorDetails[] = ($error['customErrorMessage'] ?? $error['message'] ?? $field . ' error');
+                        $errorDetails[] = ($error['customErrorMessage'] ?? $error['message'] ?? $field.' error');
                     } else {
                         $errorDetails[] = $error;
                     }
                 }
-                if (!empty($errorDetails)) {
+                if (! empty($errorDetails)) {
                     $errorMessage = implode(', ', $errorDetails);
                 }
             }
@@ -85,41 +86,44 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => $errorMessage
+                'message' => $errorMessage,
             ];
 
         } catch (\Exception $e) {
             Log::error('KoraPay bank verification failed', [
                 'error' => $e->getMessage(),
                 'bank_code' => $bankCode,
-                'account_number' => substr($accountNumber, -4) . '****', // Log only last 4 digits
+                'account_number' => substr($accountNumber, -4).'****', // Log only last 4 digits
             ]);
 
             return [
                 'success' => false,
                 'data' => null,
-                'message' => 'Bank verification error: ' . $e->getMessage()
+                'message' => 'Bank verification error: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Initiate payout to doctor's bank account
-     * 
-     * @param DoctorPayment $payment
+     *
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function initiatePayout(DoctorPayment $payment): array
     {
         try {
+            if ($err = $this->korapaySecretKeyConfigurationError()) {
+                return $err;
+            }
+
             $doctor = $payment->doctor;
             $bankAccount = $payment->bankAccount;
 
-            if (!$bankAccount || !$bankAccount->is_verified) {
+            if (! $bankAccount || ! $bankAccount->is_verified) {
                 return [
                     'success' => false,
                     'data' => null,
-                    'message' => 'Doctor does not have a verified bank account'
+                    'message' => 'Doctor does not have a verified bank account',
                 ];
             }
 
@@ -128,7 +132,7 @@ class KoraPayPayoutService
                 return [
                     'success' => false,
                     'data' => null,
-                    'message' => 'Bank code is missing for this bank account. Please update the bank account with the correct bank code.'
+                    'message' => 'Bank code is missing for this bank account. Please update the bank account with the correct bank code.',
                 ];
             }
 
@@ -138,25 +142,25 @@ class KoraPayPayoutService
                 $bankAccount->account_number
             );
 
-            if (!$verification['success']) {
+            if (! $verification['success']) {
                 return [
                     'success' => false,
                     'data' => null,
-                    'message' => 'Bank account verification failed: ' . $verification['message']
+                    'message' => 'Bank account verification failed: '.$verification['message'],
                 ];
             }
 
             // Check payout network availability (optional per KoraPay docs)
             // Docs endpoint: POST /merchant/api/v1/payouts/availability
             $availability = $this->checkBankAvailability('bank_account', 'NGN');
-            if (!$availability['success'] || !$availability['available']) {
+            if (! $availability['success'] || ! $availability['available']) {
                 // Only log as info (not warning) if it's a "resource not found" error
                 // This is likely an API limitation, not an actual problem
                 $isResourceNotFound = str_contains(strtolower($availability['message'] ?? ''), 'resource not found') ||
                                      str_contains(strtolower($availability['message'] ?? ''), 'not found') ||
                                      str_contains(strtolower($availability['message'] ?? ''), 'not available') ||
                                      str_contains(strtolower($availability['message'] ?? ''), 'corridor');
-                
+
                 if ($isResourceNotFound) {
                     // This is likely an API limitation - the endpoint may not support all banks
                     // Log as info since it's not a real issue
@@ -177,7 +181,7 @@ class KoraPayPayoutService
 
             // Generate unique reference for KoraPay
             // Note: Reference is required (despite docs saying optional, API returns error if missing)
-            $korapayReference = 'KPY-D-' . strtoupper(Str::random(12));
+            $korapayReference = 'KPY-D-'.strtoupper(Str::random(12));
 
             // Docs specify amount as Number with two decimal places.
             $amount = round((float) $payment->doctor_amount, 2);
@@ -191,7 +195,7 @@ class KoraPayPayoutService
                     'type' => 'bank_account', // Required: 'bank_account' or 'mobile_money'
                     'amount' => $amount, // Required: number with two decimal places
                     'currency' => 'NGN', // Required: NGN, KES, GHS, XOF, XAF, EGP, USD, or GBP
-                    'narration' => 'Doctor payment - ' . $payment->reference, // Optional
+                    'narration' => 'Doctor payment - '.$payment->reference, // Optional
                     'bank_account' => [ // Required if type is 'bank_account'
                         'bank' => $bankAccount->bank_code, // Bank code (e.g., "033" for UBA)
                         'account' => $bankAccount->account_number, // Account number
@@ -212,14 +216,37 @@ class KoraPayPayoutService
 
             // Make API call to KoraPay
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->post($this->baseUrl . '/transactions/disburse', $payload);
+            ])->timeout(30)->post($this->baseUrl.'/transactions/disburse', $payload);
 
-            $responseData = $response->json();
+            $responseData = $response->json() ?? [];
+            $httpStatus = $response->status();
+
+            if (in_array($httpStatus, [401, 403], true)) {
+                Log::error('KoraPay disburse rejected (auth)', [
+                    'http_status' => $httpStatus,
+                    'payment_id' => $payment->id,
+                    'response' => $responseData,
+                ]);
+
+                $payment->update([
+                    'korapay_reference' => $korapayReference,
+                    'korapay_status' => 'failed',
+                    'status' => 'failed',
+                    'korapay_response' => json_encode($responseData),
+                    'payout_initiated_at' => now(),
+                ]);
+
+                return [
+                    'success' => false,
+                    'data' => ['reference' => $korapayReference, 'status' => 'failed', 'error_details' => $responseData],
+                    'message' => $this->korapayAuthFailureUserMessage($responseData, $httpStatus),
+                ];
+            }
 
             // Handle unexpected errors (502, 504, 500, etc.)
-            if (!$response->successful() && in_array($response->status(), [500, 502, 503, 504])) {
+            if (! $response->successful() && in_array($httpStatus, [500, 502, 503, 504])) {
                 Log::warning('KoraPay payout request error - will verify status', [
                     'status' => $response->status(),
                     'payment_reference' => $payment->reference,
@@ -246,16 +273,16 @@ class KoraPayPayoutService
                         'status' => 'processing',
                         'needs_verification' => true,
                     ],
-                    'message' => 'Payout initiated but status needs verification due to API error. Please verify payout status.'
+                    'message' => 'Payout initiated but status needs verification due to API error. Please verify payout status.',
                 ];
             }
 
             if ($response->successful() && ($responseData['status'] ?? false)) {
                 $data = $responseData['data'] ?? [];
-                
+
                 // Extract fee from response (if available)
                 $korapayFee = isset($data['fee']) ? (float) $data['fee'] : 0;
-                
+
                 // Update payment with KoraPay details
                 $payment->update([
                     'korapay_reference' => $korapayReference,
@@ -277,7 +304,7 @@ class KoraPayPayoutService
                 return [
                     'success' => true,
                     'data' => $data,
-                    'message' => $responseData['message'] ?? 'Payout initiated successfully'
+                    'message' => $responseData['message'] ?? 'Payout initiated successfully',
                 ];
             }
 
@@ -285,24 +312,25 @@ class KoraPayPayoutService
             // KoraPay API returns: { "status": false, "message": "...", "data": null }
             // Common errors: "Insufficient funds in disbursement wallet", "bank not found", "invalid request data"
             $errorMessage = $responseData['message'] ?? 'Failed to initiate payout';
-            
+
             // Check for specific error types
             if (isset($responseData['error']) && $responseData['error'] === 'bad_request') {
-                // Handle validation errors
                 // Format: { "status": false, "error": "bad_request", "message": "invalid request data", "data": { "field": { "message": "...", "customErrorMessage": "..." } } }
                 $validationErrors = $responseData['data'] ?? [];
                 $errorDetails = [];
                 foreach ($validationErrors as $field => $error) {
                     if (is_array($error)) {
-                        $errorDetails[] = ($error['customErrorMessage'] ?? $error['message'] ?? $field . ' error');
+                        $errorDetails[] = ($error['customErrorMessage'] ?? $error['message'] ?? $field.' error');
                     } else {
                         $errorDetails[] = $error;
                     }
                 }
-                if (!empty($errorDetails)) {
+                if (! empty($errorDetails)) {
                     $errorMessage = implode(', ', $errorDetails);
                 }
             }
+
+            $errorMessage = $this->appendKorapayAuthTroubleshooting($errorMessage, $httpStatus);
 
             Log::error('❌ KoraPay payout failed', [
                 'payment_reference' => $payment->reference,
@@ -328,7 +356,7 @@ class KoraPayPayoutService
                     'status' => 'failed',
                     'error_details' => $responseData,
                 ],
-                'message' => $errorMessage
+                'message' => $errorMessage,
             ];
 
         } catch (\Exception $e) {
@@ -341,37 +369,37 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => 'Payout error: ' . $e->getMessage()
+                'message' => 'Payout error: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Verify payout transaction status
-     * 
+     *
      * According to KoraPay documentation: https://docs.korapay.com
      * Endpoint: GET /merchant/api/v1/transactions/:transactionReference
-     * 
+     *
      * Response includes: reference, status, amount, fee, currency, narration, trace_id, customer, message
      * Status can be: processing, failed, or success
-     * 
-     * @param string $transactionReference KoraPay transaction reference
+     *
+     * @param  string  $transactionReference  KoraPay transaction reference
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function verifyPayoutStatus(string $transactionReference): array
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->get($this->baseUrl . '/transactions/' . $transactionReference);
+            ])->timeout(30)->get($this->baseUrl.'/transactions/'.$transactionReference);
 
             $responseData = $response->json();
 
             // Success response: { "status": true, "message": "Transaction retrieved successfully", "data": {...} }
             if ($response->successful() && ($responseData['status'] ?? false)) {
                 $data = $responseData['data'] ?? [];
-                
+
                 return [
                     'success' => true,
                     'data' => [
@@ -385,7 +413,7 @@ class KoraPayPayoutService
                         'message' => $data['message'] ?? null,
                         'customer' => $data['customer'] ?? null,
                     ],
-                    'message' => $responseData['message'] ?? 'Transaction retrieved successfully'
+                    'message' => $responseData['message'] ?? 'Transaction retrieved successfully',
                 ];
             }
 
@@ -393,7 +421,7 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => $responseData['message'] ?? 'Failed to verify payout status'
+                'message' => $responseData['message'] ?? 'Failed to verify payout status',
             ];
 
         } catch (\Exception $e) {
@@ -406,19 +434,19 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => 'Verification error: ' . $e->getMessage()
+                'message' => 'Verification error: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Process bulk payouts using KoraPay bulk API
-     * 
+     *
      * According to KoraPay documentation: https://docs.korapay.com
      * Endpoint: POST /merchant/api/v1/transactions/disburse/bulk
-     * 
-     * @param array $paymentIds Array of DoctorPayment IDs
-     * @param bool $merchantBearsCost Whether merchant pays the fees (default: true)
+     *
+     * @param  array  $paymentIds  Array of DoctorPayment IDs
+     * @param  bool  $merchantBearsCost  Whether merchant pays the fees (default: true)
      * @return array ['success' => bool, 'batch_reference' => string, 'message' => string, 'data' => array]
      */
     public function processBulkPayouts(array $paymentIds, bool $merchantBearsCost = true): array
@@ -438,7 +466,7 @@ class KoraPayPayoutService
             }
 
             // Generate batch reference
-            $batchReference = 'BULK-' . strtoupper(Str::random(16));
+            $batchReference = 'BULK-'.strtoupper(Str::random(16));
 
             // Prepare payouts array
             $payouts = [];
@@ -446,11 +474,12 @@ class KoraPayPayoutService
 
             foreach ($payments as $payment) {
                 // Validate payment
-                if (!$payment->bankAccount || !$payment->bankAccount->is_verified) {
+                if (! $payment->bankAccount || ! $payment->bankAccount->is_verified) {
                     Log::warning('Skipping payment - no verified bank account', [
                         'payment_id' => $payment->id,
                         'payment_reference' => $payment->reference,
                     ]);
+
                     continue;
                 }
 
@@ -459,6 +488,7 @@ class KoraPayPayoutService
                         'payment_id' => $payment->id,
                         'payment_reference' => $payment->reference,
                     ]);
+
                     continue;
                 }
 
@@ -466,13 +496,13 @@ class KoraPayPayoutService
                 $amount = number_format($payment->doctor_amount, 2, '.', '');
 
                 // Generate unique reference for each payout in the batch
-                $payoutReference = $payment->reference . '-' . strtoupper(Str::random(6));
+                $payoutReference = $payment->reference.'-'.strtoupper(Str::random(6));
 
                 $payouts[] = [
                     'reference' => $payoutReference,
                     'amount' => (float) $amount, // API accepts number but we'll send as float
                     'type' => 'bank_account',
-                    'narration' => 'Doctor payment - ' . $payment->reference,
+                    'narration' => 'Doctor payment - '.$payment->reference,
                     'bank_account' => [
                         'bank_code' => $payment->bankAccount->bank_code,
                         'account_number' => $payment->bankAccount->account_number,
@@ -501,7 +531,7 @@ class KoraPayPayoutService
             // Prepare bulk payout payload
             $payload = [
                 'batch_reference' => $batchReference,
-                'description' => 'Bulk doctor payments - ' . count($payouts) . ' payment(s)',
+                'description' => 'Bulk doctor payments - '.count($payouts).' payment(s)',
                 'merchant_bears_cost' => $merchantBearsCost,
                 'currency' => 'NGN',
                 'payouts' => $payouts,
@@ -515,9 +545,9 @@ class KoraPayPayoutService
 
             // Make API call to KoraPay bulk endpoint
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(60)->post($this->baseUrl . '/transactions/disburse/bulk', $payload);
+            ])->timeout(60)->post($this->baseUrl.'/transactions/disburse/bulk', $payload);
 
             $responseData = $response->json();
 
@@ -537,7 +567,7 @@ class KoraPayPayoutService
                             'bulk_response' => $responseData,
                         ]),
                         'status' => 'processing',
-                        'admin_notes' => 'Bulk payout initiated - Batch: ' . $batchReference,
+                        'admin_notes' => 'Bulk payout initiated - Batch: '.$batchReference,
                     ]);
                 }
 
@@ -589,7 +619,7 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'batch_reference' => null,
-                'message' => 'Bulk payout error: ' . $e->getMessage(),
+                'message' => 'Bulk payout error: '.$e->getMessage(),
                 'data' => null,
             ];
         }
@@ -597,20 +627,20 @@ class KoraPayPayoutService
 
     /**
      * Query payouts in a bulk batch
-     * 
+     *
      * According to KoraPay documentation: https://docs.korapay.com
      * Endpoint: GET /merchant/api/v1/transactions/bulk/:bulk_reference/payouts
-     * 
-     * @param string $bulkReference The bulk batch reference
+     *
+     * @param  string  $bulkReference  The bulk batch reference
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function queryBulkPayouts(string $bulkReference): array
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->get($this->baseUrl . '/transactions/bulk/' . $bulkReference . '/payouts');
+            ])->timeout(30)->get($this->baseUrl.'/transactions/bulk/'.$bulkReference.'/payouts');
 
             $responseData = $response->json();
 
@@ -618,14 +648,14 @@ class KoraPayPayoutService
                 return [
                     'success' => true,
                     'data' => $responseData['data'] ?? [],
-                    'message' => $responseData['message'] ?? 'Payouts retrieved successfully'
+                    'message' => $responseData['message'] ?? 'Payouts retrieved successfully',
                 ];
             }
 
             return [
                 'success' => false,
                 'data' => null,
-                'message' => $responseData['message'] ?? 'Failed to retrieve bulk payouts'
+                'message' => $responseData['message'] ?? 'Failed to retrieve bulk payouts',
             ];
 
         } catch (\Exception $e) {
@@ -637,21 +667,21 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => 'Error querying bulk payouts: ' . $e->getMessage()
+                'message' => 'Error querying bulk payouts: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Check payout network availability
-     * 
+     *
      * According to KoraPay documentation: https://developers.korapay.com/docs/payout-via-api
      * Endpoint: POST /merchant/api/v1/payouts/availability
-     * 
+     *
      * This is Step 3 in the payout workflow (optional).
-     * 
-     * @param string $type Payout destination type (e.g. bank_account, mobile_money)
-     * @param string $currency Currency code (default: "NGN")
+     *
+     * @param  string  $type  Payout destination type (e.g. bank_account, mobile_money)
+     * @param  string  $currency  Currency code (default: "NGN")
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function checkBankAvailability(string $type = 'bank_account', string $currency = 'NGN'): array
@@ -669,9 +699,9 @@ class KoraPayPayoutService
             }
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->post($this->baseUrl . '/payouts/availability', [
+            ])->timeout(30)->post($this->baseUrl.'/payouts/availability', [
                 'type' => $type,
                 'currency' => $currency,
             ]);
@@ -679,7 +709,7 @@ class KoraPayPayoutService
             $responseData = $response->json();
 
             // Handle unsupported/limited corridor coverage gracefully.
-            if ($response->status() === 404 || 
+            if ($response->status() === 404 ||
                 str_contains(strtolower($responseData['message'] ?? ''), 'resource not found') ||
                 str_contains(strtolower($responseData['message'] ?? ''), 'not found') ||
                 str_contains(strtolower($responseData['message'] ?? ''), 'not available')) {
@@ -721,7 +751,7 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => 'Bank availability check error: ' . $e->getMessage(),
+                'message' => 'Bank availability check error: '.$e->getMessage(),
                 'available' => false,
             ];
         }
@@ -729,18 +759,18 @@ class KoraPayPayoutService
 
     /**
      * Fetch payout history
-     * 
+     *
      * According to KoraPay documentation: https://developers.korapay.com/docs/payout-via-api
      * Endpoint: GET /merchant/api/v1/payouts
-     * 
-     * @param array $params Query parameters (currency, date_from, date_to, limit, starting_after, ending_before)
+     *
+     * @param  array  $params  Query parameters (currency, date_from, date_to, limit, starting_after, ending_before)
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function fetchPayoutHistory(array $params = []): array
     {
         try {
             $queryParams = [];
-            
+
             if (isset($params['currency'])) {
                 $queryParams['currency'] = $params['currency'];
             }
@@ -761,9 +791,9 @@ class KoraPayPayoutService
             }
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->get($this->baseUrl . '/payouts', $queryParams);
+            ])->timeout(30)->get($this->baseUrl.'/payouts', $queryParams);
 
             $responseData = $response->json();
 
@@ -793,21 +823,21 @@ class KoraPayPayoutService
                 'success' => false,
                 'data' => null,
                 'has_more' => false,
-                'message' => 'Payout history error: ' . $e->getMessage(),
+                'message' => 'Payout history error: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Fetch list of banks from KoraPay API for payouts
-     * 
+     *
      * According to KoraPay documentation: https://docs.korapay.com
      * Endpoint: GET /merchant/api/v1/misc/banks?countryCode=NG
-     * 
+     *
      * Note: This is for PAYOUT banks. For "Pay with Bank" (accepting payments), use:
      * GET /merchant/api/v1/charge/pay-with-bank/banks?currency=NGN
-     * 
-     * @param string $countryCode Country code (e.g., "NG" for Nigeria, "KE" for Kenya, "ZA" for South Africa)
+     *
+     * @param  string  $countryCode  Country code (e.g., "NG" for Nigeria, "KE" for Kenya, "ZA" for South Africa)
      * @return array ['success' => bool, 'data' => array, 'message' => string]
      */
     public function fetchBanks(string $countryCode = 'NG'): array
@@ -816,32 +846,32 @@ class KoraPayPayoutService
             // Try with secret key first (for authenticated endpoints)
             $publicKey = config('services.korapay.public_key');
             $authKey = $this->secretKey; // Default to secret key
-            
+
             // Some KoraPay endpoints use public key, try that if secret fails
             $headers = [
                 'Content-Type' => 'application/json',
             ];
-            
+
             // Add authorization header
-            if (!empty($authKey)) {
-                $headers['Authorization'] = 'Bearer ' . $authKey;
+            if (! empty($authKey)) {
+                $headers['Authorization'] = 'Bearer '.$authKey;
             }
 
             $response = Http::withHeaders($headers)
                 ->timeout(30)
-                ->get($this->baseUrl . '/misc/banks', [
+                ->get($this->baseUrl.'/misc/banks', [
                     'countryCode' => $countryCode,
                 ]);
 
             $responseData = $response->json();
 
             // If unauthorized and we have public key, try with public key
-            if ($response->status() === 401 && !empty($publicKey) && $authKey === $this->secretKey) {
+            if ($response->status() === 401 && ! empty($publicKey) && $authKey === $this->secretKey) {
                 Log::info('Retrying banks fetch with public key');
                 $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $publicKey,
+                    'Authorization' => 'Bearer '.$publicKey,
                     'Content-Type' => 'application/json',
-                ])->timeout(30)->get($this->baseUrl . '/misc/banks', [
+                ])->timeout(30)->get($this->baseUrl.'/misc/banks', [
                     'countryCode' => $countryCode,
                 ]);
                 $responseData = $response->json();
@@ -854,14 +884,14 @@ class KoraPayPayoutService
                     return [
                         'success' => true,
                         'data' => $responseData['data'] ?? [],
-                        'message' => 'Banks fetched successfully'
+                        'message' => 'Banks fetched successfully',
                     ];
                 } elseif (isset($responseData['data']) && is_array($responseData['data'])) {
                     // Some endpoints return data directly
                     return [
                         'success' => true,
                         'data' => $responseData['data'],
-                        'message' => 'Banks fetched successfully'
+                        'message' => 'Banks fetched successfully',
                     ];
                 }
             }
@@ -869,7 +899,7 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => $responseData['message'] ?? 'Failed to fetch banks from KoraPay. Status: ' . $response->status()
+                'message' => $responseData['message'] ?? 'Failed to fetch banks from KoraPay. Status: '.$response->status(),
             ];
 
         } catch (\Exception $e) {
@@ -882,9 +912,56 @@ class KoraPayPayoutService
             return [
                 'success' => false,
                 'data' => null,
-                'message' => 'Error fetching banks: ' . $e->getMessage()
+                'message' => 'Error fetching banks: '.$e->getMessage(),
             ];
         }
     }
-}
 
+    /**
+     * @return array{success: false, data: null, message: string}|null
+     */
+    private function korapaySecretKeyConfigurationError(): ?array
+    {
+        $key = trim((string) $this->secretKey);
+        if ($key === '') {
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => 'KORAPAY_SECRET_KEY is empty. Set your KoraPay secret key (sk_test_… or sk_live_…) from the dashboard.',
+            ];
+        }
+        if (str_starts_with($key, 'pk_')) {
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => 'KORAPAY_SECRET_KEY must be the secret key (sk_test_… or sk_live_…), not the public key (pk_…).',
+            ];
+        }
+
+        return null;
+    }
+
+    private function korapayAuthFailureUserMessage(array $responseData, int $httpStatus): string
+    {
+        $api = $responseData['message'] ?? ($httpStatus === 403 ? 'Forbidden' : 'Unauthorized');
+
+        return $this->appendKorapayAuthTroubleshooting($api, $httpStatus);
+    }
+
+    private function appendKorapayAuthTroubleshooting(string $message, int $httpStatus): string
+    {
+        $lower = strtolower($message);
+        $looksLikeAuth = $httpStatus === 401
+            || $httpStatus === 403
+            || str_contains($lower, 'not authorized')
+            || str_contains($lower, 'unauthorized')
+            || str_contains($lower, 'invalid key')
+            || str_contains($lower, 'invalid api');
+
+        if (! $looksLikeAuth) {
+            return $message;
+        }
+
+        return $message.' — Fix: use Secret Key (sk_…) in KORAPAY_SECRET_KEY (not pk_); use test keys with sandbox URL and live keys with production; whitelist your server outbound IP in KoraPay if required; ensure disbursements are enabled. See https://developers.korapay.com/docs/payout-via-api';
+    }
+}

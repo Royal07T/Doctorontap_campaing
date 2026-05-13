@@ -102,8 +102,8 @@ Route::prefix('payment')->group(function () {
     Route::get('/request/{reference}', [PaymentController::class, 'handlePaymentRequest'])->name('payment.request');
 });
 
-// Doctor Payout API Routes
-Route::prefix('api')->group(function () {
+// Doctor Payout API Routes (protected by admin auth)
+Route::prefix('api')->middleware(['admin.auth'])->group(function () {
     Route::prefix('doctor-payouts')->name('doctor-payouts.')->group(function () {
         // Get unpaid consultations for a doctor (like getDoctorUnpaidConsultations)
         Route::get('/doctor/{doctorId}/unpaid-consultations', [\App\Http\Controllers\DoctorPayoutController::class, 'getUnpaidConsultations'])

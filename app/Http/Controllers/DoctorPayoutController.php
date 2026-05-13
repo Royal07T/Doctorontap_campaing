@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Consultation;
+use App\Models\DoctorPayment;
 use App\Models\DoctorPayout;
 use App\Models\Doctor;
 use App\Models\Setting;
@@ -461,6 +462,9 @@ class DoctorPayoutController extends Controller
 
             $payout->update($updateData);
 
+            // Sync DoctorPayment records so both models stay consistent
+            $this->syncDoctorPaymentFromWebhook($korapayReference, $status, $data);
+
             return response()->json(['status' => 'ok'], 200);
 
         } catch (\Exception $e) {
@@ -469,7 +473,68 @@ class DoctorPayoutController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            // Always return 200 to acknowledge receipt (per KoraPay docs - prevents 72hr retries)
+            return response()->json(['status' => 'error'], 200);
+        }
+    }
+
+    /**
+     * Sync DoctorPayment model when a payout webhook is received.
+     * This ensures both DoctorPayment and DoctorPayout stay in sync
+     * regardless of which webhook URL Kora calls.
+     */
+    protected function syncDoctorPaymentFromWebhook(string $korapayReference, string $status, array $data): void
+    {
+        try {
+            $payment = DoctorPayment::where('korapay_reference', $korapayReference)->first();
+
+            if (!$payment) {
+                return;
+            }
+
+            // Idempotency: skip if already at terminal status
+            if ($payment->status === 'completed' && $status === 'success') {
+                return;
+            }
+
+            $updateData = [
+                'korapay_status' => $status,
+                'korapay_response' => json_encode($data, JSON_UNESCAPED_SLASHES),
+            ];
+
+            if ($status === 'success') {
+                $updateData['status'] = 'completed';
+                $updateData['paid_at'] = now();
+                $updateData['payout_completed_at'] = now();
+                $updateData['transaction_reference'] = $korapayReference;
+
+                if (isset($data['fee'])) {
+                    $updateData['korapay_fee'] = (float) $data['fee'];
+                }
+
+                // Mark consultations as paid
+                if ($payment->consultation_ids) {
+                    Consultation::whereIn('id', $payment->consultation_ids)
+                        ->update(['payment_status' => 'paid']);
+                }
+            } elseif ($status === 'failed') {
+                $updateData['status'] = 'failed';
+            } else {
+                $updateData['status'] = 'processing';
+            }
+
+            $payment->update($updateData);
+
+            Log::info('DoctorPayment synced from payout webhook', [
+                'payment_id' => $payment->id,
+                'payment_reference' => $payment->reference,
+                'status' => $status,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to sync DoctorPayment from webhook', [
+                'korapay_reference' => $korapayReference,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
