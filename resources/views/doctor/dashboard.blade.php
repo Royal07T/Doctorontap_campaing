@@ -16,8 +16,32 @@
                 </div>
                 @endif
 
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Consultations</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total'] ?? 0 }}</p>
+                        <p class="text-xs text-gray-500">All time</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid Consultations</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['paid'] ?? 0 }}</p>
+                        <p class="text-xs text-gray-500">Completed</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['pending'] ?? 0 }}</p>
+                        <p class="text-xs text-gray-500">Awaiting</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Earnings</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_earnings'] ?? 0, 2) }}</p>
+                        <p class="text-xs text-gray-500">Net income</p>
+                    </div>
+                </div>
+
                 <!-- Welcome Card -->
-                <div class="purple-gradient rounded-xl shadow-lg p-8 mb-6 text-white relative overflow-hidden">
+                <div class="purple-gradient rounded-xl shadow-lg p-6 mb-6 text-white relative overflow-hidden">
                     <!-- Decorative background elements -->
                     <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
                     <div class="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-24 -mb-24"></div>
@@ -25,7 +49,7 @@
                     <div class="relative z-10">
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
-                                <h2 class="text-2xl md:text-3xl font-bold mb-2 drop-shadow-lg">Welcome back, Dr. {{ Auth::guard('doctor')->user()->name }}! 👨‍⚕️</h2>
+                                <h2 class="text-xl md:text-2xl font-bold mb-2 drop-shadow-lg">Welcome back, Dr. {{ Auth::guard('doctor')->user()->name }}! 👨‍⚕️</h2>
                                 <p class="text-white text-opacity-90 text-sm md:text-base mb-4">We're glad to have you here. Manage your consultations, view patient information, and stay updated with your practice.</p>
                                 <div class="flex flex-wrap gap-3 mt-4">
                                     <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-900 shadow-md">
@@ -34,11 +58,11 @@
                                         </svg>
                                         <span class="text-gray-900">View Consultations</span>
                                     </a>
-                                    <a href="{{ route('doctor.profile') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-900 shadow-md">
+                                    <a href="{{ route('doctor.payment-history') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-900 shadow-md">
                                         <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                         </svg>
-                                        <span class="text-gray-900">Update Profile</span>
+                                        <span class="text-gray-900">Payment History</span>
                                     </a>
                                 </div>
                             </div>

@@ -204,6 +204,26 @@ class DashboardController extends Controller
                                        ->with(['doctor', 'payment', 'canvasser', 'nurse', 'booking', 'patient'])
                                        ->firstOrFail();
             
+            // Get payout information for this consultation
+            $payoutInfo = null;
+            $doctorPayment = \App\Models\DoctorPayment::where('doctor_id', $doctor->id)
+                ->whereIn('status', ['pending', 'processing', 'completed'])
+                ->whereJsonContains('consultation_ids', $consultation->id)
+                ->with(['bankAccount', 'paidBy'])
+                ->first();
+
+            if ($doctorPayment) {
+                $payoutInfo = [
+                    'payment_reference' => $doctorPayment->reference,
+                    'payment_status' => $doctorPayment->status,
+                    'doctor_amount' => $doctorPayment->doctor_amount,
+                    'paid_at' => $doctorPayment->paid_at,
+                    'korapay_reference' => $doctorPayment->korapay_reference,
+                    'korapay_status' => $doctorPayment->korapay_status,
+                    'bank_account' => $doctorPayment->bankAccount,
+                ];
+            }
+            
             // Return JSON for AJAX requests
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -240,7 +260,7 @@ class DashboardController extends Controller
             }
             
             // Return view for regular HTTP requests
-            return view('doctor.consultation-details', compact('consultation'));
+            return view('doctor.consultation-details', compact('consultation', 'payoutInfo'));
             
         } catch (\Exception $e) {
             // For AJAX requests, return JSON error

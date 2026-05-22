@@ -208,6 +208,126 @@ consultationPage()
                     </div>
                 </div>
 
+                <!-- Payment Information -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                    <div class="mb-4 pb-4 border-b border-gray-200">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+                            Payment Information
+                        </h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Status</label>
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                                {{ $consultation->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : '' }}
+                                {{ $consultation->payment_status === 'unpaid' ? 'bg-red-100 text-red-700' : '' }}
+                                {{ $consultation->payment_status === 'pending' || $consultation->payment_status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : '' }}">
+                                {{ ucfirst($consultation->payment_status ?? 'unpaid') }}
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Amount</label>
+                            @if($consultation->payment)
+                            <p class="text-sm font-bold text-gray-900">₦{{ number_format($consultation->payment->amount, 2) }}</p>
+                            @else
+                            <p class="text-sm font-bold text-gray-500">Not Paid</p>
+                            @endif
+                        </div>
+                        @if($consultation->payment && $consultation->payment->transaction_id)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Transaction ID</label>
+                            <p class="text-xs text-gray-900 font-mono">{{ $consultation->payment->transaction_id }}</p>
+                        </div>
+                        @endif
+                        @if($consultation->payment && $consultation->payment->reference)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Reference</label>
+                            <p class="text-xs text-gray-900 font-mono">{{ $consultation->payment->reference }}</p>
+                        </div>
+                        @endif
+                        @if($consultation->payment_completed_at)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payment Completed At</label>
+                            <p class="text-xs text-gray-900">{{ $consultation->payment_completed_at->format('M d, Y h:i A') }}</p>
+                        </div>
+                        @elseif($consultation->payment && $consultation->payment->paid_at)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Paid At</label>
+                            <p class="text-xs text-gray-900">{{ $consultation->payment->paid_at->format('M d, Y h:i A') }}</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Payout Information -->
+                @if($payoutInfo)
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                    <div class="mb-4 pb-4 border-b border-gray-200">
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Payout Information
+                        </h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payout Reference</label>
+                            <p class="text-xs text-gray-900 font-mono font-semibold">{{ $payoutInfo['payment_reference'] }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Payout Status</label>
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                                {{ $payoutInfo['payment_status'] === 'completed' ? 'bg-emerald-100 text-emerald-700' : '' }}
+                                {{ $payoutInfo['payment_status'] === 'pending' ? 'bg-amber-100 text-amber-700' : '' }}
+                                {{ $payoutInfo['payment_status'] === 'processing' ? 'bg-blue-100 text-blue-700' : '' }}
+                                {{ $payoutInfo['payment_status'] === 'failed' ? 'bg-red-100 text-red-700' : '' }}">
+                                {{ ucfirst($payoutInfo['payment_status']) }}
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Your Amount</label>
+                            <p class="text-sm font-bold text-gray-900">₦{{ number_format($payoutInfo['doctor_amount'], 2) }}</p>
+                        </div>
+                        @if($payoutInfo['paid_at'])
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Paid At</label>
+                            <p class="text-xs text-gray-900">{{ $payoutInfo['paid_at']->format('M d, Y h:i A') }}</p>
+                        </div>
+                        @endif
+                        @if($payoutInfo['korapay_reference'])
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">KoraPay Reference</label>
+                            <p class="text-xs text-gray-900 font-mono">{{ $payoutInfo['korapay_reference'] }}</p>
+                        </div>
+                        @endif
+                        @if($payoutInfo['korapay_status'])
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">KoraPay Status</label>
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                                {{ $payoutInfo['korapay_status'] === 'success' ? 'bg-emerald-100 text-emerald-700' : '' }}
+                                {{ $payoutInfo['korapay_status'] === 'failed' ? 'bg-red-100 text-red-700' : '' }}
+                                {{ $payoutInfo['korapay_status'] === 'processing' ? 'bg-blue-100 text-blue-700' : '' }}">
+                                {{ ucfirst($payoutInfo['korapay_status']) }}
+                            </span>
+                        </div>
+                        @endif
+                        @if($payoutInfo['bank_account'])
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Bank Account</label>
+                            <p class="text-xs text-gray-900">{{ $payoutInfo['bank_account']->bank_name }}</p>
+                            <p class="text-xs text-gray-600 font-mono">{{ $payoutInfo['bank_account']->masked_account_number }}</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
                 <!-- Treatment Plan Section -->
                 <div id="treatment-plan" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
                 @if($consultation->hasTreatmentPlan())

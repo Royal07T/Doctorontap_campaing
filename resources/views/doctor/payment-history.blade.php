@@ -11,63 +11,27 @@
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid</p>
-                                <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_paid'], 2) }}</p>
-                                <p class="text-xs text-gray-500">Earnings</p>
-                            </div>
-                            <div class="bg-emerald-50 p-3 rounded-xl flex-shrink-0">
-                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_paid'], 2) }}</p>
+                        <p class="text-xs text-gray-500">Earnings</p>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending Earnings</p>
-                                <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['pending_amount'], 2) }}</p>
-                                <p class="text-xs text-gray-500">Awaiting</p>
-                            </div>
-                            <div class="bg-amber-50 p-3 rounded-xl flex-shrink-0">
-                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending Earnings</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['pending_amount'], 2) }}</p>
+                        <p class="text-xs text-gray-500">Awaiting</p>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid Consultations</p>
-                                <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['paid_consultations'] }}</p>
-                                <p class="text-xs text-gray-500">Completed</p>
-                            </div>
-                            <div class="bg-blue-50 p-3 rounded-xl flex-shrink-0">
-                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                            </div>
-                        </div>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid Consultations</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['paid_consultations'] }}</p>
+                        <p class="text-xs text-gray-500">Completed</p>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Unpaid Consultations</p>
-                                <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['unpaid_consultations'] }}</p>
-                                <p class="text-xs text-gray-500">Pending</p>
-                            </div>
-                            <div class="bg-purple-50 p-3 rounded-xl flex-shrink-0">
-                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Unpaid Consultations</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['unpaid_consultations'] }}</p>
+                        <p class="text-xs text-gray-500">Pending</p>
                     </div>
                 </div>
 

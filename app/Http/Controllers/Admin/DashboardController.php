@@ -317,7 +317,29 @@ class DashboardController extends Controller
             ->orderByRaw('COALESCE(NULLIF(name, ""), CONCAT(first_name, " ", last_name))')
             ->get();
 
-        return view('admin.consultation-details', compact('consultation', 'doctors'));
+        // Get payout information for this consultation
+        $payoutInfo = null;
+        if ($consultation->doctor_id) {
+            $doctorPayment = \App\Models\DoctorPayment::where('doctor_id', $consultation->doctor_id)
+                ->whereIn('status', ['pending', 'processing', 'completed'])
+                ->whereJsonContains('consultation_ids', $consultation->id)
+                ->with(['bankAccount', 'paidBy'])
+                ->first();
+
+            if ($doctorPayment) {
+                $payoutInfo = [
+                    'payment_reference' => $doctorPayment->reference,
+                    'payment_status' => $doctorPayment->status,
+                    'doctor_amount' => $doctorPayment->doctor_amount,
+                    'paid_at' => $doctorPayment->paid_at,
+                    'korapay_reference' => $doctorPayment->korapay_reference,
+                    'korapay_status' => $doctorPayment->korapay_status,
+                    'bank_account' => $doctorPayment->bankAccount,
+                ];
+            }
+        }
+
+        return view('admin.consultation-details', compact('consultation', 'doctors', 'payoutInfo'));
     }
 
     /**
@@ -936,7 +958,20 @@ class DashboardController extends Controller
         // Get all doctors for filter dropdown
         $doctors = Doctor::approved()->orderBy('name')->get();
 
-        return view('admin.payments', compact('payments', 'doctors'));
+        // Get DoctorPayout records (API flow payouts)
+        $payoutsQuery = \App\Models\DoctorPayout::with('doctor');
+        
+        if ($request->filled('payout_status')) {
+            $payoutsQuery->where('status', $request->payout_status);
+        }
+        
+        if ($request->filled('payout_doctor_id')) {
+            $payoutsQuery->where('doctor_id', $request->payout_doctor_id);
+        }
+        
+        $payouts = $payoutsQuery->latest()->paginate(20);
+
+        return view('admin.payments', compact('payments', 'doctors', 'payouts'));
     }
 
     /**
@@ -2628,49 +2663,119 @@ class DashboardController extends Controller
     /**
      * View doctor profile with bank details and consultations
      */
-    public function viewDoctorProfile($id)
+    public function viewDoctorProfile($id, Request $request)
     {
         $doctor = Doctor::with(['bankAccounts', 'consultations', 'payments'])->findOrFail($id);
 
-        // Calculate statistics
-        $stats = [
-            'total_consultations' => $doctor->consultations()->count(),
-            'completed_consultations' => $doctor->consultations()->where('status', 'completed')->count(),
-            'paid_consultations' => $doctor->consultations()->where('payment_status', 'paid')->count(),
-            'unpaid_consultations' => $doctor->consultations()->where('status', 'completed')
-                ->where('payment_status', '!=', 'paid')->count(),
-            'total_paid_to_doctor' => $doctor->payments()->where('status', 'completed')->sum('doctor_amount'),
-            'pending_payment' => 0, // Will calculate below
-        ];
-
-        // Get unpaid consultations
-        $unpaidConsultations = $doctor->consultations()
-            ->where('status', 'completed')
-            ->where('payment_status', '!=', 'paid')
-            ->with('payment')
-            ->get();
-
-        // Calculate pending payment
-        $pendingAmount = $unpaidConsultations->sum(function ($consultation) use ($doctor) {
-            return $doctor->effective_consultation_fee;
-        });
-        $stats['pending_payment'] = $pendingAmount;
-
-        // Recent consultations
-        $recentConsultations = $doctor->consultations()
-            ->with('payment')
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        // Payment history
-        $paymentHistory = $doctor->payments()
+        // Get all DoctorPayment records for this doctor to map consultations to payouts
+        $doctorPayments = \App\Models\DoctorPayment::where('doctor_id', $doctor->id)
+            ->whereIn('status', ['pending', 'processing', 'completed'])
             ->with(['bankAccount', 'paidBy'])
             ->latest()
-            ->limit(5)
             ->get();
 
-        return view('admin.doctor-profile', compact('doctor', 'stats', 'recentConsultations', 'paymentHistory', 'unpaidConsultations'));
+        // Get all consultations with filtering
+        $consultationFilter = $request->get('consultation_filter', 'all');
+        $consultationsQuery = $doctor->consultations()->with('payment');
+
+        if ($consultationFilter === 'paid') {
+            $consultationsQuery->where('payment_status', 'paid');
+        } elseif ($consultationFilter === 'unpaid') {
+            $consultationsQuery->where('payment_status', '!=', 'paid');
+        } elseif ($consultationFilter === 'with_payout') {
+            // Filter consultations that are in a payout batch
+            $consultationIdsInPayouts = $doctorPayments->pluck('consultation_ids')->flatten()->filter()->unique()->values()->toArray();
+            if (!empty($consultationIdsInPayouts)) {
+                $consultationsQuery->whereIn('id', $consultationIdsInPayouts);
+            } else {
+                $consultationsQuery->whereRaw('1 = 0'); // Return empty if no payouts
+            }
+        } elseif ($consultationFilter === 'without_payout') {
+            // Filter consultations that are NOT in a payout batch
+            $consultationIdsInPayouts = $doctorPayments->pluck('consultation_ids')->flatten()->filter()->unique()->values()->toArray();
+            if (!empty($consultationIdsInPayouts)) {
+                $consultationsQuery->whereNotIn('id', $consultationIdsInPayouts);
+            }
+        }
+
+        $allConsultations = $consultationsQuery->latest()->get();
+
+        // Build a map of consultation_id -> DoctorPayment reference
+        $consultationPayoutMap = [];
+        foreach ($doctorPayments as $payment) {
+            if (!empty($payment->consultation_ids)) {
+                foreach ($payment->consultation_ids as $consultationId) {
+                    $consultationPayoutMap[$consultationId] = [
+                        'payment_reference' => $payment->reference,
+                        'payment_status' => $payment->status,
+                        'doctor_amount' => $payment->doctor_amount,
+                        'paid_at' => $payment->paid_at,
+                        'korapay_reference' => $payment->korapay_reference,
+                    ];
+                }
+            }
+        }
+
+        // Enrich all consultations with payout information
+        $consultationsWithPayout = $allConsultations->map(function ($consultation) use ($doctor, $consultationPayoutMap) {
+            $payoutInfo = $consultationPayoutMap[$consultation->id] ?? null;
+            return [
+                'id' => $consultation->id,
+                'reference' => $consultation->reference,
+                'patient_name' => $consultation->full_name,
+                'date' => $consultation->created_at->format('Y-m-d'),
+                'amount' => $doctor->effective_consultation_fee ?? 0,
+                'status' => $consultation->status,
+                'payment_status' => $consultation->payment_status,
+                'payout_reference' => $payoutInfo['payment_reference'] ?? null,
+                'payout_status' => $payoutInfo['payment_status'] ?? null,
+                'payout_paid_at' => $payoutInfo && $payoutInfo['paid_at'] ? $payoutInfo['paid_at']->format('Y-m-d H:i') : null,
+                'korapay_reference' => $payoutInfo['korapay_reference'] ?? null,
+            ];
+        });
+
+        // Calculate statistics
+        $allCompletedConsultations = $doctor->consultations()->where('status', 'completed')->get();
+        $paidConsultations = $allCompletedConsultations->where('payment_status', 'paid');
+        $unpaidConsultations = $allCompletedConsultations->where('payment_status', '!=', 'paid');
+
+        $stats = [
+            'total_consultations' => $doctor->consultations()->count(),
+            'completed_consultations' => $allCompletedConsultations->count(),
+            'paid_consultations' => $paidConsultations->count(),
+            'unpaid_consultations' => $unpaidConsultations->count(),
+            'total_paid_to_doctor' => $doctorPayments->where('status', 'completed')->sum('doctor_amount'),
+            'pending_payment' => $unpaidConsultations->sum(function ($consultation) use ($doctor) {
+                return $doctor->effective_consultation_fee;
+            }),
+        ];
+
+        // Payout calculation breakdown
+        $defaultDoctorPercentage = \App\Models\Setting::get('doctor_payment_percentage', 70);
+        $defaultPlatformPercentage = 100 - $defaultDoctorPercentage;
+
+        $payoutBreakdown = [
+            'doctor_percentage' => $defaultDoctorPercentage,
+            'platform_percentage' => $defaultPlatformPercentage,
+            'total_paid_consultations_amount' => $paidConsultations->sum(function ($c) use ($doctor) {
+                return $doctor->effective_consultation_fee;
+            }),
+            'total_unpaid_consultations_amount' => $stats['pending_payment'],
+            'total_doctor_earnings' => $stats['total_paid_to_doctor'],
+            'total_platform_fees' => $doctorPayments->where('status', 'completed')->sum('platform_fee'),
+        ];
+
+        // Payment history
+        $paymentHistory = $doctorPayments->take(10);
+
+        return view('admin.doctor-profile', compact(
+            'doctor',
+            'stats',
+            'consultationsWithPayout',
+            'paymentHistory',
+            'payoutBreakdown',
+            'consultationFilter'
+        ));
     }
 
     /**
@@ -2706,12 +2811,44 @@ class DashboardController extends Controller
      */
     public function doctorPayments(Request $request)
     {
-        $query = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
+        // Get DoctorPayment records (admin flow)
+        $paymentQuery = \App\Models\DoctorPayment::with(['doctor', 'bankAccount', 'paidBy']);
 
-        // Search functionality
+        // Get DoctorPayout records (API flow)
+        $payoutQuery = \App\Models\DoctorPayout::with(['doctor']);
+
+        // Apply common filters to both queries
+        $status = $request->filled('status') ? $request->status : null;
+        $doctorId = $request->filled('doctor_id') ? $request->doctor_id : null;
+        $dateFrom = $request->filled('date_from') ? $request->date_from : null;
+        $dateTo = $request->filled('date_to') ? $request->date_to : null;
+
+        // Filter by status
+        if ($status) {
+            $paymentQuery->where('status', $status);
+            $payoutQuery->where('status', $status);
+        }
+
+        // Filter by doctor
+        if ($doctorId) {
+            $paymentQuery->where('doctor_id', $doctorId);
+            $payoutQuery->where('doctor_id', $doctorId);
+        }
+
+        // Date range filter
+        if ($dateFrom) {
+            $paymentQuery->where('created_at', '>=', $dateFrom);
+            $payoutQuery->where('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $paymentQuery->where('created_at', '<=', $dateTo);
+            $payoutQuery->where('created_at', '<=', $dateTo);
+        }
+
+        // Search functionality for payments
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
+            $paymentQuery->where(function ($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
                     ->orWhereHas('doctor', function ($doctorQ) use ($search) {
                         $doctorQ->where('name', 'like', "%{$search}%")
@@ -2721,33 +2858,8 @@ class DashboardController extends Controller
             });
         }
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter by doctor
-        if ($request->filled('doctor_id')) {
-            $query->where('doctor_id', $request->doctor_id);
-        }
-
-        // Date range filter
-        if ($request->filled('date_from')) {
-            $query->where('created_at', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', $request->date_to);
-        }
-
-        // Amount range filters
-        if ($request->filled('amount_min')) {
-            $query->where('doctor_amount', '>=', $request->amount_min);
-        }
-        if ($request->filled('amount_max')) {
-            $query->where('doctor_amount', '<=', $request->amount_max);
-        }
-
-        $payments = $query->latest()->paginate(20)->withQueryString();
+        $payments = $paymentQuery->latest()->paginate(20)->withQueryString();
+        $payouts = $payoutQuery->latest()->paginate(20)->withQueryString();
 
         // Get all doctors for filter dropdown
         $doctors = Doctor::approved()->orderBy('name')->get();
@@ -2760,23 +2872,25 @@ class DashboardController extends Controller
             ->when(! empty($lockedIds), fn ($q) => $q->whereNotIn('id', $lockedIds))
             ->with(['doctor']);
 
-        if ($request->filled('doctor_id')) {
-            $eligibleConsultationsQuery->where('doctor_id', $request->doctor_id);
+        if ($doctorId) {
+            $eligibleConsultationsQuery->where('doctor_id', $doctorId);
         }
 
         $eligiblePaidConsultations = $eligibleConsultationsQuery->latest()->paginate(15, ['*'], 'eligible_page')->withQueryString();
 
-        // Statistics
+        // Unified statistics
         $stats = [
-            'total_payments' => \App\Models\DoctorPayment::count(),
-            'pending_payments' => \App\Models\DoctorPayment::where('status', 'pending')->count(),
-            'completed_payments' => \App\Models\DoctorPayment::where('status', 'completed')->count(),
-            'total_paid_amount' => \App\Models\DoctorPayment::where('status', 'completed')->sum('doctor_amount'),
-            'total_platform_fee' => \App\Models\DoctorPayment::where('status', 'completed')->sum('platform_fee'),
+            'total_payments' => \App\Models\DoctorPayment::count() + \App\Models\DoctorPayout::count(),
+            'admin_payments' => \App\Models\DoctorPayment::count(),
+            'api_payouts' => \App\Models\DoctorPayout::count(),
+            'pending_payments' => \App\Models\DoctorPayment::where('status', 'pending')->count() + \App\Models\DoctorPayout::where('status', 'pending')->count(),
+            'completed_payments' => \App\Models\DoctorPayment::where('status', 'completed')->count() + \App\Models\DoctorPayout::where('status', 'success')->count(),
+            'total_paid_amount' => \App\Models\DoctorPayment::where('status', 'completed')->sum('doctor_amount') + \App\Models\DoctorPayout::where('status', 'success')->sum('amount'),
+            'total_platform_fee' => \App\Models\DoctorPayment::where('status', 'completed')->sum('platform_fee') + \App\Models\DoctorPayout::where('status', 'success')->sum('platform_fee'),
             'eligible_paid_count' => $eligiblePaidConsultations->total(),
         ];
 
-        return view('admin.doctor-payments', compact('payments', 'doctors', 'stats', 'eligiblePaidConsultations'));
+        return view('admin.doctor-payments', compact('payments', 'payouts', 'doctors', 'stats', 'eligiblePaidConsultations'));
     }
 
     /**

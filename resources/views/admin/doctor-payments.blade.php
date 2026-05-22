@@ -14,7 +14,7 @@
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="paymentManager()">
+<body class="bg-gray-100 min-h-screen" x-data="{ activeTab: 'payments', sidebarOpen: false, showCreateModal: false, selectedPayments: [], pageLoading: false }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'doctor-payments'])
@@ -30,7 +30,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-                        <h1 class="text-xl font-bold text-white">Doctor Payments</h1>
+                        <h1 class="text-xl font-bold text-white">Doctor Payments & Payouts</h1>
                     </div>
                     <button type="button" @click="showCreateModal = true" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-lg transition shadow-md bg-white text-purple-800 hover:bg-purple-50 border border-white/80 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-700">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,327 +43,397 @@
 
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
-                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
-                    <p class="text-xs font-semibold text-indigo-900 uppercase tracking-wide mb-2">KoraPay Payout Flow</p>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs text-indigo-800">
-                        <p><strong>1.</strong> Create payout batch</p>
-                        <p><strong>2.</strong> Initiate payout</p>
-                        <p><strong>3.</strong> Wait for webhook/update</p>
-                        <p><strong>4.</strong> Verify status if processing</p>
-                    </div>
-                </div>
-
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Payments</p>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total_payments'] }}</p>
-                        <p class="text-xs text-gray-500">All time</p>
+                        <p class="text-xs text-gray-500">All payouts</p>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending</p>
-                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['pending_payments'] }}</p>
-                        <p class="text-xs text-gray-500">Pending</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-indigo-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Admin Flow</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['admin_payments'] }}</p>
+                        <p class="text-xs text-gray-500">DoctorPayment</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-cyan-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">API Flow</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['api_payouts'] }}</p>
+                        <p class="text-xs text-gray-500">DoctorPayout</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Completed</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['completed_payments'] }}</p>
-                        <p class="text-xs text-gray-500">Completed</p>
+                        <p class="text-xs text-gray-500">Success</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_paid_amount'], 2) }}</p>
-                        <p class="text-xs text-gray-500">Earnings</p>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-teal-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid &amp; eligible</p>
-                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['eligible_paid_count'] ?? 0 }}</p>
-                        <p class="text-xs text-gray-500">Not in an active batch</p>
+                        <p class="text-xs text-gray-500">Doctor earnings</p>
                     </div>
                 </div>
 
-                <!-- Paid consultations eligible for a new payout batch -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <div class="mb-4 pb-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                        <div>
-                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                Paid consultations (eligible for payout)
-                            </h2>
-                            <p class="text-xs text-gray-500 mt-1 max-w-3xl">Lists <strong>completed</strong> consultations where the patient has <strong>paid</strong> (<code class="text-gray-700">payment_status = paid</code>), and the consultation is <strong>not</strong> already in a pending, processing, or completed payout batch. Uses the same doctor filter as below when set.</p>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto -mx-5 px-5">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
-                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Doctor</th>
-                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Patient</th>
-                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Fee basis</th>
-                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                @forelse($eligiblePaidConsultations as $ec)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-3 py-2 font-mono text-xs text-gray-900">{{ $ec->reference }}</td>
-                                    <td class="px-3 py-2 text-gray-800">{{ $ec->doctor->full_name ?? '—' }}</td>
-                                    <td class="px-3 py-2 text-gray-700">{{ $ec->full_name }}</td>
-                                    <td class="px-3 py-2 text-gray-600 whitespace-nowrap">{{ $ec->created_at->format('Y-m-d') }}</td>
-                                    <td class="px-3 py-2 text-right font-medium text-gray-900">₦{{ number_format($ec->doctor->effective_consultation_fee ?? 0, 2) }}</td>
-                                    <td class="px-3 py-2"><span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">Paid</span></td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="px-3 py-10 text-center text-gray-500 text-sm">No eligible paid consultations. They may all be in a payout batch already, or adjust the doctor filter.</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    @if($eligiblePaidConsultations->hasPages())
-                    <div class="mt-4 border-t border-gray-100 pt-4">
-                        {{ $eligiblePaidConsultations->links() }}
-                    </div>
-                    @endif
-                </div>
-
-                <!-- Filters -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <div class="mb-4 pb-4 border-b border-gray-200">
-                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                            </svg>
-                            Search & Filter
-                        </h2>
-                    </div>
-                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Status</label>
-                            <select name="status" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
-                                <option value="">All Statuses</option>
-                                <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="processing" {{ request('status') === 'processing' ? 'selected' : '' }}>Processing</option>
-                                <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-                                <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Failed</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Doctor</label>
-                            <select name="doctor_id" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
-                                <option value="">All Doctors</option>
-                                @foreach($doctors as $doc)
-                                    <option value="{{ $doc->id }}" {{ request('doctor_id') == $doc->id ? 'selected' : '' }}>
-                                        {{ $doc->full_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Date From</label>
-                            <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Date To</label>
-                            <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
-                        </div>
-                        <div class="md:col-span-4 flex justify-end gap-2">
-                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                                </svg>
-                                Filter
-                            </button>
-                            <a href="{{ admin_route('admin.doctor-payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                                Reset
-                            </a>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Bulk Actions -->
-                <div x-show="selectedPayments.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-gray-600 font-semibold" x-text="`${selectedPayments.length} payment(s) selected`"></span>
-                        <button @click="processBulkPayout" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Initiate Bulk Payout (KoraPay)
+                <!-- Tabs -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                    <div class="flex border-b border-gray-200">
+                        <button @click="activeTab = 'payments'" :class="{ 'border-b-2 border-purple-600 text-purple-600': activeTab === 'payments', 'text-gray-500 hover:text-gray-700': activeTab !== 'payments' }" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide transition">
+                            Admin Flow (DoctorPayment)
+                        </button>
+                        <button @click="activeTab = 'payouts'" :class="{ 'border-b-2 border-purple-600 text-purple-600': activeTab === 'payouts', 'text-gray-500 hover:text-gray-700': activeTab !== 'payouts' }" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide transition">
+                            API Flow (DoctorPayout)
                         </button>
                     </div>
                 </div>
 
-                <!-- Payments Cards -->
-                <div class="space-y-4">
-                    @forelse($payments as $payment)
-                    <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
-                        <!-- Card Header - Clickable to toggle dropdown -->
-                        <div @click="open = !open" class="flex items-center justify-between p-5 cursor-pointer bg-white hover:bg-gray-50 transition-colors duration-200">
-                            <div class="flex items-center space-x-4 flex-1">
-                                <!-- Checkbox -->
-                                <input type="checkbox" 
-                                       value="{{ $payment->id }}" 
-                                       x-model="selectedPayments" 
-                                       @click.stop
-                                       class="rounded text-purple-600 focus:ring-purple-500">
-                                
-                                <!-- Status Indicator Dot -->
-                                <span class="w-3 h-3 rounded-full 
-                                    @if($payment->status === 'completed') bg-emerald-500
-                                    @elseif($payment->status === 'pending') bg-amber-500
-                                    @elseif($payment->status === 'processing') bg-blue-500
-                                    @elseif($payment->status === 'failed') bg-red-500
-                                    @else bg-gray-400 @endif"></span>
-                                
-                                <div class="flex-1">
-                                    <p class="text-sm font-semibold text-gray-900">Payment #{{ $payment->reference }}</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">
-                                        <a href="{{ admin_route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
-                                            {{ $payment->doctor->full_name }}
-                                        </a>
-                                        • {{ $payment->total_consultations_count }} consultation(s)
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center space-x-3">
-                                <!-- Amount -->
-                                <div class="text-right">
-                                    <p class="text-sm font-bold text-gray-900">₦{{ number_format($payment->doctor_amount, 2) }}</p>
-                                    @if($payment->korapay_fee)
-                                        <p class="text-[10px] text-gray-500">Fee: ₦{{ number_format($payment->korapay_fee, 2) }}</p>
-                                    @endif
-                                </div>
-                                
-                                <!-- Status Badge -->
-                                <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    @if($payment->status === 'completed') bg-emerald-100 text-emerald-800
-                                    @elseif($payment->status === 'pending') bg-amber-100 text-amber-800
-                                    @elseif($payment->status === 'failed') bg-red-100 text-red-800
-                                    @else bg-blue-100 text-blue-800
-                                    @endif">
-                                    {{ ucfirst($payment->status) }}
-                                </span>
-
-                                <!-- Chevron Icon -->
-                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" 
-                                     :class="{ 'rotate-180': open }" 
-                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </div>
-                        </div>
-
-                        <!-- Dropdown Content -->
-                        <div x-show="open" 
-                             x-transition:enter="transition ease-out duration-200"
-                             x-transition:enter-start="opacity-0 transform -translate-y-2"
-                             x-transition:enter-end="opacity-100 transform translate-y-0"
-                             x-transition:leave="transition ease-in duration-150"
-                             x-transition:leave-start="opacity-100 transform translate-y-0"
-                             x-transition:leave-end="opacity-0 transform -translate-y-2"
-                             x-cloak
-                             class="border-t border-gray-100 bg-gray-50">
-                            <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
-                                <div>
-                                    <p class="font-medium text-gray-800 mb-1">Payment Details:</p>
-                                    <p><strong>Reference:</strong> {{ $payment->reference }}</p>
-                                    <p><strong>Amount:</strong> ₦{{ number_format($payment->doctor_amount, 2) }}</p>
-                                    @if($payment->korapay_fee)
-                                        <p><strong>KoraPay Fee:</strong> ₦{{ number_format($payment->korapay_fee, 2) }}</p>
-                                    @endif
-                                    <p><strong>Consultations:</strong> {{ $payment->total_consultations_count }}</p>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-gray-800 mb-1">Doctor Information:</p>
-                                    <p><strong>Name:</strong> 
-                                        <a href="{{ admin_route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-semibold">
-                                            {{ $payment->doctor->full_name }}
-                                        </a>
-                                    </p>
-                                    <p><strong>Created:</strong> {{ $payment->created_at->format('M d, Y H:i A') }}</p>
-                                    @if($payment->payout_completed_at)
-                                        <p><strong>Paid:</strong> <span class="text-emerald-600 font-semibold">{{ $payment->payout_completed_at->format('M d, Y H:i A') }}</span></p>
-                                    @endif
-                                </div>
-                                <div class="md:col-span-2">
-                                    <p class="font-medium text-gray-800 mb-1">KoraPay Status:</p>
-                                    @if($payment->korapay_reference)
-                                        <div class="flex items-center gap-2 mb-2">
-                                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-800
-                                                @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-800
-                                                @else bg-blue-100 text-blue-800
-                                                @endif">
-                                                {{ ucfirst($payment->korapay_status ?? 'processing') }}
-                                            </span>
-                                            <p class="text-xs text-gray-600 font-mono">{{ $payment->korapay_reference }}</p>
-                                        </div>
-                                    @else
-                                        <p class="text-xs text-gray-500">Not initiated</p>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="px-5 py-3 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-2">
-                                @if($payment->status === 'pending' && !$payment->korapay_reference)
-                                    <button @click="initiatePayout({{ $payment->id }})" 
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                        </svg>
-                                        Initiate Payout
-                                    </button>
-                                @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
-                                    <button @click="initiatePayout({{ $payment->id }})" 
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                        </svg>
-                                        Retry
-                                    </button>
-                                @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
-                                    <button @click="verifyPayout({{ $payment->id }})" 
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                        </svg>
-                                        Verify Status
-                                    </button>
-                                @endif
-                                <button @click="viewPayment({{ $payment->id }})" 
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                <!-- Admin Flow Tab (DoctorPayment) -->
+                <div x-show="activeTab === 'payments'" x-cloak>
+                    <!-- Paid consultations eligible for a new payout batch -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                        <div class="mb-4 pb-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div>
+                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    View Details
-                                </button>
+                                    Paid consultations (eligible for payout)
+                                </h2>
+                                <p class="text-xs text-gray-500 mt-1 max-w-3xl">Lists <strong>completed</strong> consultations where the patient has <strong>paid</strong> (<code class="text-gray-700">payment_status = paid</code>), and the consultation is <strong>not</strong> already in a pending, processing, or completed payout batch. Uses the same doctor filter as below when set.</p>
                             </div>
                         </div>
+                        <div class="overflow-x-auto -mx-5 px-5">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Doctor</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Patient</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                        <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Fee basis</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @forelse($eligiblePaidConsultations as $ec)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-3 py-2 font-mono text-xs text-gray-900">{{ $ec->reference }}</td>
+                                        <td class="px-3 py-2 text-gray-800">{{ $ec->doctor->full_name ?? '—' }}</td>
+                                        <td class="px-3 py-2 text-gray-700">{{ $ec->full_name }}</td>
+                                        <td class="px-3 py-2 text-gray-600 whitespace-nowrap">{{ $ec->created_at->format('Y-m-d') }}</td>
+                                        <td class="px-3 py-2 text-right font-medium text-gray-900">₦{{ number_format($ec->doctor->effective_consultation_fee ?? 0, 2) }}</td>
+                                        <td class="px-3 py-2"><span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">Paid</span></td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="px-3 py-10 text-center text-gray-500 text-sm">No eligible paid consultations. They may all be in a payout batch already, or adjust the doctor filter.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        @if($eligiblePaidConsultations->hasPages())
+                        <div class="mt-4 border-t border-gray-100 pt-4">
+                            {{ $eligiblePaidConsultations->links() }}
+                        </div>
+                        @endif
                     </div>
-                    @empty
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <h3 class="text-sm font-semibold text-gray-900 mb-2">No Payments Found</h3>
-                        <p class="text-xs text-gray-500">Try adjusting your filters or search terms.</p>
+
+                    <!-- Filters -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                        <div class="mb-4 pb-4 border-b border-gray-200">
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                </svg>
+                                Search & Filter
+                            </h2>
+                        </div>
+                        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Status</label>
+                                <select name="status" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                                    <option value="">All Statuses</option>
+                                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="processing" {{ request('status') === 'processing' ? 'selected' : '' }}>Processing</option>
+                                    <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
+                                    <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Failed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Doctor</label>
+                                <select name="doctor_id" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                                    <option value="">All Doctors</option>
+                                    @foreach($doctors as $doc)
+                                        <option value="{{ $doc->id }}" {{ request('doctor_id') == $doc->id ? 'selected' : '' }}>
+                                            {{ $doc->full_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Date From</label>
+                                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Date To</label>
+                                <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                            </div>
+                            <div class="md:col-span-4 flex justify-end gap-2">
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                    </svg>
+                                    Filter
+                                </button>
+                                <a href="{{ admin_route('admin.doctor-payments') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    Reset
+                                </a>
+                            </div>
+                        </form>
                     </div>
-                    @endforelse
+
+                    <!-- Bulk Actions -->
+                    <div x-show="selectedPayments.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-600 font-semibold" x-text="`${selectedPayments.length} payment(s) selected`"></span>
+                            <button @click="processBulkPayout" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Initiate Bulk Payout (KoraPay)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Payments Cards -->
+                    <div class="space-y-4">
+                        @forelse($payments as $payment)
+                        <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
+                            <!-- Card Header - Clickable to toggle dropdown -->
+                            <div @click="open = !open" class="flex items-center justify-between p-5 cursor-pointer bg-white hover:bg-gray-50 transition-colors duration-200">
+                                <div class="flex items-center space-x-4 flex-1">
+                                    <!-- Checkbox -->
+                                    <input type="checkbox" 
+                                           value="{{ $payment->id }}" 
+                                           x-model="selectedPayments" 
+                                           @click.stop
+                                           class="rounded text-purple-600 focus:ring-purple-500">
+                                    
+                                    <!-- Status Indicator Dot -->
+                                    <span class="w-3 h-3 rounded-full 
+                                        @if($payment->status === 'completed') bg-emerald-500
+                                        @elseif($payment->status === 'pending') bg-amber-500
+                                        @elseif($payment->status === 'processing') bg-blue-500
+                                        @elseif($payment->status === 'failed') bg-red-500
+                                        @else bg-gray-400 @endif"></span>
+                                    
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-gray-900">Payment #{{ $payment->reference }}</p>
+                                        <p class="text-xs text-gray-500 mt-0.5">
+                                            <a href="{{ admin_route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
+                                                {{ $payment->doctor->full_name }}
+                                            </a>
+                                            • {{ $payment->total_consultations_count }} consultation(s)
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center space-x-3">
+                                    <!-- Amount -->
+                                    <div class="text-right">
+                                        <p class="text-sm font-bold text-gray-900">₦{{ number_format($payment->doctor_amount, 2) }}</p>
+                                        @if($payment->korapay_fee)
+                                            <p class="text-[10px] text-gray-500">Fee: ₦{{ number_format($payment->korapay_fee, 2) }}</p>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Status Badge -->
+                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        @if($payment->status === 'completed') bg-emerald-100 text-emerald-800
+                                        @elseif($payment->status === 'pending') bg-amber-100 text-amber-800
+                                        @elseif($payment->status === 'failed') bg-red-100 text-red-800
+                                        @else bg-blue-100 text-blue-800
+                                        @endif">
+                                        {{ ucfirst($payment->status) }}
+                                    </span>
+
+                                    <!-- Chevron Icon -->
+                                    <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" 
+                                         :class="{ 'rotate-180': open }" 
+                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Dropdown Content -->
+                            <div x-show="open" 
+                                 x-transition:enter="transition ease-out duration-200"
+                                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                                 x-transition:leave="transition ease-in duration-150"
+                                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                                 x-cloak
+                                 class="border-t border-gray-100 bg-gray-50">
+                                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
+                                    <div>
+                                        <p class="font-medium text-gray-800 mb-1">Payment Details:</p>
+                                        <p><strong>Reference:</strong> {{ $payment->reference }}</p>
+                                        <p><strong>Amount:</strong> ₦{{ number_format($payment->doctor_amount, 2) }}</p>
+                                        @if($payment->korapay_fee)
+                                            <p><strong>KoraPay Fee:</strong> ₦{{ number_format($payment->korapay_fee, 2) }}</p>
+                                        @endif
+                                        <p><strong>Consultations:</strong> {{ $payment->total_consultations_count }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-800 mb-1">Doctor Information:</p>
+                                        <p><strong>Name:</strong> 
+                                            <a href="{{ admin_route('admin.doctors.profile', $payment->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-semibold">
+                                                {{ $payment->doctor->full_name }}
+                                            </a>
+                                        </p>
+                                        <p><strong>Created:</strong> {{ $payment->created_at->format('M d, Y H:i A') }}</p>
+                                        @if($payment->payout_completed_at)
+                                            <p><strong>Paid:</strong> <span class="text-emerald-600 font-semibold">{{ $payment->payout_completed_at->format('M d, Y H:i A') }}</span></p>
+                                        @endif
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <p class="font-medium text-gray-800 mb-1">KoraPay Status:</p>
+                                        @if($payment->korapay_reference)
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                    @if($payment->korapay_status === 'success') bg-emerald-100 text-emerald-800
+                                                    @elseif($payment->korapay_status === 'failed') bg-red-100 text-red-800
+                                                    @else bg-blue-100 text-blue-800
+                                                    @endif">
+                                                    {{ ucfirst($payment->korapay_status ?? 'processing') }}
+                                                </span>
+                                                <p class="text-xs text-gray-600 font-mono">{{ $payment->korapay_reference }}</p>
+                                            </div>
+                                        @else
+                                            <p class="text-xs text-gray-500">Not initiated</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-2">
+                                    @if($payment->status === 'pending' && !$payment->korapay_reference)
+                                        <button @click="initiatePayout({{ $payment->id }})" 
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                            </svg>
+                                            Initiate Payout
+                                        </button>
+                                    @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
+                                        <button @click="initiatePayout({{ $payment->id }})" 
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            </svg>
+                                            Retry
+                                        </button>
+                                    @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
+                                        <button @click="verifyPayout({{ $payment->id }})" 
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                            </svg>
+                                            Verify Status
+                                        </button>
+                                    @endif
+                                    <button @click="viewPayment({{ $payment->id }})" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h3 class="text-sm font-semibold text-gray-900 mb-2">No Payments Found</h3>
+                            <p class="text-xs text-gray-500">Try adjusting your filters or search terms.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="mt-6">
+                        {{ $payments->links() }}
+                    </div>
                 </div>
 
-                <!-- Pagination -->
-                <div class="mt-6">
-                    {{ $payments->links() }}
+                <!-- API Flow Tab (DoctorPayout) -->
+                <div x-show="activeTab === 'payouts'" x-cloak>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                        <div class="mb-4 pb-4 border-b border-gray-200">
+                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                API Flow Payouts (DoctorPayout)
+                            </h2>
+                            <p class="text-xs text-gray-500 mt-1">Payouts initiated via the API flow using KorapayPayoutService. These use the DR-PAYOUT-* reference prefix.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 text-xs">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Doctor</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Consultations</th>
+                                        <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">KoraPay Ref</th>
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @forelse($payouts as $payout)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-3 py-2 font-mono text-xs text-gray-900">{{ $payout->payout_reference }}</td>
+                                        <td class="px-3 py-2 text-gray-800">
+                                            <a href="{{ admin_route('admin.doctors.profile', $payout->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
+                                                {{ $payout->doctor->full_name ?? '—' }}
+                                            </a>
+                                        </td>
+                                        <td class="px-3 py-2 text-gray-700">{{ $payout->total_consultations_count ?? count($payout->consultation_ids ?? []) }}</td>
+                                        <td class="px-3 py-2 text-right font-medium text-gray-900">₦{{ number_format($payout->amount, 2) }}</td>
+                                        <td class="px-3 py-2">
+                                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                @if($payout->status === 'success') bg-emerald-100 text-emerald-800
+                                                @elseif($payout->status === 'pending') bg-amber-100 text-amber-800
+                                                @elseif($payout->status === 'failed') bg-red-100 text-red-800
+                                                @else bg-blue-100 text-blue-800
+                                                @endif">
+                                                {{ ucfirst($payout->status) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 font-mono text-xs text-gray-600">{{ $payout->korapay_reference ?? '—' }}</td>
+                                        <td class="px-3 py-2 text-gray-600">{{ $payout->created_at->format('M d, Y') }}</td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="px-3 py-10 text-center text-gray-500 text-sm">No API flow payouts found.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        @if($payouts->hasPages())
+                        <div class="mt-4 border-t border-gray-100 pt-4">
+                            {{ $payouts->links() }}
+                        </div>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Create Payment Modal -->

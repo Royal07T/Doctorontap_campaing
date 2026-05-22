@@ -13,7 +13,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, showPaymentModal: false, selectedConsultations: [], pageLoading: false }">
+<body class="bg-gray-100 min-h-screen" x-data="{ sidebarOpen: false, consultationFilter: '{{ $consultationFilter }}' }">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'doctors'])
@@ -55,22 +55,22 @@
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid Consultations</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['paid_consultations'] }}</p>
-                        <p class="text-xs text-gray-500">Paid</p>
+                        <p class="text-xs text-gray-500">Paid by patient</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Unpaid Consultations</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['unpaid_consultations'] }}</p>
-                        <p class="text-xs text-gray-500">Unpaid</p>
+                        <p class="text-xs text-gray-500">Pending patient payment</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid</p>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid to Doctor</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">₦{{ number_format($stats['total_paid_to_doctor'], 2) }}</p>
-                        <p class="text-xs text-gray-500">Earnings</p>
+                        <p class="text-xs text-gray-500">Doctor earnings</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Left Column -->
+                    <!-- Left Column: Doctor Info & Bank -->
                     <div class="lg:col-span-1 space-y-6">
                         <!-- Doctor Information -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -201,50 +201,123 @@
                                 </div>
                             @endforelse
                         </div>
-                    </div>
 
-                    <!-- Right Column -->
-                    <div class="lg:col-span-2 space-y-6">
-                        <!-- Unpaid Consultations -->
-                        @if($unpaidConsultations->count() > 0)
+                        <!-- Payout Breakdown -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                             <div class="mb-4 pb-4 border-b border-gray-200">
-                                <div class="flex justify-between items-center">
+                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Payout Breakdown
+                                </h2>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                    <span class="text-xs text-gray-600">Doctor Share</span>
+                                    <span class="text-sm font-bold text-emerald-700">{{ $payoutBreakdown['doctor_percentage'] }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                    <span class="text-xs text-gray-600">Platform Share</span>
+                                    <span class="text-sm font-bold text-purple-700">{{ $payoutBreakdown['platform_percentage'] }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <span class="text-xs text-gray-600">Total Doctor Earnings</span>
+                                    <span class="text-sm font-bold text-blue-700">₦{{ number_format($payoutBreakdown['total_doctor_earnings'], 2) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <span class="text-xs text-gray-600">Total Platform Fees</span>
+                                    <span class="text-sm font-bold text-amber-700">₦{{ number_format($payoutBreakdown['total_platform_fees'], 2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Consultations & Payouts -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Consultations with Filters -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <div class="mb-4 pb-4 border-b border-gray-200">
+                                <div class="flex items-center justify-between">
                                     <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
                                         <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                         </svg>
-                                        Unpaid Consultations
+                                        Consultations
                                     </h2>
-                                    <div class="text-right">
-                                        <p class="text-xs text-gray-500 uppercase tracking-wide">Pending Amount</p>
-                                        <p class="text-sm font-bold text-purple-600">₦{{ number_format($stats['pending_payment'], 2) }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <select x-model="consultationFilter" @change="window.location.href='?consultation_filter=' + consultationFilter" class="text-xs border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                            <option value="all">All</option>
+                                            <option value="paid">Paid</option>
+                                            <option value="unpaid">Unpaid</option>
+                                            <option value="with_payout">With Payout</option>
+                                            <option value="without_payout">Without Payout</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
-                            <div class="space-y-2 mb-4">
-                                @foreach($unpaidConsultations as $consultation)
-                                    <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                        <div class="flex items-center justify-between">
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-900 font-mono">{{ $consultation->reference }}</p>
-                                                <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->full_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>
-                                            </div>
-                                            <p class="text-xs font-semibold text-gray-900">₦{{ number_format($doctor->effective_consultation_fee, 2) }}</p>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <div class="pt-3 border-t border-gray-200">
-                                <a href="{{ admin_route('admin.doctor-payments.create') }}?doctor_id={{ $doctor->id }}" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
-                                    Create Payment
-                                </a>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="border-b border-gray-200">
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Reference</th>
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Patient</th>
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Date</th>
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Status</th>
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Payment</th>
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Amount</th>
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-600">Payout</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($consultationsWithPayout as $consultation)
+                                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                                <td class="py-2 px-3">
+                                                    <a href="{{ admin_route('admin.consultation.show', $consultation['id']) }}" class="font-mono text-purple-600 hover:text-purple-800">{{ $consultation['reference'] }}</a>
+                                                </td>
+                                                <td class="py-2 px-3 text-gray-900">{{ $consultation['patient_name'] }}</td>
+                                                <td class="py-2 px-3 text-gray-600">{{ $consultation['date'] }}</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="px-2 py-0.5 rounded-full font-semibold
+                                                        {{ $consultation['status'] === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
+                                                        {{ ucfirst($consultation['status']) }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="px-2 py-0.5 rounded-full font-semibold
+                                                        {{ $consultation['payment_status'] === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">
+                                                        {{ ucfirst($consultation['payment_status']) }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2 px-3 font-semibold text-gray-900">₦{{ number_format($consultation['amount'], 2) }}</td>
+                                                <td class="py-2 px-3">
+                                                    @if($consultation['payout_reference'])
+                                                        <div class="text-xs">
+                                                            <span class="font-mono text-emerald-700">{{ $consultation['payout_reference'] }}</span>
+                                                            <div class="flex items-center gap-1 mt-0.5">
+                                                                <span class="px-1.5 py-0.5 rounded text-xs font-semibold
+                                                                    {{ $consultation['payout_status'] === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
+                                                                    {{ ucfirst($consultation['payout_status']) }}
+                                                                </span>
+                                                                @if($consultation['korapay_reference'])
+                                                                <span class="text-gray-500 text-xs">KoraPay</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <span class="text-gray-400 text-xs">—</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="7" class="py-8 text-center text-gray-500">No consultations found</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        @endif
 
                         <!-- Payment History -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -281,42 +354,6 @@
                                 @endforelse
                             </div>
                         </div>
-
-                        <!-- Recent Consultations -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                            <div class="mb-4 pb-4 border-b border-gray-200">
-                                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Recent Consultations
-                                </h2>
-                            </div>
-                            <div class="space-y-2">
-                                @foreach($recentConsultations as $consultation)
-                                    <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex-1">
-                                                <a href="{{ admin_route('admin.consultation.show', $consultation->id) }}" class="text-xs font-semibold text-purple-600 hover:text-purple-800 font-mono">
-                                                    {{ $consultation->reference }}
-                                                </a>
-                                                <p class="text-xs text-gray-600 mt-0.5">{{ $consultation->full_name }} • {{ $consultation->created_at->format('M d, Y') }}</p>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <span class="px-2 py-0.5 text-xs rounded-full font-semibold
-                                                    {{ $consultation->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
-                                                    {{ ucfirst($consultation->status) }}
-                                                </span>
-                                                <span class="px-2 py-0.5 text-xs rounded-full font-semibold
-                                                    {{ $consultation->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">
-                                                    {{ ucfirst($consultation->payment_status) }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
                     </div>
                 </div>
             </main>
@@ -325,7 +362,6 @@
 
     <script>
         function verifyBankAccount(accountId) {
-            // Use custom confirm modal
             if (typeof showConfirmModal === 'function') {
                 showConfirmModal('Are you sure you want to verify this bank account?', () => {
                     performVerification(accountId);
@@ -344,23 +380,19 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Use custom alert modal
                     if (typeof showAlertModal === 'function') {
                         showAlertModal(data.message, 'success', 'Success');
-                        // Reload after a short delay to show the success message
                         setTimeout(() => {
                             location.reload();
                         }, 1500);
                     }
                 } else {
-                    // Use custom alert modal for errors
                     if (typeof showAlertModal === 'function') {
                         showAlertModal('Error: ' + data.message, 'error', 'Error');
                     }
                 }
             })
             .catch(error => {
-                // Use custom alert modal for errors
                 if (typeof showAlertModal === 'function') {
                     showAlertModal('An error occurred. Please try again.', 'error', 'Error');
                 }
@@ -370,8 +402,6 @@
     </script>
 
     @include('components.alert-modal')
-    
     @include('admin.shared.preloader')
 </body>
 </html>
-

@@ -9,7 +9,7 @@
 
 @section('content')
                 <!-- Statistics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total'] }}</p>
@@ -18,22 +18,22 @@
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Paid</p>
                         <p class="text-xl font-bold text-emerald-600 mb-1">{{ $stats['paid'] }}</p>
-                        <p class="text-xs text-gray-500">Consultations</p>
+                        <p class="text-xs text-gray-500">Completed</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-red-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Unpaid</p>
                         <p class="text-xl font-bold text-red-600 mb-1">{{ $stats['unpaid'] }}</p>
-                        <p class="text-xs text-gray-500">Consultations</p>
+                        <p class="text-xs text-gray-500">Pending</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending</p>
                         <p class="text-xl font-bold text-amber-600 mb-1">{{ $stats['pending'] }}</p>
-                        <p class="text-xs text-gray-500">Consultations</p>
+                        <p class="text-xs text-gray-500">Awaiting</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Completed</p>
                         <p class="text-xl font-bold text-purple-600 mb-1">{{ $stats['completed'] }}</p>
-                        <p class="text-xs text-gray-500">Consultations</p>
+                        <p class="text-xs text-gray-500">Finished</p>
                     </div>
                 </div>
 
