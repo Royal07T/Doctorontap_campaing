@@ -13,6 +13,9 @@ class DoctorPayout extends Model
         'payout_reference',
         'total_consultations_amount',
         'total_consultations_count',
+        'paid_consultations_count',
+        'unpaid_consultations_count',
+        'pending_consultations_count',
         'doctor_percentage',
         'platform_percentage',
         'amount',
@@ -126,20 +129,42 @@ class DoctorPayout extends Model
 
     /**
      * Calculate payment details based on consultations
+     * Uses actual payment amounts from consultations, not doctor fee
      */
-    public static function calculatePayment($consultations, $doctorPercentage = 70)
+    public static function calculatePayment($consultations, $doctorPercentage = 70, $doctor = null)
     {
+        // Use actual payment amounts from consultations
         $totalAmount = $consultations->sum(function ($consultation) {
-            return $consultation->doctor->effective_consultation_fee ?? 0;
+            // Use actual payment amount if available, otherwise fall back to doctor's fee
+            if ($consultation->payment && $consultation->payment->amount) {
+                return $consultation->payment->amount;
+            }
+            // Fallback to doctor's effective consultation fee
+            if ($doctor) {
+                return $doctor->effective_consultation_fee ?? 0;
+            }
+            // Last resort: try to get doctor from consultation
+            if ($consultation->doctor) {
+                return $consultation->doctor->effective_consultation_fee ?? 0;
+            }
+            return 0;
         });
 
         $platformPercentage = 100 - $doctorPercentage;
         $doctorAmount = ($totalAmount * $doctorPercentage) / 100;
         $platformFee = ($totalAmount * $platformPercentage) / 100;
 
+        // Count paid and unpaid consultations
+        $paidCount = $consultations->where('payment_status', 'paid')->count();
+        $unpaidCount = $consultations->where('payment_status', '!=', 'paid')->count();
+        $pendingCount = $consultations->where('status', 'pending')->count();
+
         return [
             'total_consultations_amount' => $totalAmount,
             'total_consultations_count' => $consultations->count(),
+            'paid_consultations_count' => $paidCount,
+            'unpaid_consultations_count' => $unpaidCount,
+            'pending_consultations_count' => $pendingCount,
             'doctor_percentage' => $doctorPercentage,
             'platform_percentage' => $platformPercentage,
             'doctor_amount' => $doctorAmount,

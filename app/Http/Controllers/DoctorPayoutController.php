@@ -54,23 +54,30 @@ class DoctorPayoutController extends Controller
                 $query->whereNotIn('id', $excludedConsultationIds);
             }
 
-            $consultations = $query->with('payment')->latest()->get();
+            $consultations = $query->with(['payment', 'doctor'])->latest()->get();
             $doctor = Doctor::findOrFail($doctorId);
 
             return response()->json([
                 'success' => true,
-                'consultations' => $consultations->map(function($c) use ($doctor) {
+                'consultations' => $consultations->map(function($c) {
+                    // Use actual payment amount if available, otherwise fall back to doctor fee
+                    $amount = ($c->payment && $c->payment->amount) 
+                        ? $c->payment->amount 
+                        : ($c->doctor->effective_consultation_fee ?? 0);
                     return [
                         'id' => $c->id,
                         'reference' => $c->reference,
                         'patient_name' => $c->full_name,
                         'date' => $c->created_at->format('Y-m-d'),
-                        'amount' => $doctor->effective_consultation_fee ?? 0,
+                        'amount' => $amount,
                     ];
                 }),
                 'total_count' => $consultations->count(),
-                'total_amount' => $consultations->sum(function($c) use ($doctor) {
-                    return $doctor->effective_consultation_fee ?? 0;
+                'total_amount' => $consultations->sum(function($c) {
+                    // Use actual payment amount if available, otherwise fall back to doctor fee
+                    return ($c->payment && $c->payment->amount) 
+                        ? $c->payment->amount 
+                        : ($c->doctor->effective_consultation_fee ?? 0);
                 }),
             ]);
 
@@ -195,7 +202,7 @@ class DoctorPayoutController extends Controller
             $doctorPercentage = $validated['doctor_percentage'] ?? Setting::get('doctor_payment_percentage', 70);
 
             // Calculate payment details (like DoctorPayment::calculatePayment)
-            $calculation = DoctorPayout::calculatePayment($consultations, $doctorPercentage);
+            $calculation = DoctorPayout::calculatePayment($consultations, $doctorPercentage, $doctor);
 
             if ($calculation['doctor_amount'] <= 0) {
                 return response()->json([
@@ -214,6 +221,9 @@ class DoctorPayoutController extends Controller
                 'payout_reference' => $payoutReference,
                 'total_consultations_amount' => $calculation['total_consultations_amount'],
                 'total_consultations_count' => $calculation['total_consultations_count'],
+                'paid_consultations_count' => $calculation['paid_consultations_count'] ?? 0,
+                'unpaid_consultations_count' => $calculation['unpaid_consultations_count'] ?? 0,
+                'pending_consultations_count' => $calculation['pending_consultations_count'] ?? 0,
                 'doctor_percentage' => $calculation['doctor_percentage'],
                 'platform_percentage' => $calculation['platform_percentage'],
                 'amount' => $calculation['doctor_amount'],
@@ -227,6 +237,9 @@ class DoctorPayoutController extends Controller
                     'doctor_name' => $doctor->full_name,
                     'doctor_email' => $doctor->email,
                     'consultation_count' => $calculation['total_consultations_count'],
+                    'paid_consultations_count' => $calculation['paid_consultations_count'] ?? 0,
+                    'unpaid_consultations_count' => $calculation['unpaid_consultations_count'] ?? 0,
+                    'pending_consultations_count' => $calculation['pending_consultations_count'] ?? 0,
                     'initiated_at' => now()->toIso8601String(),
                 ],
             ]);

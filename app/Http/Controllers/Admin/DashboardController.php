@@ -2734,16 +2734,27 @@ class DashboardController extends Controller
             ];
         });
 
-        // Calculate statistics
-        $allCompletedConsultations = $doctor->consultations()->where('status', 'completed')->get();
-        $paidConsultations = $allCompletedConsultations->where('payment_status', 'paid');
-        $unpaidConsultations = $allCompletedConsultations->where('payment_status', '!=', 'paid');
+        // Calculate statistics - use filtered consultations if filter is applied, otherwise use all
+        if ($consultationFilter && $consultationFilter !== 'all') {
+            // Stats based on filtered consultations
+            $statsConsultations = $allConsultations;
+        } else {
+            // Stats based on all completed consultations
+            $statsConsultations = $doctor->consultations()->where('status', 'completed')->get();
+        }
+
+        $paidConsultations = $statsConsultations->where('payment_status', 'paid');
+        $unpaidConsultations = $statsConsultations->where('payment_status', '!=', 'paid');
+        $pendingConsultations = $statsConsultations->where('status', 'pending');
 
         $stats = [
-            'total_consultations' => $doctor->consultations()->count(),
-            'completed_consultations' => $allCompletedConsultations->count(),
+            'total_consultations' => $consultationFilter && $consultationFilter !== 'all' 
+                ? $statsConsultations->count() 
+                : $doctor->consultations()->count(),
+            'completed_consultations' => $statsConsultations->where('status', 'completed')->count(),
             'paid_consultations' => $paidConsultations->count(),
             'unpaid_consultations' => $unpaidConsultations->count(),
+            'pending_consultations' => $pendingConsultations->count(),
             'total_paid_to_doctor' => $doctorPayments->where('status', 'completed')->sum('doctor_amount'),
             'pending_payment' => $unpaidConsultations->sum(function ($consultation) use ($doctor) {
                 return $doctor->effective_consultation_fee;
@@ -3068,7 +3079,8 @@ class DashboardController extends Controller
             // Calculate payment details
             $paymentData = \App\Models\DoctorPayment::calculatePayment(
                 $consultations,
-                $doctorPercentage
+                $doctorPercentage,
+                $doctor
             );
 
             // Create payment record

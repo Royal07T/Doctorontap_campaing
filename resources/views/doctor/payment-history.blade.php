@@ -103,6 +103,11 @@
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultations</p>
                                             <p class="text-xs text-gray-900 font-semibold">{{ $payment->total_consultations_count }}</p>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                <span class="text-emerald-600">{{ $payment->paid_consultations_count ?? 0 }} paid</span> • 
+                                                <span class="text-red-600">{{ $payment->unpaid_consultations_count ?? 0 }} unpaid</span> • 
+                                                <span class="text-amber-600">{{ $payment->pending_consultations_count ?? 0 }} pending</span>
+                                            </p>
                                         </div>
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Your Amount</p>

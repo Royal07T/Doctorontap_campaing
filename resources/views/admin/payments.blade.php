@@ -402,6 +402,11 @@
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Consultations</p>
                                     <p class="text-xs text-gray-900">{{ count($payout->consultation_ids) }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        <span class="text-emerald-600">{{ $payout->paid_consultations_count ?? 0 }} paid</span> • 
+                                        <span class="text-red-600">{{ $payout->unpaid_consultations_count ?? 0 }} unpaid</span> • 
+                                        <span class="text-amber-600">{{ $payout->pending_consultations_count ?? 0 }} pending</span>
+                                    </p>
                                 </div>
                                 @if($payout->korapay_reference)
                                 <div>

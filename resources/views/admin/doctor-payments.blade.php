@@ -14,7 +14,7 @@
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="{ activeTab: 'payments', sidebarOpen: false, showCreateModal: false, selectedPayments: [], pageLoading: false }">
+<body class="bg-gray-100 min-h-screen" x-data="paymentManager()">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.shared.sidebar', ['active' => 'doctor-payments'])
@@ -285,7 +285,10 @@
                                         @if($payment->korapay_fee)
                                             <p><strong>KoraPay Fee:</strong> ₦{{ number_format($payment->korapay_fee, 2) }}</p>
                                         @endif
-                                        <p><strong>Consultations:</strong> {{ $payment->total_consultations_count }}</p>
+                                        <p><strong>Total Consultations:</strong> {{ $payment->total_consultations_count }}</p>
+                                        <p><strong>Paid:</strong> <span class="text-emerald-600">{{ $payment->paid_consultations_count ?? 0 }}</span></p>
+                                        <p><strong>Unpaid:</strong> <span class="text-red-600">{{ $payment->unpaid_consultations_count ?? 0 }}</span></p>
+                                        <p><strong>Pending:</strong> <span class="text-amber-600">{{ $payment->pending_consultations_count ?? 0 }}</span></p>
                                     </div>
                                     <div>
                                         <p class="font-medium text-gray-800 mb-1">Doctor Information:</p>
@@ -818,6 +821,7 @@
     <script>
         function paymentManager() {
             return {
+                activeTab: 'payments',
                 pageLoading: false,
                 sidebarOpen: false,
                 showCreateModal: false,

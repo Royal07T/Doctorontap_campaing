@@ -46,7 +46,7 @@
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Consultations</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total_consultations'] }}</p>
@@ -61,6 +61,11 @@
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Unpaid Consultations</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['unpaid_consultations'] }}</p>
                         <p class="text-xs text-gray-500">Pending patient payment</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-cyan-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending Consultations</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['pending_consultations'] ?? 0 }}</p>
+                        <p class="text-xs text-gray-500">Awaiting completion</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid to Doctor</p>
@@ -336,6 +341,11 @@
                                             <div>
                                                 <p class="text-xs font-semibold text-gray-900 font-mono">{{ $payment->reference }}</p>
                                                 <p class="text-xs text-gray-600 mt-0.5">{{ $payment->total_consultations_count }} consultations • {{ $payment->created_at->format('M d, Y') }}</p>
+                                                <p class="text-xs text-gray-500 mt-1">
+                                                    <span class="text-emerald-600">{{ $payment->paid_consultations_count ?? 0 }} paid</span> • 
+                                                    <span class="text-red-600">{{ $payment->unpaid_consultations_count ?? 0 }} unpaid</span> • 
+                                                    <span class="text-amber-600">{{ $payment->pending_consultations_count ?? 0 }} pending</span>
+                                                </p>
                                             </div>
                                             <div class="text-right">
                                                 <p class="text-xs font-bold text-gray-900">₦{{ number_format($payment->doctor_amount, 2) }}</p>
