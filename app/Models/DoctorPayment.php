@@ -187,6 +187,11 @@ class DoctorPayment extends Model
             'transaction_reference' => $transactionRef,
             'payment_notes' => $notes,
         ]);
+
+        // Send notification to doctor
+        if ($this->doctor && $this->doctor->email) {
+            \Mail::to($this->doctor->email)->send(new \App\Mail\DoctorPayoutCompletedNotification($this));
+        }
     }
 
     /**

@@ -2,12 +2,20 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use App\Models\Consultation;
 use App\Models\Patient;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Schedule payout status check every 15 minutes
+Schedule::command('payouts:check-status')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->description('Check Korapay status for processing payouts');
 
 Artisan::command('patients:backfill {--dry-run}', function () {
     $dryRun = $this->option('dry-run');

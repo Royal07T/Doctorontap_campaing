@@ -2877,6 +2877,7 @@ class DashboardController extends Controller
 
         // Paid + completed consultations not yet locked in an active payout batch (same rules as batch creation)
         $lockedIds = \App\Models\DoctorPayment::lockedConsultationIds();
+
         $eligibleConsultationsQuery = Consultation::query()
             ->where('status', 'completed')
             ->where('payment_status', 'paid')
@@ -2889,19 +2890,17 @@ class DashboardController extends Controller
 
         $eligiblePaidConsultations = $eligibleConsultationsQuery->latest()->paginate(15, ['*'], 'eligible_page')->withQueryString();
 
-        // Unified statistics
+        // Admin Flow statistics only
         $stats = [
-            'total_payments' => \App\Models\DoctorPayment::count() + \App\Models\DoctorPayout::count(),
-            'admin_payments' => \App\Models\DoctorPayment::count(),
-            'api_payouts' => \App\Models\DoctorPayout::count(),
-            'pending_payments' => \App\Models\DoctorPayment::where('status', 'pending')->count() + \App\Models\DoctorPayout::where('status', 'pending')->count(),
-            'completed_payments' => \App\Models\DoctorPayment::where('status', 'completed')->count() + \App\Models\DoctorPayout::where('status', 'success')->count(),
-            'total_paid_amount' => \App\Models\DoctorPayment::where('status', 'completed')->sum('doctor_amount') + \App\Models\DoctorPayout::where('status', 'success')->sum('amount'),
-            'total_platform_fee' => \App\Models\DoctorPayment::where('status', 'completed')->sum('platform_fee') + \App\Models\DoctorPayout::where('status', 'success')->sum('platform_fee'),
+            'total_payments' => \App\Models\DoctorPayment::count(),
+            'pending_payments' => \App\Models\DoctorPayment::where('status', 'pending')->count(),
+            'completed_payments' => \App\Models\DoctorPayment::where('status', 'completed')->count(),
+            'total_paid_amount' => \App\Models\DoctorPayment::where('status', 'completed')->sum('doctor_amount'),
+            'total_platform_fee' => \App\Models\DoctorPayment::where('status', 'completed')->sum('platform_fee'),
             'eligible_paid_count' => $eligiblePaidConsultations->total(),
         ];
 
-        return view('admin.doctor-payments', compact('payments', 'payouts', 'doctors', 'stats', 'eligiblePaidConsultations'));
+        return view('admin.doctor-payments', compact('payments', 'doctors', 'stats', 'eligiblePaidConsultations'));
     }
 
     /**
@@ -3023,62 +3022,71 @@ class DashboardController extends Controller
                 ], 400);
             }
 
-            // Validate that all submitted consultations belong to this doctor and are paid
+            // Validate consultations - implement partial processing
             $submittedConsultations = Consultation::whereIn('id', $validated['consultation_ids'])->get();
 
-            // Check if all consultations belong to this doctor
+            // Separate valid and invalid consultations
+            $invalidConsultations = collect();
+            $excludedReasons = [];
+
+            // Check if consultations belong to this doctor
             $invalidDoctorConsultations = $submittedConsultations->where('doctor_id', '!=', $doctor->id);
             if ($invalidDoctorConsultations->isNotEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Some consultations do not belong to this doctor.',
-                ], 400);
+                $invalidConsultations = $invalidConsultations->concat($invalidDoctorConsultations);
+                foreach ($invalidDoctorConsultations as $c) {
+                    $excludedReasons[$c->id] = 'Does not belong to this doctor';
+                }
             }
 
-            // Check if all consultations are completed
+            // Check if consultations are completed
             $incompleteConsultations = $submittedConsultations->where('status', '!=', 'completed');
             if ($incompleteConsultations->isNotEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Some consultations are not completed. Only completed consultations can be included in doctor payments.',
-                ], 400);
+                $invalidConsultations = $invalidConsultations->concat($incompleteConsultations);
+                foreach ($incompleteConsultations as $c) {
+                    $excludedReasons[$c->id] = 'Not completed';
+                }
             }
 
-            // Check if all consultations are paid - this is the critical requirement
+            // Check if consultations are paid
             $unpaidConsultations = $submittedConsultations->where('payment_status', '!=', 'paid');
             if ($unpaidConsultations->isNotEmpty()) {
-                $unpaidReferences = $unpaidConsultations->pluck('reference')->implode(', ');
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Some consultations are not paid. Only consultations with payment_status = "paid" can be included in doctor payments. Unpaid consultations: '.$unpaidReferences,
-                ], 400);
+                $invalidConsultations = $invalidConsultations->concat($unpaidConsultations);
+                foreach ($unpaidConsultations as $c) {
+                    $excludedReasons[$c->id] = 'Not paid by patient';
+                }
             }
 
-            // Only consultations that are completed, paid, and not already in an active payout batch for this doctor
+            // Check if consultations are locked in other payouts
             $validatedIds = array_values(array_unique(array_map('intval', $validated['consultation_ids'])));
             $lockedIds = \App\Models\DoctorPayment::lockedConsultationIds($doctor->id);
+            
+            $lockedConsultations = $submittedConsultations->whereIn('id', $lockedIds);
+            if ($lockedConsultations->isNotEmpty()) {
+                $invalidConsultations = $invalidConsultations->concat($lockedConsultations);
+                foreach ($lockedConsultations as $c) {
+                    $excludedReasons[$c->id] = 'Already in another payout batch';
+                }
+            }
 
-            $consultations = Consultation::query()
-                ->eligibleForDoctorPayout($doctor->id, $lockedIds)
-                ->whereIn('id', $validatedIds)
-                ->get();
+            // Get valid consultations
+            $validConsultations = $submittedConsultations->diff($invalidConsultations);
 
-            if ($consultations->isEmpty() || $consultations->count() !== count($validatedIds)) {
+            if ($validConsultations->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'One or more consultations are not eligible. Each must be completed, paid (patient), and not already included in a pending, processing, or completed payout batch.',
+                    'message' => 'No valid consultations found. All submitted consultations are ineligible.',
+                    'excluded' => $excludedReasons,
                 ], 400);
             }
 
-            $canonicalConsultationIds = $consultations->pluck('id')->values()->all();
+            $canonicalConsultationIds = $validConsultations->pluck('id')->values()->all();
 
             // Use custom percentage or default from settings
             $doctorPercentage = $validated['doctor_percentage'] ?? Setting::get('doctor_payment_percentage', 70);
 
             // Calculate payment details
             $paymentData = \App\Models\DoctorPayment::calculatePayment(
-                $consultations,
+                $validConsultations,
                 $doctorPercentage,
                 $doctor
             );
@@ -3094,10 +3102,17 @@ class DashboardController extends Controller
                 'status' => 'pending',
             ]);
 
+            $message = 'Payment created successfully!';
+            if ($invalidConsultations->isNotEmpty()) {
+                $excludedCount = $invalidConsultations->count();
+                $message .= " {$excludedCount} consultation(s) were excluded due to eligibility issues.";
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Payment created successfully!',
+                'message' => $message,
                 'payment' => $payment,
+                'excluded' => $excludedReasons,
             ]);
 
         } catch (\Exception $e) {

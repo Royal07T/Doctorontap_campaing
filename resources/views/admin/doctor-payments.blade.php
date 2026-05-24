@@ -13,6 +13,280 @@
         }
         [x-cloak] { display: none !important; }
     </style>
+    <script>
+        function paymentManager() {
+            return {
+                pageLoading: false,
+                sidebarOpen: false,
+                showCreateModal: false,
+                showDetailsModal: false,
+                selectedDoctor: '',
+                consultations: [],
+                selectedConsultations: [],
+                selectedPayments: [],
+                loadingConsultations: false,
+                doctorPercentage: {{ \App\Models\Setting::get('doctor_payment_percentage', 70) }},
+                currentPaymentId: null,
+                selectedPayment: null,
+                loadingPaymentDetails: false,
+                paymentConsultations: [],
+                
+                // Helper functions to parse error response
+                getErrorData(response) {
+                    if (!response) return null;
+                    if (typeof response === 'string') {
+                        try {
+                            return JSON.parse(response);
+                        } catch (e) {
+                            return null;
+                        }
+                    }
+                    return response;
+                },
+                
+                getErrorMessage(response) {
+                    const data = this.getErrorData(response);
+                    return data?.message || null;
+                },
+                
+                getErrorAmount(response) {
+                    const data = this.getErrorData(response);
+                    return data?.amount || null;
+                },
+                
+                getErrorTraceId(response) {
+                    const data = this.getErrorData(response);
+                    return data?.trace_id || null;
+                },
+
+                get totalAmount() {
+                    return this.consultations
+                        .filter(c => this.selectedConsultations.includes(c.id))
+                        .reduce((sum, c) => sum + c.amount, 0);
+                },
+
+                get doctorShare() {
+                    return (this.totalAmount * this.doctorPercentage) / 100;
+                },
+
+                get platformFee() {
+                    return this.totalAmount - this.doctorShare;
+                },
+
+                async loadConsultations() {
+                    if (!this.selectedDoctor) {
+                        this.consultations = [];
+                        this.selectedConsultations = [];
+                        return;
+                    }
+
+                    this.loadingConsultations = true;
+                    this.consultations = [];
+                    this.selectedConsultations = [];
+
+                    try {
+                        const response = await fetch(`/admin/doctors/${this.selectedDoctor}/unpaid-consultations`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.consultations = data.consultations || [];
+                            this.selectedConsultations = [];
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal('Failed to load consultations: ' + (data.message || 'Unknown error'), 'error');
+                            }
+                            this.consultations = [];
+                        }
+                    } catch (error) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Failed to load consultations. Please try again.', 'error');
+                        }
+                        console.error(error);
+                        this.consultations = [];
+                    } finally {
+                        this.loadingConsultations = false;
+                    }
+                },
+
+                async submitPayment() {
+                    // Validation
+                    if (!this.selectedDoctor) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Please select a doctor', 'error');
+                        }
+                        return;
+                    }
+
+                    if (this.selectedConsultations.length === 0) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Please select at least one consultation', 'error');
+                        }
+                        return;
+                    }
+
+                    if (!this.doctorPercentage || this.doctorPercentage <= 0 || this.doctorPercentage > 100) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('Please enter a valid doctor percentage (0-100)', 'error');
+                        }
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/admin/doctor-payments', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                doctor_id: this.selectedDoctor,
+                                consultation_ids: this.selectedConsultations,
+                                doctor_percentage: this.doctorPercentage
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message, 'success', 'Payout Batch Created');
+                            }
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message || 'Failed to create payment', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('An error occurred while creating payment. Please check the console for details.', 'error');
+                        }
+                        console.error(error);
+                    }
+                },
+
+                toggleSelectAll() {
+                    const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]');
+                    const selectAll = event.target.checked;
+                    checkboxes.forEach(cb => {
+                        if (cb.value) {
+                            cb.checked = selectAll;
+                            if (selectAll && !this.selectedPayments.includes(parseInt(cb.value))) {
+                                this.selectedPayments.push(parseInt(cb.value));
+                            } else if (!selectAll) {
+                                this.selectedPayments = this.selectedPayments.filter(id => id !== parseInt(cb.value));
+                            }
+                        }
+                    });
+                },
+
+                toggleSelectAllConsultations() {
+                    const selectAll = event.target.checked;
+                    if (selectAll) {
+                        // Select all consultation IDs
+                        this.selectedConsultations = this.consultations.map(c => c.id);
+                    } else {
+                        // Deselect all
+                        this.selectedConsultations = [];
+                    }
+                },
+
+                async initiatePayout(paymentId) {
+                    if (!confirm('Are you sure you want to initiate this payout via Korapay?')) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/admin/doctor-payments/${paymentId}/initiate-payout`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message, 'success', 'Payout Initiated');
+                            }
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message || 'Failed to initiate payout', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('An error occurred while initiating payout', 'error');
+                        }
+                        console.error(error);
+                    }
+                },
+
+                async verifyPayout(paymentId) {
+                    try {
+                        const response = await fetch(`/admin/doctor-payments/${paymentId}/verify-status`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message, 'success', 'Status Verified');
+                            }
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message || 'Failed to verify status', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('An error occurred while verifying status', 'error');
+                        }
+                        console.error(error);
+                    }
+                },
+
+                async viewPayment(paymentId) {
+                    this.loadingPaymentDetails = true;
+                    this.selectedPayment = null;
+                    this.paymentConsultations = [];
+                    this.showDetailsModal = true;
+
+                    try {
+                        const response = await fetch(`/admin/doctor-payments/${paymentId}/details`);
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.selectedPayment = data.payment;
+                            this.paymentConsultations = data.consultations || [];
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message || 'Failed to load payment details', 'error');
+                            }
+                            this.showDetailsModal = false;
+                        }
+                    } catch (error) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('An error occurred while loading payment details', 'error');
+                        }
+                        this.showDetailsModal = false;
+                        console.error(error);
+                    } finally {
+                        this.loadingPaymentDetails = false;
+                    }
+                }
+            };
+        }
+    </script>
 </head>
 <body class="bg-gray-100 min-h-screen" x-data="paymentManager()">
     <div class="flex h-screen overflow-hidden">
@@ -44,26 +318,21 @@
             <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100 p-6">
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-blue-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total</p>
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Payments</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['total_payments'] }}</p>
                         <p class="text-xs text-gray-500">All payouts</p>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-indigo-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Admin Flow</p>
-                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['admin_payments'] }}</p>
-                        <p class="text-xs text-gray-500">DoctorPayment</p>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-cyan-500">
-                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">API Flow</p>
-                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['api_payouts'] }}</p>
-                        <p class="text-xs text-gray-500">DoctorPayout</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-amber-500">
+                        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Pending</p>
+                        <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['pending_payments'] }}</p>
+                        <p class="text-xs text-gray-500">Awaiting payout</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-emerald-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Completed</p>
                         <p class="text-xl font-bold text-gray-900 mb-1">{{ $stats['completed_payments'] }}</p>
-                        <p class="text-xs text-gray-500">Success</p>
+                        <p class="text-xs text-gray-500">Paid to doctors</p>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 p-5 border-l-4 border-purple-500">
                         <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1.5">Total Paid</p>
@@ -72,20 +341,8 @@
                     </div>
                 </div>
 
-                <!-- Tabs -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-                    <div class="flex border-b border-gray-200">
-                        <button @click="activeTab = 'payments'" :class="{ 'border-b-2 border-purple-600 text-purple-600': activeTab === 'payments', 'text-gray-500 hover:text-gray-700': activeTab !== 'payments' }" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide transition">
-                            Admin Flow (DoctorPayment)
-                        </button>
-                        <button @click="activeTab = 'payouts'" :class="{ 'border-b-2 border-purple-600 text-purple-600': activeTab === 'payouts', 'text-gray-500 hover:text-gray-700': activeTab !== 'payouts' }" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide transition">
-                            API Flow (DoctorPayout)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Admin Flow Tab (DoctorPayment) -->
-                <div x-show="activeTab === 'payments'" x-cloak>
+                <!-- Admin Flow (DoctorPayment) -->
+                <div>
                     <!-- Paid consultations eligible for a new payout batch -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
                         <div class="mb-4 pb-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -371,71 +628,6 @@
                     <!-- Pagination -->
                     <div class="mt-6">
                         {{ $payments->links() }}
-                    </div>
-                </div>
-
-                <!-- API Flow Tab (DoctorPayout) -->
-                <div x-show="activeTab === 'payouts'" x-cloak>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                        <div class="mb-4 pb-4 border-b border-gray-200">
-                            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                                <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                API Flow Payouts (DoctorPayout)
-                            </h2>
-                            <p class="text-xs text-gray-500 mt-1">Payouts initiated via the API flow using KorapayPayoutService. These use the DR-PAYOUT-* reference prefix.</p>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 text-xs">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Doctor</th>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Consultations</th>
-                                        <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">KoraPay Ref</th>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Created</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    @forelse($payouts as $payout)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-3 py-2 font-mono text-xs text-gray-900">{{ $payout->payout_reference }}</td>
-                                        <td class="px-3 py-2 text-gray-800">
-                                            <a href="{{ admin_route('admin.doctors.profile', $payout->doctor_id) }}" class="text-purple-600 hover:text-purple-800 font-medium">
-                                                {{ $payout->doctor->full_name ?? '—' }}
-                                            </a>
-                                        </td>
-                                        <td class="px-3 py-2 text-gray-700">{{ $payout->total_consultations_count ?? count($payout->consultation_ids ?? []) }}</td>
-                                        <td class="px-3 py-2 text-right font-medium text-gray-900">₦{{ number_format($payout->amount, 2) }}</td>
-                                        <td class="px-3 py-2">
-                                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if($payout->status === 'success') bg-emerald-100 text-emerald-800
-                                                @elseif($payout->status === 'pending') bg-amber-100 text-amber-800
-                                                @elseif($payout->status === 'failed') bg-red-100 text-red-800
-                                                @else bg-blue-100 text-blue-800
-                                                @endif">
-                                                {{ ucfirst($payout->status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-3 py-2 font-mono text-xs text-gray-600">{{ $payout->korapay_reference ?? '—' }}</td>
-                                        <td class="px-3 py-2 text-gray-600">{{ $payout->created_at->format('M d, Y') }}</td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="7" class="px-3 py-10 text-center text-gray-500 text-sm">No API flow payouts found.</td>
-                                    </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                        @if($payouts->hasPages())
-                        <div class="mt-4 border-t border-gray-100 pt-4">
-                            {{ $payouts->links() }}
-                        </div>
-                        @endif
                     </div>
                 </div>
 
@@ -817,339 +1009,6 @@
             </main>
         </div>
     </div>
-
-    <script>
-        function paymentManager() {
-            return {
-                activeTab: 'payments',
-                pageLoading: false,
-                sidebarOpen: false,
-                showCreateModal: false,
-                showDetailsModal: false,
-                selectedDoctor: '',
-                consultations: [],
-                selectedConsultations: [],
-                selectedPayments: [],
-                loadingConsultations: false,
-                doctorPercentage: {{ \App\Models\Setting::get('doctor_payment_percentage', 70) }},
-                currentPaymentId: null,
-                selectedPayment: null,
-                loadingPaymentDetails: false,
-                paymentConsultations: [],
-                
-                // Helper functions to parse error response
-                getErrorData(response) {
-                    if (!response) return null;
-                    if (typeof response === 'string') {
-                        try {
-                            return JSON.parse(response);
-                        } catch (e) {
-                            return null;
-                        }
-                    }
-                    return response;
-                },
-                
-                getErrorMessage(response) {
-                    const data = this.getErrorData(response);
-                    return data?.message || null;
-                },
-                
-                getErrorAmount(response) {
-                    const data = this.getErrorData(response);
-                    return data?.amount || null;
-                },
-                
-                getErrorTraceId(response) {
-                    const data = this.getErrorData(response);
-                    return data?.trace_id || null;
-                },
-
-                get totalAmount() {
-                    return this.consultations
-                        .filter(c => this.selectedConsultations.includes(c.id))
-                        .reduce((sum, c) => sum + c.amount, 0);
-                },
-
-                get doctorShare() {
-                    return (this.totalAmount * this.doctorPercentage) / 100;
-                },
-
-                get platformFee() {
-                    return this.totalAmount - this.doctorShare;
-                },
-
-                async loadConsultations() {
-                    if (!this.selectedDoctor) {
-                        this.consultations = [];
-                        this.selectedConsultations = [];
-                        return;
-                    }
-
-                    this.loadingConsultations = true;
-                    this.consultations = [];
-                    this.selectedConsultations = [];
-
-                    try {
-                        const response = await fetch(`/admin/doctors/${this.selectedDoctor}/unpaid-consultations`);
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            this.consultations = data.consultations || [];
-                            this.selectedConsultations = [];
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal('Failed to load consultations: ' + (data.message || 'Unknown error'), 'error');
-                            }
-                            this.consultations = [];
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('Failed to load consultations. Please try again.', 'error');
-                        }
-                        console.error(error);
-                        this.consultations = [];
-                    } finally {
-                        this.loadingConsultations = false;
-                    }
-                },
-
-                async submitPayment() {
-                    // Validation
-                    if (!this.selectedDoctor) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('Please select a doctor', 'error');
-                        }
-                        return;
-                    }
-
-                    if (this.selectedConsultations.length === 0) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('Please select at least one consultation', 'error');
-                        }
-                        return;
-                    }
-
-                    if (!this.doctorPercentage || this.doctorPercentage <= 0 || this.doctorPercentage > 100) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('Please enter a valid doctor percentage (0-100)', 'error');
-                        }
-                        return;
-                    }
-
-                    try {
-                        const response = await fetch('/admin/doctor-payments', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({
-                                doctor_id: this.selectedDoctor,
-                                consultation_ids: this.selectedConsultations,
-                                doctor_percentage: this.doctorPercentage
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'success', 'Payout Batch Created');
-                            }
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message || 'Failed to create payment', 'error');
-                            }
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('An error occurred while creating payment. Please check the console for details.', 'error');
-                        }
-                        console.error('Payment creation error:', error);
-                    }
-                },
-
-                async viewPayment(paymentId) {
-                    this.loadingPaymentDetails = true;
-                    this.selectedPayment = null;
-                    this.paymentConsultations = [];
-                    this.showDetailsModal = true;
-
-                    try {
-                        const response = await fetch(`/admin/doctor-payments/${paymentId}/details`);
-                        const data = await response.json();
-
-                        if (data.success) {
-                            this.selectedPayment = data.payment;
-                            this.paymentConsultations = data.consultations || [];
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message || 'Failed to load payment details', 'error');
-                            }
-                            this.showDetailsModal = false;
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('An error occurred while loading payment details', 'error');
-                        }
-                        this.showDetailsModal = false;
-                        console.error(error);
-                    } finally {
-                        this.loadingPaymentDetails = false;
-                    }
-                },
-
-                toggleSelectAll() {
-                    const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]');
-                    const selectAll = event.target.checked;
-                    checkboxes.forEach(cb => {
-                        if (cb.value) {
-                            cb.checked = selectAll;
-                            if (selectAll && !this.selectedPayments.includes(parseInt(cb.value))) {
-                                this.selectedPayments.push(parseInt(cb.value));
-                            } else if (!selectAll) {
-                                this.selectedPayments = this.selectedPayments.filter(id => id !== parseInt(cb.value));
-                            }
-                        }
-                    });
-                },
-
-                toggleSelectAllConsultations() {
-                    const selectAll = event.target.checked;
-                    if (selectAll) {
-                        // Select all consultation IDs
-                        this.selectedConsultations = this.consultations.map(c => c.id);
-                    } else {
-                        // Deselect all
-                        this.selectedConsultations = [];
-                    }
-                },
-
-                initiatePayout(paymentId) {
-                    const confirmMessage = 'Initiate KoraPay payout for this payment? This will verify the bank account and process the transfer.';
-                    if (typeof showConfirmModal === 'function') {
-                        showConfirmModal(confirmMessage, () => {
-                            this.performInitiatePayout(paymentId);
-                        });
-                    }
-                },
-
-                async performInitiatePayout(paymentId) {
-
-                    try {
-                        const response = await fetch(`/admin/doctor-payments/${paymentId}/initiate-payout`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            }
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'success', 'Payout Initiated');
-                            }
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'error');
-                            }
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('An error occurred while initiating payout', 'error');
-                        }
-                        console.error(error);
-                    }
-                },
-
-                async verifyPayout(paymentId) {
-                    try {
-                        const response = await fetch(`/admin/doctor-payments/${paymentId}/verify-status`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            }
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'success', 'Payout Status');
-                            }
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message || 'Failed to verify payout status', 'error');
-                            }
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('An error occurred while verifying payout', 'error');
-                        }
-                        console.error(error);
-                    }
-                },
-
-                processBulkPayout() {
-                    if (this.selectedPayments.length === 0) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('Please select at least one payment', 'error');
-                        }
-                        return;
-                    }
-
-                    const confirmMessage = `Initiate KoraPay payout for ${this.selectedPayments.length} payment(s)? This will process all selected payments.`;
-                    if (typeof showConfirmModal === 'function') {
-                        showConfirmModal(confirmMessage, () => {
-                            this.performBulkPayout();
-                        });
-                    }
-                },
-
-                async performBulkPayout() {
-
-                    try {
-                        const response = await fetch('/admin/doctor-payments/bulk-payout', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({
-                                payment_ids: this.selectedPayments
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'success', 'Bulk Payout Initiated');
-                            }
-                            this.selectedPayments = [];
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            if (typeof showAlertModal === 'function') {
-                                showAlertModal(data.message, 'error');
-                            }
-                        }
-                    } catch (error) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal('An error occurred while processing bulk payout', 'error');
-                        }
-                        console.error(error);
-                    }
-                }
-            }
-        }
-    </script>
 
     <!-- Include Alert Modal Component -->
     @include('components.alert-modal')
