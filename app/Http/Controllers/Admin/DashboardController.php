@@ -3333,6 +3333,51 @@ class DashboardController extends Controller
     }
 
     /**
+     * Cancel a payment
+     */
+    public function cancelDoctorPayment(Request $request, $id)
+    {
+        try {
+            $payment = \App\Models\DoctorPayment::findOrFail($id);
+
+            // Only allow cancellation of pending payments that haven't been initiated
+            if ($payment->status !== 'pending' || $payment->korapay_reference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only pending payments that have not been initiated can be cancelled.',
+                ], 400);
+            }
+
+            // Update payment status to cancelled
+            $payment->update([
+                'status' => 'cancelled',
+            ]);
+
+            // Release the consultations back to unpaid status
+            if ($payment->consultation_ids) {
+                \App\Models\Consultation::whereIn('id', $payment->consultation_ids)
+                    ->update(['payment_status' => 'unpaid']);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment cancelled successfully.',
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to cancel payment', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel payment: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Mark payment as completed (manual override - for non-KoraPay payments)
      */
     public function completeDoctorPayment(Request $request, $id)

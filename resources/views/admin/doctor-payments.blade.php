@@ -255,6 +255,40 @@
                     }
                 },
 
+                async cancelPayment(paymentId) {
+                    if (!confirm('Are you sure you want to cancel this payment? The consultations will be released back to unpaid status.')) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/admin/doctor-payments/${paymentId}/cancel`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message, 'success', 'Payment Cancelled');
+                            }
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            if (typeof showAlertModal === 'function') {
+                                showAlertModal(data.message || 'Failed to cancel payment', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        if (typeof showAlertModal === 'function') {
+                            showAlertModal('An error occurred while cancelling payment', 'error');
+                        }
+                        console.error(error);
+                    }
+                },
+
                 async viewPayment(paymentId) {
                     this.loadingPaymentDetails = true;
                     this.selectedPayment = null;
@@ -579,7 +613,14 @@
                                 </div>
                                 <div class="px-5 py-3 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-2">
                                     @if($payment->status === 'pending' && !$payment->korapay_reference)
-                                        <button @click="initiatePayout({{ $payment->id }})" 
+                                        <button @click="cancelPayment({{ $payment->id }})"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                            Cancel
+                                        </button>
+                                        <button @click="initiatePayout({{ $payment->id }})"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
@@ -587,7 +628,7 @@
                                             Initiate Payout
                                         </button>
                                     @elseif($payment->status === 'failed' || $payment->korapay_status === 'failed')
-                                        <button @click="initiatePayout({{ $payment->id }})" 
+                                        <button @click="initiatePayout({{ $payment->id }})"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -595,7 +636,7 @@
                                             Retry
                                         </button>
                                     @elseif($payment->status === 'processing' || ($payment->korapay_status && $payment->korapay_status !== 'success' && $payment->korapay_status !== 'failed'))
-                                        <button @click="verifyPayout({{ $payment->id }})" 
+                                        <button @click="verifyPayout({{ $payment->id }})"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -603,7 +644,7 @@
                                             Verify Status
                                         </button>
                                     @endif
-                                    <button @click="viewPayment({{ $payment->id }})" 
+                                    <button @click="viewPayment({{ $payment->id }})"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white purple-gradient rounded-lg hover:opacity-90 transition">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>

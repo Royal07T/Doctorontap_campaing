@@ -285,6 +285,7 @@ Route::domain('admin.doctorontap.com.ng')->group(function () {
         Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
         Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
         Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
+        Route::post('/doctor-payments/{id}/cancel', [DashboardController::class, 'cancelDoctorPayment'])->name('doctor-payments.cancel');
         Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
         
         // Unified User Management (leverages user unification architecture)
@@ -436,6 +437,7 @@ if (!app()->environment('production')) {
         Route::post('/doctor-payments/{id}/initiate-payout', [DashboardController::class, 'initiateDoctorPayout'])->name('doctor-payments.initiate-payout');
         Route::post('/doctor-payments/bulk-payout', [DashboardController::class, 'processBulkPayouts'])->name('doctor-payments.bulk-payout');
         Route::post('/doctor-payments/{id}/verify-status', [DashboardController::class, 'verifyPayoutStatus'])->name('doctor-payments.verify-status');
+        Route::post('/doctor-payments/{id}/cancel', [DashboardController::class, 'cancelDoctorPayment'])->name('doctor-payments.cancel');
         Route::get('/doctors/{id}/unpaid-consultations', [DashboardController::class, 'getDoctorUnpaidConsultations'])->name('doctors.unpaid-consultations');
         
         // Unified User Management (leverages user unification architecture)
